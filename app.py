@@ -153,8 +153,10 @@ def index():
             if zillow_url:
                 # Try to scrape Zillow
                 zillow_data = scrape_zillow(zillow_url)
-                if not zillow_data:
-                    error = "Failed to extract data from Zillow URL. Please enter property details manually."
+                # Only show error if we got no data at all (not even an address)
+                if not zillow_data or not zillow_data.get('address'):
+                    error = "Could not extract data from Zillow URL. Please enter property details manually."
+                # If we got at least an address, we can work with partial data
 
             # Get form values (these will be overridden by Zillow data if available)
             address = request.form.get("address", "").strip()
