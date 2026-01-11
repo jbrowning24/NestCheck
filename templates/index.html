@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NestCheck - Property Evaluator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+    }
+
+    h2 {
+      color: #34495e;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+
+    .form-section {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .error-message {
+      background: #fee;
+      border-left: 4px solid #e74c3c;
+      padding: 15px;
+      border-radius: 4px;
+      color: #c0392b;
+      margin-bottom: 20px;
+    }
+
+    .property-header {
+      background: #ecf0f1;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .property-header h2 {
+      margin-top: 0;
+      border: none;
+      padding-bottom: 0;
+    }
+
+    .property-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .info-item {
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .info-label {
+      font-size: 0.85em;
+      color: #7f8c8d;
+      text-transform: uppercase;
+    }
+
+    .info-value {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+
+    .tier-section {
+      margin-bottom: 30px;
+    }
+
+    .tier-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tier-status {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .tier-status.passed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .tier-status.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .check-list,
+    .score-list,
+    .bonus-list {
+      list-style: none;
+      margin-top: 15px;
+    }
+
+    .check-item,
+    .score-item,
+    .bonus-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border-left: 4px solid transparent;
+    }
+
+    .check-item.pass {
+      background: #d4edda;
+      border-left-color: #28a745;
+    }
+
+    .check-item.fail {
+      background: #f8d7da;
+      border-left-color: #dc3545;
+    }
+
+    .check-item.unknown {
+      background: #fff3cd;
+      border-left-color: #ffc107;
+    }
+
+    .score-item,
+    .bonus-item {
+      background: #e3f2fd;
+      border-left-color: #2196f3;
+    }
+
+    .check-icon {
+      font-size: 1.5em;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+
+    .check-icon.pass { color: #28a745; }
+    .check-icon.fail { color: #dc3545; }
+    .check-icon.unknown { color: #ffc107; }
+
+    .check-content {
+      flex-grow: 1;
+    }
+
+    .check-name,
+    .score-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #2c3e50;
+    }
+
+    .check-details,
+    .score-details {
+      color: #555;
+      font-size: 0.95em;
+    }
+
+    .score-points {
+      margin-left: auto;
+      padding-left: 20px;
+      font-weight: 700;
+      font-size: 1.2em;
+      color: #2196f3;
+      flex-shrink: 0;
+    }
+
+    .total-score {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .total-score h3 {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+
+    .total-score .score {
+      font-size: 3em;
+      font-weight: 700;
+    }
+
+    .tier2-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #e8f5e9;
+      padding: 15px 20px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+
+    .tier2-summary span {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #2e7d32;
+    }
+
+    .tier3-summary {
+      background: #fff3e0;
+      padding: 15px 20px;
+      border-radius: 6px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .tier3-summary span {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #e65100;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2em;
+      }
+
+      .property-info {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>NestCheck</h1>
+    <p style="color: #7f8c8d; margin-bottom: 30px;">Evaluate rental properties in Westchester against health, lifestyle, and budget criteria.</p>
+
+    <div class="form-section">
+      <form method="POST">
+        <div class="form-group">
+          <label for="address">Address *</label>
+          <input type="text" id="address" name="address" placeholder="e.g., 123 Main St, Scarsdale, NY" required>
+        </div>
+        <div class="form-group">
+          <label for="rent">Monthly Rent ($)</label>
+          <input type="number" id="rent" name="rent" placeholder="e.g., 6500">
+        </div>
+        <div class="form-group">
+          <label for="sqft">Square Feet</label>
+          <input type="number" id="sqft" name="sqft" placeholder="e.g., 1800">
+        </div>
+        <div class="form-group">
+          <label for="bedrooms">Bedrooms</label>
+          <input type="number" id="bedrooms" name="bedrooms" placeholder="e.g., 2">
+        </div>
+        <button type="submit">Evaluate Property</button>
+      </form>
+    </div>
+
+    {% if error %}
+      <div class="error-message">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    {% if result %}
+      <div class="property-header">
+        <h2>{{ result.address }}</h2>
+        <div class="property-info">
+          <div class="info-item">
+            <div class="info-label">Coordinates</div>
+            <div class="info-value">{{ "%.4f"|format(result.coordinates.lat) }}, {{ "%.4f"|format(result.coordinates.lng) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER 1: Must-Have Requirements -->
+      <div class="tier-section">
+        <div class="tier-header">
+          <h2>Tier 1: Must-Have Requirements</h2>
+          {% if result.passed_tier1 %}
+            <span class="tier-status passed">✓ PASSED</span>
+          {% else %}
+            <span class="tier-status failed">✗ FAILED</span>
+          {% endif %}
+        </div>
+
+        <ul class="check-list">
+          {% for check in result.tier1_checks %}
+            <li class="check-item {{ check.result|lower }}">
+              <span class="check-icon {{ check.result|lower }}">
+                {% if check.result == "PASS" %}
+                  ✓
+                {% elif check.result == "FAIL" %}
+                  ✗
+                {% else %}
+                  ?
+                {% endif %}
+              </span>
+              <div class="check-content">
+                <div class="check-name">{{ check.name }}</div>
+                <div class="check-details">{{ check.details }}</div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- TIER 2: Quality of Life Scoring -->
+      {% if result.passed_tier1 %}
+        <div class="tier-section">
+          <div class="tier-header">
+            <h2>Tier 2: Quality of Life Score</h2>
+          </div>
+
+          <ul class="score-list">
+            {% for score in result.tier2_scores %}
+              <li class="score-item">
+                <div class="check-content">
+                  <div class="score-name">{{ score.name }}</div>
+                  <div class="score-details">{{ score.details }}</div>
+                </div>
+                <div class="score-points">{{ score.points }}/{{ score.max }}</div>
+              </li>
+            {% endfor %}
+          </ul>
+
+          <div class="tier2-summary">
+            <strong>Tier 2 Total:</strong>
+            <span>{{ result.tier2_score }}/{{ result.tier2_max }} points</span>
+          </div>
+        </div>
+
+        <!-- TIER 3: Bonus Features -->
+        <div class="tier-section">
+          <div class="tier-header">
+            <h2>Tier 3: Bonus Features</h2>
+          </div>
+
+          {% if result.tier3_bonuses %}
+            <ul class="bonus-list">
+              {% for bonus in result.tier3_bonuses %}
+                <li class="bonus-item">
+                  <div class="check-content">
+                    <div class="score-name">{{ bonus.name }}</div>
+                    <div class="score-details">{{ bonus.details }}</div>
+                  </div>
+                  <div class="score-points">+{{ bonus.points }}</div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p style="color: #7f8c8d; font-style: italic;">No bonus features detected</p>
+          {% endif %}
+
+          <div class="tier3-summary">
+            <strong>Tier 3 Bonus Total:</strong>
+            <span>+{{ result.tier3_bonus }} points</span>
+          </div>
+        </div>
+
+        <!-- TOTAL SCORE -->
+        <div class="total-score">
+          <h3>Final Score</h3>
+          <div class="score">{{ result.total_score }}</div>
+          <p style="margin-top: 10px; opacity: 0.9;">{{ result.tier2_score }} (Tier 2) + {{ result.tier3_bonus }} (Tier 3)</p>
+        </div>
+      {% else %}
+        <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; border-radius: 6px; margin-top: 20px;">
+          <strong style="color: #721c24;">Property Disqualified</strong>
+          <p style="color: #721c24; margin-top: 10px;">This property failed one or more Tier 1 requirements and cannot be scored.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</body>
+</html>
+
