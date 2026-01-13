@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NestCheck - Property Evaluator</title>
+  <title>NestCheck - Livability Evaluator</title>
   <style>
     * {
       margin: 0;
@@ -310,7 +310,7 @@
 <body>
   <div class="container">
     <h1>NestCheck</h1>
-    <p style="color: #7f8c8d; margin-bottom: 30px;">Evaluate rental properties in Westchester against health, lifestyle, and budget criteria.</p>
+    <p style="color: #7f8c8d; margin-bottom: 30px;">Evaluate any U.S. address for daily life and livability - health, amenities, and lifestyle intelligence.</p>
 
     <div class="form-section">
       <form method="POST">
@@ -338,8 +338,8 @@
         </div>
 
         <div class="form-group">
-          <label for="rent">Monthly Rent ($)</label>
-          <input type="number" id="rent" name="rent" placeholder="e.g., 6500">
+          <label for="cost">Monthly Cost ($)</label>
+          <input type="number" id="cost" name="cost" placeholder="e.g., 6500 (rent or estimated monthly cost)">
         </div>
         <div class="form-group">
           <label for="sqft">Square Feet</label>
@@ -369,6 +369,26 @@
           </div>
         </div>
       </div>
+
+      <!-- NEIGHBORHOOD SNAPSHOT -->
+      {% if result.neighborhood_snapshot %}
+        <div class="tier-section">
+          <h2>Neighborhood Snapshot</h2>
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #9c27b0;">
+            {% for place in result.neighborhood_snapshot %}
+              <div style="margin-bottom: 12px; padding: 10px; background: white; border-radius: 4px;">
+                <strong style="color: #9c27b0;">{{ place.category }}:</strong>
+                {{ place.name }}
+                {% if place.rating %}
+                  ({{ "%.1f"|format(place.rating) }}★)
+                {% endif %}
+                — {{ place.walk_time_min }} min walk
+                <span style="color: #999; font-size: 0.9em;">({{ place.place_type }})</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
 
       <!-- TIER 1: Must-Have Requirements -->
       <div class="tier-section">

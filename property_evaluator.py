@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Westchester Property Evaluator
+Property Livability Evaluator
 
-Evaluates rental properties against health, lifestyle, and budget criteria.
-Takes an address and returns a detailed pass/fail report with scoring.
+Evaluates any U.S. address for daily life quality, health, and livability.
+Works for rentals, purchases, or general location research.
 
 Requirements:
 - Google Maps API key (for Places, Distance Matrix, and Geocoding)
@@ -47,10 +47,10 @@ GROCERY_WALK_ACCEPTABLE_MIN = 30
 FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
 
-# Budget thresholds
-BUDGET_MAX = 7000
-BUDGET_TARGET = 6500
-BUDGET_IDEAL = 6000
+# Cost thresholds (monthly cost - rent or estimated mortgage + expenses)
+COST_MAX = 7000
+COST_TARGET = 6500
+COST_IDEAL = 6000
 
 # Size thresholds
 MIN_SQFT = 1700
@@ -61,32 +61,8 @@ MIN_PARK_ACRES = 5
 MIN_PARK_RATING = 4.0
 MIN_PARK_REVIEWS = 50
 
-# Highways in Westchester to check against
-WESTCHESTER_HIGHWAYS = [
-    "Interstate 95", "I-95", "I 95",
-    "Interstate 87", "I-87", "I 87", "New York State Thruway",
-    "Interstate 287", "I-287", "I 287",
-    "Saw Mill River Parkway", "Saw Mill Parkway",
-    "Hutchinson River Parkway", "Hutch",
-    "Cross County Parkway",
-    "Bronx River Parkway",
-    "Taconic State Parkway", "Taconic Parkway",
-    "Sprain Brook Parkway",
-]
-
-# State/US routes to flag as high-volume
-NUMBERED_ROUTES = [
-    "US-1", "US 1", "Route 1",
-    "NY-9", "NY 9", "Route 9",
-    "NY-9A", "NY 9A", "Route 9A",
-    "NY-22", "NY 22", "Route 22",
-    "NY-119", "NY 119", "Route 119",
-    "NY-100", "NY 100", "Route 100",
-    "NY-35", "NY 35", "Route 35",
-    "NY-120", "NY 120", "Route 120",
-    "Central Avenue", "Central Ave",
-    "Boston Post Road",
-]
+# High-volume road detection is done via OSM tags (highway type, lane count)
+# No hardcoded road names needed - works anywhere in the US
 
 # Coffee shop exclusions (chains to avoid)
 COFFEE_EXCLUDE = [
@@ -115,8 +91,6 @@ COFFEE_APPROVED_CHAINS = [
     "variety coffee",
 ]
 
-# Metro North stations in Westchester (partial list - major ones)
-METRO_NORTH_SEARCH_TERM = "Metro-North station"
 
 
 # =============================================================================
@@ -152,11 +126,27 @@ class Tier3Bonus:
     details: str
 
 
-@dataclass 
+@dataclass
+class NeighborhoodPlace:
+    """Single nearby amenity for context"""
+    category: str  # "Grocery", "Coffee", "Park", "School"
+    name: str
+    rating: Optional[float]
+    walk_time_min: int
+    place_type: str  # "supermarket", "cafe", etc.
+
+
+@dataclass
+class NeighborhoodSnapshot:
+    """Collection of nearest key amenities"""
+    places: List[NeighborhoodPlace] = field(default_factory=list)
+
+
+@dataclass
 class PropertyListing:
     """Property listing data - can be populated from manual input or scraped"""
     address: str
-    rent: Optional[int] = None
+    cost: Optional[int] = None  # Monthly cost (rent or estimated mortgage + expenses)
     sqft: Optional[int] = None
     bedrooms: Optional[int] = None
     bathrooms: Optional[float] = None
@@ -172,6 +162,7 @@ class EvaluationResult:
     listing: PropertyListing
     lat: float
     lng: float
+    neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
@@ -421,22 +412,15 @@ def check_highways(
 
 def check_high_volume_roads(
     overpass: OverpassClient,
-    lat: float, 
+    lat: float,
     lng: float
 ) -> Tier1Check:
-    """Check distance to high-volume roads (4+ lanes or numbered routes)"""
+    """Check distance to high-volume roads (4+ lanes or primary/secondary classification)"""
     try:
         roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
-        
+
         problem_roads = []
         for road in roads:
-            # Check if it's a numbered route
-            road_name = (road.get("name", "") + " " + road.get("ref", "")).lower()
-            is_numbered_route = any(
-                route.lower() in road_name 
-                for route in NUMBERED_ROUTES
-            )
-            
             # Check lane count (if available)
             lanes = road.get("lanes", "")
             has_many_lanes = False
@@ -446,11 +430,11 @@ def check_high_volume_roads(
                         has_many_lanes = True
                 except ValueError:
                     pass
-            
-            # Primary roads are typically high-volume
+
+            # Primary/secondary roads are typically high-volume
             is_primary = road["highway_type"] in ["primary", "secondary"]
-            
-            if is_numbered_route or has_many_lanes or is_primary:
+
+            if has_many_lanes or is_primary:
                 problem_roads.append(road.get("name") or road.get("ref") or "Unnamed road")
         
         if not problem_roads:
@@ -564,29 +548,79 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
             value=listing.bedrooms
         ))
     
-    # Rent
-    if listing.rent is None:
+    # Cost (monthly - rent or estimated)
+    if listing.cost is None:
         checks.append(Tier1Check(
-            name="Rent",
+            name="Cost",
             result=CheckResult.UNKNOWN,
-            details="Rent not specified"
+            details="Monthly cost not specified"
         ))
-    elif listing.rent <= BUDGET_MAX:
+    elif listing.cost <= COST_MAX:
         checks.append(Tier1Check(
-            name="Rent",
+            name="Cost",
             result=CheckResult.PASS,
-            details=f"${listing.rent:,}/month",
-            value=listing.rent
+            details=f"${listing.cost:,}/month",
+            value=listing.cost
         ))
     else:
         checks.append(Tier1Check(
-            name="Rent",
+            name="Cost",
             result=CheckResult.FAIL,
-            details=f"${listing.rent:,}/month > ${BUDGET_MAX:,} max",
-            value=listing.rent
+            details=f"${listing.cost:,}/month > ${COST_MAX:,} max",
+            value=listing.cost
         ))
     
     return checks
+
+
+def get_neighborhood_snapshot(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> NeighborhoodSnapshot:
+    """Collect nearest key amenities for neighborhood context"""
+    snapshot = NeighborhoodSnapshot()
+
+    # Find nearest of each category
+    categories = [
+        ("Grocery", "grocery_store", "supermarket"),
+        ("Coffee", "cafe", None),
+        ("Park", "park", None),
+        ("School", "school", "primary_school")
+    ]
+
+    for category, primary_type, secondary_type in categories:
+        try:
+            places = maps.places_nearby(lat, lng, primary_type, radius_meters=3000)
+            if secondary_type:
+                places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
+
+            if places:
+                # Find closest
+                best = None
+                best_time = 9999
+                for place in places:
+                    p_lat = place["geometry"]["location"]["lat"]
+                    p_lng = place["geometry"]["location"]["lng"]
+                    walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+                    if walk_time < best_time:
+                        best_time = walk_time
+                        best = place
+
+                if best:
+                    place_types = best.get("types", [])
+                    snapshot.places.append(NeighborhoodPlace(
+                        category=category,
+                        name=best.get("name", "Unknown"),
+                        rating=best.get("rating"),
+                        walk_time_min=best_time,
+                        place_type=place_types[0] if place_types else "unknown"
+                    ))
+        except Exception as e:
+            # Skip this category if there's an error
+            continue
+
+    return snapshot
 
 
 def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
@@ -619,66 +653,65 @@ def score_park_access(
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score park access (0-20 points)"""
+    """Score park access based on rating and distance (0-10 points)"""
     try:
         # Search for parks within walking distance (~2.5km for 30 min walk)
         parks = maps.places_nearby(lat, lng, "park", radius_meters=2500)
-        
+
         if not parks:
             return Tier2Score(
                 name="Park access",
                 points=0,
-                max_points=20,
-                details="No parks found within walking distance"
+                max_points=10,
+                details="No parks found within 30 min walk"
             )
-        
-        # Find best qualifying park
+
+        # Find best scored park
+        best_score = 0
         best_park = None
-        best_walk_time = 9999
         best_details = ""
-        
+
         for park in parks:
-            is_quality, quality_details = is_quality_park(park, maps)
-            if not is_quality:
-                continue
-            
+            rating = park.get("rating", 0)
             park_lat = park["geometry"]["location"]["lat"]
             park_lng = park["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (park_lat, park_lng))
-            
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
+
+            # Score based on rating + distance
+            score = 0
+            if rating >= 4.2 and walk_time <= 15:
+                score = 10
+            elif rating >= 4.0 and walk_time <= 20:
+                score = 6
+            elif walk_time <= 30:
+                score = 3
+
+            if score > best_score:
+                best_score = score
                 best_park = park
-                best_details = quality_details
-        
-        if best_park is None:
+                park_name = park.get("name", "Unknown park")
+                best_details = f"{park_name} ({rating}★) — {walk_time} min walk"
+
+        if best_score == 0:
             return Tier2Score(
                 name="Park access",
                 points=0,
-                max_points=20,
-                details="No quality parks found (all were small playgrounds or low-rated)"
+                max_points=10,
+                details="No parks found within 30 min walk"
             )
-        
-        # Score based on walk time
-        if best_walk_time <= PARK_WALK_IDEAL_MIN:
-            points = 20
-        elif best_walk_time <= PARK_WALK_ACCEPTABLE_MIN:
-            points = 10
-        else:
-            points = 0
-        
+
         return Tier2Score(
             name="Park access",
-            points=points,
-            max_points=20,
-            details=f"{best_details} — {best_walk_time} min walk"
+            points=best_score,
+            max_points=10,
+            details=best_details
         )
-        
+
     except Exception as e:
         return Tier2Score(
             name="Park access",
             points=0,
-            max_points=20,
+            max_points=10,
             details=f"Error: {str(e)}"
         )
 
@@ -706,176 +739,189 @@ def score_coffee_access(
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score coffee shop access (0-15 points)"""
+    """Score coffee shop access based on rating and distance (0-10 points)"""
     try:
         # Search for cafes
         cafes = maps.places_nearby(lat, lng, "cafe", radius_meters=2500)
-        
+
         if not cafes:
             return Tier2Score(
                 name="Coffee shop access",
                 points=0,
-                max_points=15,
-                details="No coffee shops found within walking distance"
+                max_points=10,
+                details="No coffee shops found within 30 min walk"
             )
-        
-        # Find best qualifying shop
+
+        # Find best scored shop (excluding chains like Starbucks/Dunkin)
+        best_score = 0
         best_shop = None
-        best_walk_time = 9999
         best_details = ""
-        
+
         for cafe in cafes:
-            is_acceptable, accept_details = is_acceptable_coffee_shop(cafe)
+            # Filter out excluded chains (Starbucks, Dunkin, etc.)
+            is_acceptable, _ = is_acceptable_coffee_shop(cafe)
             if not is_acceptable:
                 continue
-            
+
+            rating = cafe.get("rating", 0)
             cafe_lat = cafe["geometry"]["location"]["lat"]
             cafe_lng = cafe["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (cafe_lat, cafe_lng))
-            
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
+
+            # Score based on rating + distance
+            score = 0
+            if rating >= 4.2 and walk_time <= 15:
+                score = 10
+            elif rating >= 4.0 and walk_time <= 20:
+                score = 6
+            elif walk_time <= 30:
+                score = 3
+
+            if score > best_score:
+                best_score = score
                 best_shop = cafe
-                best_details = accept_details
-        
-        if best_shop is None:
+                cafe_name = cafe.get("name", "Coffee shop")
+                best_details = f"{cafe_name} ({rating}★) — {walk_time} min walk"
+
+        if best_score == 0:
             return Tier2Score(
                 name="Coffee shop access",
                 points=0,
-                max_points=15,
-                details="Only chain coffee (Starbucks/Dunkin) nearby"
+                max_points=10,
+                details="Only chain coffee (Starbucks/Dunkin) or low-rated shops nearby"
             )
-        
-        # Score based on walk time
-        if best_walk_time <= COFFEE_WALK_IDEAL_MIN:
-            points = 15
-        elif best_walk_time <= COFFEE_WALK_ACCEPTABLE_MIN:
-            points = 8
-        else:
-            points = 0
-        
+
         return Tier2Score(
             name="Coffee shop access",
-            points=points,
-            max_points=15,
-            details=f"{best_details} — {best_walk_time} min walk"
+            points=best_score,
+            max_points=10,
+            details=best_details
         )
-        
+
     except Exception as e:
         return Tier2Score(
             name="Coffee shop access",
             points=0,
-            max_points=15,
+            max_points=10,
             details=f"Error: {str(e)}"
         )
 
 
-def score_budget(rent: Optional[int]) -> Tier2Score:
-    """Score based on rent (0-15 points)"""
-    if rent is None:
+def score_cost(cost: Optional[int]) -> Tier2Score:
+    """Score based on monthly cost (0-10 points)"""
+    if cost is None:
         return Tier2Score(
-            name="Budget",
+            name="Cost",
             points=0,
-            max_points=15,
-            details="Rent not specified"
+            max_points=10,
+            details="Monthly cost not specified"
         )
-    
-    if rent <= BUDGET_IDEAL:
-        points = 15
-        details = f"${rent:,} — ${BUDGET_IDEAL - rent:,} under ideal target"
-    elif rent <= BUDGET_TARGET:
+
+    if cost <= COST_IDEAL:
         points = 10
-        details = f"${rent:,} — within target range"
-    elif rent <= BUDGET_MAX:
+        details = f"${cost:,} — ${COST_IDEAL - cost:,} under ideal target"
+    elif cost <= COST_TARGET:
+        points = 6
+        details = f"${cost:,} — within target range"
+    elif cost <= COST_MAX:
         points = 0
-        details = f"${rent:,} — at budget ceiling"
+        details = f"${cost:,} — at cost ceiling"
     else:
         points = 0
-        details = f"${rent:,} — OVER BUDGET"
-    
+        details = f"${cost:,} — OVER BUDGET"
+
     return Tier2Score(
-        name="Budget",
+        name="Cost",
         points=points,
-        max_points=15,
+        max_points=10,
         details=details
     )
 
 
-def score_metro_north(
+def score_transit_access(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    transit_keywords: Optional[List[str]] = None
 ) -> Tier2Score:
-    """Score Metro North access (0-10 points)"""
+    """Score public transit access (0-10 points)"""
     try:
-        # Search for transit stations
-        stations = maps.places_nearby(
-            lat, lng, 
-            "transit_station", 
-            radius_meters=3000,
-            keyword="Metro-North"
+        # Search for transit stations (generic)
+        stations = []
+
+        # Search for transit_station type
+        transit_stations = maps.places_nearby(
+            lat, lng,
+            "transit_station",
+            radius_meters=3000
         )
-        
-        if not stations:
-            # Try a broader search
-            stations = maps.places_nearby(
-                lat, lng,
-                "train_station",
-                radius_meters=3000
-            )
-        
+        stations.extend(transit_stations)
+
+        # Also search for train_station type
+        train_stations = maps.places_nearby(
+            lat, lng,
+            "train_station",
+            radius_meters=3000
+        )
+        stations.extend(train_stations)
+
         if not stations:
             return Tier2Score(
-                name="Metro North access",
+                name="Transit access",
                 points=0,
                 max_points=10,
-                details="No Metro North stations found nearby"
+                details="No transit stations found within 30 min walk"
             )
-        
-        # Find closest
+
+        # Filter by keywords if provided (e.g., ["Metro-North"] for Westchester)
+        if transit_keywords:
+            filtered = []
+            for station in stations:
+                name = station.get("name", "").lower()
+                if any(keyword.lower() in name for keyword in transit_keywords):
+                    filtered.append(station)
+            if filtered:
+                stations = filtered
+
+        # Find closest station
         best_walk_time = 9999
         best_station = None
-        
+
         for station in stations:
-            # Filter for actual Metro North stations
-            name = station.get("name", "").lower()
-            if "metro" not in name and "train" not in name and "station" not in name:
-                continue
-            
             station_lat = station["geometry"]["location"]["lat"]
             station_lng = station["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (station_lat, station_lng))
-            
+
             if walk_time < best_walk_time:
                 best_walk_time = walk_time
                 best_station = station
-        
+
         if best_station is None:
             return Tier2Score(
-                name="Metro North access",
+                name="Transit access",
                 points=0,
                 max_points=10,
-                details="No Metro North stations found nearby"
+                details="No transit stations found within 30 min walk"
             )
-        
+
         # Score based on walk time
-        if best_walk_time <= METRO_NORTH_WALK_IDEAL_MIN:
+        if best_walk_time <= 20:
             points = 10
-        elif best_walk_time <= METRO_NORTH_WALK_ACCEPTABLE_MIN:
+        elif best_walk_time <= 30:
             points = 5
         else:
             points = 0
-        
+
         return Tier2Score(
-            name="Metro North access",
+            name="Transit access",
             points=points,
             max_points=10,
             details=f"{best_station.get('name')} — {best_walk_time} min walk"
         )
-        
+
     except Exception as e:
         return Tier2Score(
-            name="Metro North access",
+            name="Transit access",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -887,61 +933,66 @@ def score_grocery_access(
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score grocery store access (0-10 points)"""
+    """Score grocery store access based on rating and distance (0-10 points)"""
     try:
         # Search for grocery stores and supermarkets
         groceries = []
 
+        # Try grocery_store type
+        grocery_stores = maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500)
+        groceries.extend(grocery_stores)
+
         # Try supermarket type
         supermarkets = maps.places_nearby(lat, lng, "supermarket", radius_meters=2500)
         groceries.extend(supermarkets)
-
-        # Try grocery_or_supermarket type (alternative)
-        grocery_stores = maps.places_nearby(lat, lng, "grocery_or_supermarket", radius_meters=2500)
-        groceries.extend(grocery_stores)
 
         if not groceries:
             return Tier2Score(
                 name="Grocery access",
                 points=0,
                 max_points=10,
-                details="No grocery stores found within walking distance"
+                details="No grocery stores found within 30 min walk"
             )
 
-        # Find closest store
-        best_walk_time = 9999
+        # Find best scored store
+        best_score = 0
         best_store = None
+        best_details = ""
 
         for store in groceries:
+            rating = store.get("rating", 0)
             store_lat = store["geometry"]["location"]["lat"]
             store_lng = store["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (store_lat, store_lng))
 
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
-                best_store = store
+            # Score based on rating + distance
+            score = 0
+            if rating >= 4.2 and walk_time <= 15:
+                score = 10
+            elif rating >= 4.0 and walk_time <= 20:
+                score = 6
+            elif walk_time <= 30:
+                score = 3
 
-        if best_store is None:
+            if score > best_score:
+                best_score = score
+                best_store = store
+                store_name = store.get("name", "Grocery store")
+                best_details = f"{store_name} ({rating}★) — {walk_time} min walk"
+
+        if best_score == 0:
             return Tier2Score(
                 name="Grocery access",
                 points=0,
                 max_points=10,
-                details="No grocery stores found within walking distance"
+                details="No grocery stores found within 30 min walk"
             )
-
-        # Score based on walk time
-        if best_walk_time <= GROCERY_WALK_IDEAL_MIN:
-            points = 10
-        elif best_walk_time <= GROCERY_WALK_ACCEPTABLE_MIN:
-            points = 5
-        else:
-            points = 0
 
         return Tier2Score(
             name="Grocery access",
-            points=points,
+            points=best_score,
             max_points=10,
-            details=f"{best_store.get('name', 'Grocery store')} — {best_walk_time} min walk"
+            details=best_details
         )
 
     except Exception as e:
@@ -958,7 +1009,7 @@ def score_fitness_access(
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score fitness/wellness facility access (0-10 points)"""
+    """Score fitness/wellness facility access based on rating and distance (0-10 points)"""
     try:
         # Search for gyms and fitness centers
         fitness_places = []
@@ -967,52 +1018,59 @@ def score_fitness_access(
         gyms = maps.places_nearby(lat, lng, "gym", radius_meters=2500)
         fitness_places.extend(gyms)
 
-        # Try searching with keywords for yoga, pilates, etc.
-        wellness = maps.places_nearby(lat, lng, "health", radius_meters=2500, keyword="yoga studio")
-        fitness_places.extend(wellness)
+        # Try searching for yoga studios using keyword
+        # Note: Google Places API may not have "yoga_studio" as a separate type,
+        # so we search with keyword instead
+        yoga = maps.places_nearby(lat, lng, "gym", radius_meters=2500, keyword="yoga")
+        fitness_places.extend(yoga)
 
         if not fitness_places:
             return Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
-                details="No gyms or fitness centers found within walking distance"
+                details="No gyms or fitness centers found within 30 min walk"
             )
 
-        # Find closest facility
-        best_walk_time = 9999
+        # Find best scored facility
+        best_score = 0
         best_facility = None
+        best_details = ""
 
         for facility in fitness_places:
+            rating = facility.get("rating", 0)
             facility_lat = facility["geometry"]["location"]["lat"]
             facility_lng = facility["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (facility_lat, facility_lng))
 
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
-                best_facility = facility
+            # Score based on rating + distance
+            score = 0
+            if rating >= 4.2 and walk_time <= 15:
+                score = 10
+            elif rating >= 4.0 and walk_time <= 20:
+                score = 6
+            elif walk_time <= 30:
+                score = 3
 
-        if best_facility is None:
+            if score > best_score:
+                best_score = score
+                best_facility = facility
+                facility_name = facility.get("name", "Fitness center")
+                best_details = f"{facility_name} ({rating}★) — {walk_time} min walk"
+
+        if best_score == 0:
             return Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
-                details="No gyms or fitness centers found within walking distance"
+                details="No gyms or fitness centers found within 30 min walk"
             )
-
-        # Score based on walk time
-        if best_walk_time <= FITNESS_WALK_IDEAL_MIN:
-            points = 10
-        elif best_walk_time <= FITNESS_WALK_ACCEPTABLE_MIN:
-            points = 5
-        else:
-            points = 0
 
         return Tier2Score(
             name="Fitness access",
-            points=points,
+            points=best_score,
             max_points=10,
-            details=f"{best_facility.get('name', 'Fitness center')} — {best_walk_time} min walk"
+            details=best_details
         )
 
     except Exception as e:
@@ -1067,13 +1125,19 @@ def evaluate_property(
     
     # Geocode the address
     lat, lng = maps.geocode(listing.address)
-    
+
     result = EvaluationResult(
         listing=listing,
         lat=lat,
         lng=lng
     )
-    
+
+    # ===================
+    # NEIGHBORHOOD SNAPSHOT
+    # ===================
+
+    result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
+
     # ===================
     # TIER 1 CHECKS
     # ===================
@@ -1099,8 +1163,8 @@ def evaluate_property(
         result.tier2_scores.append(score_coffee_access(maps, lat, lng))
         result.tier2_scores.append(score_grocery_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
-        result.tier2_scores.append(score_budget(listing.rent))
-        result.tier2_scores.append(score_metro_north(maps, lat, lng))
+        result.tier2_scores.append(score_cost(listing.cost))
+        result.tier2_scores.append(score_transit_access(maps, lat, lng))
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
@@ -1188,9 +1252,9 @@ def main():
         help="Property address to evaluate"
     )
     parser.add_argument(
-        "--rent",
+        "--cost",
         type=int,
-        help="Monthly rent in dollars"
+        help="Monthly cost in dollars (rent or estimated mortgage+expenses)"
     )
     parser.add_argument(
         "--sqft",
@@ -1246,7 +1310,7 @@ def main():
     # Build listing
     listing = PropertyListing(
         address=args.address,
-        rent=args.rent,
+        cost=args.cost,
         sqft=args.sqft,
         bedrooms=args.bedrooms,
         has_washer_dryer_in_unit=args.washer_dryer if args.washer_dryer else None,
@@ -1264,6 +1328,16 @@ def main():
         output = {
             "address": result.listing.address,
             "coordinates": {"lat": result.lat, "lng": result.lng},
+            "neighborhood_snapshot": [
+                {
+                    "category": p.category,
+                    "name": p.name,
+                    "rating": p.rating,
+                    "walk_time_min": p.walk_time_min,
+                    "place_type": p.place_type
+                }
+                for p in (result.neighborhood_snapshot.places if result.neighborhood_snapshot else [])
+            ],
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
                 {"name": c.name, "result": c.result.value, "details": c.details}

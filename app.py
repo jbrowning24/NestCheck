@@ -148,7 +148,7 @@ def index():
         try:
             # Get manual form input
             address = request.form.get("address", "").strip()
-            rent = clean(request.form.get("rent"))
+            cost = clean(request.form.get("cost"))
             sqft = clean(request.form.get("sqft"))
             bedrooms = clean(request.form.get("bedrooms"))
 
@@ -164,8 +164,8 @@ def index():
                         address = zillow_data['address']
                         print(f"Auto-filled address: {address}")
                     if zillow_data.get('rent'):
-                        rent = str(zillow_data['rent'])
-                        print(f"Auto-filled rent: {rent}")
+                        cost = str(zillow_data['rent'])
+                        print(f"Auto-filled cost: {cost}")
                     if zillow_data.get('sqft'):
                         sqft = str(zillow_data['sqft'])
                         print(f"Auto-filled sqft: {sqft}")
@@ -183,8 +183,8 @@ def index():
             # Build command for property evaluator
             cmd = ["python", "property_evaluator.py", address, "--json"]
 
-            if rent:
-                cmd += ["--rent", rent]
+            if cost:
+                cmd += ["--cost", cost]
             if sqft:
                 cmd += ["--sqft", sqft]
             if bedrooms:
