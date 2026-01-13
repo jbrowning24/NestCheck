@@ -146,38 +146,38 @@ def index():
 
     if request.method == "POST":
         try:
-            # Check if Zillow URL is provided
-            zillow_url = request.form.get("zillow_url", "").strip()
-            zillow_data = None
-
-            if zillow_url:
-                # Try to scrape Zillow
-                zillow_data = scrape_zillow(zillow_url)
-                # Only show error if we got no data at all (not even an address)
-                if not zillow_data or not zillow_data.get('address'):
-                    error = "Could not extract data from Zillow URL. Please enter property details manually."
-                # If we got at least an address, we can work with partial data
-
-            # Get form values (these will be overridden by Zillow data if available)
+            # Get manual form input
             address = request.form.get("address", "").strip()
             rent = clean(request.form.get("rent"))
             sqft = clean(request.form.get("sqft"))
             bedrooms = clean(request.form.get("bedrooms"))
 
-            # Override with Zillow data if available
-            if zillow_data:
-                if zillow_data.get('address'):
-                    address = zillow_data['address']
-                if zillow_data.get('rent'):
-                    rent = str(zillow_data['rent'])
-                if zillow_data.get('sqft'):
-                    sqft = str(zillow_data['sqft'])
-                if zillow_data.get('bedrooms'):
-                    bedrooms = str(zillow_data['bedrooms'])
+            # Try to auto-fill from Zillow URL if provided
+            zillow_url = request.form.get("zillow_url", "").strip()
+            if zillow_url:
+                print(f"Attempting to auto-fill from Zillow URL: {zillow_url}")
+                zillow_data = scrape_zillow(zillow_url)
 
-            # Validate we have an address
+                # Override manual input with Zillow data where available
+                if zillow_data:
+                    if zillow_data.get('address'):
+                        address = zillow_data['address']
+                        print(f"Auto-filled address: {address}")
+                    if zillow_data.get('rent'):
+                        rent = str(zillow_data['rent'])
+                        print(f"Auto-filled rent: {rent}")
+                    if zillow_data.get('sqft'):
+                        sqft = str(zillow_data['sqft'])
+                        print(f"Auto-filled sqft: {sqft}")
+                    if zillow_data.get('bedrooms'):
+                        bedrooms = str(zillow_data['bedrooms'])
+                        print(f"Auto-filled bedrooms: {bedrooms}")
+                else:
+                    print("Zillow auto-fill failed - using manual input")
+
+            # Validate that we have at least an address
             if not address:
-                error = "Address is required"
+                error = "Address is required. Please enter a property address or provide a Zillow URL."
                 return render_template("index.html", result=result, error=error)
 
             # Build command for property evaluator

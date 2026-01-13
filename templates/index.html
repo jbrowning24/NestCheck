@@ -315,14 +315,28 @@
     <div class="form-section">
       <form method="POST">
         <div class="form-group">
-          <label for="zillow_url">Zillow Listing URL (optional)</label>
+          <label for="zillow_url">Zillow Listing URL (optional - auto-fill helper)</label>
           <input type="text" id="zillow_url" name="zillow_url" placeholder="e.g., https://www.zillow.com/homedetails/...">
-          <small style="display: block; margin-top: 5px; color: #7f8c8d;">If provided, property details will be auto-filled from Zillow</small>
+          <small style="display: block; margin-top: 5px; color: #7f8c8d;">
+            Paste a Zillow URL to auto-fill the fields below. If auto-fill fails, just enter the address manually.
+          </small>
         </div>
+
+        <div style="margin: 20px 0; padding: 15px; background: #e8f4f8; border-left: 4px solid #2196f3; border-radius: 4px;">
+          <strong style="color: #1976d2;">Required:</strong>
+          <span style="color: #555;">Property address (enter manually or auto-fill from Zillow above)</span>
+        </div>
+
         <div class="form-group">
-          <label for="address" id="address_label">Address *</label>
-          <input type="text" id="address" name="address" placeholder="e.g., 123 Main St, Scarsdale, NY" required>
+          <label for="address">Property Address</label>
+          <input type="text" id="address" name="address" placeholder="e.g., 123 Main St, Scarsdale, NY">
         </div>
+
+        <div style="margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+          <strong style="color: #666;">Optional fields:</strong>
+          <span style="color: #888; font-size: 0.9em;">Leave blank if unknown - the evaluator will mark them as UNKNOWN</span>
+        </div>
+
         <div class="form-group">
           <label for="rent">Monthly Rent ($)</label>
           <input type="number" id="rent" name="rent" placeholder="e.g., 6500">
@@ -455,33 +469,6 @@
       {% endif %}
     {% endif %}
   </div>
-
-  <script>
-    // Toggle address field required attribute based on Zillow URL input
-    const zillowUrlInput = document.getElementById('zillow_url');
-    const addressInput = document.getElementById('address');
-    const addressLabel = document.getElementById('address_label');
-
-    function updateAddressRequired() {
-      const hasZillowUrl = zillowUrlInput.value.trim().length > 0;
-
-      if (hasZillowUrl) {
-        // If Zillow URL is provided, address is not required
-        addressInput.removeAttribute('required');
-        addressLabel.textContent = 'Address';
-      } else {
-        // If no Zillow URL, address is required
-        addressInput.setAttribute('required', 'required');
-        addressLabel.textContent = 'Address *';
-      }
-    }
-
-    // Update on input change
-    zillowUrlInput.addEventListener('input', updateAddressRequired);
-
-    // Update on page load in case there's a value (e.g., from browser autofill)
-    updateAddressRequired();
-  </script>
 </body>
 </html>
 

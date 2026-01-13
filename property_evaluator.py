@@ -42,6 +42,10 @@ COFFEE_WALK_IDEAL_MIN = 20
 COFFEE_WALK_ACCEPTABLE_MIN = 30
 METRO_NORTH_WALK_IDEAL_MIN = 20
 METRO_NORTH_WALK_ACCEPTABLE_MIN = 30
+GROCERY_WALK_IDEAL_MIN = 15
+GROCERY_WALK_ACCEPTABLE_MIN = 30
+FITNESS_WALK_IDEAL_MIN = 15
+FITNESS_WALK_ACCEPTABLE_MIN = 30
 
 # Budget thresholds
 BUDGET_MAX = 7000
@@ -878,6 +882,148 @@ def score_metro_north(
         )
 
 
+def score_grocery_access(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> Tier2Score:
+    """Score grocery store access (0-10 points)"""
+    try:
+        # Search for grocery stores and supermarkets
+        groceries = []
+
+        # Try supermarket type
+        supermarkets = maps.places_nearby(lat, lng, "supermarket", radius_meters=2500)
+        groceries.extend(supermarkets)
+
+        # Try grocery_or_supermarket type (alternative)
+        grocery_stores = maps.places_nearby(lat, lng, "grocery_or_supermarket", radius_meters=2500)
+        groceries.extend(grocery_stores)
+
+        if not groceries:
+            return Tier2Score(
+                name="Grocery access",
+                points=0,
+                max_points=10,
+                details="No grocery stores found within walking distance"
+            )
+
+        # Find closest store
+        best_walk_time = 9999
+        best_store = None
+
+        for store in groceries:
+            store_lat = store["geometry"]["location"]["lat"]
+            store_lng = store["geometry"]["location"]["lng"]
+            walk_time = maps.walking_time((lat, lng), (store_lat, store_lng))
+
+            if walk_time < best_walk_time:
+                best_walk_time = walk_time
+                best_store = store
+
+        if best_store is None:
+            return Tier2Score(
+                name="Grocery access",
+                points=0,
+                max_points=10,
+                details="No grocery stores found within walking distance"
+            )
+
+        # Score based on walk time
+        if best_walk_time <= GROCERY_WALK_IDEAL_MIN:
+            points = 10
+        elif best_walk_time <= GROCERY_WALK_ACCEPTABLE_MIN:
+            points = 5
+        else:
+            points = 0
+
+        return Tier2Score(
+            name="Grocery access",
+            points=points,
+            max_points=10,
+            details=f"{best_store.get('name', 'Grocery store')} — {best_walk_time} min walk"
+        )
+
+    except Exception as e:
+        return Tier2Score(
+            name="Grocery access",
+            points=0,
+            max_points=10,
+            details=f"Error: {str(e)}"
+        )
+
+
+def score_fitness_access(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> Tier2Score:
+    """Score fitness/wellness facility access (0-10 points)"""
+    try:
+        # Search for gyms and fitness centers
+        fitness_places = []
+
+        # Try gym type
+        gyms = maps.places_nearby(lat, lng, "gym", radius_meters=2500)
+        fitness_places.extend(gyms)
+
+        # Try searching with keywords for yoga, pilates, etc.
+        wellness = maps.places_nearby(lat, lng, "health", radius_meters=2500, keyword="yoga studio")
+        fitness_places.extend(wellness)
+
+        if not fitness_places:
+            return Tier2Score(
+                name="Fitness access",
+                points=0,
+                max_points=10,
+                details="No gyms or fitness centers found within walking distance"
+            )
+
+        # Find closest facility
+        best_walk_time = 9999
+        best_facility = None
+
+        for facility in fitness_places:
+            facility_lat = facility["geometry"]["location"]["lat"]
+            facility_lng = facility["geometry"]["location"]["lng"]
+            walk_time = maps.walking_time((lat, lng), (facility_lat, facility_lng))
+
+            if walk_time < best_walk_time:
+                best_walk_time = walk_time
+                best_facility = facility
+
+        if best_facility is None:
+            return Tier2Score(
+                name="Fitness access",
+                points=0,
+                max_points=10,
+                details="No gyms or fitness centers found within walking distance"
+            )
+
+        # Score based on walk time
+        if best_walk_time <= FITNESS_WALK_IDEAL_MIN:
+            points = 10
+        elif best_walk_time <= FITNESS_WALK_ACCEPTABLE_MIN:
+            points = 5
+        else:
+            points = 0
+
+        return Tier2Score(
+            name="Fitness access",
+            points=points,
+            max_points=10,
+            details=f"{best_facility.get('name', 'Fitness center')} — {best_walk_time} min walk"
+        )
+
+    except Exception as e:
+        return Tier2Score(
+            name="Fitness access",
+            points=0,
+            max_points=10,
+            details=f"Error: {str(e)}"
+        )
+
+
 def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
     """Calculate tier 3 bonus points"""
     bonuses = []
@@ -951,9 +1097,11 @@ def evaluate_property(
     if result.passed_tier1:
         result.tier2_scores.append(score_park_access(maps, lat, lng))
         result.tier2_scores.append(score_coffee_access(maps, lat, lng))
+        result.tier2_scores.append(score_grocery_access(maps, lat, lng))
+        result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_budget(listing.rent))
         result.tier2_scores.append(score_metro_north(maps, lat, lng))
-        
+
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
     
