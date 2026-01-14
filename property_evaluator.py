@@ -928,6 +928,10 @@ def get_child_and_schooling_snapshot(
 
     def is_public_school(place: Dict, website_text: str) -> bool:
         text_blob = build_text_blob(place, website_text)
+        if not website_text and any(
+            t in place.get("types", []) for t in ["primary_school", "secondary_school", "school"]
+        ):
+            return True
         if any(keyword in text_blob for keyword in school_excluded_keywords):
             return False
         public_signals = [
