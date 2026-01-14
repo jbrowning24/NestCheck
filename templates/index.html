@@ -292,6 +292,49 @@
       color: #e65100;
     }
 
+    .missing-info {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      border-radius: 6px;
+      padding: 15px 20px;
+      margin-top: 15px;
+    }
+
+    .missing-title {
+      font-weight: 600;
+      color: #8a6d3b;
+      margin-bottom: 10px;
+    }
+
+    .missing-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .missing-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .missing-checkbox {
+      font-size: 1.1em;
+      color: #d39e00;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .missing-name {
+      font-weight: 600;
+      color: #5f4b0b;
+    }
+
+    .missing-details {
+      color: #6c5c2b;
+      font-size: 0.95em;
+    }
+
     @media (max-width: 600px) {
       .container {
         padding: 20px;
@@ -558,6 +601,24 @@
           {% endif %}
         </div>
 
+        {% set unknown_checks = result.tier1_checks | selectattr("result", "equalto", "UNKNOWN") | list %}
+        {% if unknown_checks %}
+          <div class="missing-info">
+            <div class="missing-title">Missing information checklist</div>
+            <ul class="missing-list">
+              {% for check in unknown_checks %}
+                <li>
+                  <span class="missing-checkbox">☐</span>
+                  <div>
+                    <div class="missing-name">{{ check.name }}</div>
+                    <div class="missing-details">{{ check.details }}</div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
         <ul class="check-list">
           {% for check in result.tier1_checks %}
             <li class="check-item {{ check.result|lower }}">
@@ -567,7 +628,7 @@
                 {% elif check.result == "FAIL" %}
                   ✗
                 {% else %}
-                  ?
+                  ☐
                 {% endif %}
               </span>
               <div class="check-content">
@@ -624,7 +685,9 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p style="color: #7f8c8d; font-style: italic;">No bonus features detected</p>
+            <p style="color: #7f8c8d; font-style: italic;">
+              No bonus points because: {{ result.tier3_bonus_reasons | join(", ") }}
+            </p>
           {% endif %}
 
           <div class="tier3-summary">

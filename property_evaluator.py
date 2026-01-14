@@ -254,14 +254,21 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
+
     passed_tier1: bool = False
     tier2_total: int = 0
     tier2_max: int = 0
     tier2_normalized: int = 0
     tier3_total: int = 0
+
+    # Keep this from your branch
+    tier3_bonus_reasons: List[str] = field(default_factory=list)
+
+    # Keep these from main
     final_score: int = 0
     percentile_top: int = 0
     percentile_label: str = ""
@@ -2037,6 +2044,49 @@ def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
     return bonuses
 
 
+def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
+    """Explain missing tier 3 bonuses when none are awarded."""
+    reasons = []
+
+    if listing.has_parking is None:
+        reasons.append("Parking/garage info missing")
+    elif not listing.has_parking:
+        reasons.append("No garage or parking")
+
+    if listing.has_outdoor_space is None:
+        reasons.append("Outdoor space info missing")
+    elif not listing.has_outdoor_space:
+        reasons.append("No yard or balcony")
+
+    if listing.bedrooms is None:
+        reasons.append("Bedroom count missing")
+    elif listing.bedrooms < 3:
+        reasons.append("Fewer than 3 bedrooms")
+
+    return reasons
+
+
+def estimate_percentile(final_score: int) -> Tuple[int, str]:
+    """Estimate percentile ranking for a final score (0-100)."""
+    bounded_score = max(0, min(100, final_score))
+    percentile_map = [
+        (90, 5),
+        (85, 10),
+        (80, 15),
+        (75, 20),
+        (70, 25),
+        (65, 30),
+        (60, 35),
+        (55, 40),
+        (50, 50),
+        (0, 60),
+    ]
+
+    for threshold, percentile in percentile_map:
+        if bounded_score >= threshold:
+            return percentile, f"Top {percentile}% nationally for families"
+
+    return 60, "Top 60% nationally for families"
 def estimate_percentile(score: int) -> Tuple[int, str]:
     """Estimate percentile bucket from a normalized 0-100 score."""
     buckets = [
@@ -2120,6 +2170,10 @@ def evaluate_property(
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
+        if result.tier2_max > 0:
+            result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
+        else:
+            result.tier2_normalized = 0
     
     # ===================
     # TIER 3 BONUSES
@@ -2128,10 +2182,12 @@ def evaluate_property(
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
+        result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
     
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
+    
     if result.tier2_max > 0:
         result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
     else:
@@ -2182,11 +2238,16 @@ def format_result(result: EvaluationResult) -> str:
         for bonus in result.tier3_bonuses:
             lines.append(f"  - {bonus.name}: +{bonus.points} — {bonus.details}")
     else:
-        lines.append("\nTIER 3 BONUS: +0 pts")
+        if result.tier3_bonus_reasons:
+            lines.append("\nTIER 3 BONUS: +0 pts")
+            lines.append(f"  No bonus points because: {', '.join(result.tier3_bonus_reasons)}")
+        else:
+            lines.append("\nTIER 3 BONUS: +0 pts")
     
     # Final
     lines.append(f"\n{'=' * 70}")
     lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
+    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts")
     lines.append(f"Tier 3 Bonus: +{result.tier3_total} (already capped at 100)")
     lines.append("=" * 70)
     
@@ -2404,6 +2465,7 @@ def main():
                 {"name": b.name, "points": b.points, "details": b.details}
                 for b in result.tier3_bonuses
             ],
+            "tier3_bonus_reasons": result.tier3_bonus_reasons,
             "final_score": result.final_score,
             "percentile_top": result.percentile_top,
             "percentile_label": result.percentile_label,
