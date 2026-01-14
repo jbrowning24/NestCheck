@@ -38,12 +38,12 @@ HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = 500
 # Walking time thresholds (in minutes)
 PARK_WALK_IDEAL_MIN = 20
 PARK_WALK_ACCEPTABLE_MIN = 30
-COFFEE_WALK_IDEAL_MIN = 20
-COFFEE_WALK_ACCEPTABLE_MIN = 30
+THIRD_PLACE_WALK_IDEAL_MIN = 20
+THIRD_PLACE_WALK_ACCEPTABLE_MIN = 30
 METRO_NORTH_WALK_IDEAL_MIN = 20
 METRO_NORTH_WALK_ACCEPTABLE_MIN = 30
-GROCERY_WALK_IDEAL_MIN = 15
-GROCERY_WALK_ACCEPTABLE_MIN = 30
+PROVISIONING_WALK_IDEAL_MIN = 15
+PROVISIONING_WALK_ACCEPTABLE_MIN = 30
 FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
 
@@ -136,7 +136,7 @@ class GreenSpaceEvaluation:
 @dataclass
 class NeighborhoodPlace:
     """Single nearby amenity for context"""
-    category: str  # "Grocery", "Coffee", "Park", "School"
+    category: str  # "Provisioning", "Third Place", "Park", "School"
     name: str
     rating: Optional[float]
     walk_time_min: int
@@ -717,7 +717,7 @@ def get_neighborhood_snapshot(
     # Find nearest of each category
     categories = [
         ("Provisioning", "grocery_store", "supermarket"),
-        ("Coffee", "cafe", "bakery"),
+        ("Third Place", "cafe", "bakery"),
         ("Park", "park", None),
         ("School", "school", "primary_school")
     ]
@@ -759,15 +759,15 @@ def get_neighborhood_snapshot(
                     # Add placeholder entry
                     snapshot.places.append(NeighborhoodPlace(
                         category=category,
-                        name="No full-service grocery stores nearby",
+                        name="No full-service provisioning options nearby",
                         rating=None,
                         walk_time_min=0,
                         place_type="none"
                     ))
                     continue
 
-            # Special handling for Coffee - apply third-space quality filter
-            if category == "Coffee":
+            # Special handling for Third Place - apply third-place quality filter
+            if category == "Third Place":
                 eligible_places = []
                 excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
@@ -796,7 +796,7 @@ def get_neighborhood_snapshot(
                     # Add placeholder entry
                     snapshot.places.append(NeighborhoodPlace(
                         category=category,
-                        name="No good third-space cafés nearby",
+                        name="No good third-place spots nearby",
                         rating=None,
                         walk_time_min=0,
                         place_type="none"
@@ -1322,12 +1322,12 @@ def score_park_access(
         )
 
 
-def score_coffee_access(
+def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score coffee shop access based on third-space quality (0-10 points)"""
+    """Score third-place access based on third-place quality (0-10 points)"""
     try:
         # Search for cafes, coffee shops, and bakeries
         all_places = []
@@ -1336,13 +1336,13 @@ def score_coffee_access(
 
         if not all_places:
             return Tier2Score(
-                name="Coffee",
+                name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality coffee shops within walking distance"
+                details="No high-quality third places within walking distance"
             )
 
-        # Filter for third-space quality
+        # Filter for third-place quality
         eligible_places = []
         excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
@@ -1369,10 +1369,10 @@ def score_coffee_access(
 
         if not eligible_places:
             return Tier2Score(
-                name="Coffee",
+                name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality coffee shops within walking distance"
+                details="No high-quality third places within walking distance"
             )
 
         # Find best scoring place
@@ -1402,13 +1402,13 @@ def score_coffee_access(
                 best_walk_time = walk_time
 
         # Format details
-        name = best_place.get("name", "Coffee shop")
+        name = best_place.get("name", "Third place")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         return Tier2Score(
-            name="Coffee",
+            name="Third Place",
             points=best_score,
             max_points=10,
             details=details
@@ -1416,7 +1416,7 @@ def score_coffee_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Coffee",
+            name="Third Place",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -1614,7 +1614,7 @@ def score_provisioning_access(
 ) -> Tier2Score:
     """Score household provisioning store access (0-10 points)"""
     try:
-        # Search for full-service grocery stores
+        # Search for full-service provisioning stores
         all_stores = []
         all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
@@ -1624,7 +1624,7 @@ def score_provisioning_access(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service grocery stores within walking distance"
+                details="No full-service provisioning options within walking distance"
             )
 
         # Filter for household provisioning quality
@@ -1657,7 +1657,7 @@ def score_provisioning_access(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service grocery stores within walking distance"
+                details="No full-service provisioning options within walking distance"
             )
 
         # Find best scoring store
@@ -1687,7 +1687,7 @@ def score_provisioning_access(
                 best_walk_time = walk_time
 
         # Format details
-        name = best_store.get("name", "Grocery store")
+        name = best_store.get("name", "Provisioning store")
         rating = best_store.get("rating", 0)
         reviews = best_store.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
@@ -1869,7 +1869,7 @@ def evaluate_property(
         result.tier2_scores.append(
             score_park_access(maps, lat, lng, result.green_space_evaluation)
         )
-        result.tier2_scores.append(score_coffee_access(maps, lat, lng))
+        result.tier2_scores.append(score_third_place_access(maps, lat, lng))
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
