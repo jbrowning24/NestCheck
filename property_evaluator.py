@@ -227,7 +227,10 @@ class EvaluationResult:
     tier2_max: int = 0
     tier3_total: int = 0
     tier3_bonus_reasons: List[str] = field(default_factory=list)
-    total_score: int = 0
+    tier2_normalized: int = 0
+    final_score: int = 0
+    percentile_top: int = 0
+    percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
 
@@ -1837,6 +1840,13 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
+def estimate_percentile(final_score: int) -> Tuple[int, str]:
+    """Estimate percentile ranking for a final score (0-100)."""
+    bounded_score = max(0, min(100, final_score))
+    percentile_top = max(1, 100 - int(round(bounded_score)))
+    return percentile_top, f"Top {percentile_top}%"
+
+
 # =============================================================================
 # MAIN EVALUATION
 # =============================================================================
@@ -1900,6 +1910,8 @@ def evaluate_property(
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
+        if result.tier2_max:
+            result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
     
     # ===================
     # TIER 3 BONUSES
@@ -1914,7 +1926,8 @@ def evaluate_property(
     # TOTAL SCORE
     # ===================
     
-    result.total_score = result.tier2_total + result.tier3_total
+    result.final_score = min(100, result.tier2_normalized + result.tier3_total)
+    result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
     
     return result
 
@@ -1963,7 +1976,7 @@ def format_result(result: EvaluationResult) -> str:
     
     # Total
     lines.append(f"\n{'=' * 70}")
-    lines.append(f"TOTAL SCORE: {result.total_score}")
+    lines.append(f"FINAL SCORE: {result.final_score} ({result.percentile_label})")
     lines.append("=" * 70)
     
     # Notes
@@ -2158,6 +2171,7 @@ def main():
             ],
             "tier2_score": result.tier2_total,
             "tier2_max": result.tier2_max,
+            "tier2_normalized": result.tier2_normalized,
             "tier2_scores": [
                 {"name": s.name, "points": s.points, "max": s.max_points, "details": s.details}
                 for s in result.tier2_scores
@@ -2168,7 +2182,9 @@ def main():
                 for b in result.tier3_bonuses
             ],
             "tier3_bonus_reasons": result.tier3_bonus_reasons,
-            "total_score": result.total_score,
+            "final_score": result.final_score,
+            "percentile_top": result.percentile_top,
+            "percentile_label": result.percentile_label,
         }
         print(json.dumps(output, indent=2))
     else:
