@@ -116,6 +116,30 @@ class NeighborhoodSnapshot:
 
 
 @dataclass
+class ChildcarePlace:
+    name: str
+    rating: Optional[float]
+    user_ratings_total: Optional[int]
+    walk_time_min: int
+    website: Optional[str]
+
+
+@dataclass
+class SchoolPlace:
+    name: str
+    rating: Optional[float]
+    user_ratings_total: Optional[int]
+    walk_time_min: int
+    website: Optional[str]
+
+
+@dataclass
+class ChildSchoolingSnapshot:
+    childcare: List[ChildcarePlace] = field(default_factory=list)
+    schools: List[SchoolPlace] = field(default_factory=list)
+
+
+@dataclass
 class PropertyListing:
     """Property listing data - can be populated from manual input or scraped"""
     address: str
@@ -136,6 +160,7 @@ class EvaluationResult:
     lat: float
     lng: float
     neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
+    child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
@@ -157,6 +182,8 @@ class GoogleMapsClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
+        self.session = requests.Session()
+        self.session.trust_env = False
     
     def geocode(self, address: str) -> Tuple[float, float]:
         """Convert address to lat/lng coordinates"""
@@ -165,7 +192,7 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = requests.get(url, params=params)
+        response = self.session.get(url, params=params)
         data = response.json()
         
         if data["status"] != "OK":
@@ -193,7 +220,7 @@ class GoogleMapsClient:
         if keyword:
             params["keyword"] = keyword
         
-        response = requests.get(url, params=params)
+        response = self.session.get(url, params=params)
         data = response.json()
         
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -206,10 +233,10 @@ class GoogleMapsClient:
         url = f"{self.base_url}/place/details/json"
         params = {
             "place_id": place_id,
-            "fields": "name,rating,user_ratings_total,types,formatted_address",
+            "fields": "name,rating,user_ratings_total,types,formatted_address,website",
             "key": self.api_key
         }
-        response = requests.get(url, params=params)
+        response = self.session.get(url, params=params)
         data = response.json()
         
         if data["status"] != "OK":
@@ -226,7 +253,7 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = requests.get(url, params=params)
+        response = self.session.get(url, params=params)
         data = response.json()
         
         if data["status"] != "OK":
@@ -259,6 +286,8 @@ class OverpassClient:
     
     def __init__(self):
         self.base_url = "https://overpass-api.de/api/interpreter"
+        self.session = requests.Session()
+        self.session.trust_env = False
     
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
@@ -271,7 +300,7 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        response = requests.post(self.base_url, data={"data": query})
+        response = self.session.post(self.base_url, data={"data": query})
         data = response.json()
         
         roads = []
@@ -667,6 +696,83 @@ def get_neighborhood_snapshot(
         except Exception as e:
             # Skip this category if there's an error
             continue
+
+    return snapshot
+
+
+def get_child_and_schooling_snapshot(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> ChildSchoolingSnapshot:
+    """Collect nearby childcare and schooling options for situational awareness."""
+    snapshot = ChildSchoolingSnapshot()
+
+    childcare_types = {"preschool", "kindergarten", "child_care"}
+    school_types = {"primary_school", "secondary_school", "school"}
+    excluded_school_types = {"university", "college", "driving_school", "language_school"}
+    search_types = list(childcare_types | school_types)
+
+    nearby_places: Dict[str, Dict] = {}
+    for place_type in search_types:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=3000)
+        except Exception:
+            continue
+        for place in places:
+            place_id = place.get("place_id")
+            if place_id and place_id not in nearby_places:
+                nearby_places[place_id] = place
+
+    candidates = list(nearby_places.values())
+    childcare_candidates = [
+        place for place in candidates
+        if any(t in childcare_types for t in place.get("types", []))
+    ]
+    school_candidates = [
+        place for place in candidates
+        if any(t in school_types for t in place.get("types", []))
+        and not any(t in excluded_school_types for t in place.get("types", []))
+    ]
+
+    def build_places(
+        places: List[Dict],
+        max_results: int,
+        place_cls
+    ) -> List[Any]:
+        scored_places = []
+        for place in places:
+            p_lat = place["geometry"]["location"]["lat"]
+            p_lng = place["geometry"]["location"]["lng"]
+            walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+            scored_places.append((walk_time, place))
+
+        scored_places.sort(key=lambda item: item[0])
+        selected = scored_places[:max_results]
+        results = []
+
+        for walk_time, place in selected:
+            website = None
+            place_id = place.get("place_id")
+            if place_id:
+                try:
+                    details = maps.place_details(place_id)
+                    website = details.get("website")
+                except Exception:
+                    website = None
+
+            results.append(place_cls(
+                name=place.get("name", "Unknown"),
+                rating=place.get("rating"),
+                user_ratings_total=place.get("user_ratings_total"),
+                walk_time_min=walk_time,
+                website=website
+            ))
+
+        return results
+
+    snapshot.childcare = build_places(childcare_candidates, 5, ChildcarePlace)
+    snapshot.schools = build_places(school_candidates, 5, SchoolPlace)
 
     return snapshot
 
@@ -1220,6 +1326,7 @@ def evaluate_property(
     # ===================
 
     result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
+    result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -1421,6 +1528,28 @@ def main():
                 }
                 for p in (result.neighborhood_snapshot.places if result.neighborhood_snapshot else [])
             ],
+            "child_schooling_snapshot": {
+                "childcare": [
+                    {
+                        "name": p.name,
+                        "rating": p.rating,
+                        "user_ratings_total": p.user_ratings_total,
+                        "walk_time_min": p.walk_time_min,
+                        "website": p.website
+                    }
+                    for p in (result.child_schooling_snapshot.childcare if result.child_schooling_snapshot else [])
+                ],
+                "schools": [
+                    {
+                        "name": p.name,
+                        "rating": p.rating,
+                        "user_ratings_total": p.user_ratings_total,
+                        "walk_time_min": p.walk_time_min,
+                        "website": p.website
+                    }
+                    for p in (result.child_schooling_snapshot.schools if result.child_schooling_snapshot else [])
+                ]
+            },
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
                 {"name": c.name, "result": c.result.value, "details": c.details}
