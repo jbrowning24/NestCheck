@@ -60,6 +60,20 @@ MIN_BEDROOMS = 2
 MIN_PARK_ACRES = 5
 MIN_PARK_RATING = 4.0
 MIN_PARK_REVIEWS = 50
+GREEN_SPACE_WALK_MAX_MIN = 30
+GREEN_ESCAPE_MIN_RATING = 4.3
+GREEN_ESCAPE_MIN_REVIEWS = 100
+GREEN_ESCAPE_STRONG_RATING = 4.5
+GREEN_ESCAPE_STRONG_REVIEWS = 300
+
+GREEN_SPACE_TYPES = [
+    "park",
+    "campground",
+    "natural_feature",
+    "trail",
+    "rv_park",
+    "tourist_attraction",
+]
 
 # High-volume road detection is done via OSM tags (highway type, lane count)
 # No hardcoded road names needed - works anywhere in the US
@@ -97,6 +111,26 @@ class Tier3Bonus:
     name: str
     points: int
     details: str
+
+
+@dataclass
+class GreenSpace:
+    place_id: Optional[str]
+    name: str
+    rating: Optional[float]
+    user_ratings_total: int
+    walk_time_min: int
+    types: List[str]
+    types_display: str
+
+
+@dataclass
+class GreenSpaceEvaluation:
+    green_spaces: List[GreenSpace] = field(default_factory=list)
+    green_escape: Optional[GreenSpace] = None
+    other_green_spaces: List[GreenSpace] = field(default_factory=list)
+    green_escape_message: Optional[str] = None
+    green_spaces_message: Optional[str] = None
 
 
 @dataclass
@@ -184,6 +218,7 @@ class EvaluationResult:
     neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
+    green_space_evaluation: Optional[GreenSpaceEvaluation] = None
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
@@ -1076,6 +1111,147 @@ def get_urban_access_profile(
     )
 
 
+def is_nature_based_attraction(place: Dict) -> bool:
+    """Return True if a tourist attraction is clearly nature-based."""
+    types = place.get("types", [])
+    if "tourist_attraction" not in types:
+        return True
+
+    nature_types = {"park", "natural_feature", "campground", "trail", "rv_park"}
+    if any(t in types for t in nature_types):
+        return True
+
+    name = place.get("name", "").lower()
+    nature_keywords = [
+        "park",
+        "trail",
+        "preserve",
+        "nature",
+        "garden",
+        "arboretum",
+        "botanical",
+        "river",
+        "creek",
+        "lake",
+        "reservoir",
+        "beach",
+        "forest",
+        "woods",
+        "wetland",
+        "marsh",
+        "greenway",
+        "walk",
+        "hike",
+        "canyon",
+        "falls",
+        "waterfall",
+    ]
+    return any(keyword in name for keyword in nature_keywords)
+
+
+def format_place_types(types: List[str]) -> str:
+    if not types:
+        return "Unspecified"
+    return ", ".join([t.replace("_", " ").title() for t in types])
+
+
+def evaluate_green_spaces(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> GreenSpaceEvaluation:
+    """Collect all nearby green spaces and determine the best green escape."""
+    evaluation = GreenSpaceEvaluation()
+    places_by_id: Dict[str, Dict[str, Any]] = {}
+
+    for place_type in GREEN_SPACE_TYPES:
+        places = maps.places_nearby(lat, lng, place_type, radius_meters=2500)
+        for place in places:
+            if place_type == "tourist_attraction" and not is_nature_based_attraction(place):
+                continue
+
+            place_id = place.get("place_id")
+            if not place_id:
+                continue
+
+            entry = places_by_id.get(place_id)
+            if entry:
+                entry["types"].update(place.get("types", []))
+                continue
+
+            places_by_id[place_id] = {
+                "place": place,
+                "types": set(place.get("types", [])),
+            }
+
+    green_spaces: List[GreenSpace] = []
+    for entry in places_by_id.values():
+        place = entry["place"]
+        place_id = place.get("place_id")
+        place_lat = place["geometry"]["location"]["lat"]
+        place_lng = place["geometry"]["location"]["lng"]
+        walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
+        if walk_time > GREEN_SPACE_WALK_MAX_MIN or walk_time == 9999:
+            continue
+
+        types = sorted(entry["types"])
+        green_spaces.append(GreenSpace(
+            place_id=place_id,
+            name=place.get("name", "Unknown"),
+            rating=place.get("rating"),
+            user_ratings_total=place.get("user_ratings_total", 0),
+            walk_time_min=walk_time,
+            types=types,
+            types_display=format_place_types(types),
+        ))
+
+    green_spaces.sort(
+        key=lambda space: (space.walk_time_min, -(space.rating or 0), -(space.user_ratings_total or 0))
+    )
+
+    evaluation.green_spaces = green_spaces
+    if not green_spaces:
+        evaluation.green_spaces_message = "No green spaces found within a 30-minute walk."
+    else:
+        evaluation.green_spaces_message = "Nearby green spaces within a 30-minute walk."
+
+    green_escape_candidates = []
+    for space in green_spaces:
+        rating = space.rating or 0
+        reviews = space.user_ratings_total or 0
+        if rating < GREEN_ESCAPE_MIN_RATING or reviews < GREEN_ESCAPE_MIN_REVIEWS:
+            continue
+        if space.walk_time_min <= PARK_WALK_IDEAL_MIN:
+            green_escape_candidates.append(space)
+            continue
+        if (
+            space.walk_time_min <= GREEN_SPACE_WALK_MAX_MIN
+            and rating >= GREEN_ESCAPE_STRONG_RATING
+            and reviews >= GREEN_ESCAPE_STRONG_REVIEWS
+        ):
+            green_escape_candidates.append(space)
+
+    if green_escape_candidates:
+        evaluation.green_escape = max(
+            green_escape_candidates,
+            key=lambda space: (space.rating or 0) * math.log(space.user_ratings_total or 1),
+        )
+        evaluation.green_escape_message = None
+    else:
+        evaluation.green_escape_message = (
+            "No high-quality green escape within walking distance — nearby green spaces listed below."
+        )
+
+    if evaluation.green_escape:
+        evaluation.other_green_spaces = [
+            space for space in green_spaces if space.place_id != evaluation.green_escape.place_id
+        ]
+    else:
+        evaluation.other_green_spaces = green_spaces.copy()
+
+    return evaluation
+
+
 def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
     """Determine if a park meets quality criteria"""
     name = place.get("name", "Unknown")
@@ -1104,60 +1280,37 @@ def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
 def score_park_access(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    green_space_evaluation: Optional[GreenSpaceEvaluation] = None
 ) -> Tier2Score:
-    """Score park access based on rating and distance (0-10 points)"""
+    """Score park access based on green escape quality (0-10 points)"""
     try:
-        # Search for parks within walking distance (~2.5km for 30 min walk)
-        parks = maps.places_nearby(lat, lng, "park", radius_meters=2500)
+        evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
+        green_escape = evaluation.green_escape
 
-        if not parks:
+        if not green_escape:
             return Tier2Score(
                 name="Park access",
                 points=0,
                 max_points=10,
-                details="No parks found within 30 min walk"
+                details="No high-quality green escape within walking distance"
             )
 
-        # Find best scored park
-        best_score = 0
-        best_park = None
-        best_details = ""
+        if green_escape.walk_time_min <= PARK_WALK_IDEAL_MIN:
+            points = 10
+        else:
+            points = 6
 
-        for park in parks:
-            rating = park.get("rating", 0)
-            park_lat = park["geometry"]["location"]["lat"]
-            park_lng = park["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (park_lat, park_lng))
-
-            # Score based on rating + distance
-            score = 0
-            if rating >= 4.2 and walk_time <= 15:
-                score = 10
-            elif rating >= 4.0 and walk_time <= 20:
-                score = 6
-            elif walk_time <= 30:
-                score = 3
-
-            if score > best_score:
-                best_score = score
-                best_park = park
-                park_name = park.get("name", "Unknown park")
-                best_details = f"{park_name} ({rating}★) — {walk_time} min walk"
-
-        if best_score == 0:
-            return Tier2Score(
-                name="Park access",
-                points=0,
-                max_points=10,
-                details="No parks found within 30 min walk"
-            )
+        details = (
+            f"{green_escape.name} ({green_escape.rating}★, "
+            f"{green_escape.user_ratings_total} reviews) — {green_escape.walk_time_min} min walk"
+        )
 
         return Tier2Score(
             name="Park access",
-            points=best_score,
+            points=points,
             max_points=10,
-            details=best_details
+            details=details
         )
 
     except Exception as e:
@@ -1690,6 +1843,7 @@ def evaluate_property(
     result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
     result.urban_access = get_urban_access_profile(maps, lat, lng)
+    result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -1712,7 +1866,9 @@ def evaluate_property(
     # ===================
     
     if result.passed_tier1:
-        result.tier2_scores.append(score_park_access(maps, lat, lng))
+        result.tier2_scores.append(
+            score_park_access(maps, lat, lng, result.green_space_evaluation)
+        )
         result.tier2_scores.append(score_coffee_access(maps, lat, lng))
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
@@ -1926,6 +2082,46 @@ def main():
                     "travel_time_min": result.urban_access.major_hub.travel_time_min,
                     "transit_mode": result.urban_access.major_hub.transit_mode,
                 } if result.urban_access and result.urban_access.major_hub else None,
+            },
+            "green_space_evaluation": {
+                "green_escape": {
+                    "name": result.green_space_evaluation.green_escape.name,
+                    "rating": result.green_space_evaluation.green_escape.rating,
+                    "user_ratings_total": result.green_space_evaluation.green_escape.user_ratings_total,
+                    "walk_time_min": result.green_space_evaluation.green_escape.walk_time_min,
+                    "types": result.green_space_evaluation.green_escape.types,
+                    "types_display": result.green_space_evaluation.green_escape.types_display,
+                } if result.green_space_evaluation and result.green_space_evaluation.green_escape else None,
+                "green_escape_message": (
+                    result.green_space_evaluation.green_escape_message
+                    if result.green_space_evaluation else None
+                ),
+                "green_spaces": [
+                    {
+                        "name": space.name,
+                        "rating": space.rating,
+                        "user_ratings_total": space.user_ratings_total,
+                        "walk_time_min": space.walk_time_min,
+                        "types": space.types,
+                        "types_display": space.types_display,
+                    }
+                    for space in (result.green_space_evaluation.green_spaces if result.green_space_evaluation else [])
+                ],
+                "other_green_spaces": [
+                    {
+                        "name": space.name,
+                        "rating": space.rating,
+                        "user_ratings_total": space.user_ratings_total,
+                        "walk_time_min": space.walk_time_min,
+                        "types": space.types,
+                        "types_display": space.types_display,
+                    }
+                    for space in (result.green_space_evaluation.other_green_spaces if result.green_space_evaluation else [])
+                ],
+                "green_spaces_message": (
+                    result.green_space_evaluation.green_spaces_message
+                    if result.green_space_evaluation else None
+                ),
             },
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [

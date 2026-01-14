@@ -492,6 +492,53 @@
         </div>
       {% endif %}
 
+      {% if result.green_space_evaluation %}
+        <div class="tier-section">
+          <h2>Green Escape</h2>
+          <div style="background: #f1f8f4; padding: 20px; border-radius: 8px; border-left: 4px solid #2e7d32;">
+            {% if result.green_space_evaluation.green_escape %}
+              <div style="margin-bottom: 16px;">
+                <strong style="color: #1b5e20;">{{ result.green_space_evaluation.green_escape.name }}</strong>
+                {% if result.green_space_evaluation.green_escape.rating %}
+                  ({{ "%.1f"|format(result.green_space_evaluation.green_escape.rating) }}★,
+                  {{ result.green_space_evaluation.green_escape.user_ratings_total }} reviews)
+                {% endif %}
+                — {{ result.green_space_evaluation.green_escape.walk_time_min }} min walk
+                <div style="color: #666; margin-top: 4px;">
+                  {{ result.green_space_evaluation.green_escape.types_display }}
+                </div>
+              </div>
+            {% else %}
+              <div style="color: #7f8c8d; font-style: italic;">
+                {{ result.green_space_evaluation.green_escape_message }}
+              </div>
+            {% endif %}
+
+            <div style="margin-top: 18px;">
+              <strong style="color: #1b5e20;">Other Nearby Green Spaces</strong>
+              {% if result.green_space_evaluation.other_green_spaces %}
+                <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                  {% for space in result.green_space_evaluation.other_green_spaces %}
+                    <li style="margin-bottom: 10px;">
+                      • {{ space.name }}
+                      {% if space.rating %}
+                        ({{ "%.1f"|format(space.rating) }}★, {{ space.user_ratings_total }} reviews)
+                      {% endif %}
+                      — {{ space.walk_time_min }} min walk
+                      <span style="color: #999; font-size: 0.9em;">({{ space.types_display }})</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                  {{ result.green_space_evaluation.green_spaces_message }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       <!-- TIER 1: Must-Have Requirements -->
       <div class="tier-section">
         <div class="tier-header">
