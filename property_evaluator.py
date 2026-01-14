@@ -226,6 +226,7 @@ class EvaluationResult:
     tier2_total: int = 0
     tier2_max: int = 0
     tier3_total: int = 0
+    tier3_bonus_reasons: List[str] = field(default_factory=list)
     total_score: int = 0
     notes: List[str] = field(default_factory=list)
 
@@ -1814,6 +1815,28 @@ def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
     return bonuses
 
 
+def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
+    """Explain missing tier 3 bonuses when none are awarded."""
+    reasons = []
+
+    if listing.has_parking is None:
+        reasons.append("Parking/garage info missing")
+    elif not listing.has_parking:
+        reasons.append("No garage or parking")
+
+    if listing.has_outdoor_space is None:
+        reasons.append("Outdoor space info missing")
+    elif not listing.has_outdoor_space:
+        reasons.append("No yard or balcony")
+
+    if listing.bedrooms is None:
+        reasons.append("Bedroom count missing")
+    elif listing.bedrooms < 3:
+        reasons.append("Fewer than 3 bedrooms")
+
+    return reasons
+
+
 # =============================================================================
 # MAIN EVALUATION
 # =============================================================================
@@ -1885,6 +1908,7 @@ def evaluate_property(
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
+        result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
     
     # ===================
     # TOTAL SCORE
@@ -1931,7 +1955,11 @@ def format_result(result: EvaluationResult) -> str:
         for bonus in result.tier3_bonuses:
             lines.append(f"  - {bonus.name}: +{bonus.points} — {bonus.details}")
     else:
-        lines.append("\nTIER 3 BONUS: +0 pts")
+        if result.tier3_bonus_reasons:
+            lines.append("\nTIER 3 BONUS: +0 pts")
+            lines.append(f"  No bonus points because: {', '.join(result.tier3_bonus_reasons)}")
+        else:
+            lines.append("\nTIER 3 BONUS: +0 pts")
     
     # Total
     lines.append(f"\n{'=' * 70}")
@@ -2139,6 +2167,7 @@ def main():
                 {"name": b.name, "points": b.points, "details": b.details}
                 for b in result.tier3_bonuses
             ],
+            "tier3_bonus_reasons": result.tier3_bonus_reasons,
             "total_score": result.total_score,
         }
         print(json.dumps(output, indent=2))
