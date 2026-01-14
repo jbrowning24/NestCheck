@@ -64,33 +64,6 @@ MIN_PARK_REVIEWS = 50
 # High-volume road detection is done via OSM tags (highway type, lane count)
 # No hardcoded road names needed - works anywhere in the US
 
-# Coffee shop exclusions (chains to avoid)
-COFFEE_EXCLUDE = [
-    "starbucks",
-    "dunkin",
-    "dunkin' donuts",
-    "dunkin donuts",
-    "tim hortons",
-    "mcdonald",
-    "burger king",
-    "wendy's",
-    "panera",  # debatable but more fast-casual
-]
-
-# Coffee shop approved chains
-COFFEE_APPROVED_CHAINS = [
-    "blue bottle",
-    "bluestone lane",
-    "la colombe",
-    "birch coffee",
-    "joe coffee",
-    "think coffee",
-    "gregorys coffee",
-    "gregory's coffee",
-    "black fox",
-    "variety coffee",
-]
-
 
 
 # =============================================================================
@@ -583,8 +556,8 @@ def get_neighborhood_snapshot(
 
     # Find nearest of each category
     categories = [
-        ("Grocery", "grocery_store", "supermarket"),
-        ("Coffee", "cafe", None),
+        ("Provisioning", "grocery_store", "supermarket"),
+        ("Coffee", "cafe", "bakery"),
         ("Park", "park", None),
         ("School", "school", "primary_school")
     ]
@@ -594,6 +567,81 @@ def get_neighborhood_snapshot(
             places = maps.places_nearby(lat, lng, primary_type, radius_meters=3000)
             if secondary_type:
                 places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
+
+            # Special handling for Provisioning - apply household provisioning filter
+            if category == "Provisioning":
+                eligible_places = []
+                included_types = ["supermarket", "grocery_store", "warehouse_store", "superstore"]
+                excluded_types = ["convenience_store", "gas_station", "pharmacy", "liquor_store", "meal_takeaway", "fast_food"]
+
+                for place in places:
+                    types = place.get("types", [])
+
+                    # Must have provisioning type
+                    has_provisioning = any(t in types for t in included_types)
+                    if not has_provisioning:
+                        continue
+
+                    # Must NOT have excluded type
+                    has_excluded = any(t in types for t in excluded_types)
+                    if has_excluded:
+                        continue
+
+                    # Must meet quality threshold
+                    rating = place.get("rating", 0)
+                    reviews = place.get("user_ratings_total", 0)
+                    if rating >= 4.0 and reviews >= 50:
+                        eligible_places.append(place)
+
+                places = eligible_places
+
+                if not places:
+                    # Add placeholder entry
+                    snapshot.places.append(NeighborhoodPlace(
+                        category=category,
+                        name="No full-service grocery stores nearby",
+                        rating=None,
+                        walk_time_min=0,
+                        place_type="none"
+                    ))
+                    continue
+
+            # Special handling for Coffee - apply third-space quality filter
+            if category == "Coffee":
+                eligible_places = []
+                excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
+
+                for place in places:
+                    types = place.get("types", [])
+
+                    # Must have acceptable type
+                    has_acceptable = any(t in types for t in ["cafe", "coffee_shop", "bakery"])
+                    if not has_acceptable:
+                        continue
+
+                    # Must NOT have excluded type
+                    has_excluded = any(t in types for t in excluded_types)
+                    if has_excluded:
+                        continue
+
+                    # Must meet quality threshold
+                    rating = place.get("rating", 0)
+                    reviews = place.get("user_ratings_total", 0)
+                    if rating >= 4.0 and reviews >= 30:
+                        eligible_places.append(place)
+
+                places = eligible_places
+
+                if not places:
+                    # Add placeholder entry
+                    snapshot.places.append(NeighborhoodPlace(
+                        category=category,
+                        name="No good third-space cafés nearby",
+                        rating=None,
+                        walk_time_min=0,
+                        place_type="none"
+                    ))
+                    continue
 
             if places:
                 # Find closest
@@ -716,91 +764,101 @@ def score_park_access(
         )
 
 
-def is_acceptable_coffee_shop(place: Dict) -> Tuple[bool, str]:
-    """Check if coffee shop meets criteria (local/approved chain, not Dunkin/Starbucks)"""
-    name = place.get("name", "").lower()
-    
-    # Check exclusions first
-    for excluded in COFFEE_EXCLUDE:
-        if excluded in name:
-            return False, f"Excluded chain: {place.get('name')}"
-    
-    # Check if it's an approved chain
-    for approved in COFFEE_APPROVED_CHAINS:
-        if approved in name:
-            return True, f"Approved chain: {place.get('name')}"
-    
-    # Otherwise assume it's a local shop (acceptable)
-    return True, f"Local: {place.get('name')}"
-
-
 def score_coffee_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score coffee shop access based on rating and distance (0-10 points)"""
+    """Score coffee shop access based on third-space quality (0-10 points)"""
     try:
-        # Search for cafes
-        cafes = maps.places_nearby(lat, lng, "cafe", radius_meters=2500)
+        # Search for cafes, coffee shops, and bakeries
+        all_places = []
+        all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
+        all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
 
-        if not cafes:
+        if not all_places:
             return Tier2Score(
-                name="Coffee shop access",
+                name="Coffee",
                 points=0,
                 max_points=10,
-                details="No coffee shops found within 30 min walk"
+                details="No high-quality coffee shops within walking distance"
             )
 
-        # Find best scored shop (excluding chains like Starbucks/Dunkin)
-        best_score = 0
-        best_shop = None
-        best_details = ""
+        # Filter for third-space quality
+        eligible_places = []
+        excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
-        for cafe in cafes:
-            # Filter out excluded chains (Starbucks, Dunkin, etc.)
-            is_acceptable, _ = is_acceptable_coffee_shop(cafe)
-            if not is_acceptable:
+        for place in all_places:
+            # Get place types
+            types = place.get("types", [])
+
+            # Must have at least one acceptable type
+            has_acceptable_type = any(t in types for t in ["cafe", "coffee_shop", "bakery"])
+            if not has_acceptable_type:
                 continue
 
-            rating = cafe.get("rating", 0)
-            cafe_lat = cafe["geometry"]["location"]["lat"]
-            cafe_lng = cafe["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (cafe_lat, cafe_lng))
+            # Must NOT have any excluded type
+            has_excluded_type = any(t in types for t in excluded_types)
+            if has_excluded_type:
+                continue
 
-            # Score based on rating + distance
-            score = 0
-            if rating >= 4.2 and walk_time <= 15:
-                score = 10
-            elif rating >= 4.0 and walk_time <= 20:
-                score = 6
-            elif walk_time <= 30:
-                score = 3
+            # Must meet quality threshold
+            rating = place.get("rating", 0)
+            reviews = place.get("user_ratings_total", 0)
 
-            if score > best_score:
-                best_score = score
-                best_shop = cafe
-                cafe_name = cafe.get("name", "Coffee shop")
-                best_details = f"{cafe_name} ({rating}★) — {walk_time} min walk"
+            if rating >= 4.0 and reviews >= 30:
+                eligible_places.append(place)
 
-        if best_score == 0:
+        if not eligible_places:
             return Tier2Score(
-                name="Coffee shop access",
+                name="Coffee",
                 points=0,
                 max_points=10,
-                details="Only chain coffee (Starbucks/Dunkin) or low-rated shops nearby"
+                details="No high-quality coffee shops within walking distance"
             )
 
+        # Find best scoring place
+        best_score = 0
+        best_place = None
+        best_walk_time = 9999
+
+        for place in eligible_places:
+            place_lat = place["geometry"]["location"]["lat"]
+            place_lng = place["geometry"]["location"]["lng"]
+            walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
+
+            # Score based on walk time
+            score = 0
+            if walk_time <= 15:
+                score = 10
+            elif walk_time <= 20:
+                score = 7
+            elif walk_time <= 30:
+                score = 4
+            else:
+                score = 2
+
+            if score > best_score or (score == best_score and walk_time < best_walk_time):
+                best_score = score
+                best_place = place
+                best_walk_time = walk_time
+
+        # Format details
+        name = best_place.get("name", "Coffee shop")
+        rating = best_place.get("rating", 0)
+        reviews = best_place.get("user_ratings_total", 0)
+        details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
+
         return Tier2Score(
-            name="Coffee shop access",
+            name="Coffee",
             points=best_score,
             max_points=10,
-            details=best_details
+            details=details
         )
 
     except Exception as e:
         return Tier2Score(
-            name="Coffee shop access",
+            name="Coffee",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -928,76 +986,101 @@ def score_transit_access(
         )
 
 
-def score_grocery_access(
+def score_provisioning_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score grocery store access based on rating and distance (0-10 points)"""
+    """Score household provisioning store access (0-10 points)"""
     try:
-        # Search for grocery stores and supermarkets
-        groceries = []
+        # Search for full-service grocery stores
+        all_stores = []
+        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
+        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
 
-        # Try grocery_store type
-        grocery_stores = maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500)
-        groceries.extend(grocery_stores)
-
-        # Try supermarket type
-        supermarkets = maps.places_nearby(lat, lng, "supermarket", radius_meters=2500)
-        groceries.extend(supermarkets)
-
-        if not groceries:
+        if not all_stores:
             return Tier2Score(
-                name="Grocery access",
+                name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No grocery stores found within 30 min walk"
+                details="No full-service grocery stores within walking distance"
             )
 
-        # Find best scored store
+        # Filter for household provisioning quality
+        eligible_stores = []
+        included_types = ["supermarket", "grocery_store", "warehouse_store", "superstore"]
+        excluded_types = ["convenience_store", "gas_station", "pharmacy", "liquor_store", "meal_takeaway", "fast_food"]
+
+        for store in all_stores:
+            types = store.get("types", [])
+
+            # Must have at least one provisioning type
+            has_provisioning_type = any(t in types for t in included_types)
+            if not has_provisioning_type:
+                continue
+
+            # Must NOT have any excluded type
+            has_excluded_type = any(t in types for t in excluded_types)
+            if has_excluded_type:
+                continue
+
+            # Must meet quality threshold
+            rating = store.get("rating", 0)
+            reviews = store.get("user_ratings_total", 0)
+
+            if rating >= 4.0 and reviews >= 50:
+                eligible_stores.append(store)
+
+        if not eligible_stores:
+            return Tier2Score(
+                name="Provisioning",
+                points=0,
+                max_points=10,
+                details="No full-service grocery stores within walking distance"
+            )
+
+        # Find best scoring store
         best_score = 0
         best_store = None
-        best_details = ""
+        best_walk_time = 9999
 
-        for store in groceries:
-            rating = store.get("rating", 0)
+        for store in eligible_stores:
             store_lat = store["geometry"]["location"]["lat"]
             store_lng = store["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (store_lat, store_lng))
 
-            # Score based on rating + distance
+            # Score based on walk time
             score = 0
-            if rating >= 4.2 and walk_time <= 15:
+            if walk_time <= 15:
                 score = 10
-            elif rating >= 4.0 and walk_time <= 20:
-                score = 6
+            elif walk_time <= 20:
+                score = 7
             elif walk_time <= 30:
-                score = 3
+                score = 4
+            else:
+                score = 2
 
-            if score > best_score:
+            if score > best_score or (score == best_score and walk_time < best_walk_time):
                 best_score = score
                 best_store = store
-                store_name = store.get("name", "Grocery store")
-                best_details = f"{store_name} ({rating}★) — {walk_time} min walk"
+                best_walk_time = walk_time
 
-        if best_score == 0:
-            return Tier2Score(
-                name="Grocery access",
-                points=0,
-                max_points=10,
-                details="No grocery stores found within 30 min walk"
-            )
+        # Format details
+        name = best_store.get("name", "Grocery store")
+        rating = best_store.get("rating", 0)
+        reviews = best_store.get("user_ratings_total", 0)
+        details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         return Tier2Score(
-            name="Grocery access",
+            name="Provisioning",
             points=best_score,
             max_points=10,
-            details=best_details
+            details=details
         )
 
     except Exception as e:
         return Tier2Score(
-            name="Grocery access",
+            name="Provisioning",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -1161,7 +1244,7 @@ def evaluate_property(
     if result.passed_tier1:
         result.tier2_scores.append(score_park_access(maps, lat, lng))
         result.tier2_scores.append(score_coffee_access(maps, lat, lng))
-        result.tier2_scores.append(score_grocery_access(maps, lat, lng))
+        result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(score_transit_access(maps, lat, lng))
