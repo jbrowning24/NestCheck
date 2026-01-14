@@ -447,6 +447,51 @@
         </div>
       {% endif %}
 
+      <!-- TIER 0: URBAN ACCESS -->
+      {% if result.urban_access %}
+        <div class="tier-section">
+          <h2>Urban Access</h2>
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
+            <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Primary Transit</strong>
+              {% if result.urban_access.primary_transit %}
+                <div style="margin-top: 8px;">
+                  {{ result.urban_access.primary_transit.name }} ({{ result.urban_access.primary_transit.mode }})
+                  — {{ result.urban_access.primary_transit.walk_time_min }} min walk
+                </div>
+                {% if result.urban_access.primary_transit.drive_time_min %}
+                  <div style="color: #666; margin-top: 6px;">
+                    Drive to station — {{ result.urban_access.primary_transit.drive_time_min }} min
+                  </div>
+                {% endif %}
+                {% if result.urban_access.primary_transit.parking_available %}
+                  <div style="color: #666; margin-top: 4px;">
+                    Parking — available
+                  </div>
+                {% endif %}
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No nearby transit stops found</div>
+              {% endif %}
+            </div>
+            <div>
+              <strong style="color: #ef6c00;">Major Hub</strong>
+              {% if result.urban_access.major_hub %}
+                <div style="margin-top: 8px;">
+                  {{ result.urban_access.major_hub.name }}
+                  {% if result.urban_access.major_hub.travel_time_min %}
+                    — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
+                  {% else %}
+                    — travel time unavailable
+                  {% endif %}
+                </div>
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No major hub identified</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       <!-- TIER 1: Must-Have Requirements -->
       <div class="tier-section">
         <div class="tier-header">
