@@ -421,11 +421,13 @@
             </div>
             <div>
               <strong style="color: #2e7d32;">Schools (5–18)</strong>
-              {% if result.child_schooling_snapshot.schools %}
-                <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
-                  {% for place in result.child_schooling_snapshot.schools %}
-                    <li style="margin-bottom: 8px;">
-                      • {{ place.name }}
+              <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                {% for level in ["Elementary", "Middle", "High"] %}
+                  {% set place = result.child_schooling_snapshot.schools_by_level.get(level) %}
+                  <li style="margin-bottom: 8px;">
+                    <strong>{{ level }}:</strong>
+                    {% if place %}
+                      {{ place.name }}
                       {% if place.rating or place.user_ratings_total %}
                         (
                         {% if place.rating %}{{ "%.1f"|format(place.rating) }}★{% endif %}
@@ -436,12 +438,12 @@
                       {% if place.website %}
                         <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #2e7d32; margin-left: 6px;">Website</a>
                       {% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No nearby schools found</div>
-              {% endif %}
+                    {% else %}
+                      <span style="color: #7f8c8d; font-style: italic;">Not found within walkable radius.</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
             </div>
           </div>
         </div>
@@ -453,7 +455,7 @@
           <h2>Urban Access</h2>
           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
             <div style="margin-bottom: 18px;">
-              <strong style="color: #ef6c00;">Primary Transit</strong>
+              <strong style="color: #ef6c00;">Primary Transit Access</strong>
               {% if result.urban_access.primary_transit %}
                 <div style="margin-top: 8px;">
                   {{ result.urban_access.primary_transit.name }} ({{ result.urban_access.primary_transit.mode }})
@@ -462,6 +464,11 @@
                 {% if result.urban_access.primary_transit.drive_time_min %}
                   <div style="color: #666; margin-top: 6px;">
                     Drive to station — {{ result.urban_access.primary_transit.drive_time_min }} min
+                  </div>
+                {% endif %}
+                {% if result.urban_access.primary_transit.frequency_class %}
+                  <div style="color: #666; margin-top: 4px;">
+                    Frequency — {{ result.urban_access.primary_transit.frequency_class }}
                   </div>
                 {% endif %}
                 {% if result.urban_access.primary_transit.parking_available %}
@@ -474,14 +481,15 @@
               {% endif %}
             </div>
             <div>
-              <strong style="color: #ef6c00;">Major Hub</strong>
+              <strong style="color: #ef6c00;">Urban Access</strong>
               {% if result.urban_access.major_hub %}
                 <div style="margin-top: 8px;">
-                  {{ result.urban_access.major_hub.name }}
-                  {% if result.urban_access.major_hub.travel_time_min %}
-                    — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
+                  {% if result.urban_access.major_hub.route_summary %}
+                    {{ result.urban_access.major_hub.route_summary }}
+                  {% elif result.urban_access.major_hub.travel_time_min %}
+                    {{ result.urban_access.major_hub.name }} — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
                   {% else %}
-                    — travel time unavailable
+                    {{ result.urban_access.major_hub.name }} — travel time unavailable
                   {% endif %}
                 </div>
               {% else %}
@@ -593,6 +601,7 @@
           <div class="tier2-summary">
             <strong>Tier 2 Total:</strong>
             <span>{{ result.tier2_score }}/{{ result.tier2_max }} points</span>
+            <span>(normalized {{ result.tier2_normalized }}/100)</span>
           </div>
         </div>
 
@@ -626,9 +635,12 @@
 
         <!-- TOTAL SCORE -->
         <div class="total-score">
-          <h3>Final Score</h3>
-          <div class="score">{{ result.total_score }}</div>
-          <p style="margin-top: 10px; opacity: 0.9;">{{ result.tier2_score }} (Tier 2) + {{ result.tier3_bonus }} (Tier 3)</p>
+          <h3>Livability Score</h3>
+          <div class="score">{{ result.final_score }} / 100</div>
+          <p style="margin-top: 10px; opacity: 0.9;">{{ result.percentile_label }}</p>
+          <p style="margin-top: 10px; opacity: 0.9;">
+            Tier 2 normalized: {{ result.tier2_normalized }}/100 · Tier 3 bonus: +{{ result.tier3_bonus }}
+          </p>
         </div>
       {% else %}
         <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; border-radius: 6px; margin-top: 20px;">

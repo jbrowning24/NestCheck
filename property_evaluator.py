@@ -38,14 +38,15 @@ HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = 500
 # Walking time thresholds (in minutes)
 PARK_WALK_IDEAL_MIN = 20
 PARK_WALK_ACCEPTABLE_MIN = 30
-COFFEE_WALK_IDEAL_MIN = 20
-COFFEE_WALK_ACCEPTABLE_MIN = 30
+THIRD_PLACE_WALK_IDEAL_MIN = 20
+THIRD_PLACE_WALK_ACCEPTABLE_MIN = 30
 METRO_NORTH_WALK_IDEAL_MIN = 20
 METRO_NORTH_WALK_ACCEPTABLE_MIN = 30
-GROCERY_WALK_IDEAL_MIN = 15
-GROCERY_WALK_ACCEPTABLE_MIN = 30
+PROVISIONING_WALK_IDEAL_MIN = 15
+PROVISIONING_WALK_ACCEPTABLE_MIN = 30
 FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
+SCHOOL_WALK_MAX_MIN = 30
 
 # Cost thresholds (monthly cost - rent or estimated mortgage + expenses)
 COST_MAX = 7000
@@ -164,7 +165,7 @@ class GreenSpaceEvaluation:
 @dataclass
 class NeighborhoodPlace:
     """Single nearby amenity for context"""
-    category: str  # "Grocery", "Coffee", "Park", "School"
+    category: str  # "Provisioning", "Third Place", "Park", "School"
     name: str
     rating: Optional[float]
     walk_time_min: int
@@ -193,21 +194,26 @@ class SchoolPlace:
     user_ratings_total: Optional[int]
     walk_time_min: int
     website: Optional[str]
+    level: str
 
 
 @dataclass
 class ChildSchoolingSnapshot:
     childcare: List[ChildcarePlace] = field(default_factory=list)
-    schools: List[SchoolPlace] = field(default_factory=list)
+    schools_by_level: Dict[str, Optional[SchoolPlace]] = field(default_factory=dict)
 
 
 @dataclass
 class PrimaryTransitOption:
     name: str
     mode: str
+    lat: float
+    lng: float
     walk_time_min: int
     drive_time_min: Optional[int] = None
     parking_available: Optional[bool] = None
+    user_ratings_total: Optional[int] = None
+    frequency_class: Optional[str] = None
 
 
 @dataclass
@@ -215,6 +221,7 @@ class MajorHubAccess:
     name: str
     travel_time_min: int
     transit_mode: str
+    route_summary: Optional[str] = None
 
 
 @dataclass
@@ -253,8 +260,11 @@ class EvaluationResult:
     passed_tier1: bool = False
     tier2_total: int = 0
     tier2_max: int = 0
+    tier2_normalized: int = 0
     tier3_total: int = 0
-    total_score: int = 0
+    final_score: int = 0
+    percentile_top: int = 0
+    percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
 
@@ -745,7 +755,7 @@ def get_neighborhood_snapshot(
     # Find nearest of each category
     categories = [
         ("Provisioning", "grocery_store", "supermarket"),
-        ("Coffee", "cafe", "bakery"),
+        ("Third Place", "cafe", "bakery"),
         ("Park", "park", None),
         ("School", "school", "primary_school")
     ]
@@ -787,15 +797,15 @@ def get_neighborhood_snapshot(
                     # Add placeholder entry
                     snapshot.places.append(NeighborhoodPlace(
                         category=category,
-                        name="No full-service grocery stores nearby",
+                        name="No full-service provisioning options nearby",
                         rating=None,
                         walk_time_min=0,
                         place_type="none"
                     ))
                     continue
 
-            # Special handling for Coffee - apply third-space quality filter
-            if category == "Coffee":
+            # Special handling for Third Place - apply third-place quality filter
+            if category == "Third Place":
                 eligible_places = []
                 excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
@@ -824,7 +834,7 @@ def get_neighborhood_snapshot(
                     # Add placeholder entry
                     snapshot.places.append(NeighborhoodPlace(
                         category=category,
-                        name="No good third-space cafés nearby",
+                        name="No good third-place spots nearby",
                         rating=None,
                         walk_time_min=0,
                         place_type="none"
@@ -867,43 +877,145 @@ def get_child_and_schooling_snapshot(
     """Collect nearby childcare and schooling options for situational awareness."""
     snapshot = ChildSchoolingSnapshot()
 
-    childcare_types = {"preschool", "kindergarten", "child_care"}
-    school_types = {"primary_school", "secondary_school", "school"}
-    excluded_school_types = {"university", "college", "driving_school", "language_school"}
-    search_types = list(childcare_types | school_types)
+    childcare_keywords = {
+        "daycare",
+        "pre-k",
+        "pre k",
+        "preschool",
+        "nursery",
+        "early childhood",
+        "early learning",
+        "child care",
+    }
+    childcare_types = {"preschool", "kindergarten", "child_care", "school"}
+    childcare_religious_keywords = {
+        "church",
+        "temple",
+        "mosque",
+        "religious",
+        "sunday school",
+        "faith",
+    }
+    childcare_excluded_keywords = {
+        "tutoring",
+        "tutor",
+        "music",
+        "dance",
+        "gym",
+        "martial arts",
+        "karate",
+        "taekwondo",
+        "lesson",
+    }
 
-    nearby_places: Dict[str, Dict] = {}
-    for place_type in search_types:
+    school_excluded_keywords = {
+        "music",
+        "tutoring",
+        "tutor",
+        "lesson",
+        "dance",
+        "martial arts",
+        "karate",
+        "taekwondo",
+        "dojo",
+        "church",
+        "temple",
+        "mosque",
+        "religious",
+        "bible",
+        "catholic",
+        "christian",
+        "lutheran",
+        "jewish",
+        "islamic",
+        "montessori",
+        "montessori school",
+        "private school",
+    }
+
+    def normalize_text(text: str) -> str:
+        return re.sub(r"\\s+", " ", text or "").strip().lower()
+
+    def fetch_website_text(website: Optional[str]) -> str:
+        if not website:
+            return ""
         try:
-            places = maps.places_nearby(lat, lng, place_type, radius_meters=3000)
+            response = requests.get(website, timeout=6)
+            if response.status_code >= 400:
+                return ""
+            text = re.sub(r"<[^>]+>", " ", response.text)
+            return normalize_text(text)
         except Exception:
-            continue
-        for place in places:
-            place_id = place.get("place_id")
-            if place_id and place_id not in nearby_places:
-                nearby_places[place_id] = place
+            return ""
 
-    candidates = list(nearby_places.values())
-    childcare_candidates = [
-        place for place in candidates
-        if any(t in childcare_types for t in place.get("types", []))
-    ]
-    school_candidates = [
-        place for place in candidates
-        if any(t in school_types for t in place.get("types", []))
-        and not any(t in excluded_school_types for t in place.get("types", []))
-    ]
+    def build_text_blob(place: Dict, website_text: str = "") -> str:
+        name = normalize_text(place.get("name", ""))
+        types_text = " ".join(place.get("types", []))
+        return normalize_text(" ".join([name, types_text, website_text]))
 
-    def build_places(
-        places: List[Dict],
-        max_results: int,
-        place_cls
-    ) -> List[Any]:
+    def is_childcare(place: Dict, website_text: str) -> bool:
+        text_blob = build_text_blob(place, website_text)
+        has_keyword = any(keyword in text_blob for keyword in childcare_keywords)
+        has_type = any(t in childcare_types for t in place.get("types", []))
+        has_excluded = any(keyword in text_blob for keyword in childcare_excluded_keywords)
+        has_religious = any(keyword in text_blob for keyword in childcare_religious_keywords)
+        has_preschool = "preschool" in place.get("types", []) or "preschool" in text_blob
+        return (has_keyword or has_preschool) and has_type and not has_excluded and (not has_religious or has_preschool)
+
+    def is_public_school(place: Dict, website_text: str) -> bool:
+        text_blob = build_text_blob(place, website_text)
+        if not website_text and any(
+            t in place.get("types", []) for t in ["primary_school", "secondary_school", "school"]
+        ):
+            return True
+        if any(keyword in text_blob for keyword in school_excluded_keywords):
+            return False
+        public_signals = [
+            "public school",
+            "school district",
+            "public schools",
+            ".k12.",
+            "k12",
+            "isd",
+            "usd",
+            "ps ",
+            "public",
+        ]
+        return any(signal in text_blob for signal in public_signals)
+
+    def infer_school_level(place: Dict, website_text: str) -> str:
+        text_blob = build_text_blob(place, website_text)
+        if "elementary" in text_blob or "primary school" in text_blob:
+            return "Elementary"
+        if "middle" in text_blob or "junior high" in text_blob or "intermediate" in text_blob:
+            return "Middle"
+        if "high school" in text_blob or "secondary school" in text_blob or "senior high" in text_blob:
+            return "High"
+        if "k-12" in text_blob or "k12" in text_blob:
+            return "K-12"
+        if "primary_school" in place.get("types", []):
+            return "Elementary"
+        if "secondary_school" in place.get("types", []):
+            return "High"
+        return ""
+
+    def fetch_place_details(place: Dict) -> Dict:
+        place_id = place.get("place_id")
+        if not place_id:
+            return {}
+        try:
+            return maps.place_details(place_id)
+        except Exception:
+            return {}
+
+    def build_childcare_places(places: List[Dict], max_results: int) -> List[ChildcarePlace]:
         scored_places = []
         for place in places:
             p_lat = place["geometry"]["location"]["lat"]
             p_lng = place["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+            if walk_time > SCHOOL_WALK_MAX_MIN:
+                continue
             scored_places.append((walk_time, place))
 
         scored_places.sort(key=lambda item: item[0])
@@ -911,28 +1023,98 @@ def get_child_and_schooling_snapshot(
         results = []
 
         for walk_time, place in selected:
-            website = None
-            place_id = place.get("place_id")
-            if place_id:
-                try:
-                    details = maps.place_details(place_id)
-                    website = details.get("website")
-                except Exception:
-                    website = None
-
-            results.append(place_cls(
+            details = fetch_place_details(place)
+            website = details.get("website")
+            results.append(ChildcarePlace(
                 name=place.get("name", "Unknown"),
                 rating=place.get("rating"),
                 user_ratings_total=place.get("user_ratings_total"),
                 walk_time_min=walk_time,
                 website=website
             ))
-
         return results
 
-    snapshot.childcare = build_places(childcare_candidates, 5, ChildcarePlace)
-    snapshot.schools = build_places(school_candidates, 5, SchoolPlace)
+    childcare_searches = [
+        ("daycare", "child_care"),
+        ("preschool", "preschool"),
+        ("nursery", "school"),
+        ("early childhood education", "school"),
+    ]
+    childcare_places: Dict[str, Dict] = {}
+    for keyword, place_type in childcare_searches:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=3000, keyword=keyword)
+        except Exception:
+            continue
+        for place in places:
+            place_id = place.get("place_id")
+            if place_id and place_id not in childcare_places:
+                childcare_places[place_id] = place
 
+    childcare_candidates = []
+    for place in childcare_places.values():
+        details = fetch_place_details(place)
+        website_text = fetch_website_text(details.get("website"))
+        if is_childcare(place, website_text):
+            childcare_candidates.append(place)
+
+    snapshot.childcare = build_childcare_places(childcare_candidates, 5)
+
+    school_search_queries = [
+        "public elementary school",
+        "public middle school",
+        "public high school",
+    ]
+    school_candidates: Dict[str, Dict] = {}
+    for query in school_search_queries:
+        try:
+            places = maps.text_search(query, lat, lng, radius_meters=50000)
+        except Exception:
+            continue
+        for place in places:
+            place_id = place.get("place_id")
+            if place_id and place_id not in school_candidates:
+                school_candidates[place_id] = place
+
+    schools_by_level: Dict[str, Optional[SchoolPlace]] = {
+        "Elementary": None,
+        "Middle": None,
+        "High": None,
+    }
+
+    def maybe_set_school(level: str, place: Dict, walk_time: int, website: Optional[str]) -> None:
+        existing = schools_by_level.get(level)
+        if existing is None or walk_time < existing.walk_time_min:
+            schools_by_level[level] = SchoolPlace(
+                name=place.get("name", "Unknown"),
+                rating=place.get("rating"),
+                user_ratings_total=place.get("user_ratings_total"),
+                walk_time_min=walk_time,
+                website=website,
+                level=level,
+            )
+
+    for place in school_candidates.values():
+        details = fetch_place_details(place)
+        website = details.get("website")
+        website_text = fetch_website_text(website)
+        if not is_public_school(place, website_text):
+            continue
+        level = infer_school_level(place, website_text)
+        if not level:
+            continue
+        p_lat = place["geometry"]["location"]["lat"]
+        p_lng = place["geometry"]["location"]["lng"]
+        walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+        if walk_time > SCHOOL_WALK_MAX_MIN:
+            continue
+        if level == "K-12":
+            for level_name in schools_by_level.keys():
+                maybe_set_school(level_name, place, walk_time, website)
+        else:
+            maybe_set_school(level, place, walk_time, website)
+
+    snapshot.schools_by_level = schools_by_level
     return snapshot
 
 
@@ -969,6 +1151,16 @@ def get_parking_availability(maps: GoogleMapsClient, place_id: Optional[str]) ->
     return None
 
 
+def transit_frequency_class(review_count: int) -> str:
+    if review_count >= 5000:
+        return "High frequency"
+    if review_count >= 1000:
+        return "Medium frequency"
+    if review_count >= 200:
+        return "Low frequency"
+    return "Very low frequency"
+
+
 def find_primary_transit(
     maps: GoogleMapsClient,
     lat: float,
@@ -978,8 +1170,7 @@ def find_primary_transit(
     search_types = [
         ("train_station", "Train", 1),
         ("subway_station", "Subway", 1),
-        ("bus_station", "Bus", 2),
-        ("transit_station", "Transit", 3),
+        ("light_rail_station", "Light Rail", 1),
     ]
 
     candidates: List[Tuple[int, int, Dict, str]] = []
@@ -999,22 +1190,33 @@ def find_primary_transit(
 
     candidates.sort(key=lambda item: (item[0], item[1]))
     _, walk_time, place, mode = candidates[0]
+    place_lat = place["geometry"]["location"]["lat"]
+    place_lng = place["geometry"]["location"]["lng"]
 
     drive_time = None
     if walk_time > 30:
         drive_time = maps.driving_time(
             (lat, lng),
-            (place["geometry"]["location"]["lat"], place["geometry"]["location"]["lng"])
+            (place_lat, place_lng)
         )
 
     parking_available = get_parking_availability(maps, place.get("place_id"))
+    user_ratings_total = place.get("user_ratings_total")
 
     return PrimaryTransitOption(
         name=place.get("name", "Unknown"),
         mode=mode,
+        lat=place_lat,
+        lng=place_lng,
         walk_time_min=walk_time,
         drive_time_min=drive_time if drive_time and drive_time != 9999 else None,
-        parking_available=parking_available
+        parking_available=parking_available,
+        user_ratings_total=user_ratings_total,
+        frequency_class=(
+            transit_frequency_class(user_ratings_total)
+            if isinstance(user_ratings_total, int)
+            else None
+        ),
     )
 
 
@@ -1026,7 +1228,8 @@ def determine_major_hub(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    primary_mode: Optional[str]
+    primary_mode: Optional[str],
+    transit_origin: Optional[Tuple[float, float]] = None
 ) -> Optional[MajorHubAccess]:
     metros = [
         {
@@ -1111,9 +1314,10 @@ def determine_major_hub(
             hub_place["geometry"]["location"]["lng"],
         )
 
-    travel_time = maps.transit_time((lat, lng), hub_coords)
+    travel_origin = transit_origin or (lat, lng)
+    travel_time = maps.transit_time(travel_origin, hub_coords)
     transit_mode = "transit"
-    if primary_mode in {"Train", "Subway"}:
+    if primary_mode in {"Train", "Subway", "Light Rail"}:
         transit_mode = "train"
     elif primary_mode == "Bus":
         transit_mode = "bus"
@@ -1125,13 +1329,39 @@ def determine_major_hub(
     )
 
 
+def urban_access_route_summary(
+    primary_transit: Optional[PrimaryTransitOption],
+    major_hub: Optional[MajorHubAccess]
+) -> Optional[str]:
+    if not primary_transit or not major_hub or not major_hub.travel_time_min:
+        return None
+
+    mode_label = "Train"
+    if primary_transit.mode not in {"Train", "Subway", "Light Rail"}:
+        mode_label = primary_transit.mode
+
+    if primary_transit.walk_time_min > 30:
+        return f"Bus \u2192 {mode_label} \u2192 {major_hub.name} \u2014 {major_hub.travel_time_min} min"
+
+    return f"{mode_label} to {major_hub.name} \u2014 {major_hub.travel_time_min} min"
+
+
 def get_urban_access_profile(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> UrbanAccessProfile:
     primary_transit = find_primary_transit(maps, lat, lng)
-    major_hub = determine_major_hub(maps, lat, lng, primary_transit.mode if primary_transit else None)
+    transit_origin = (primary_transit.lat, primary_transit.lng) if primary_transit else None
+    major_hub = determine_major_hub(
+        maps,
+        lat,
+        lng,
+        primary_transit.mode if primary_transit else None,
+        transit_origin=transit_origin
+    )
+    if major_hub:
+        major_hub.route_summary = urban_access_route_summary(primary_transit, major_hub)
 
     return UrbanAccessProfile(
         primary_transit=primary_transit,
@@ -1379,12 +1609,12 @@ def score_park_access(
         )
 
 
-def score_coffee_access(
+def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> Tier2Score:
-    """Score coffee shop access based on third-space quality (0-10 points)"""
+    """Score third-place access based on third-place quality (0-10 points)"""
     try:
         # Search for cafes, coffee shops, and bakeries
         all_places = []
@@ -1393,13 +1623,13 @@ def score_coffee_access(
 
         if not all_places:
             return Tier2Score(
-                name="Coffee",
+                name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality coffee shops within walking distance"
+                details="No high-quality third places within walking distance"
             )
 
-        # Filter for third-space quality
+        # Filter for third-place quality
         eligible_places = []
         excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
@@ -1426,10 +1656,10 @@ def score_coffee_access(
 
         if not eligible_places:
             return Tier2Score(
-                name="Coffee",
+                name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality coffee shops within walking distance"
+                details="No high-quality third places within walking distance"
             )
 
         # Find best scoring place
@@ -1459,13 +1689,13 @@ def score_coffee_access(
                 best_walk_time = walk_time
 
         # Format details
-        name = best_place.get("name", "Coffee shop")
+        name = best_place.get("name", "Third place")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         return Tier2Score(
-            name="Coffee",
+            name="Third Place",
             points=best_score,
             max_points=10,
             details=details
@@ -1473,7 +1703,7 @@ def score_coffee_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Coffee",
+            name="Third Place",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -1517,147 +1747,83 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None
 ) -> Tier2Score:
-    """Score public transit access (0-10 points)"""
-    def service_quality_label(review_count: int) -> str:
-        if review_count > 5000:
-            return "High frequency"
-        if review_count >= 1000:
-            return "Medium frequency"
-        if review_count >= 200:
-            return "Low frequency"
-        return "Very low frequency"
-
-    def network_type_label(name: str, types: Optional[List[str]]) -> str:
-        name_lower = name.lower()
-        types_lower = [t.lower() for t in (types or [])]
-
-        if (
-            any(keyword in name_lower for keyword in ["subway", "metro", "underground"])
-            or "subway_station" in types_lower
-        ):
-            return "Rapid transit"
-        if (
-            any(keyword in name_lower for keyword in ["amtrak", "metro-north", "bart", "caltrain"])
-            or "train_station" in types_lower
-            or "light_rail_station" in types_lower
-        ):
-            return "Regional rail"
-        if "bus" in name_lower or "bus_station" in types_lower:
-            return "Bus"
-
-        if "transit_station" in types_lower:
-            return "Bus"
-
-        return "Regional rail"
-
-    def urban_access_score(network_type: str, walk_time: int, service_quality: str) -> int:
-        base_scores = {
-            "Rapid transit": 6,
-            "Regional rail": 5,
-            "Bus": 3,
-        }
-        score = base_scores.get(network_type, 3)
-
+    """Score urban access via rail transit (0-10 points)."""
+    def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
-            score += 2
-        elif walk_time <= 20:
-            score += 1
+            return 4
+        if walk_time <= 20:
+            return 3
+        if walk_time <= 30:
+            return 2
+        if walk_time <= 45:
+            return 1
+        return 0
 
-        if service_quality == "High frequency":
-            score += 2
-        elif service_quality == "Medium frequency":
-            score += 1
-
-        return min(score, 10)
+    def hub_travel_points(travel_time: Optional[int]) -> int:
+        if travel_time is None or travel_time <= 0:
+            return 0
+        if travel_time <= 45:
+            return 3
+        if travel_time <= 75:
+            return 2
+        if travel_time <= 110:
+            return 1
+        return 0
 
     try:
-        # Search for transit stations (generic)
-        stations = []
-
-        # Search for transit_station type
-        transit_stations = maps.places_nearby(
-            lat, lng,
-            "transit_station",
-            radius_meters=3000
-        )
-        stations.extend(transit_stations)
-
-        # Also search for train_station type
-        train_stations = maps.places_nearby(
-            lat, lng,
-            "train_station",
-            radius_meters=3000
-        )
-        stations.extend(train_stations)
-
-        if not stations:
+        primary_transit = find_primary_transit(maps, lat, lng)
+        if not primary_transit:
             return Tier2Score(
-                name="Transit access",
+                name="Urban access",
                 points=0,
                 max_points=10,
-                details="No transit stations found within 30 min walk"
+                details="No rail transit stations found within reach"
             )
 
-        # Filter by keywords if provided (e.g., ["Metro-North"] for Westchester)
-        if transit_keywords:
-            filtered = []
-            for station in stations:
-                name = station.get("name", "").lower()
-                if any(keyword.lower() in name for keyword in transit_keywords):
-                    filtered.append(station)
-            if filtered:
-                stations = filtered
+        major_hub = determine_major_hub(
+            maps,
+            lat,
+            lng,
+            primary_transit.mode,
+            transit_origin=(primary_transit.lat, primary_transit.lng),
+        )
 
-        # Find closest station
-        best_walk_time = 9999
-        best_station = None
+        walk_points = walkability_points(primary_transit.walk_time_min)
+        frequency_class = primary_transit.frequency_class or "Very low frequency"
+        frequency_points = {
+            "High frequency": 3,
+            "Medium frequency": 2,
+            "Low frequency": 1,
+            "Very low frequency": 0,
+        }.get(frequency_class, 0)
+        hub_time = major_hub.travel_time_min if major_hub else None
+        hub_points = hub_travel_points(hub_time)
 
-        for station in stations:
-            station_lat = station["geometry"]["location"]["lat"]
-            station_lng = station["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (station_lat, station_lng))
+        total_points = min(10, walk_points + frequency_points + hub_points)
 
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
-                best_station = station
+        drive_note = ""
+        if primary_transit.drive_time_min:
+            drive_note = f" | {primary_transit.drive_time_min} min drive"
 
-        if best_station is None:
-            return Tier2Score(
-                name="Transit access",
-                points=0,
-                max_points=10,
-                details="No transit stations found within 30 min walk"
-            )
-
-        # Score based on walk time
-        if best_walk_time <= 20:
-            points = 10
-        elif best_walk_time <= 30:
-            points = 5
-        else:
-            points = 0
-
-        station_name = best_station.get("name", "Transit station")
-        reviews = best_station.get("user_ratings_total", 0)
-        service_quality = service_quality_label(reviews)
-        network_type = network_type_label(station_name, best_station.get("types", []))
-        access_score = urban_access_score(network_type, best_walk_time, service_quality)
+        hub_note = "Hub travel time unavailable"
+        if major_hub and hub_time:
+            hub_note = f"{major_hub.name} — {hub_time} min"
 
         return Tier2Score(
-            name="Transit access",
-            points=points,
+            name="Urban access",
+            points=total_points,
             max_points=10,
             details=(
-                f"{station_name} — {best_walk_time} min walk | "
-                f"Service: {service_quality} | "
-                f"Network: {network_type} | "
-                f"Urban Access Score: {access_score}/10"
+                f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
+                f"{drive_note} | "
+                f"Frequency: {frequency_class} | "
+                f"Hub: {hub_note}"
             )
         )
 
     except Exception as e:
         return Tier2Score(
-            name="Transit access",
+            name="Urban access",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -1671,7 +1837,7 @@ def score_provisioning_access(
 ) -> Tier2Score:
     """Score household provisioning store access (0-10 points)"""
     try:
-        # Search for full-service grocery stores
+        # Search for full-service provisioning stores
         all_stores = []
         all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
@@ -1681,7 +1847,7 @@ def score_provisioning_access(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service grocery stores within walking distance"
+                details="No full-service provisioning options within walking distance"
             )
 
         # Filter for household provisioning quality
@@ -1714,7 +1880,7 @@ def score_provisioning_access(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service grocery stores within walking distance"
+                details="No full-service provisioning options within walking distance"
             )
 
         # Find best scoring store
@@ -1744,7 +1910,7 @@ def score_provisioning_access(
                 best_walk_time = walk_time
 
         # Format details
-        name = best_store.get("name", "Grocery store")
+        name = best_store.get("name", "Provisioning store")
         rating = best_store.get("rating", 0)
         reviews = best_store.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
@@ -1871,6 +2037,26 @@ def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
     return bonuses
 
 
+def estimate_percentile(score: int) -> Tuple[int, str]:
+    """Estimate percentile bucket from a normalized 0-100 score."""
+    buckets = [
+        (90, 5),
+        (85, 10),
+        (80, 20),
+        (75, 30),
+        (70, 40),
+        (65, 50),
+        (60, 60),
+        (55, 70),
+        (50, 80),
+        (0, 90),
+    ]
+    for threshold, top_percent in buckets:
+        if score >= threshold:
+            return top_percent, f"≈ top {top_percent}% nationally for families"
+    return 90, "≈ top 90% nationally for families"
+
+
 # =============================================================================
 # MAIN EVALUATION
 # =============================================================================
@@ -1926,7 +2112,7 @@ def evaluate_property(
         result.tier2_scores.append(
             score_park_access(maps, lat, lng, result.green_space_evaluation)
         )
-        result.tier2_scores.append(score_coffee_access(maps, lat, lng))
+        result.tier2_scores.append(score_third_place_access(maps, lat, lng))
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
@@ -1944,10 +2130,15 @@ def evaluate_property(
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
     
     # ===================
-    # TOTAL SCORE
+    # FINAL SCORE + PERCENTILE
     # ===================
-    
-    result.total_score = result.tier2_total + result.tier3_total
+    if result.tier2_max > 0:
+        result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
+    else:
+        result.tier2_normalized = 0
+
+    result.final_score = min(100, result.tier2_normalized + result.tier3_total)
+    result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
     
     return result
 
@@ -1978,7 +2169,10 @@ def format_result(result: EvaluationResult) -> str:
     lines.append("\n✅ PASSED TIER 1")
     
     # Tier 2
-    lines.append(f"\nTIER 2 SCORE: {result.tier2_total}/{result.tier2_max}")
+    lines.append(
+        f"\nTIER 2 SCORE: {result.tier2_total}/{result.tier2_max} "
+        f"(normalized {result.tier2_normalized}/100)"
+    )
     for score in result.tier2_scores:
         lines.append(f"  - {score.name}: {score.points} pts — {score.details}")
     
@@ -1990,9 +2184,10 @@ def format_result(result: EvaluationResult) -> str:
     else:
         lines.append("\nTIER 3 BONUS: +0 pts")
     
-    # Total
+    # Final
     lines.append(f"\n{'=' * 70}")
-    lines.append(f"TOTAL SCORE: {result.total_score}")
+    lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
+    lines.append(f"Tier 3 Bonus: +{result.tier3_total} (already capped at 100)")
     lines.append("=" * 70)
     
     # Notes
@@ -2115,29 +2310,41 @@ def main():
                     }
                     for p in (result.child_schooling_snapshot.childcare if result.child_schooling_snapshot else [])
                 ],
-                "schools": [
-                    {
-                        "name": p.name,
-                        "rating": p.rating,
-                        "user_ratings_total": p.user_ratings_total,
-                        "walk_time_min": p.walk_time_min,
-                        "website": p.website
-                    }
-                    for p in (result.child_schooling_snapshot.schools if result.child_schooling_snapshot else [])
-                ]
+                "schools_by_level": {
+                    level: (
+                        {
+                            "name": place.name,
+                            "rating": place.rating,
+                            "user_ratings_total": place.user_ratings_total,
+                            "walk_time_min": place.walk_time_min,
+                            "website": place.website,
+                            "level": place.level,
+                        }
+                        if place else None
+                    )
+                    for level, place in (
+                        result.child_schooling_snapshot.schools_by_level.items()
+                        if result.child_schooling_snapshot else {}
+                    )
+                }
             },
             "urban_access": {
                 "primary_transit": {
                     "name": result.urban_access.primary_transit.name,
                     "mode": result.urban_access.primary_transit.mode,
+                    "lat": result.urban_access.primary_transit.lat,
+                    "lng": result.urban_access.primary_transit.lng,
                     "walk_time_min": result.urban_access.primary_transit.walk_time_min,
                     "drive_time_min": result.urban_access.primary_transit.drive_time_min,
                     "parking_available": result.urban_access.primary_transit.parking_available,
+                    "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
+                    "frequency_class": result.urban_access.primary_transit.frequency_class,
                 } if result.urban_access and result.urban_access.primary_transit else None,
                 "major_hub": {
                     "name": result.urban_access.major_hub.name,
                     "travel_time_min": result.urban_access.major_hub.travel_time_min,
                     "transit_mode": result.urban_access.major_hub.transit_mode,
+                    "route_summary": result.urban_access.major_hub.route_summary,
                 } if result.urban_access and result.urban_access.major_hub else None,
             },
             "green_space_evaluation": {
@@ -2187,6 +2394,7 @@ def main():
             ],
             "tier2_score": result.tier2_total,
             "tier2_max": result.tier2_max,
+            "tier2_normalized": result.tier2_normalized,
             "tier2_scores": [
                 {"name": s.name, "points": s.points, "max": s.max_points, "details": s.details}
                 for s in result.tier2_scores
@@ -2196,7 +2404,9 @@ def main():
                 {"name": b.name, "points": b.points, "details": b.details}
                 for b in result.tier3_bonuses
             ],
-            "total_score": result.total_score,
+            "final_score": result.final_score,
+            "percentile_top": result.percentile_top,
+            "percentile_label": result.percentile_label,
         }
         print(json.dumps(output, indent=2))
     else:
