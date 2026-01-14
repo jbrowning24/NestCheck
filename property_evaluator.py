@@ -140,6 +140,28 @@ class ChildSchoolingSnapshot:
 
 
 @dataclass
+class PrimaryTransitOption:
+    name: str
+    mode: str
+    walk_time_min: int
+    drive_time_min: Optional[int] = None
+    parking_available: Optional[bool] = None
+
+
+@dataclass
+class MajorHubAccess:
+    name: str
+    travel_time_min: int
+    transit_mode: str
+
+
+@dataclass
+class UrbanAccessProfile:
+    primary_transit: Optional[PrimaryTransitOption] = None
+    major_hub: Optional[MajorHubAccess] = None
+
+
+@dataclass
 class PropertyListing:
     """Property listing data - can be populated from manual input or scraped"""
     address: str
@@ -161,6 +183,7 @@ class EvaluationResult:
     lng: float
     neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
+    urban_access: Optional[UrbanAccessProfile] = None
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
@@ -228,12 +251,20 @@ class GoogleMapsClient:
         
         return data.get("results", [])
     
-    def place_details(self, place_id: str) -> Dict:
+    def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
         """Get detailed information about a place"""
         url = f"{self.base_url}/place/details/json"
+        default_fields = [
+            "name",
+            "rating",
+            "user_ratings_total",
+            "types",
+            "formatted_address",
+            "website",
+        ]
         params = {
             "place_id": place_id,
-            "fields": "name,rating,user_ratings_total,types,formatted_address,website",
+            "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
         response = self.session.get(url, params=params)
@@ -264,6 +295,71 @@ class GoogleMapsClient:
             return 9999  # Unreachable
         
         return element["duration"]["value"] // 60  # Convert seconds to minutes
+
+    def driving_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
+        """Get driving time in minutes between two points"""
+        url = f"{self.base_url}/distancematrix/json"
+        params = {
+            "origins": f"{origin[0]},{origin[1]}",
+            "destinations": f"{dest[0]},{dest[1]}",
+            "mode": "driving",
+            "key": self.api_key
+        }
+        response = self.session.get(url, params=params)
+        data = response.json()
+
+        if data["status"] != "OK":
+            raise ValueError(f"Distance Matrix API failed: {data['status']}")
+
+        element = data["rows"][0]["elements"][0]
+        if element["status"] != "OK":
+            return 9999  # Unreachable
+
+        return element["duration"]["value"] // 60  # Convert seconds to minutes
+
+    def transit_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
+        """Get transit time in minutes between two points"""
+        url = f"{self.base_url}/distancematrix/json"
+        params = {
+            "origins": f"{origin[0]},{origin[1]}",
+            "destinations": f"{dest[0]},{dest[1]}",
+            "mode": "transit",
+            "key": self.api_key
+        }
+        response = self.session.get(url, params=params)
+        data = response.json()
+
+        if data["status"] != "OK":
+            raise ValueError(f"Distance Matrix API failed: {data['status']}")
+
+        element = data["rows"][0]["elements"][0]
+        if element["status"] != "OK":
+            return 9999  # Unreachable
+
+        return element["duration"]["value"] // 60  # Convert seconds to minutes
+
+    def text_search(
+        self,
+        query: str,
+        lat: float,
+        lng: float,
+        radius_meters: int = 50000
+    ) -> List[Dict]:
+        """Search for places using a text query near a location"""
+        url = f"{self.base_url}/place/textsearch/json"
+        params = {
+            "query": query,
+            "location": f"{lat},{lng}",
+            "radius": radius_meters,
+            "key": self.api_key
+        }
+        response = self.session.get(url, params=params)
+        data = response.json()
+
+        if data["status"] not in ["OK", "ZERO_RESULTS"]:
+            raise ValueError(f"Text Search API failed: {data['status']}")
+
+        return data.get("results", [])
     
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
@@ -775,6 +871,209 @@ def get_child_and_schooling_snapshot(
     snapshot.schools = build_places(school_candidates, 5, SchoolPlace)
 
     return snapshot
+
+
+def get_parking_availability(maps: GoogleMapsClient, place_id: Optional[str]) -> Optional[bool]:
+    if not place_id:
+        return None
+    try:
+        details = maps.place_details(
+            place_id,
+            fields=[
+                "name",
+                "types",
+                "parking_options",
+                "wheelchair_accessible_parking",
+            ]
+        )
+    except Exception:
+        return None
+
+    parking_options = details.get("parking_options", {})
+    if isinstance(parking_options, dict):
+        for value in parking_options.values():
+            if value is True:
+                return True
+        if parking_options:
+            return False
+
+    wheelchair_parking = details.get("wheelchair_accessible_parking")
+    if wheelchair_parking is True:
+        return True
+    if wheelchair_parking is False:
+        return False
+
+    return None
+
+
+def find_primary_transit(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> Optional[PrimaryTransitOption]:
+    """Find the best nearby transit option with preference for rail."""
+    search_types = [
+        ("train_station", "Train", 1),
+        ("subway_station", "Subway", 1),
+        ("bus_station", "Bus", 2),
+        ("transit_station", "Transit", 3),
+    ]
+
+    candidates: List[Tuple[int, int, Dict, str]] = []
+    for place_type, mode, priority in search_types:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=5000)
+        except Exception:
+            continue
+        for place in places:
+            place_lat = place["geometry"]["location"]["lat"]
+            place_lng = place["geometry"]["location"]["lng"]
+            walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
+            candidates.append((priority, walk_time, place, mode))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    _, walk_time, place, mode = candidates[0]
+
+    drive_time = None
+    if walk_time > 30:
+        drive_time = maps.driving_time(
+            (lat, lng),
+            (place["geometry"]["location"]["lat"], place["geometry"]["location"]["lng"])
+        )
+
+    parking_available = get_parking_availability(maps, place.get("place_id"))
+
+    return PrimaryTransitOption(
+        name=place.get("name", "Unknown"),
+        mode=mode,
+        walk_time_min=walk_time,
+        drive_time_min=drive_time if drive_time and drive_time != 9999 else None,
+        parking_available=parking_available
+    )
+
+
+def miles_between(maps: GoogleMapsClient, origin: Tuple[float, float], dest: Tuple[float, float]) -> float:
+    return maps.distance_feet(origin, dest) / 5280
+
+
+def determine_major_hub(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float,
+    primary_mode: Optional[str]
+) -> Optional[MajorHubAccess]:
+    metros = [
+        {
+            "name": "NYC Metro",
+            "center": (40.7128, -74.0060),
+            "radius_miles": 60,
+            "hub_name": "Grand Central Terminal",
+            "hub_coords": (40.7527, -73.9772),
+            "bus_hub_name": "Port Authority Bus Terminal",
+            "bus_hub_coords": (40.7570, -73.9903),
+        },
+        {
+            "name": "SF Bay",
+            "center": (37.7749, -122.4194),
+            "radius_miles": 50,
+            "hub_name": "Powell Street Station",
+            "hub_coords": (37.7844, -122.4078),
+        },
+        {
+            "name": "Seattle",
+            "center": (47.6062, -122.3321),
+            "radius_miles": 40,
+            "hub_name": "Westlake Station",
+            "hub_coords": (47.6114, -122.3381),
+        },
+        {
+            "name": "Chicago",
+            "center": (41.8781, -87.6298),
+            "radius_miles": 50,
+            "hub_name": "Union Station",
+            "hub_coords": (41.8786, -87.6404),
+        },
+        {
+            "name": "Boston",
+            "center": (42.3601, -71.0589),
+            "radius_miles": 40,
+            "hub_name": "South Station",
+            "hub_coords": (42.3522, -71.0552),
+        },
+    ]
+
+    hub_name = None
+    hub_coords = None
+
+    for metro in metros:
+        distance_miles = miles_between(maps, (lat, lng), metro["center"])
+        if distance_miles <= metro["radius_miles"]:
+            if metro["name"] == "NYC Metro" and primary_mode == "Bus":
+                hub_name = metro.get("bus_hub_name")
+                hub_coords = metro.get("bus_hub_coords")
+            else:
+                hub_name = metro["hub_name"]
+                hub_coords = metro["hub_coords"]
+            break
+
+    if not hub_name or not hub_coords:
+        search_queries = ["city center", "downtown"]
+        hub_place = None
+        for query in search_queries:
+            try:
+                results = maps.text_search(query, lat, lng, radius_meters=50000)
+            except Exception:
+                continue
+            if results:
+                hub_place = results[0]
+                break
+
+        if not hub_place:
+            try:
+                results = maps.places_nearby(lat, lng, "locality", radius_meters=50000)
+            except Exception:
+                results = []
+            if results:
+                hub_place = results[0]
+
+        if not hub_place:
+            return None
+
+        hub_name = hub_place.get("name", "City Center")
+        hub_coords = (
+            hub_place["geometry"]["location"]["lat"],
+            hub_place["geometry"]["location"]["lng"],
+        )
+
+    travel_time = maps.transit_time((lat, lng), hub_coords)
+    transit_mode = "transit"
+    if primary_mode in {"Train", "Subway"}:
+        transit_mode = "train"
+    elif primary_mode == "Bus":
+        transit_mode = "bus"
+
+    return MajorHubAccess(
+        name=hub_name,
+        travel_time_min=travel_time if travel_time != 9999 else 0,
+        transit_mode=transit_mode
+    )
+
+
+def get_urban_access_profile(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float
+) -> UrbanAccessProfile:
+    primary_transit = find_primary_transit(maps, lat, lng)
+    major_hub = determine_major_hub(maps, lat, lng, primary_transit.mode if primary_transit else None)
+
+    return UrbanAccessProfile(
+        primary_transit=primary_transit,
+        major_hub=major_hub
+    )
 
 
 def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
@@ -1390,6 +1689,7 @@ def evaluate_property(
 
     result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
+    result.urban_access = get_urban_access_profile(maps, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -1612,6 +1912,20 @@ def main():
                     }
                     for p in (result.child_schooling_snapshot.schools if result.child_schooling_snapshot else [])
                 ]
+            },
+            "urban_access": {
+                "primary_transit": {
+                    "name": result.urban_access.primary_transit.name,
+                    "mode": result.urban_access.primary_transit.mode,
+                    "walk_time_min": result.urban_access.primary_transit.walk_time_min,
+                    "drive_time_min": result.urban_access.primary_transit.drive_time_min,
+                    "parking_available": result.urban_access.primary_transit.parking_available,
+                } if result.urban_access and result.urban_access.primary_transit else None,
+                "major_hub": {
+                    "name": result.urban_access.major_hub.name,
+                    "travel_time_min": result.urban_access.major_hub.travel_time_min,
+                    "transit_mode": result.urban_access.major_hub.transit_mode,
+                } if result.urban_access and result.urban_access.major_hub else None,
             },
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
