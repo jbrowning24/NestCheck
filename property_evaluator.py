@@ -96,7 +96,6 @@ EXCLUDED_PRIMARY_KEYWORDS = [
 
 EXCLUDED_PRIMARY_TYPES = {
     "dog_park",
-    "playground",
     "sports_complex",
     "stadium",
     "ice_skating_rink",
@@ -1186,9 +1185,14 @@ def format_place_types(types: List[str]) -> str:
 
 def is_excluded_primary_green_space(name: str, types: List[str]) -> bool:
     name_lower = name.lower()
+    has_park_type = "park" in types
     if any(keyword in name_lower for keyword in EXCLUDED_PRIMARY_KEYWORDS):
+        if "playground" in name_lower and has_park_type:
+            return False
         return True
     if any(space_type in EXCLUDED_PRIMARY_TYPES for space_type in types):
+        return True
+    if "playground" in types and not has_park_type:
         return True
     return False
 
