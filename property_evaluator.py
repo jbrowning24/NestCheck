@@ -219,15 +219,21 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
     tier3_bonuses: List[Tier3Bonus] = field(default_factory=list)
+
     passed_tier1: bool = False
     tier2_total: int = 0
     tier2_max: int = 0
     tier2_normalized: int = 0
     tier3_total: int = 0
+
+    # Keep this from your branch
     tier3_bonus_reasons: List[str] = field(default_factory=list)
+
+    # Keep these from main
     final_score: int = 0
     percentile_top: int = 0
     percentile_label: str = ""
