@@ -18,7 +18,7 @@ Given a property address, this tool automatically checks:
 
 ### Tier 2: Scored Preferences (0-60 points)
 - **Park access** (0-20 pts): Quality park within 20 min walk = 20 pts, 30 min = 10 pts
-- **Coffee shop** (0-15 pts): Local/approved chain within 20 min walk = 15 pts, 30 min = 8 pts
+- **Third Place** (0-15 pts): Quality third place within 20 min walk = 15 pts, 30 min = 8 pts
 - **Budget** (0-15 pts): ≤$6,000 = 15 pts, ≤$6,500 = 10 pts
 - **Metro North** (0-10 pts): Station within 20 min walk = 10 pts, 30 min = 5 pts
 
@@ -103,7 +103,7 @@ TIER 1 CHECKS:
 
 TIER 2 SCORE: 52/60
   - Park access: 20 pts — Scarsdale Village Park (4.5★, 234 reviews) — 12 min walk
-  - Coffee shop access: 15 pts — Local: Lange's Deli — 8 min walk
+  - Third Place access: 15 pts — Local: Lange's Deli — 8 min walk
   - Budget: 10 pts — $6,200 — within target range
   - Metro North access: 7 pts — Scarsdale Station — 18 min walk
 
@@ -124,14 +124,15 @@ TOTAL SCORE: 62
 - Small playgrounds are excluded
 - The goal: somewhere Theodore can run around and you can do a 15-30 min walking loop
 
-### What counts as an acceptable coffee shop?
-**Excluded chains:**
-- Starbucks, Dunkin' Donuts, Tim Hortons, McDonald's, fast food
+### What counts as a third place?
+**Included examples:**
+- Cafes, bakeries, coffee shops, wine bars, bookstores with cafes
 
-**Approved chains:**
-- Blue Bottle, Bluestone Lane, La Colombe, Birch Coffee, Joe Coffee, Think Coffee, Gregorys, Black Fox, Variety
-
-**Default:** Any local/independent cafe is included
+**Required traits:**
+- Serves drinks or food
+- Allows seating
+- Not fast food
+- Not a convenience store
 
 ### What counts as a "high-volume road"?
 - Any highway/freeway (I-95, I-87, Saw Mill, Hutch, etc.)
