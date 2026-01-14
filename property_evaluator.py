@@ -1009,6 +1009,58 @@ def score_transit_access(
     transit_keywords: Optional[List[str]] = None
 ) -> Tier2Score:
     """Score public transit access (0-10 points)"""
+    def service_quality_label(review_count: int) -> str:
+        if review_count > 5000:
+            return "High frequency"
+        if review_count >= 1000:
+            return "Medium frequency"
+        if review_count >= 200:
+            return "Low frequency"
+        return "Very low frequency"
+
+    def network_type_label(name: str, types: Optional[List[str]]) -> str:
+        name_lower = name.lower()
+        types_lower = [t.lower() for t in (types or [])]
+
+        if (
+            any(keyword in name_lower for keyword in ["subway", "metro", "underground"])
+            or "subway_station" in types_lower
+        ):
+            return "Rapid transit"
+        if (
+            any(keyword in name_lower for keyword in ["amtrak", "metro-north", "bart", "caltrain"])
+            or "train_station" in types_lower
+            or "light_rail_station" in types_lower
+        ):
+            return "Regional rail"
+        if "bus" in name_lower or "bus_station" in types_lower:
+            return "Bus"
+
+        if "transit_station" in types_lower:
+            return "Bus"
+
+        return "Regional rail"
+
+    def urban_access_score(network_type: str, walk_time: int, service_quality: str) -> int:
+        base_scores = {
+            "Rapid transit": 6,
+            "Regional rail": 5,
+            "Bus": 3,
+        }
+        score = base_scores.get(network_type, 3)
+
+        if walk_time <= 10:
+            score += 2
+        elif walk_time <= 20:
+            score += 1
+
+        if service_quality == "High frequency":
+            score += 2
+        elif service_quality == "Medium frequency":
+            score += 1
+
+        return min(score, 10)
+
     try:
         # Search for transit stations (generic)
         stations = []
@@ -1076,11 +1128,22 @@ def score_transit_access(
         else:
             points = 0
 
+        station_name = best_station.get("name", "Transit station")
+        reviews = best_station.get("user_ratings_total", 0)
+        service_quality = service_quality_label(reviews)
+        network_type = network_type_label(station_name, best_station.get("types", []))
+        access_score = urban_access_score(network_type, best_walk_time, service_quality)
+
         return Tier2Score(
             name="Transit access",
             points=points,
             max_points=10,
-            details=f"{best_station.get('name')} — {best_walk_time} min walk"
+            details=(
+                f"{station_name} — {best_walk_time} min walk | "
+                f"Service: {service_quality} | "
+                f"Network: {network_type} | "
+                f"Urban Access Score: {access_score}/10"
+            )
         )
 
     except Exception as e:
