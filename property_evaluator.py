@@ -177,9 +177,13 @@ class ChildSchoolingSnapshot:
 class PrimaryTransitOption:
     name: str
     mode: str
+    lat: float
+    lng: float
     walk_time_min: int
     drive_time_min: Optional[int] = None
     parking_available: Optional[bool] = None
+    user_ratings_total: Optional[int] = None
+    frequency_class: Optional[str] = None
 
 
 @dataclass
@@ -187,6 +191,7 @@ class MajorHubAccess:
     name: str
     travel_time_min: int
     transit_mode: str
+    route_summary: Optional[str] = None
 
 
 @dataclass
@@ -941,6 +946,16 @@ def get_parking_availability(maps: GoogleMapsClient, place_id: Optional[str]) ->
     return None
 
 
+def transit_frequency_class(review_count: int) -> str:
+    if review_count >= 5000:
+        return "High frequency"
+    if review_count >= 1000:
+        return "Medium frequency"
+    if review_count >= 200:
+        return "Low frequency"
+    return "Very low frequency"
+
+
 def find_primary_transit(
     maps: GoogleMapsClient,
     lat: float,
@@ -950,8 +965,7 @@ def find_primary_transit(
     search_types = [
         ("train_station", "Train", 1),
         ("subway_station", "Subway", 1),
-        ("bus_station", "Bus", 2),
-        ("transit_station", "Transit", 3),
+        ("light_rail_station", "Light Rail", 1),
     ]
 
     candidates: List[Tuple[int, int, Dict, str]] = []
@@ -971,22 +985,33 @@ def find_primary_transit(
 
     candidates.sort(key=lambda item: (item[0], item[1]))
     _, walk_time, place, mode = candidates[0]
+    place_lat = place["geometry"]["location"]["lat"]
+    place_lng = place["geometry"]["location"]["lng"]
 
     drive_time = None
     if walk_time > 30:
         drive_time = maps.driving_time(
             (lat, lng),
-            (place["geometry"]["location"]["lat"], place["geometry"]["location"]["lng"])
+            (place_lat, place_lng)
         )
 
     parking_available = get_parking_availability(maps, place.get("place_id"))
+    user_ratings_total = place.get("user_ratings_total")
 
     return PrimaryTransitOption(
         name=place.get("name", "Unknown"),
         mode=mode,
+        lat=place_lat,
+        lng=place_lng,
         walk_time_min=walk_time,
         drive_time_min=drive_time if drive_time and drive_time != 9999 else None,
-        parking_available=parking_available
+        parking_available=parking_available,
+        user_ratings_total=user_ratings_total,
+        frequency_class=(
+            transit_frequency_class(user_ratings_total)
+            if isinstance(user_ratings_total, int)
+            else None
+        ),
     )
 
 
@@ -998,7 +1023,8 @@ def determine_major_hub(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    primary_mode: Optional[str]
+    primary_mode: Optional[str],
+    transit_origin: Optional[Tuple[float, float]] = None
 ) -> Optional[MajorHubAccess]:
     metros = [
         {
@@ -1083,9 +1109,10 @@ def determine_major_hub(
             hub_place["geometry"]["location"]["lng"],
         )
 
-    travel_time = maps.transit_time((lat, lng), hub_coords)
+    travel_origin = transit_origin or (lat, lng)
+    travel_time = maps.transit_time(travel_origin, hub_coords)
     transit_mode = "transit"
-    if primary_mode in {"Train", "Subway"}:
+    if primary_mode in {"Train", "Subway", "Light Rail"}:
         transit_mode = "train"
     elif primary_mode == "Bus":
         transit_mode = "bus"
@@ -1097,13 +1124,39 @@ def determine_major_hub(
     )
 
 
+def urban_access_route_summary(
+    primary_transit: Optional[PrimaryTransitOption],
+    major_hub: Optional[MajorHubAccess]
+) -> Optional[str]:
+    if not primary_transit or not major_hub or not major_hub.travel_time_min:
+        return None
+
+    mode_label = "Train"
+    if primary_transit.mode not in {"Train", "Subway", "Light Rail"}:
+        mode_label = primary_transit.mode
+
+    if primary_transit.walk_time_min > 30:
+        return f"Bus \u2192 {mode_label} \u2192 {major_hub.name} \u2014 {major_hub.travel_time_min} min"
+
+    return f"{mode_label} to {major_hub.name} \u2014 {major_hub.travel_time_min} min"
+
+
 def get_urban_access_profile(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> UrbanAccessProfile:
     primary_transit = find_primary_transit(maps, lat, lng)
-    major_hub = determine_major_hub(maps, lat, lng, primary_transit.mode if primary_transit else None)
+    transit_origin = (primary_transit.lat, primary_transit.lng) if primary_transit else None
+    major_hub = determine_major_hub(
+        maps,
+        lat,
+        lng,
+        primary_transit.mode if primary_transit else None,
+        transit_origin=transit_origin
+    )
+    if major_hub:
+        major_hub.route_summary = urban_access_route_summary(primary_transit, major_hub)
 
     return UrbanAccessProfile(
         primary_transit=primary_transit,
@@ -1460,147 +1513,83 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None
 ) -> Tier2Score:
-    """Score public transit access (0-10 points)"""
-    def service_quality_label(review_count: int) -> str:
-        if review_count > 5000:
-            return "High frequency"
-        if review_count >= 1000:
-            return "Medium frequency"
-        if review_count >= 200:
-            return "Low frequency"
-        return "Very low frequency"
-
-    def network_type_label(name: str, types: Optional[List[str]]) -> str:
-        name_lower = name.lower()
-        types_lower = [t.lower() for t in (types or [])]
-
-        if (
-            any(keyword in name_lower for keyword in ["subway", "metro", "underground"])
-            or "subway_station" in types_lower
-        ):
-            return "Rapid transit"
-        if (
-            any(keyword in name_lower for keyword in ["amtrak", "metro-north", "bart", "caltrain"])
-            or "train_station" in types_lower
-            or "light_rail_station" in types_lower
-        ):
-            return "Regional rail"
-        if "bus" in name_lower or "bus_station" in types_lower:
-            return "Bus"
-
-        if "transit_station" in types_lower:
-            return "Bus"
-
-        return "Regional rail"
-
-    def urban_access_score(network_type: str, walk_time: int, service_quality: str) -> int:
-        base_scores = {
-            "Rapid transit": 6,
-            "Regional rail": 5,
-            "Bus": 3,
-        }
-        score = base_scores.get(network_type, 3)
-
+    """Score urban access via rail transit (0-10 points)."""
+    def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
-            score += 2
-        elif walk_time <= 20:
-            score += 1
+            return 4
+        if walk_time <= 20:
+            return 3
+        if walk_time <= 30:
+            return 2
+        if walk_time <= 45:
+            return 1
+        return 0
 
-        if service_quality == "High frequency":
-            score += 2
-        elif service_quality == "Medium frequency":
-            score += 1
-
-        return min(score, 10)
+    def hub_travel_points(travel_time: Optional[int]) -> int:
+        if travel_time is None or travel_time <= 0:
+            return 0
+        if travel_time <= 45:
+            return 3
+        if travel_time <= 75:
+            return 2
+        if travel_time <= 110:
+            return 1
+        return 0
 
     try:
-        # Search for transit stations (generic)
-        stations = []
-
-        # Search for transit_station type
-        transit_stations = maps.places_nearby(
-            lat, lng,
-            "transit_station",
-            radius_meters=3000
-        )
-        stations.extend(transit_stations)
-
-        # Also search for train_station type
-        train_stations = maps.places_nearby(
-            lat, lng,
-            "train_station",
-            radius_meters=3000
-        )
-        stations.extend(train_stations)
-
-        if not stations:
+        primary_transit = find_primary_transit(maps, lat, lng)
+        if not primary_transit:
             return Tier2Score(
-                name="Transit access",
+                name="Urban access",
                 points=0,
                 max_points=10,
-                details="No transit stations found within 30 min walk"
+                details="No rail transit stations found within reach"
             )
 
-        # Filter by keywords if provided (e.g., ["Metro-North"] for Westchester)
-        if transit_keywords:
-            filtered = []
-            for station in stations:
-                name = station.get("name", "").lower()
-                if any(keyword.lower() in name for keyword in transit_keywords):
-                    filtered.append(station)
-            if filtered:
-                stations = filtered
+        major_hub = determine_major_hub(
+            maps,
+            lat,
+            lng,
+            primary_transit.mode,
+            transit_origin=(primary_transit.lat, primary_transit.lng),
+        )
 
-        # Find closest station
-        best_walk_time = 9999
-        best_station = None
+        walk_points = walkability_points(primary_transit.walk_time_min)
+        frequency_class = primary_transit.frequency_class or "Very low frequency"
+        frequency_points = {
+            "High frequency": 3,
+            "Medium frequency": 2,
+            "Low frequency": 1,
+            "Very low frequency": 0,
+        }.get(frequency_class, 0)
+        hub_time = major_hub.travel_time_min if major_hub else None
+        hub_points = hub_travel_points(hub_time)
 
-        for station in stations:
-            station_lat = station["geometry"]["location"]["lat"]
-            station_lng = station["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (station_lat, station_lng))
+        total_points = min(10, walk_points + frequency_points + hub_points)
 
-            if walk_time < best_walk_time:
-                best_walk_time = walk_time
-                best_station = station
+        drive_note = ""
+        if primary_transit.drive_time_min:
+            drive_note = f" | {primary_transit.drive_time_min} min drive"
 
-        if best_station is None:
-            return Tier2Score(
-                name="Transit access",
-                points=0,
-                max_points=10,
-                details="No transit stations found within 30 min walk"
-            )
-
-        # Score based on walk time
-        if best_walk_time <= 20:
-            points = 10
-        elif best_walk_time <= 30:
-            points = 5
-        else:
-            points = 0
-
-        station_name = best_station.get("name", "Transit station")
-        reviews = best_station.get("user_ratings_total", 0)
-        service_quality = service_quality_label(reviews)
-        network_type = network_type_label(station_name, best_station.get("types", []))
-        access_score = urban_access_score(network_type, best_walk_time, service_quality)
+        hub_note = "Hub travel time unavailable"
+        if major_hub and hub_time:
+            hub_note = f"{major_hub.name} — {hub_time} min"
 
         return Tier2Score(
-            name="Transit access",
-            points=points,
+            name="Urban access",
+            points=total_points,
             max_points=10,
             details=(
-                f"{station_name} — {best_walk_time} min walk | "
-                f"Service: {service_quality} | "
-                f"Network: {network_type} | "
-                f"Urban Access Score: {access_score}/10"
+                f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
+                f"{drive_note} | "
+                f"Frequency: {frequency_class} | "
+                f"Hub: {hub_note}"
             )
         )
 
     except Exception as e:
         return Tier2Score(
-            name="Transit access",
+            name="Urban access",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2073,14 +2062,19 @@ def main():
                 "primary_transit": {
                     "name": result.urban_access.primary_transit.name,
                     "mode": result.urban_access.primary_transit.mode,
+                    "lat": result.urban_access.primary_transit.lat,
+                    "lng": result.urban_access.primary_transit.lng,
                     "walk_time_min": result.urban_access.primary_transit.walk_time_min,
                     "drive_time_min": result.urban_access.primary_transit.drive_time_min,
                     "parking_available": result.urban_access.primary_transit.parking_available,
+                    "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
+                    "frequency_class": result.urban_access.primary_transit.frequency_class,
                 } if result.urban_access and result.urban_access.primary_transit else None,
                 "major_hub": {
                     "name": result.urban_access.major_hub.name,
                     "travel_time_min": result.urban_access.major_hub.travel_time_min,
                     "transit_mode": result.urban_access.major_hub.transit_mode,
+                    "route_summary": result.urban_access.major_hub.route_summary,
                 } if result.urban_access and result.urban_access.major_hub else None,
             },
             "green_space_evaluation": {
