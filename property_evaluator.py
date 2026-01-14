@@ -225,9 +225,9 @@ class EvaluationResult:
     passed_tier1: bool = False
     tier2_total: int = 0
     tier2_max: int = 0
+    tier2_normalized: int = 0
     tier3_total: int = 0
     tier3_bonus_reasons: List[str] = field(default_factory=list)
-    tier2_normalized: int = 0
     final_score: int = 0
     percentile_top: int = 0
     percentile_label: str = ""

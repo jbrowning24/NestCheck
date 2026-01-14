@@ -691,10 +691,10 @@
         <div class="total-score">
           <h3>Livability Score</h3>
           <div class="score">{{ result.final_score }} / 100</div>
+          <p style="margin-top: 10px; opacity: 0.9;">{{ result.percentile_label }}</p>
           <p style="margin-top: 10px; opacity: 0.9;">
             Tier 2 normalized: {{ result.tier2_normalized }}/100 · Tier 3 bonus: +{{ result.tier3_bonus }}
           </p>
-          <p style="margin-top: 6px; opacity: 0.85;">{{ result.percentile_label }}</p>
         </div>
       {% else %}
         <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; border-radius: 6px; margin-top: 20px;">
