@@ -62,19 +62,47 @@ MIN_PARK_ACRES = 5
 MIN_PARK_RATING = 4.0
 MIN_PARK_REVIEWS = 50
 GREEN_SPACE_WALK_MAX_MIN = 30
-GREEN_ESCAPE_MIN_RATING = 4.3
 GREEN_ESCAPE_MIN_REVIEWS = 100
-GREEN_ESCAPE_STRONG_RATING = 4.5
-GREEN_ESCAPE_STRONG_REVIEWS = 300
 
 GREEN_SPACE_TYPES = [
     "park",
+    "playground",
     "campground",
     "natural_feature",
     "trail",
     "rv_park",
     "tourist_attraction",
 ]
+
+PRIMARY_GREEN_ESCAPE_KEYWORDS = [
+    "nature preserve",
+    "state park",
+    "trail",
+    "riverwalk",
+    "forest",
+    "greenway",
+]
+
+EXCLUDED_PRIMARY_KEYWORDS = [
+    "dog park",
+    "playground",
+    "sports complex",
+    "skating rink",
+    "ice rink",
+    "roller rink",
+    "pocket park",
+    "mini park",
+    "tot lot",
+]
+
+EXCLUDED_PRIMARY_TYPES = {
+    "dog_park",
+    "sports_complex",
+    "stadium",
+    "ice_skating_rink",
+}
+
+SUPPORTING_GREEN_SPACE_TYPES = {"park", "playground"}
 
 # High-volume road detection is done via OSM tags (highway type, lane count)
 # No hardcoded road names needed - works anywhere in the US
@@ -1385,12 +1413,45 @@ def format_place_types(types: List[str]) -> str:
     return ", ".join([t.replace("_", " ").title() for t in types])
 
 
+def is_excluded_primary_green_space(name: str, types: List[str]) -> bool:
+    name_lower = name.lower()
+    has_park_type = "park" in types
+    if any(keyword in name_lower for keyword in EXCLUDED_PRIMARY_KEYWORDS):
+        if "playground" in name_lower and has_park_type:
+            return False
+        return True
+    if any(space_type in EXCLUDED_PRIMARY_TYPES for space_type in types):
+        return True
+    if "playground" in types and not has_park_type:
+        return True
+    return False
+
+
+def is_primary_green_escape(space: GreenSpace) -> bool:
+    if is_excluded_primary_green_space(space.name, space.types):
+        return False
+
+    name_lower = space.name.lower()
+    if any(keyword in name_lower for keyword in PRIMARY_GREEN_ESCAPE_KEYWORDS):
+        return True
+
+    reviews = space.user_ratings_total or 0
+    if "park" in space.types and reviews >= GREEN_ESCAPE_MIN_REVIEWS:
+        return True
+
+    return False
+
+
+def is_supporting_green_space(space: GreenSpace) -> bool:
+    return any(space_type in SUPPORTING_GREEN_SPACE_TYPES for space_type in space.types)
+
+
 def evaluate_green_spaces(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
 ) -> GreenSpaceEvaluation:
-    """Collect all nearby green spaces and determine the best green escape."""
+    """Collect all nearby green spaces and determine the best primary green escape."""
     evaluation = GreenSpaceEvaluation()
     places_by_id: Dict[str, Dict[str, Any]] = {}
 
@@ -1440,44 +1501,40 @@ def evaluate_green_spaces(
     )
 
     evaluation.green_spaces = green_spaces
-    if not green_spaces:
-        evaluation.green_spaces_message = "No green spaces found within a 30-minute walk."
-    else:
-        evaluation.green_spaces_message = "Nearby green spaces within a 30-minute walk."
 
-    green_escape_candidates = []
-    for space in green_spaces:
-        rating = space.rating or 0
-        reviews = space.user_ratings_total or 0
-        if rating < GREEN_ESCAPE_MIN_RATING or reviews < GREEN_ESCAPE_MIN_REVIEWS:
-            continue
-        if space.walk_time_min <= PARK_WALK_IDEAL_MIN:
-            green_escape_candidates.append(space)
-            continue
-        if (
-            space.walk_time_min <= GREEN_SPACE_WALK_MAX_MIN
-            and rating >= GREEN_ESCAPE_STRONG_RATING
-            and reviews >= GREEN_ESCAPE_STRONG_REVIEWS
-        ):
-            green_escape_candidates.append(space)
+    primary_green_escape_candidates = [
+        space for space in green_spaces if is_primary_green_escape(space)
+    ]
 
-    if green_escape_candidates:
+    if primary_green_escape_candidates:
         evaluation.green_escape = max(
-            green_escape_candidates,
-            key=lambda space: (space.rating or 0) * math.log(space.user_ratings_total or 1),
+            primary_green_escape_candidates,
+            key=lambda space: (
+                (space.rating or 0) * math.log(space.user_ratings_total or 1),
+                -space.walk_time_min,
+            ),
         )
         evaluation.green_escape_message = None
     else:
         evaluation.green_escape_message = (
-            "No high-quality green escape within walking distance — nearby green spaces listed below."
+            "No primary green escape within a 30-minute walk — nearby parks and playgrounds listed below."
         )
 
+    supporting_green_spaces = [
+        space for space in green_spaces if is_supporting_green_space(space)
+    ]
     if evaluation.green_escape:
         evaluation.other_green_spaces = [
-            space for space in green_spaces if space.place_id != evaluation.green_escape.place_id
+            space for space in supporting_green_spaces
+            if space.place_id != evaluation.green_escape.place_id
         ]
     else:
-        evaluation.other_green_spaces = green_spaces.copy()
+        evaluation.other_green_spaces = supporting_green_spaces.copy()
+
+    if not evaluation.other_green_spaces:
+        evaluation.green_spaces_message = "No other parks or playgrounds within a 30-minute walk."
+    else:
+        evaluation.green_spaces_message = "Other parks and playgrounds within a 30-minute walk."
 
     return evaluation
 
@@ -1513,17 +1570,17 @@ def score_park_access(
     lng: float,
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
 ) -> Tier2Score:
-    """Score park access based on green escape quality (0-10 points)"""
+    """Score primary green escape access (0-10 points)"""
     try:
         evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
         green_escape = evaluation.green_escape
 
         if not green_escape:
             return Tier2Score(
-                name="Park access",
+                name="Primary Green Escape",
                 points=0,
                 max_points=10,
-                details="No high-quality green escape within walking distance"
+                details="No primary green escape within a 30-minute walk"
             )
 
         if green_escape.walk_time_min <= PARK_WALK_IDEAL_MIN:
@@ -1537,7 +1594,7 @@ def score_park_access(
         )
 
         return Tier2Score(
-            name="Park access",
+            name="Primary Green Escape",
             points=points,
             max_points=10,
             details=details
@@ -1545,7 +1602,7 @@ def score_park_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Park access",
+            name="Primary Green Escape",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
