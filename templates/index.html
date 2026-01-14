@@ -453,7 +453,7 @@
           <h2>Urban Access</h2>
           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
             <div style="margin-bottom: 18px;">
-              <strong style="color: #ef6c00;">Primary Transit</strong>
+              <strong style="color: #ef6c00;">Primary Transit Access</strong>
               {% if result.urban_access.primary_transit %}
                 <div style="margin-top: 8px;">
                   {{ result.urban_access.primary_transit.name }} ({{ result.urban_access.primary_transit.mode }})
@@ -462,6 +462,11 @@
                 {% if result.urban_access.primary_transit.drive_time_min %}
                   <div style="color: #666; margin-top: 6px;">
                     Drive to station — {{ result.urban_access.primary_transit.drive_time_min }} min
+                  </div>
+                {% endif %}
+                {% if result.urban_access.primary_transit.frequency_class %}
+                  <div style="color: #666; margin-top: 4px;">
+                    Frequency — {{ result.urban_access.primary_transit.frequency_class }}
                   </div>
                 {% endif %}
                 {% if result.urban_access.primary_transit.parking_available %}
@@ -474,14 +479,15 @@
               {% endif %}
             </div>
             <div>
-              <strong style="color: #ef6c00;">Major Hub</strong>
+              <strong style="color: #ef6c00;">Urban Access</strong>
               {% if result.urban_access.major_hub %}
                 <div style="margin-top: 8px;">
-                  {{ result.urban_access.major_hub.name }}
-                  {% if result.urban_access.major_hub.travel_time_min %}
-                    — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
+                  {% if result.urban_access.major_hub.route_summary %}
+                    {{ result.urban_access.major_hub.route_summary }}
+                  {% elif result.urban_access.major_hub.travel_time_min %}
+                    {{ result.urban_access.major_hub.name }} — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
                   {% else %}
-                    — travel time unavailable
+                    {{ result.urban_access.major_hub.name }} — travel time unavailable
                   {% endif %}
                 </div>
               {% else %}
