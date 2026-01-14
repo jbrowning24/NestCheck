@@ -421,11 +421,13 @@
             </div>
             <div>
               <strong style="color: #2e7d32;">Schools (5–18)</strong>
-              {% if result.child_schooling_snapshot.schools %}
-                <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
-                  {% for place in result.child_schooling_snapshot.schools %}
-                    <li style="margin-bottom: 8px;">
-                      • {{ place.name }}
+              <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                {% for level in ["Elementary", "Middle", "High"] %}
+                  {% set place = result.child_schooling_snapshot.schools_by_level.get(level) %}
+                  <li style="margin-bottom: 8px;">
+                    <strong>{{ level }}:</strong>
+                    {% if place %}
+                      {{ place.name }}
                       {% if place.rating or place.user_ratings_total %}
                         (
                         {% if place.rating %}{{ "%.1f"|format(place.rating) }}★{% endif %}
@@ -436,12 +438,12 @@
                       {% if place.website %}
                         <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #2e7d32; margin-left: 6px;">Website</a>
                       {% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No nearby schools found</div>
-              {% endif %}
+                    {% else %}
+                      <span style="color: #7f8c8d; font-style: italic;">Not found within walkable radius.</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
             </div>
           </div>
         </div>

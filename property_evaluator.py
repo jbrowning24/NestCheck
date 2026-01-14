@@ -46,6 +46,7 @@ PROVISIONING_WALK_IDEAL_MIN = 15
 PROVISIONING_WALK_ACCEPTABLE_MIN = 30
 FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
+SCHOOL_WALK_MAX_MIN = 30
 
 # Cost thresholds (monthly cost - rent or estimated mortgage + expenses)
 COST_MAX = 7000
@@ -165,12 +166,13 @@ class SchoolPlace:
     user_ratings_total: Optional[int]
     walk_time_min: int
     website: Optional[str]
+    level: str
 
 
 @dataclass
 class ChildSchoolingSnapshot:
     childcare: List[ChildcarePlace] = field(default_factory=list)
-    schools: List[SchoolPlace] = field(default_factory=list)
+    schools_by_level: Dict[str, Optional[SchoolPlace]] = field(default_factory=dict)
 
 
 @dataclass
@@ -847,43 +849,145 @@ def get_child_and_schooling_snapshot(
     """Collect nearby childcare and schooling options for situational awareness."""
     snapshot = ChildSchoolingSnapshot()
 
-    childcare_types = {"preschool", "kindergarten", "child_care"}
-    school_types = {"primary_school", "secondary_school", "school"}
-    excluded_school_types = {"university", "college", "driving_school", "language_school"}
-    search_types = list(childcare_types | school_types)
+    childcare_keywords = {
+        "daycare",
+        "pre-k",
+        "pre k",
+        "preschool",
+        "nursery",
+        "early childhood",
+        "early learning",
+        "child care",
+    }
+    childcare_types = {"preschool", "kindergarten", "child_care", "school"}
+    childcare_religious_keywords = {
+        "church",
+        "temple",
+        "mosque",
+        "religious",
+        "sunday school",
+        "faith",
+    }
+    childcare_excluded_keywords = {
+        "tutoring",
+        "tutor",
+        "music",
+        "dance",
+        "gym",
+        "martial arts",
+        "karate",
+        "taekwondo",
+        "lesson",
+    }
 
-    nearby_places: Dict[str, Dict] = {}
-    for place_type in search_types:
+    school_excluded_keywords = {
+        "music",
+        "tutoring",
+        "tutor",
+        "lesson",
+        "dance",
+        "martial arts",
+        "karate",
+        "taekwondo",
+        "dojo",
+        "church",
+        "temple",
+        "mosque",
+        "religious",
+        "bible",
+        "catholic",
+        "christian",
+        "lutheran",
+        "jewish",
+        "islamic",
+        "montessori",
+        "montessori school",
+        "private school",
+    }
+
+    def normalize_text(text: str) -> str:
+        return re.sub(r"\\s+", " ", text or "").strip().lower()
+
+    def fetch_website_text(website: Optional[str]) -> str:
+        if not website:
+            return ""
         try:
-            places = maps.places_nearby(lat, lng, place_type, radius_meters=3000)
+            response = requests.get(website, timeout=6)
+            if response.status_code >= 400:
+                return ""
+            text = re.sub(r"<[^>]+>", " ", response.text)
+            return normalize_text(text)
         except Exception:
-            continue
-        for place in places:
-            place_id = place.get("place_id")
-            if place_id and place_id not in nearby_places:
-                nearby_places[place_id] = place
+            return ""
 
-    candidates = list(nearby_places.values())
-    childcare_candidates = [
-        place for place in candidates
-        if any(t in childcare_types for t in place.get("types", []))
-    ]
-    school_candidates = [
-        place for place in candidates
-        if any(t in school_types for t in place.get("types", []))
-        and not any(t in excluded_school_types for t in place.get("types", []))
-    ]
+    def build_text_blob(place: Dict, website_text: str = "") -> str:
+        name = normalize_text(place.get("name", ""))
+        types_text = " ".join(place.get("types", []))
+        return normalize_text(" ".join([name, types_text, website_text]))
 
-    def build_places(
-        places: List[Dict],
-        max_results: int,
-        place_cls
-    ) -> List[Any]:
+    def is_childcare(place: Dict, website_text: str) -> bool:
+        text_blob = build_text_blob(place, website_text)
+        has_keyword = any(keyword in text_blob for keyword in childcare_keywords)
+        has_type = any(t in childcare_types for t in place.get("types", []))
+        has_excluded = any(keyword in text_blob for keyword in childcare_excluded_keywords)
+        has_religious = any(keyword in text_blob for keyword in childcare_religious_keywords)
+        has_preschool = "preschool" in place.get("types", []) or "preschool" in text_blob
+        return (has_keyword or has_preschool) and has_type and not has_excluded and (not has_religious or has_preschool)
+
+    def is_public_school(place: Dict, website_text: str) -> bool:
+        text_blob = build_text_blob(place, website_text)
+        if not website_text and any(
+            t in place.get("types", []) for t in ["primary_school", "secondary_school", "school"]
+        ):
+            return True
+        if any(keyword in text_blob for keyword in school_excluded_keywords):
+            return False
+        public_signals = [
+            "public school",
+            "school district",
+            "public schools",
+            ".k12.",
+            "k12",
+            "isd",
+            "usd",
+            "ps ",
+            "public",
+        ]
+        return any(signal in text_blob for signal in public_signals)
+
+    def infer_school_level(place: Dict, website_text: str) -> str:
+        text_blob = build_text_blob(place, website_text)
+        if "elementary" in text_blob or "primary school" in text_blob:
+            return "Elementary"
+        if "middle" in text_blob or "junior high" in text_blob or "intermediate" in text_blob:
+            return "Middle"
+        if "high school" in text_blob or "secondary school" in text_blob or "senior high" in text_blob:
+            return "High"
+        if "k-12" in text_blob or "k12" in text_blob:
+            return "K-12"
+        if "primary_school" in place.get("types", []):
+            return "Elementary"
+        if "secondary_school" in place.get("types", []):
+            return "High"
+        return ""
+
+    def fetch_place_details(place: Dict) -> Dict:
+        place_id = place.get("place_id")
+        if not place_id:
+            return {}
+        try:
+            return maps.place_details(place_id)
+        except Exception:
+            return {}
+
+    def build_childcare_places(places: List[Dict], max_results: int) -> List[ChildcarePlace]:
         scored_places = []
         for place in places:
             p_lat = place["geometry"]["location"]["lat"]
             p_lng = place["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+            if walk_time > SCHOOL_WALK_MAX_MIN:
+                continue
             scored_places.append((walk_time, place))
 
         scored_places.sort(key=lambda item: item[0])
@@ -891,28 +995,98 @@ def get_child_and_schooling_snapshot(
         results = []
 
         for walk_time, place in selected:
-            website = None
-            place_id = place.get("place_id")
-            if place_id:
-                try:
-                    details = maps.place_details(place_id)
-                    website = details.get("website")
-                except Exception:
-                    website = None
-
-            results.append(place_cls(
+            details = fetch_place_details(place)
+            website = details.get("website")
+            results.append(ChildcarePlace(
                 name=place.get("name", "Unknown"),
                 rating=place.get("rating"),
                 user_ratings_total=place.get("user_ratings_total"),
                 walk_time_min=walk_time,
                 website=website
             ))
-
         return results
 
-    snapshot.childcare = build_places(childcare_candidates, 5, ChildcarePlace)
-    snapshot.schools = build_places(school_candidates, 5, SchoolPlace)
+    childcare_searches = [
+        ("daycare", "child_care"),
+        ("preschool", "preschool"),
+        ("nursery", "school"),
+        ("early childhood education", "school"),
+    ]
+    childcare_places: Dict[str, Dict] = {}
+    for keyword, place_type in childcare_searches:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=3000, keyword=keyword)
+        except Exception:
+            continue
+        for place in places:
+            place_id = place.get("place_id")
+            if place_id and place_id not in childcare_places:
+                childcare_places[place_id] = place
 
+    childcare_candidates = []
+    for place in childcare_places.values():
+        details = fetch_place_details(place)
+        website_text = fetch_website_text(details.get("website"))
+        if is_childcare(place, website_text):
+            childcare_candidates.append(place)
+
+    snapshot.childcare = build_childcare_places(childcare_candidates, 5)
+
+    school_search_queries = [
+        "public elementary school",
+        "public middle school",
+        "public high school",
+    ]
+    school_candidates: Dict[str, Dict] = {}
+    for query in school_search_queries:
+        try:
+            places = maps.text_search(query, lat, lng, radius_meters=50000)
+        except Exception:
+            continue
+        for place in places:
+            place_id = place.get("place_id")
+            if place_id and place_id not in school_candidates:
+                school_candidates[place_id] = place
+
+    schools_by_level: Dict[str, Optional[SchoolPlace]] = {
+        "Elementary": None,
+        "Middle": None,
+        "High": None,
+    }
+
+    def maybe_set_school(level: str, place: Dict, walk_time: int, website: Optional[str]) -> None:
+        existing = schools_by_level.get(level)
+        if existing is None or walk_time < existing.walk_time_min:
+            schools_by_level[level] = SchoolPlace(
+                name=place.get("name", "Unknown"),
+                rating=place.get("rating"),
+                user_ratings_total=place.get("user_ratings_total"),
+                walk_time_min=walk_time,
+                website=website,
+                level=level,
+            )
+
+    for place in school_candidates.values():
+        details = fetch_place_details(place)
+        website = details.get("website")
+        website_text = fetch_website_text(website)
+        if not is_public_school(place, website_text):
+            continue
+        level = infer_school_level(place, website_text)
+        if not level:
+            continue
+        p_lat = place["geometry"]["location"]["lat"]
+        p_lng = place["geometry"]["location"]["lng"]
+        walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+        if walk_time > SCHOOL_WALK_MAX_MIN:
+            continue
+        if level == "K-12":
+            for level_name in schools_by_level.keys():
+                maybe_set_school(level_name, place, walk_time, website)
+        else:
+            maybe_set_school(level, place, walk_time, website)
+
+    snapshot.schools_by_level = schools_by_level
     return snapshot
 
 
@@ -2079,16 +2253,23 @@ def main():
                     }
                     for p in (result.child_schooling_snapshot.childcare if result.child_schooling_snapshot else [])
                 ],
-                "schools": [
-                    {
-                        "name": p.name,
-                        "rating": p.rating,
-                        "user_ratings_total": p.user_ratings_total,
-                        "walk_time_min": p.walk_time_min,
-                        "website": p.website
-                    }
-                    for p in (result.child_schooling_snapshot.schools if result.child_schooling_snapshot else [])
-                ]
+                "schools_by_level": {
+                    level: (
+                        {
+                            "name": place.name,
+                            "rating": place.rating,
+                            "user_ratings_total": place.user_ratings_total,
+                            "walk_time_min": place.walk_time_min,
+                            "website": place.website,
+                            "level": place.level,
+                        }
+                        if place else None
+                    )
+                    for level, place in (
+                        result.child_schooling_snapshot.schools_by_level.items()
+                        if result.child_schooling_snapshot else {}
+                    )
+                }
             },
             "urban_access": {
                 "primary_transit": {
