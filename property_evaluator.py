@@ -257,6 +257,7 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
     bike_score: Optional[int] = None
     bike_rating: Optional[str] = None
@@ -541,6 +542,17 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 # EVALUATION FUNCTIONS
 # =============================================================================
 
+def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_response = {
+        "transit_score": None,
+        "transit_rating": None,
+        "transit_summary": None,
+        "nearby_transit_lines": None,
+    }
+
+    if not api_key:
+        return default_response
 def _coerce_score(value: Any) -> Optional[int]:
     try:
         return int(value)
@@ -577,6 +589,42 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         response.raise_for_status()
         data = response.json()
     except (requests.RequestException, ValueError):
+        return default_response
+
+    if data.get("status") != 1:
+        return default_response
+
+    transit_data = data.get("transit") or {}
+    transit_score = transit_data.get("score")
+    transit_description = transit_data.get("description")
+    transit_summary = transit_data.get("summary")
+    nearby_routes = transit_data.get("nearbyRoutes") or []
+
+    nearby_transit_lines = []
+    for route in nearby_routes:
+        if not isinstance(route, dict):
+            continue
+        name = route.get("route_name")
+        route_type = route.get("route_type")
+        distance = route.get("distance")
+        if not name and not route_type and distance is None:
+            continue
+        route_type_label = None
+        if route_type:
+            route_type_label = str(route_type).replace("_", " ").title()
+        nearby_transit_lines.append(
+            {
+                "name": name,
+                "type": route_type_label,
+                "distance_miles": distance,
+            }
+        )
+
+    return {
+        "transit_score": int(transit_score) if transit_score is not None else None,
+        "transit_rating": transit_description,
+        "transit_summary": transit_summary,
+        "nearby_transit_lines": nearby_transit_lines or None,
         return default_scores
 
     if data.get("status") != 1:
@@ -2240,6 +2288,7 @@ def evaluate_property(
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
     result.urban_access = get_urban_access_profile(maps, lat, lng)
     result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
+    result.transit_score = get_transit_score(listing.address, lat, lng)
     result.walk_scores = get_walk_scores(listing.address, lat, lng)
 
     # ===================
@@ -2553,6 +2602,7 @@ def main():
                     if result.green_space_evaluation else None
                 ),
             },
+            "transit_score": result.transit_score,
             "bike_score": result.bike_score,
             "bike_rating": result.bike_rating,
             "bike_metadata": result.bike_metadata,
