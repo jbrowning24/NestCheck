@@ -258,6 +258,9 @@ class EvaluationResult:
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
+    bike_score: Optional[int] = None
+    bike_rating: Optional[str] = None
+    bike_metadata: Optional[Dict[str, Any]] = None
 
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
@@ -358,7 +361,7 @@ class GoogleMapsClient:
             raise ValueError(f"Place Details API failed: {data['status']}")
         
         return data.get("result", {})
-    
+
     def walking_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Get walking time in minutes between two points"""
         url = f"{self.base_url}/distancematrix/json"
@@ -494,6 +497,44 @@ class OverpassClient:
                 })
         
         return roads
+
+
+def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    """Fetch bike score details from Walk Score API."""
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    if not api_key:
+        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
+
+    bike_data = data.get("bike") if isinstance(data, dict) else None
+    if not bike_data:
+        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
+
+    bike_score = bike_data.get("score")
+    bike_rating = bike_data.get("description")
+    metadata = {key: value for key, value in bike_data.items() if key not in {"score", "description"}}
+
+    return {
+        "bike_score": int(bike_score) if bike_score is not None else None,
+        "bike_rating": bike_rating,
+        "bike_metadata": metadata or None,
+    }
 
 
 # =============================================================================
@@ -2186,6 +2227,11 @@ def evaluate_property(
         lng=lng
     )
 
+    bike_data = get_bike_score(listing.address, lat, lng)
+    result.bike_score = bike_data.get("bike_score")
+    result.bike_rating = bike_data.get("bike_rating")
+    result.bike_metadata = bike_data.get("bike_metadata")
+
     # ===================
     # NEIGHBORHOOD SNAPSHOT
     # ===================
@@ -2507,6 +2553,9 @@ def main():
                     if result.green_space_evaluation else None
                 ),
             },
+            "bike_score": result.bike_score,
+            "bike_rating": result.bike_rating,
+            "bike_metadata": result.bike_metadata,
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
                 {"name": c.name, "result": c.result.value, "details": c.details}

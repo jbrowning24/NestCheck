@@ -398,39 +398,8 @@
     <div class="form-section">
       <form method="POST">
         <div class="form-group">
-          <label for="zillow_url">Zillow Listing URL (optional - auto-fill helper)</label>
-          <input type="text" id="zillow_url" name="zillow_url" placeholder="e.g., https://www.zillow.com/homedetails/...">
-          <small style="display: block; margin-top: 5px; color: #7f8c8d;">
-            Paste a Zillow URL to auto-fill the fields below. If auto-fill fails, just enter the address manually.
-          </small>
-        </div>
-
-        <div style="margin: 20px 0; padding: 15px; background: #e8f4f8; border-left: 4px solid #2196f3; border-radius: 4px;">
-          <strong style="color: #1976d2;">Required:</strong>
-          <span style="color: #555;">Property address (enter manually or auto-fill from Zillow above)</span>
-        </div>
-
-        <div class="form-group">
           <label for="address">Property Address</label>
           <input type="text" id="address" name="address" placeholder="e.g., 123 Main St, Scarsdale, NY">
-        </div>
-
-        <div style="margin: 20px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-          <strong style="color: #666;">Optional fields:</strong>
-          <span style="color: #888; font-size: 0.9em;">Leave blank if unknown - the evaluator will mark them as UNKNOWN</span>
-        </div>
-
-        <div class="form-group">
-          <label for="cost">Monthly Cost ($)</label>
-          <input type="number" id="cost" name="cost" placeholder="e.g., 6500 (rent or estimated monthly cost)">
-        </div>
-        <div class="form-group">
-          <label for="sqft">Square Feet</label>
-          <input type="number" id="sqft" name="sqft" placeholder="e.g., 1800">
-        </div>
-        <div class="form-group">
-          <label for="bedrooms">Bedrooms</label>
-          <input type="number" id="bedrooms" name="bedrooms" placeholder="e.g., 2">
         </div>
         <button type="submit">Evaluate Property</button>
       </form>
@@ -449,6 +418,41 @@
           <div class="info-item">
             <div class="info-label">Coordinates</div>
             <div class="info-value">{{ "%.4f"|format(result.coordinates.lat) }}, {{ "%.4f"|format(result.coordinates.lng) }}</div>
+          </div>
+        </div>
+        <div style="margin-top: 18px;">
+          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Mobility</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+            <div class="info-item">
+              <div class="info-label">Walk Score</div>
+              <div class="info-value">
+                {% if result.walk_score %}
+                  🚶 Walk Score: {{ result.walk_score }}{% if result.walk_rating %} — {{ result.walk_rating }}{% endif %}
+                {% else %}
+                  Walk data not available
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Transit Score</div>
+              <div class="info-value">
+                {% if result.transit_score %}
+                  🚌 Transit Score: {{ result.transit_score }}{% if result.transit_rating %} — {{ result.transit_rating }}{% endif %}
+                {% else %}
+                  Transit data not available
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Bike Score</div>
+              <div class="info-value">
+                {% if result.bike_score %}
+                  🚲 Bike Score: {{ result.bike_score }}{% if result.bike_rating %} — {{ result.bike_rating }}{% endif %}
+                {% else %}
+                  Bike data not available
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
       </div>
