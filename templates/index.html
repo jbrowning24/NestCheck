@@ -144,6 +144,46 @@
       margin-bottom: 30px;
     }
 
+    .walk-score-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 15px 0 20px;
+    }
+
+    .walk-score-card {
+      background: #f6f8ff;
+      border-left: 4px solid #5c6bc0;
+      padding: 12px 14px;
+      border-radius: 6px;
+    }
+
+    .walk-score-label {
+      font-size: 0.8em;
+      color: #6c757d;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .walk-score-value {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-top: 6px;
+    }
+
+    .walk-score-desc {
+      color: #555;
+      font-size: 0.95em;
+      margin-top: 4px;
+    }
+
+    .walk-score-unavailable {
+      color: #7f8c8d;
+      font-style: italic;
+      margin-top: 6px;
+    }
+
     .tier-header {
       display: flex;
       justify-content: space-between;
@@ -645,6 +685,42 @@
         <div class="tier-section">
           <div class="tier-header">
             <h2>Tier 2: Quality of Life Score</h2>
+          </div>
+
+          <div class="walk-score-grid">
+            <div class="walk-score-card">
+              <div class="walk-score-label">Walk Score (0–100)</div>
+              {% if result.walk_scores.walk_score is not none %}
+                <div class="walk-score-value">{{ result.walk_scores.walk_score }}</div>
+                {% if result.walk_scores.walk_description %}
+                  <div class="walk-score-desc">{{ result.walk_scores.walk_description }}</div>
+                {% endif %}
+              {% else %}
+                <div class="walk-score-unavailable">Not available</div>
+              {% endif %}
+            </div>
+            <div class="walk-score-card">
+              <div class="walk-score-label">Transit Score (0–100)</div>
+              {% if result.walk_scores.transit_score is not none %}
+                <div class="walk-score-value">{{ result.walk_scores.transit_score }}</div>
+                {% if result.walk_scores.transit_description %}
+                  <div class="walk-score-desc">{{ result.walk_scores.transit_description }}</div>
+                {% endif %}
+              {% else %}
+                <div class="walk-score-unavailable">Not available</div>
+              {% endif %}
+            </div>
+            <div class="walk-score-card">
+              <div class="walk-score-label">Bike Score (0–100)</div>
+              {% if result.walk_scores.bike_score is not none %}
+                <div class="walk-score-value">{{ result.walk_scores.bike_score }}</div>
+                {% if result.walk_scores.bike_description %}
+                  <div class="walk-score-desc">{{ result.walk_scores.bike_description }}</div>
+                {% endif %}
+              {% else %}
+                <div class="walk-score-unavailable">Not available</div>
+              {% endif %}
+            </div>
           </div>
 
           <ul class="score-list">
