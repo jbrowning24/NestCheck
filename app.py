@@ -2,6 +2,9 @@ import os
 import subprocess
 import json
 from flask import Flask, request, render_template
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Set your Google Maps API key for the evaluator
 os.environ["GOOGLE_MAPS_API_KEY"] = "AIzaSyDFTggXPncXzwKNLyROAgiaQ7XEtzUG48I"

@@ -25,6 +25,9 @@ from typing import Optional, List, Tuple, Dict, Any
 from enum import Enum
 import requests
 from urllib.parse import quote
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =============================================================================
 # CONFIGURATION
@@ -254,6 +257,7 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
     bike_score: Optional[int] = None
     bike_rating: Optional[str] = None
     bike_metadata: Optional[Dict[str, Any]] = None
@@ -536,6 +540,59 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 # =============================================================================
 # EVALUATION FUNCTIONS
 # =============================================================================
+
+def _coerce_score(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_scores = {
+        "walk_score": None,
+        "walk_description": None,
+        "transit_score": None,
+        "transit_description": None,
+        "bike_score": None,
+        "bike_description": None,
+    }
+    if not api_key:
+        return default_scores
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return default_scores
+
+    if data.get("status") != 1:
+        return default_scores
+
+    transit = data.get("transit") or {}
+    bike = data.get("bike") or {}
+
+    return {
+        "walk_score": _coerce_score(data.get("walkscore")),
+        "walk_description": data.get("description"),
+        "transit_score": _coerce_score(transit.get("score")),
+        "transit_description": transit.get("description"),
+        "bike_score": _coerce_score(bike.get("score")),
+        "bike_description": bike.get("description"),
+    }
 
 def check_gas_stations(
     maps: GoogleMapsClient, 
@@ -2183,6 +2240,7 @@ def evaluate_property(
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
     result.urban_access = get_urban_access_profile(maps, lat, lng)
     result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
+    result.walk_scores = get_walk_scores(listing.address, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -2396,6 +2454,7 @@ def main():
         output = {
             "address": result.listing.address,
             "coordinates": {"lat": result.lat, "lng": result.lng},
+            "walk_scores": result.walk_scores,
             "neighborhood_snapshot": [
                 {
                     "category": p.category,
