@@ -254,6 +254,7 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    transit_score: Optional[Dict[str, Any]] = None
 
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
@@ -495,6 +496,71 @@ class OverpassClient:
 # =============================================================================
 # EVALUATION FUNCTIONS
 # =============================================================================
+
+def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_response = {
+        "transit_score": None,
+        "transit_rating": None,
+        "transit_summary": None,
+        "nearby_transit_lines": None,
+    }
+
+    if not api_key:
+        return default_response
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return default_response
+
+    if data.get("status") != 1:
+        return default_response
+
+    transit_data = data.get("transit") or {}
+    transit_score = transit_data.get("score")
+    transit_description = transit_data.get("description")
+    transit_summary = transit_data.get("summary")
+    nearby_routes = transit_data.get("nearbyRoutes") or []
+
+    nearby_transit_lines = []
+    for route in nearby_routes:
+        if not isinstance(route, dict):
+            continue
+        name = route.get("route_name")
+        route_type = route.get("route_type")
+        distance = route.get("distance")
+        if not name and not route_type and distance is None:
+            continue
+        route_type_label = None
+        if route_type:
+            route_type_label = str(route_type).replace("_", " ").title()
+        nearby_transit_lines.append(
+            {
+                "name": name,
+                "type": route_type_label,
+                "distance_miles": distance,
+            }
+        )
+
+    return {
+        "transit_score": int(transit_score) if transit_score is not None else None,
+        "transit_rating": transit_description,
+        "transit_summary": transit_summary,
+        "nearby_transit_lines": nearby_transit_lines or None,
+    }
 
 def check_gas_stations(
     maps: GoogleMapsClient, 
@@ -2137,6 +2203,7 @@ def evaluate_property(
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
     result.urban_access = get_urban_access_profile(maps, lat, lng)
     result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
+    result.transit_score = get_transit_score(listing.address, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -2448,6 +2515,7 @@ def main():
                     if result.green_space_evaluation else None
                 ),
             },
+            "transit_score": result.transit_score,
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
                 {"name": c.name, "result": c.result.value, "details": c.details}

@@ -498,6 +498,37 @@
           <h2>Urban Access</h2>
           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
             <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Transit Score</strong>
+              {% if result.transit_score and result.transit_score.transit_score is not none %}
+                <div style="margin-top: 8px;">
+                  🚇 Transit Score: {{ result.transit_score.transit_score }}
+                  {% if result.transit_score.transit_rating %}
+                    — {{ result.transit_score.transit_rating }}
+                  {% endif %}
+                </div>
+                {% if result.transit_score.transit_summary %}
+                  <div style="color: #666; margin-top: 4px;">
+                    {{ result.transit_score.transit_summary }}
+                  </div>
+                {% endif %}
+                {% if result.transit_score.nearby_transit_lines %}
+                  <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                    {% for line in result.transit_score.nearby_transit_lines[:5] %}
+                      <li style="margin-bottom: 6px;">
+                        • {{ line.name }}
+                        {% if line.type %}<span style="color: #666;">({{ line.type }})</span>{% endif %}
+                        {% if line.distance_miles is not none %}
+                          — {{ "%.1f"|format(line.distance_miles) }} mi
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">Transit data not available</div>
+              {% endif %}
+            </div>
+            <div style="margin-bottom: 18px;">
               <strong style="color: #ef6c00;">Primary Transit Access</strong>
               {% if result.urban_access.primary_transit %}
                 <div style="margin-top: 8px;">
