@@ -411,6 +411,41 @@
             <div class="info-value">{{ "%.4f"|format(result.coordinates.lat) }}, {{ "%.4f"|format(result.coordinates.lng) }}</div>
           </div>
         </div>
+        <div style="margin-top: 18px;">
+          <div style="font-weight: 600; color: #2c3e50; margin-bottom: 8px;">Mobility</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+            <div class="info-item">
+              <div class="info-label">Walk Score</div>
+              <div class="info-value">
+                {% if result.walk_score %}
+                  🚶 Walk Score: {{ result.walk_score }}{% if result.walk_rating %} — {{ result.walk_rating }}{% endif %}
+                {% else %}
+                  Walk data not available
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Transit Score</div>
+              <div class="info-value">
+                {% if result.transit_score %}
+                  🚌 Transit Score: {{ result.transit_score }}{% if result.transit_rating %} — {{ result.transit_rating }}{% endif %}
+                {% else %}
+                  Transit data not available
+                {% endif %}
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Bike Score</div>
+              <div class="info-value">
+                {% if result.bike_score %}
+                  🚲 Bike Score: {{ result.bike_score }}{% if result.bike_rating %} — {{ result.bike_rating }}{% endif %}
+                {% else %}
+                  Bike data not available
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- NEIGHBORHOOD SNAPSHOT -->
