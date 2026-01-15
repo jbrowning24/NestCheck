@@ -54,6 +54,14 @@ export GOOGLE_MAPS_API_KEY="your-key-here"
 
 Or pass it via `--api-key` flag.
 
+### 4. (Optional) Add Walk Score
+
+Create a `.env` file (or export the env var) with your Walk Score API key:
+
+```bash
+WALKSCORE_API_KEY="your-walkscore-key"
+```
+
 ## Usage
 
 ### Basic Usage
