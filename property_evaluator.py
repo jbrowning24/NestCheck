@@ -128,6 +128,7 @@ class Tier1Check:
     result: CheckResult
     details: str
     value: Optional[Any] = None
+    required: bool = True
 
 
 @dataclass
@@ -787,25 +788,29 @@ def check_high_volume_roads(
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
     """Check listing-based requirements (W/D, AC, size, etc.)"""
     checks = []
+    is_required = False
     
     # Washer/dryer
     if listing.has_washer_dryer_in_unit is None:
         checks.append(Tier1Check(
             name="W/D in unit",
             result=CheckResult.UNKNOWN,
-            details="Not specified - verify manually"
+            details="Not specified - verify manually",
+            required=is_required
         ))
     elif listing.has_washer_dryer_in_unit:
         checks.append(Tier1Check(
             name="W/D in unit",
             result=CheckResult.PASS,
-            details="Washer/dryer in unit confirmed"
+            details="Washer/dryer in unit confirmed",
+            required=is_required
         ))
     else:
         checks.append(Tier1Check(
             name="W/D in unit",
             result=CheckResult.FAIL,
-            details="No washer/dryer in unit"
+            details="No washer/dryer in unit",
+            required=is_required
         ))
     
     # Central air
@@ -813,19 +818,22 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
         checks.append(Tier1Check(
             name="Central air",
             result=CheckResult.UNKNOWN,
-            details="Not specified - verify manually"
+            details="Not specified - verify manually",
+            required=is_required
         ))
     elif listing.has_central_air:
         checks.append(Tier1Check(
             name="Central air",
             result=CheckResult.PASS,
-            details="Central air confirmed"
+            details="Central air confirmed",
+            required=is_required
         ))
     else:
         checks.append(Tier1Check(
             name="Central air",
             result=CheckResult.FAIL,
-            details="No central air"
+            details="No central air",
+            required=is_required
         ))
     
     # Size
@@ -833,21 +841,24 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
         checks.append(Tier1Check(
             name="Size",
             result=CheckResult.UNKNOWN,
-            details="Square footage not specified"
+            details="Square footage not specified",
+            required=is_required
         ))
     elif listing.sqft >= MIN_SQFT:
         checks.append(Tier1Check(
             name="Size",
             result=CheckResult.PASS,
             details=f"{listing.sqft:,} sq ft",
-            value=listing.sqft
+            value=listing.sqft,
+            required=is_required
         ))
     else:
         checks.append(Tier1Check(
             name="Size",
             result=CheckResult.FAIL,
             details=f"{listing.sqft:,} sq ft < {MIN_SQFT:,} sq ft minimum",
-            value=listing.sqft
+            value=listing.sqft,
+            required=is_required
         ))
     
     # Bedrooms
@@ -855,21 +866,24 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
         checks.append(Tier1Check(
             name="Bedrooms",
             result=CheckResult.UNKNOWN,
-            details="Bedroom count not specified"
+            details="Bedroom count not specified",
+            required=is_required
         ))
     elif listing.bedrooms >= MIN_BEDROOMS:
         checks.append(Tier1Check(
             name="Bedrooms",
             result=CheckResult.PASS,
             details=f"{listing.bedrooms} BR",
-            value=listing.bedrooms
+            value=listing.bedrooms,
+            required=is_required
         ))
     else:
         checks.append(Tier1Check(
             name="Bedrooms",
             result=CheckResult.FAIL,
             details=f"{listing.bedrooms} BR < {MIN_BEDROOMS} BR minimum",
-            value=listing.bedrooms
+            value=listing.bedrooms,
+            required=is_required
         ))
     
     # Cost (monthly - rent or estimated)
@@ -877,21 +891,24 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
         checks.append(Tier1Check(
             name="Cost",
             result=CheckResult.UNKNOWN,
-            details="Monthly cost not specified"
+            details="Monthly cost not specified",
+            required=is_required
         ))
     elif listing.cost <= COST_MAX:
         checks.append(Tier1Check(
             name="Cost",
             result=CheckResult.PASS,
             details=f"${listing.cost:,}/month",
-            value=listing.cost
+            value=listing.cost,
+            required=is_required
         ))
     else:
         checks.append(Tier1Check(
             name="Cost",
             result=CheckResult.FAIL,
             details=f"${listing.cost:,}/month > ${COST_MAX:,} max",
-            value=listing.cost
+            value=listing.cost,
+            required=is_required
         ))
     
     return checks
@@ -2304,7 +2321,10 @@ def evaluate_property(
     result.tier1_checks.extend(check_listing_requirements(listing))
     
     # Determine if passed tier 1
-    fail_count = sum(1 for c in result.tier1_checks if c.result == CheckResult.FAIL)
+    fail_count = sum(
+        1 for c in result.tier1_checks
+        if c.result == CheckResult.FAIL and c.required
+    )
     result.passed_tier1 = (fail_count == 0)
     
     # ===================
@@ -2608,7 +2628,12 @@ def main():
             "bike_metadata": result.bike_metadata,
             "passed_tier1": result.passed_tier1,
             "tier1_checks": [
-                {"name": c.name, "result": c.result.value, "details": c.details}
+                {
+                    "name": c.name,
+                    "result": c.result.value,
+                    "details": c.details,
+                    "required": c.required,
+                }
                 for c in result.tier1_checks
             ],
             "tier2_score": result.tier2_total,
