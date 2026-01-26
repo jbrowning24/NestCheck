@@ -7,21 +7,35 @@ Usage:
 
 This script starts the Flask server and creates a public tunnel
 so you can access NestCheck from your iPhone or any device.
+
+Your URL will be: https://nestcheck.loca.lt
 """
 
 import subprocess
 import sys
 import time
-import threading
 import signal
-import os
+import shutil
 
 # Configuration
 PORT = 5001
-TUNNEL_SERVICE = "localhost.run"  # Free, no account needed
+SUBDOMAIN = "nestcheck"  # Will give us https://nestcheck.loca.lt
 
 flask_process = None
 tunnel_process = None
+
+
+def check_requirements():
+    """Check that required tools are installed."""
+    # Check for npx (comes with Node.js)
+    if not shutil.which("npx"):
+        print("ERROR: Node.js is required for localtunnel.")
+        print("\nInstall Node.js from: https://nodejs.org/")
+        print("Or via your package manager:")
+        print("  - macOS: brew install node")
+        print("  - Ubuntu: sudo apt install nodejs npm")
+        sys.exit(1)
+    return True
 
 
 def start_flask():
@@ -37,17 +51,20 @@ def start_flask():
     )
     # Give Flask a moment to start
     time.sleep(2)
+    print("Flask server started.\n")
     return flask_process
 
 
 def start_tunnel():
-    """Start SSH tunnel to localhost.run for public URL."""
+    """Start localtunnel with custom subdomain."""
     global tunnel_process
-    print("\nCreating public tunnel via localhost.run...")
-    print("(This may take a few seconds)\n")
 
+    print("Creating public tunnel via localtunnel...")
+    print(f"Requesting subdomain: {SUBDOMAIN}\n")
+
+    # Use npx to run localtunnel without global install
     tunnel_process = subprocess.Popen(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{PORT}", "nokey@localhost.run"],
+        ["npx", "localtunnel", "--port", str(PORT), "--subdomain", SUBDOMAIN],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -56,17 +73,22 @@ def start_tunnel():
 
     # Read output to find the public URL
     for line in iter(tunnel_process.stdout.readline, ''):
-        print(line.strip())
-        if "tunneled" in line.lower() or "https://" in line.lower():
-            # Extract and highlight the URL
+        line = line.strip()
+        if line:
+            print(line)
+
+        if "your url is:" in line.lower() or "loca.lt" in line.lower():
+            # Extract the URL
             if "https://" in line:
                 url_start = line.find("https://")
-                url_end = line.find(" ", url_start) if " " in line[url_start:] else len(line)
-                url = line[url_start:url_end].strip()
+                url = line[url_start:].strip()
+
                 print("\n" + "=" * 60)
                 print("YOUR MOBILE TESTING URL:")
                 print(f"\n    {url}\n")
                 print("Open this URL on your iPhone to test NestCheck!")
+                print("\nNote: First visit may show a reminder page -")
+                print("just click through to access your app.")
                 print("=" * 60 + "\n")
                 print("Press Ctrl+C to stop the server.\n")
 
@@ -78,8 +100,11 @@ def cleanup(signum=None, frame=None):
     print("\nShutting down...")
     if tunnel_process:
         tunnel_process.terminate()
+        tunnel_process.wait()
     if flask_process:
         flask_process.terminate()
+        flask_process.wait()
+    print("Goodbye!")
     sys.exit(0)
 
 
@@ -92,18 +117,13 @@ def main():
     print("NestCheck Mobile Testing Server")
     print("=" * 60 + "\n")
 
-    # Check for SSH
-    try:
-        subprocess.run(["ssh", "-V"], capture_output=True, check=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("ERROR: SSH is required for tunneling.")
-        print("Please ensure SSH is installed on your system.")
-        sys.exit(1)
+    # Check requirements
+    check_requirements()
 
     # Start Flask server
     start_flask()
 
-    # Start tunnel in main thread (to show output)
+    # Start tunnel
     try:
         start_tunnel()
     except KeyboardInterrupt:
