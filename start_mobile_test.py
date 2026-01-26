@@ -2,40 +2,72 @@
 """
 Start NestCheck with a public URL for mobile testing.
 
-Usage:
+SETUP (one-time):
+    1. Sign up for free at: https://dashboard.ngrok.com/signup
+    2. Get your authtoken from: https://dashboard.ngrok.com/get-started/your-authtoken
+    3. Set it as an environment variable:
+       export NGROK_AUTHTOKEN="your-token-here"
+
+    Or add it to your .env file:
+       NGROK_AUTHTOKEN=your-token-here
+
+USAGE:
     python start_mobile_test.py
 
-This script starts the Flask server and creates a public tunnel
-so you can access NestCheck from your iPhone or any device.
-
-Your URL will be: https://nestcheck.loca.lt
+Your URL will be permanent and shown in the ngrok dashboard.
 """
 
 import subprocess
 import sys
+import os
 import time
 import signal
-import shutil
+import atexit
 
 # Configuration
 PORT = 5001
-SUBDOMAIN = "nestcheck"  # Will give us https://nestcheck.loca.lt
 
 flask_process = None
-tunnel_process = None
+ngrok_tunnel = None
 
 
-def check_requirements():
-    """Check that required tools are installed."""
-    # Check for npx (comes with Node.js)
-    if not shutil.which("npx"):
-        print("ERROR: Node.js is required for localtunnel.")
-        print("\nInstall Node.js from: https://nodejs.org/")
-        print("Or via your package manager:")
-        print("  - macOS: brew install node")
-        print("  - Ubuntu: sudo apt install nodejs npm")
+def check_authtoken():
+    """Check that ngrok authtoken is configured."""
+    # Try loading from .env file first
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+    except ImportError:
+        pass
+
+    token = os.environ.get("NGROK_AUTHTOKEN")
+    if not token:
+        print("=" * 60)
+        print("NGROK SETUP REQUIRED")
+        print("=" * 60)
+        print("\n1. Sign up for FREE at:")
+        print("   https://dashboard.ngrok.com/signup")
+        print("\n2. Get your authtoken from:")
+        print("   https://dashboard.ngrok.com/get-started/your-authtoken")
+        print("\n3. Set it as an environment variable:")
+        print('   export NGROK_AUTHTOKEN="your-token-here"')
+        print("\n   Or add to your .env file:")
+        print("   NGROK_AUTHTOKEN=your-token-here")
+        print("\n" + "=" * 60)
         sys.exit(1)
-    return True
+
+    return token
+
+
+def install_pyngrok():
+    """Install pyngrok if not present."""
+    try:
+        import pyngrok
+        return True
+    except ImportError:
+        print("Installing pyngrok...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyngrok", "-q"])
+        return True
 
 
 def start_flask():
@@ -49,61 +81,60 @@ def start_flask():
         text=True,
         bufsize=1,
     )
-    # Give Flask a moment to start
     time.sleep(2)
     print("Flask server started.\n")
     return flask_process
 
 
-def start_tunnel():
-    """Start localtunnel with custom subdomain."""
-    global tunnel_process
+def start_ngrok(authtoken):
+    """Start ngrok tunnel."""
+    global ngrok_tunnel
 
-    print("Creating public tunnel via localtunnel...")
-    print(f"Requesting subdomain: {SUBDOMAIN}\n")
+    from pyngrok import ngrok, conf
 
-    # Use npx to run localtunnel without global install
-    tunnel_process = subprocess.Popen(
-        ["npx", "localtunnel", "--port", str(PORT), "--subdomain", SUBDOMAIN],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
+    # Set authtoken
+    conf.get_default().auth_token = authtoken
 
-    # Read output to find the public URL
-    for line in iter(tunnel_process.stdout.readline, ''):
-        line = line.strip()
-        if line:
-            print(line)
+    print("Creating ngrok tunnel...")
 
-        if "your url is:" in line.lower() or "loca.lt" in line.lower():
-            # Extract the URL
-            if "https://" in line:
-                url_start = line.find("https://")
-                url = line[url_start:].strip()
+    # Open HTTP tunnel
+    ngrok_tunnel = ngrok.connect(PORT, "http")
 
-                print("\n" + "=" * 60)
-                print("YOUR MOBILE TESTING URL:")
-                print(f"\n    {url}\n")
-                print("Open this URL on your iPhone to test NestCheck!")
-                print("\nNote: First visit may show a reminder page -")
-                print("just click through to access your app.")
-                print("=" * 60 + "\n")
-                print("Press Ctrl+C to stop the server.\n")
+    public_url = ngrok_tunnel.public_url
 
-    return tunnel_process
+    print("\n" + "=" * 60)
+    print("YOUR MOBILE TESTING URL:")
+    print(f"\n    {public_url}\n")
+    print("Open this URL on your iPhone to test NestCheck!")
+    print("\nThis URL is stable for this session.")
+    print("View all your URLs at: https://dashboard.ngrok.com/endpoints")
+    print("=" * 60 + "\n")
+    print("Press Ctrl+C to stop the server.\n")
+
+    return ngrok_tunnel
 
 
 def cleanup(signum=None, frame=None):
     """Clean up processes on exit."""
     print("\nShutting down...")
-    if tunnel_process:
-        tunnel_process.terminate()
-        tunnel_process.wait()
+
+    # Close ngrok tunnel
+    if ngrok_tunnel:
+        try:
+            from pyngrok import ngrok
+            ngrok.disconnect(ngrok_tunnel.public_url)
+            ngrok.kill()
+        except:
+            pass
+
+    # Stop Flask
     if flask_process:
         flask_process.terminate()
-        flask_process.wait()
+        try:
+            flask_process.wait(timeout=5)
+        except:
+            flask_process.kill()
+
     print("Goodbye!")
     sys.exit(0)
 
@@ -112,20 +143,32 @@ def main():
     # Set up signal handlers
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
+    atexit.register(cleanup)
 
     print("=" * 60)
     print("NestCheck Mobile Testing Server")
     print("=" * 60 + "\n")
 
-    # Check requirements
-    check_requirements()
+    # Check for authtoken
+    authtoken = check_authtoken()
+
+    # Ensure pyngrok is installed
+    install_pyngrok()
 
     # Start Flask server
     start_flask()
 
-    # Start tunnel
+    # Start ngrok tunnel
+    start_ngrok(authtoken)
+
+    # Keep running until interrupted
     try:
-        start_tunnel()
+        while True:
+            time.sleep(1)
+            # Check if Flask is still running
+            if flask_process and flask_process.poll() is not None:
+                print("Flask server stopped unexpectedly.")
+                cleanup()
     except KeyboardInterrupt:
         cleanup()
 
