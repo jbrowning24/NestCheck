@@ -92,13 +92,20 @@ def start_ngrok(authtoken):
 
     from pyngrok import ngrok, conf
 
+    # Kill any existing ngrok processes first
+    ngrok.kill()
+
     # Set authtoken
     conf.get_default().auth_token = authtoken
 
-    print("Creating ngrok tunnel...")
+    print(f"Creating ngrok tunnel to port {PORT}...")
 
-    # Open HTTP tunnel
-    ngrok_tunnel = ngrok.connect(PORT, "http")
+    # Open HTTP tunnel - explicitly bind to localhost:PORT
+    ngrok_tunnel = ngrok.connect(
+        addr=f"http://localhost:{PORT}",
+        proto="http",
+        bind_tls=True
+    )
 
     public_url = ngrok_tunnel.public_url
 
