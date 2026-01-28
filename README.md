@@ -27,6 +27,80 @@ Given a property address, this tool automatically checks:
 - Outdoor space (yard/balcony): +5 pts  
 - 3+ bedrooms: +5 pts
 
+## Urban Access Engine
+
+The Urban Access Engine replaces the simple "transit station within 20 minutes" check with a multi-hub reachability analysis. It evaluates how well-connected a property is to the places that matter for daily life.
+
+### What It Outputs
+
+1. **Primary Transit Node** — nearest rail/subway/light-rail station with walk time, drive time (if far), frequency class, and parking info.
+
+2. **Commute to Primary Hub** — travel time to a configurable primary hub (default: Grand Central Terminal) via transit or driving, whichever is faster. Shows a verdict: Great / OK / Painful.
+
+3. **Reachability** — travel time to three additional hub categories:
+   - **Major Airport** — nearest of JFK, LaGuardia, or Newark (configurable).
+   - **Downtown** — nearest major commercial area (default: Downtown Manhattan).
+   - **Major Hospital** — nearest large hospital (default: NewYork-Presbyterian).
+
+   Each hub shows: best mode (transit vs. driving), total time, and a verdict bucket.
+
+### Verdict Thresholds
+
+| Category     | Great    | OK        | Painful   |
+|-------------|----------|-----------|-----------|
+| Primary Hub | <= 45 min | <= 75 min | > 75 min  |
+| Airport     | <= 60 min | <= 90 min | > 90 min  |
+| Downtown    | <= 40 min | <= 70 min | > 70 min  |
+| Hospital    | <= 30 min | <= 60 min | > 60 min  |
+
+### Configuration
+
+Set these environment variables to customise destinations:
+
+| Variable              | Default                                        | Description                        |
+|-----------------------|------------------------------------------------|------------------------------------|
+| `PRIMARY_HUB_ADDRESS` | `Grand Central Terminal, New York, NY`         | The main commute destination       |
+| `AIRPORT_HUBS`        | JSON list of JFK / LGA / EWR                  | Airports to evaluate (nearest wins)|
+| `DOWNTOWN_HUB`        | `Downtown Manhattan, New York, NY`             | Downtown cluster proxy             |
+| `HOSPITAL_HUB`        | `NewYork-Presbyterian Hospital, New York, NY`  | Major hospital                     |
+
+Example — override the primary hub:
+
+```bash
+export PRIMARY_HUB_ADDRESS="Penn Station, New York, NY"
+```
+
+Example — custom airports (JSON):
+
+```bash
+export AIRPORT_HUBS='[{"name": "JFK", "address": "JFK Airport, Queens, NY"}, {"name": "BOS", "address": "Boston Logan Airport, Boston, MA"}]'
+```
+
+### Caching
+
+The engine caches all geocode and directions API results in-memory (keyed by origin/destination/mode). This avoids redundant API calls when multiple hubs share the same origin coordinates. The cache lives for the duration of the process.
+
+### Cost Implications
+
+The Urban Access Engine adds the following API calls per evaluation:
+
+- **Geocoding**: 1 call per unique hub address (~4-5 hubs), cached after first use.
+- **Distance Matrix**: Up to 2 calls per hub (transit + driving), cached.
+- **Total additional cost**: ~$0.03-0.06 per property evaluation (on top of the base ~$0.02-0.05).
+
+### Running Tests
+
+```bash
+python -m unittest test_urban_access -v
+```
+
+The test suite covers:
+- Fallback behaviour when transit is unavailable (driving used, `fallback` flag set)
+- Verdict classification stability at all boundary values
+- Mode selection (transit vs. driving, whichever is faster)
+- Full evaluation structure validation
+- Cache hit verification
+
 ## Setup
 
 ### 1. Get a Google Maps API Key

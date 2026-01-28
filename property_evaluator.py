@@ -26,6 +26,11 @@ from enum import Enum
 import requests
 from urllib.parse import quote
 from dotenv import load_dotenv
+from urban_access import (
+    UrbanAccessEngine,
+    UrbanAccessResult,
+    urban_access_result_to_dict,
+)
 
 load_dotenv()
 
@@ -232,6 +237,7 @@ class MajorHubAccess:
 class UrbanAccessProfile:
     primary_transit: Optional[PrimaryTransitOption] = None
     major_hub: Optional[MajorHubAccess] = None
+    engine_result: Optional[UrbanAccessResult] = None
 
 
 @dataclass
@@ -1567,9 +1573,27 @@ def get_urban_access_profile(
     if major_hub:
         major_hub.route_summary = urban_access_route_summary(primary_transit, major_hub)
 
+    # --- Urban Access Engine ---
+    engine = UrbanAccessEngine(maps, lat, lng)
+    primary_transit_dict = None
+    if primary_transit:
+        primary_transit_dict = {
+            "name": primary_transit.name,
+            "mode": primary_transit.mode,
+            "lat": primary_transit.lat,
+            "lng": primary_transit.lng,
+            "walk_time_min": primary_transit.walk_time_min,
+            "drive_time_min": primary_transit.drive_time_min,
+            "parking_available": primary_transit.parking_available,
+            "user_ratings_total": primary_transit.user_ratings_total,
+            "frequency_class": primary_transit.frequency_class,
+        }
+    engine_result = engine.evaluate(primary_transit_data=primary_transit_dict)
+
     return UrbanAccessProfile(
         primary_transit=primary_transit,
-        major_hub=major_hub
+        major_hub=major_hub,
+        engine_result=engine_result,
     )
 
 
