@@ -536,13 +536,56 @@
         </div>
       {% endif %}
 
-      <!-- URBAN ACCESS ENGINE -->
-      {% if result.urban_access %}
+      <!-- TIER 0: URBAN ACCESS -->
+      {% if result.urban_access or result.transit_access %}
         <div class="tier-section">
           <h2>Urban Access Engine</h2>
           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
 
-            {# --- Transit Score (from Walk Score API) --- #}
+            <!-- Smart Transit Frequency -->
+            {% if result.transit_access %}
+              <div style="margin-bottom: 18px;">
+                <strong style="color: #ef6c00;">Transit Frequency (Smart Approximation)</strong>
+                {% if result.transit_access.primary_stop %}
+                  <div style="margin-top: 10px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #ffe0b2;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 1.05em;">
+                      Primary Transit: {{ result.transit_access.primary_stop }}
+                      — {{ result.transit_access.walk_minutes }} min walk
+                      | Mode: {{ result.transit_access.mode }}
+                      | Service: {{ result.transit_access.frequency_bucket }} frequency
+                      | Urban Access Score: {{ result.transit_access.score_0_10 }}/10
+                    </div>
+                  </div>
+                  <details style="margin-top: 10px; cursor: pointer;">
+                    <summary style="font-weight: 600; color: #e65100; padding: 6px 0; user-select: none;">Why?</summary>
+                    <ul style="list-style: none; padding-left: 0; margin-top: 8px;">
+                      {% for reason in result.transit_access.reasons %}
+                        <li style="margin-bottom: 6px; padding: 6px 10px; background: #fff8e1; border-radius: 4px; font-size: 0.93em; color: #5d4037;">
+                          {{ reason }}
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  </details>
+                {% else %}
+                  <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                    No transit stations found nearby (score 0/10)
+                  </div>
+                  {% if result.transit_access.reasons %}
+                    <details style="margin-top: 6px; cursor: pointer;">
+                      <summary style="font-weight: 600; color: #e65100; padding: 6px 0; user-select: none;">Why?</summary>
+                      <ul style="list-style: none; padding-left: 0; margin-top: 8px;">
+                        {% for reason in result.transit_access.reasons %}
+                          <li style="margin-bottom: 6px; padding: 6px 10px; background: #fff8e1; border-radius: 4px; font-size: 0.93em; color: #5d4037;">
+                            {{ reason }}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </details>
+                  {% endif %}
+                {% endif %}
+              </div>
+            {% endif %}
+
             <div style="margin-bottom: 18px;">
               <strong style="color: #ef6c00;">Transit Score</strong>
               {% if result.transit_score and result.transit_score.transit_score is not none %}
@@ -561,7 +604,7 @@
                   <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
                     {% for line in result.transit_score.nearby_transit_lines[:5] %}
                       <li style="margin-bottom: 6px;">
-                        &bull; {{ line.name }}
+                        - {{ line.name }}
                         {% if line.type %}<span style="color: #666;">({{ line.type }})</span>{% endif %}
                         {% if line.distance_miles is not none %}
                           — {{ "%.1f"|format(line.distance_miles) }} mi
@@ -574,8 +617,7 @@
                 <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">Transit data not available</div>
               {% endif %}
             </div>
-
-            {# --- 1. Primary Transit Node --- #}
+            {% if result.urban_access %}
             <div style="margin-bottom: 18px;">
               <strong style="color: #ef6c00;">Primary Transit Node</strong>
               {% if result.urban_access.primary_transit %}
@@ -631,46 +673,7 @@
                 </div>
               {% endif %}
             </div>
-
-            {# --- 3. Reachability Hubs --- #}
-            <div>
-              <strong style="color: #ef6c00;">Reachability</strong>
-              {% if result.urban_access.reachability_hubs %}
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">
-                  {% for hub in result.urban_access.reachability_hubs %}
-                    <div style="padding: 12px; background: white; border-radius: 6px; border-left: 3px solid
-                      {% if hub.verdict == 'Great' %}#28a745{% elif hub.verdict == 'OK' %}#ffc107{% else %}#dc3545{% endif %};">
-                      <div style="font-size: 0.8em; color: #6c757d; text-transform: uppercase; letter-spacing: 0.04em;">
-                        {{ hub.category }}
-                      </div>
-                      <div style="font-weight: 600; margin-top: 4px;">{{ hub.hub_name }}</div>
-                      <div style="margin-top: 6px;">
-                        {{ hub.total_time_min }} min via {{ hub.best_mode }}
-                        {% if hub.fallback %}
-                          <span style="color: #e67e22; font-size: 0.85em;">(driving fallback)</span>
-                        {% endif %}
-                      </div>
-                      <div style="margin-top: 4px;">
-                        <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
-                          {% if hub.verdict == 'Great' %}
-                            background: #d4edda; color: #155724;
-                          {% elif hub.verdict == 'OK' %}
-                            background: #fff3cd; color: #856404;
-                          {% else %}
-                            background: #f8d7da; color: #721c24;
-                          {% endif %}
-                        ">{{ hub.verdict }}</span>
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
-                  No reachability data available
-                </div>
-              {% endif %}
-            </div>
-
+            {% endif %}
           </div>
         </div>
       {% endif %}
