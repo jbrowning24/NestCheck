@@ -543,6 +543,13 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 # EVALUATION FUNCTIONS
 # =============================================================================
 
+def _coerce_score(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
     api_key = os.environ.get("WALKSCORE_API_KEY")
     default_response = {
@@ -554,25 +561,6 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     if not api_key:
         return default_response
-def _coerce_score(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_scores = {
-        "walk_score": None,
-        "walk_description": None,
-        "transit_score": None,
-        "transit_description": None,
-        "bike_score": None,
-        "bike_description": None,
-    }
-    if not api_key:
-        return default_scores
 
     url = "https://api.walkscore.com/score"
     params = {
@@ -626,6 +614,38 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "transit_rating": transit_description,
         "transit_summary": transit_summary,
         "nearby_transit_lines": nearby_transit_lines or None,
+    }
+
+
+def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_scores = {
+        "walk_score": None,
+        "walk_description": None,
+        "transit_score": None,
+        "transit_description": None,
+        "bike_score": None,
+        "bike_description": None,
+    }
+    if not api_key:
+        return default_scores
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
         return default_scores
 
     if data.get("status") != 1:
@@ -2229,27 +2249,6 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
-def estimate_percentile(final_score: int) -> Tuple[int, str]:
-    """Estimate percentile ranking for a final score (0-100)."""
-    bounded_score = max(0, min(100, final_score))
-    percentile_map = [
-        (90, 5),
-        (85, 10),
-        (80, 15),
-        (75, 20),
-        (70, 25),
-        (65, 30),
-        (60, 35),
-        (55, 40),
-        (50, 50),
-        (0, 60),
-    ]
-
-    for threshold, percentile in percentile_map:
-        if bounded_score >= threshold:
-            return percentile, f"Top {percentile}% nationally for families"
-
-    return 60, "Top 60% nationally for families"
 def estimate_percentile(score: int) -> Tuple[int, str]:
     """Estimate percentile bucket from a normalized 0-100 score."""
     buckets = [
@@ -2420,8 +2419,7 @@ def format_result(result: EvaluationResult) -> str:
     # Final
     lines.append(f"\n{'=' * 70}")
     lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} (already capped at 100)")
+    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
     
     # Notes
