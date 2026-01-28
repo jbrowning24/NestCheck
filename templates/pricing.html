@@ -108,6 +108,13 @@
     }
     .price-btn:hover { background: #16213e; }
 
+    .cta-flow {
+      margin-top: 20px;
+      font-size: 0.88em;
+      color: #888;
+    }
+    .cta-flow strong { color: #555; }
+
     .coming-soon {
       background: #fff;
       border-radius: 12px;
@@ -154,7 +161,7 @@
 
 <div class="pricing-page">
   <h1>Simple pricing.</h1>
-  <p class="sub">Built for families optimizing daily life.</p>
+  <p class="sub">$29 per report. Built for families optimizing daily life.</p>
 
   <div class="price-card">
     <div class="price-tag">$29 <span class="per">per report</span></div>
@@ -165,29 +172,60 @@
       <li>Transit, walkability, and commute scoring</li>
       <li>School &amp; childcare proximity mapping</li>
       <li>Daily essentials: grocery, cafes, fitness</li>
-      <li>Final livability score (0-100) with breakdown</li>
-      <li>Shareable report link</li>
-      <!-- TODO: PDF export -->
+      <li>Final livability score (0-100) with full breakdown</li>
+      <li>Print-ready report layout</li>
+      <!-- TODO: PDF export download -->
       <!-- TODO: Saved reports dashboard -->
+      <!-- TODO: Shareable permanent link -->
     </ul>
     <a href="/" class="price-btn">Generate Report</a>
-    <!-- TODO: Integrate Stripe Checkout (test mode) -->
-    <!-- TODO: Gate PDF export / sharing behind payment -->
+    <!-- TODO: Integrate Stripe Checkout (test mode)
+         Flow: user generates report → sees CTA → clicks "Export/Share" →
+         Stripe Checkout session → on success, unlock PDF + permanent link.
+         Use STRIPE_SECRET_KEY and STRIPE_PRICE_ID env vars.
+         Stripe test mode keys: pk_test_... / sk_test_...
+    -->
+    <div class="cta-flow">
+      <strong>How it works:</strong> Generate report &rarr; Review results &rarr; Pay to export &amp; share
+    </div>
   </div>
 
   <div class="coming-soon">
     <h3>Coming soon: Bundles &amp; Subscriptions</h3>
     <p>Evaluating multiple addresses? We're building 5-packs and monthly plans for active movers and real estate professionals.</p>
-    <!-- TODO: Bundle pricing (5 reports for $99) -->
-    <!-- TODO: Monthly subscription ($49/mo unlimited) -->
-    <!-- TODO: Stripe subscription integration -->
+    <!-- TODO: Bundle pricing (5 reports for $99)
+         - Create Stripe product + price for bundle
+         - Track usage per customer (needs user accounts or email-based tokens)
+    -->
+    <!-- TODO: Monthly subscription ($49/mo unlimited)
+         - Stripe subscription integration
+         - User dashboard with saved reports
+    -->
   </div>
 
   <div class="coming-soon">
     <h3>Coming soon: PDF Export</h3>
     <p>Download a clean, shareable PDF of your NestCheck report — perfect for sharing with family or your real estate agent.</p>
-    <!-- TODO: PDF generation (WeasyPrint or similar) -->
-    <!-- TODO: Email delivery option -->
+    <!-- TODO: PDF generation
+         Options: WeasyPrint (server-side HTML→PDF), or browser print (already supported via @media print CSS).
+         WeasyPrint approach: render report template to HTML string, convert to PDF, serve as download.
+         Gate behind payment: only paid users get the download link.
+    -->
+    <!-- TODO: Email delivery option
+         - After payment, optionally email the PDF to the buyer
+         - Use SendGrid or SES
+    -->
+  </div>
+
+  <div class="coming-soon">
+    <h3>Coming soon: Saved Reports</h3>
+    <p>Access your reports anytime. Compare multiple addresses side by side. Track how neighborhoods change over time.</p>
+    <!-- TODO: Saved reports
+         - Needs a database (PostgreSQL on Render)
+         - Store: address, evaluation JSON, timestamp, user email/token
+         - Permanent shareable URLs: /report/<uuid>
+         - Compare view: select 2-3 reports, side-by-side scores
+    -->
   </div>
 
   <p class="note">
