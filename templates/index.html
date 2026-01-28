@@ -600,44 +600,338 @@
             </div>
             <div class="place-time">{{ space.walk_time_min }} min walk</div>
           </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  </div>
-  {% endif %}
+        </div>
+      {% endif %}
 
-  <!-- 2. URBAN ACCESS -->
-  <div class="report-section">
-    <h2>Urban Access</h2>
-    {% if result.urban_access and result.urban_access.primary_transit %}
-      <div class="place-item">
-        <div>
-          <div class="place-name">{{ result.urban_access.primary_transit.name }}</div>
-          <div class="place-meta">
-            {{ result.urban_access.primary_transit.mode }}
-            {% if result.urban_access.primary_transit.frequency_class %}
-              &middot; {{ result.urban_access.primary_transit.frequency_class }}
+      <!-- TIER 0: URBAN ACCESS -->
+      {% if result.urban_access or result.transit_access %}
+        <div class="tier-section">
+          <h2>Urban Access Engine</h2>
+          <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
+
+            <!-- Smart Transit Frequency -->
+            {% if result.transit_access %}
+              <div style="margin-bottom: 18px;">
+                <strong style="color: #ef6c00;">Transit Frequency (Smart Approximation)</strong>
+                {% if result.transit_access.primary_stop %}
+                  <div style="margin-top: 10px; padding: 12px; background: white; border-radius: 6px; border: 1px solid #ffe0b2;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 1.05em;">
+                      Primary Transit: {{ result.transit_access.primary_stop }}
+                      — {{ result.transit_access.walk_minutes }} min walk
+                      | Mode: {{ result.transit_access.mode }}
+                      | Service: {{ result.transit_access.frequency_bucket }} frequency
+                      | Urban Access Score: {{ result.transit_access.score_0_10 }}/10
+                    </div>
+                  </div>
+                  <details style="margin-top: 10px; cursor: pointer;">
+                    <summary style="font-weight: 600; color: #e65100; padding: 6px 0; user-select: none;">Why?</summary>
+                    <ul style="list-style: none; padding-left: 0; margin-top: 8px;">
+                      {% for reason in result.transit_access.reasons %}
+                        <li style="margin-bottom: 6px; padding: 6px 10px; background: #fff8e1; border-radius: 4px; font-size: 0.93em; color: #5d4037;">
+                          {{ reason }}
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  </details>
+                {% else %}
+                  <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                    No transit stations found nearby (score 0/10)
+                  </div>
+                  {% if result.transit_access.reasons %}
+                    <details style="margin-top: 6px; cursor: pointer;">
+                      <summary style="font-weight: 600; color: #e65100; padding: 6px 0; user-select: none;">Why?</summary>
+                      <ul style="list-style: none; padding-left: 0; margin-top: 8px;">
+                        {% for reason in result.transit_access.reasons %}
+                          <li style="margin-bottom: 6px; padding: 6px 10px; background: #fff8e1; border-radius: 4px; font-size: 0.93em; color: #5d4037;">
+                            {{ reason }}
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </details>
+                  {% endif %}
+                {% endif %}
+              </div>
             {% endif %}
-            {% if result.urban_access.primary_transit.drive_time_min %}
-              &middot; {{ result.urban_access.primary_transit.drive_time_min }} min drive
+
+            <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Transit Score</strong>
+              {% if result.transit_score and result.transit_score.transit_score is not none %}
+                <div style="margin-top: 8px;">
+                  Transit Score: {{ result.transit_score.transit_score }}
+                  {% if result.transit_score.transit_rating %}
+                    — {{ result.transit_score.transit_rating }}
+                  {% endif %}
+                </div>
+                {% if result.transit_score.transit_summary %}
+                  <div style="color: #666; margin-top: 4px;">
+                    {{ result.transit_score.transit_summary }}
+                  </div>
+                {% endif %}
+                {% if result.transit_score.nearby_transit_lines %}
+                  <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                    {% for line in result.transit_score.nearby_transit_lines[:5] %}
+                      <li style="margin-bottom: 6px;">
+                        - {{ line.name }}
+                        {% if line.type %}<span style="color: #666;">({{ line.type }})</span>{% endif %}
+                        {% if line.distance_miles is not none %}
+                          — {{ "%.1f"|format(line.distance_miles) }} mi
+                        {% endif %}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">Transit data not available</div>
+              {% endif %}
+            </div>
+            {% if result.urban_access %}
+            <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Primary Transit Node</strong>
+              {% if result.urban_access.primary_transit %}
+                {% set pt = result.urban_access.primary_transit %}
+                <div style="margin-top: 8px;">
+                  {{ pt.name }} ({{ pt.mode }})
+                  — {{ pt.walk_time_min }} min walk
+                </div>
+                {% if pt.drive_time_min %}
+                  <div style="color: #666; margin-top: 6px;">
+                    Drive to station — {{ pt.drive_time_min }} min
+                  </div>
+                {% endif %}
+                {% if pt.frequency_class %}
+                  <div style="color: #666; margin-top: 4px;">
+                    Frequency — {{ pt.frequency_class }}
+                  </div>
+                {% endif %}
+                {% if pt.parking_available %}
+                  <div style="color: #666; margin-top: 4px;">
+                    Parking — available
+                  </div>
+                {% endif %}
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No nearby transit stops found</div>
+              {% endif %}
+            </div>
+
+            {# --- 2. Commute to Primary Hub --- #}
+            <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Commute to Primary Hub</strong>
+              {% if result.urban_access.primary_hub_commute %}
+                {% set phc = result.urban_access.primary_hub_commute %}
+                <div style="margin-top: 8px; padding: 10px; background: white; border-radius: 4px;">
+                  <strong>{{ phc.hub_name }}</strong>
+                  — {{ phc.time_min }} min via {{ phc.mode }}
+                  {% if phc.fallback %}
+                    <span style="color: #e67e22; font-size: 0.85em;">(transit unavailable, driving estimate)</span>
+                  {% endif %}
+                  <span style="display: inline-block; margin-left: 8px; padding: 2px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
+                    {% if phc.verdict == 'Great' %}
+                      background: #d4edda; color: #155724;
+                    {% elif phc.verdict == 'OK' %}
+                      background: #fff3cd; color: #856404;
+                    {% else %}
+                      background: #f8d7da; color: #721c24;
+                    {% endif %}
+                  ">{{ phc.verdict }}</span>
+                </div>
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                  Primary hub commute data unavailable
+                </div>
+              {% endif %}
+            </div>
             {% endif %}
           </div>
         </div>
-        <div class="place-time">{{ result.urban_access.primary_transit.walk_time_min }} min walk</div>
-      </div>
-    {% else %}
-      <p style="color: #888; font-style: italic;">No nearby transit stops found.</p>
-    {% endif %}
+      {% endif %}
 
-    {% if result.urban_access and result.urban_access.major_hub %}
-      <div class="place-item">
-        <div>
-          <div class="place-name">{{ result.urban_access.major_hub.name }}</div>
-          <div class="place-meta">
-            {% if result.urban_access.major_hub.route_summary %}
-              {{ result.urban_access.major_hub.route_summary }}
+      <!-- GREEN ESCAPE (Daily Outdoor Life) — New Engine -->
+      {% if result.green_escape %}
+        <div class="tier-section">
+          <h2>Green Escape (Daily Outdoor Life)</h2>
+          <div style="background: #f1f8f4; padding: 20px; border-radius: 8px; border-left: 4px solid #2e7d32;">
+
+            <!-- Best Daily Park Card -->
+            {% if result.green_escape.best_daily_park %}
+              {% set park = result.green_escape.best_daily_park %}
+              <div style="background: white; border-radius: 8px; padding: 18px; margin-bottom: 18px; border: 1px solid #c8e6c9;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <div style="font-size: 1.15em; font-weight: 700; color: #1b5e20;">
+                      Best Daily Park: {{ park.name }}
+                    </div>
+                    <div style="color: #555; margin-top: 4px;">
+                      {% if park.rating %}{{ "%.1f"|format(park.rating) }}★{% endif %}
+                      {% if park.user_ratings_total %} · {{ park.user_ratings_total }} reviews{% endif %}
+                      · {{ park.walk_time_min }} min walk
+                      <span style="color: #999; font-size: 0.9em;">({{ park.types_display }})</span>
+                    </div>
+                  </div>
+                  <div style="text-align: center; min-width: 80px;">
+                    <div style="font-size: 2em; font-weight: 700; color: {% if park.daily_walk_value >= 7 %}#2e7d32{% elif park.daily_walk_value >= 5 %}#f57f17{% else %}#c62828{% endif %};">
+                      {{ "%.1f"|format(park.daily_walk_value) }}
+                    </div>
+                    <div style="font-size: 0.75em; color: #666; text-transform: uppercase;">Daily Value /10</div>
+                  </div>
+                </div>
+
+                <!-- Criteria Status Badge -->
+                <div style="margin-top: 12px;">
+                  {% if park.criteria_status == "PASS" %}
+                    <span style="display: inline-block; background: #c8e6c9; color: #1b5e20; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">PASS</span>
+                  {% elif park.criteria_status == "BORDERLINE" %}
+                    <span style="display: inline-block; background: #fff3e0; color: #e65100; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">BORDERLINE</span>
+                  {% else %}
+                    <span style="display: inline-block; background: #ffebee; color: #c62828; padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">FAIL</span>
+                  {% endif %}
+                  {% for reason in park.criteria_reasons %}
+                    <span style="color: #666; font-size: 0.85em; margin-left: 6px;">{{ reason }}</span>
+                  {% endfor %}
+                </div>
+
+                <!-- Subscores -->
+                <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px;">
+                  {% for ss in park.subscores %}
+                    <div style="background: #f9fbe7; border-radius: 6px; padding: 8px 12px;">
+                      <div style="font-size: 0.8em; color: #558b2f; text-transform: uppercase; font-weight: 600;">
+                        {{ ss.name }}
+                        {% if ss.is_estimate %}<span style="color: #ff8f00;">(est)</span>{% endif %}
+                      </div>
+                      <div style="font-weight: 700; color: #33691e; font-size: 1.1em;">
+                        {{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}
+                      </div>
+                      <div style="font-size: 0.8em; color: #666; margin-top: 2px;">{{ ss.reason }}</div>
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <!-- Why This Park -->
+                {% if park.reasons %}
+                  <div style="margin-top: 14px; padding: 10px 14px; background: #e8f5e9; border-radius: 6px;">
+                    <div style="font-weight: 600; color: #2e7d32; font-size: 0.9em; margin-bottom: 6px;">Why this park?</div>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                      {% for reason in park.reasons %}
+                        <li style="color: #444; font-size: 0.9em; margin-bottom: 3px;">+ {{ reason }}</li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                {% endif %}
+
+                <!-- OSM enrichment note -->
+                {% if park.osm_enriched %}
+                  <div style="margin-top: 8px; font-size: 0.8em; color: #888;">
+                    OpenStreetMap data: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
+                    {% if park.osm_path_count %} · {{ park.osm_path_count }} paths{% endif %}
+                    {% if park.osm_has_trail %} · trail detected{% endif %}
+                    {% if park.osm_nature_tags %} · {{ park.osm_nature_tags | join(", ") }}{% endif %}
+                  </div>
+                {% elif park.subscores | selectattr("is_estimate") | list %}
+                  <div style="margin-top: 8px; font-size: 0.8em; color: #ff8f00;">
+                    Size/loop data estimated from reviews and name (no OSM polygon available).
+                  </div>
+                {% endif %}
+              </div>
+            {% else %}
+              <div style="color: #7f8c8d; font-style: italic; margin-bottom: 16px;">
+                No green spaces found within walking distance.
+                {% for msg in result.green_escape.messages %}
+                  <br>{{ msg }}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Nearby Green Spaces List -->
+            <div style="margin-top: 4px;">
+              <strong style="color: #1b5e20;">Other Nearby Green Spaces</strong>
+              {% if result.green_escape.nearby_green_spaces %}
+                <div style="margin-top: 10px;">
+                  {% for space in result.green_escape.nearby_green_spaces %}
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; background: white; border-radius: 6px; border-left: 3px solid {% if space.criteria_status == 'PASS' %}#4caf50{% elif space.criteria_status == 'BORDERLINE' %}#ff9800{% else %}#ef5350{% endif %};">
+                      <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 600; color: #333;">
+                          {{ space.name }}
+                          {% if space.criteria_status == "PASS" %}
+                            <span style="font-size: 0.75em; background: #c8e6c9; color: #1b5e20; padding: 2px 8px; border-radius: 8px; margin-left: 6px;">PASS</span>
+                          {% elif space.criteria_status == "BORDERLINE" %}
+                            <span style="font-size: 0.75em; background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 8px; margin-left: 6px;">BORDERLINE</span>
+                          {% else %}
+                            <span style="font-size: 0.75em; background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 8px; margin-left: 6px;">FAIL</span>
+                          {% endif %}
+                        </div>
+                        <div style="color: #666; font-size: 0.85em; margin-top: 2px;">
+                          {% if space.rating %}{{ "%.1f"|format(space.rating) }}★{% endif %}
+                          {% if space.user_ratings_total %} · {{ space.user_ratings_total }} reviews{% endif %}
+                          · {{ space.walk_time_min }} min walk
+                          · Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
+                        </div>
+                        {% if space.criteria_reasons %}
+                          <div style="color: #888; font-size: 0.8em; margin-top: 2px;">{{ space.criteria_reasons[0] }}</div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                  No other green spaces found within walking distance.
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Engine messages -->
+            {% if result.green_escape.messages %}
+              <div style="margin-top: 14px; padding: 10px; background: #fff8e1; border-radius: 6px; font-size: 0.85em; color: #8d6e00;">
+                {% for msg in result.green_escape.messages %}
+                  <div>{{ msg }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- Criteria reference -->
+            {% if result.green_escape.criteria %}
+              <details style="margin-top: 12px; font-size: 0.8em; color: #888;">
+                <summary style="cursor: pointer; color: #666;">Scoring criteria</summary>
+                <div style="margin-top: 6px; padding: 8px; background: #fafafa; border-radius: 4px;">
+                  <div>Walk time max: {{ result.green_escape.criteria.walk_time_max_min }} min</div>
+                  <div>Walk time ideal: {{ result.green_escape.criteria.walk_time_ideal_min }} min</div>
+                  <div>Pass threshold: {{ result.green_escape.criteria.daily_value_pass_threshold }}/10</div>
+                  <div>Model: {{ result.green_escape.criteria.scoring_model }}</div>
+                </div>
+              </details>
+            {% endif %}
+          </div>
+        </div>
+
+      <!-- Fallback: legacy green space evaluation -->
+      {% elif result.green_space_evaluation %}
+        <div class="tier-section">
+          <h2>Primary Green Escape</h2>
+          <div style="background: #f1f8f4; padding: 20px; border-radius: 8px; border-left: 4px solid #2e7d32;">
+            {% if result.green_space_evaluation.green_escape %}
+              <div style="margin-bottom: 16px;">
+                <strong style="color: #1b5e20;">{{ result.green_space_evaluation.green_escape.name }}</strong>
+                {% if result.green_space_evaluation.green_escape.rating %}
+                  ({{ "%.1f"|format(result.green_space_evaluation.green_escape.rating) }}★,
+                  {{ result.green_space_evaluation.green_escape.user_ratings_total }} reviews)
+                {% endif %}
+                — {{ result.green_space_evaluation.green_escape.walk_time_min }} min walk
+              </div>
             {% else %}
               {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
+            {% endif %}
+            {% if result.green_space_evaluation.other_green_spaces %}
+              <div style="margin-top: 18px;">
+                <strong style="color: #1b5e20;">Other Nearby Green Spaces</strong>
+                <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
+                  {% for space in result.green_space_evaluation.other_green_spaces %}
+                    <li style="margin-bottom: 10px;">
+                      {{ space.name }}
+                      {% if space.rating %}({{ "%.1f"|format(space.rating) }}★){% endif %}
+                      — {{ space.walk_time_min }} min walk
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
             {% endif %}
           </div>
         </div>
