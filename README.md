@@ -198,13 +198,103 @@ TOTAL SCORE: 62
 ======================================================================
 ```
 
+## Green Escape (Daily Outdoor Life)
+
+The **Green Escape** engine (`green_space.py`) evaluates parks and green spaces
+for daily outdoor routines with a stroller/toddler. It replaces the old single
+park-access line item with a richer model.
+
+### What it does
+
+1. **Finds real parks/green spaces** near the address using Google Places
+   (type-based + keyword-based searches) and filters out stores, hotels, and
+   generic POIs.
+2. **Computes a "Daily Walk Value" score (0–10)** for each space, based on four
+   subscores:
+   - Walk time (0–3): ≤10 min best, 11–20 good, 21–30 marginal, >30 poor.
+   - Size & loop potential (0–3): OSM polygon area + footway/path density when
+     available; falls back to review count + name keywords as a weak proxy
+     (labeled "estimate").
+   - Quality proxy (0–2): Google rating + review count with thresholds.
+   - Nature feel (0–2): OSM tags (forest, water, nature reserve) + name keywords.
+3. **Displays comprehensive results**:
+   - "Best Daily Park" — highest-scoring space, with full subscore breakdown and
+     "Why this park?" reasons.
+   - "Other Nearby Green Spaces" — top 8, shown regardless of pass/fail, each
+     marked PASS / BORDERLINE / FAIL with a reason.
+4. **Avoids false positives**: hard-filters out stores, hotels, restaurants, and
+   name patterns like "Sam's Club" or "Holiday Inn."
+
+### Data sources
+
+| Source | Used for |
+|--------|----------|
+| Google Places Nearby Search | Find parks, campgrounds, national parks |
+| Google Places Text Search | Find trails, greenways, preserves by keyword |
+| Google Distance Matrix | Walking time from address to each space |
+| OpenStreetMap Overpass API | Polygon area, footway/path count, nature tags |
+
+### Limitations
+
+- **Acreage is estimated** from OSM bounding-box polygons when available.
+  Coverage varies by area. When no OSM polygon exists, review count + name
+  keywords are used as a weak proxy (marked "estimate" in the UI).
+- **Walk times** come from Google Distance Matrix and assume sidewalk availability.
+- **Trail detection** depends on OSM data quality; some trails may not have
+  `highway=footway` tags.
+- **Overpass API** may be slow or rate-limited under heavy load. Results are
+  cached for 10 minutes.
+
+### Tuning guide
+
+Thresholds are defined at the top of `green_space.py`. Key values to adjust:
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `WALK_TIME_EXCELLENT` | 10 min | Full walk-time score (3/3) |
+| `WALK_TIME_GOOD` | 20 min | Good walk-time score (~2/3) |
+| `WALK_TIME_MARGINAL` | 30 min | Hard cutoff for inclusion |
+| `QUALITY_HIGH_RATING` | 4.3 | Full quality-rating score |
+| `QUALITY_MID_RATING` | 3.8 | Moderate quality-rating score |
+| `QUALITY_HIGH_REVIEWS` | 200 | Full review-volume score |
+| `QUALITY_MID_REVIEWS` | 50 | Moderate review-volume score |
+| `SIZE_LARGE_SQM` | 40,000 (~10 ac) | Full size score from OSM |
+| `SIZE_MEDIUM_SQM` | 12,000 (~3 ac) | Moderate size score from OSM |
+| `PATH_NETWORK_DENSE` | 5 segments | Full loop-potential score |
+| `PATH_NETWORK_MODERATE` | 2 segments | Moderate loop-potential score |
+| `DAILY_PARK_MIN_TOTAL` | 5/10 | Minimum Daily Value to PASS |
+| `DEFAULT_RADIUS_M` | 2,000m | Initial search radius |
+| `EXPANDED_RADIUS_M` | 5,000m | Expanded if <3 results |
+| `NEARBY_LIST_SIZE` | 8 | How many spaces in the nearby list |
+
+### Caching
+
+API results are cached in-memory with a 10-minute TTL. Cache keys are based on
+`(lat, lng, radius)` for Places/Distance Matrix and query text for Overpass.
+This prevents redundant calls when the same address is evaluated multiple times
+in a session.
+
+### Tests
+
+Run with:
+
+```bash
+pip install pytest
+python -m pytest test_green_space.py -v
+```
+
+Tests verify:
+1. Non-park POIs are excluded (Sam's Club, Walmart, hotels)
+2. Trail/greenway entities are included via keyword search
+3. Results always include a nearby list even when nothing passes strict criteria
+
 ## Criteria Definitions
 
 ### What counts as a "quality park"?
 - Must have ≥4.0 stars on Google with ≥50 reviews, OR
 - Must be ≥5 acres (if acreage data available)
 - Small playgrounds are excluded
-- The goal: somewhere Theodore can run around and you can do a 15-30 min walking loop
+- The goal: a 20-30 min walking loop with nature vibes, stroller-friendly
 
 ### What counts as a third place?
 **Included examples:**

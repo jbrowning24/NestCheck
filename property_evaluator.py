@@ -278,6 +278,7 @@ class EvaluationResult:
     urban_access: Optional[UrbanAccessProfile] = None
     transit_access: Optional[TransitAccessResult] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    green_escape_evaluation: Optional[GreenEscapeEvaluation] = None
     transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
     bike_score: Optional[int] = None
@@ -2007,10 +2008,42 @@ def score_park_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    green_space_evaluation: Optional[GreenSpaceEvaluation] = None,
+    green_escape_evaluation: Optional[GreenEscapeEvaluation] = None,
 ) -> Tier2Score:
-    """Score primary green escape access (0-10 points)"""
+    """Score primary green escape access (0-10 points).
+
+    Uses the new green_space.py engine when a GreenEscapeEvaluation is provided,
+    falling back to the legacy GreenSpaceEvaluation otherwise.
+    """
     try:
+        # New engine path
+        if green_escape_evaluation is not None:
+            best = green_escape_evaluation.best_daily_park
+            if not best:
+                return Tier2Score(
+                    name="Primary Green Escape",
+                    points=0,
+                    max_points=10,
+                    details="No green spaces found within walking distance",
+                )
+
+            # Use the daily walk value score directly (already 0–10)
+            points = round(best.daily_walk_value)
+            rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
+            details = (
+                f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
+                f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10 "
+                f"[{best.criteria_status}]"
+            )
+            return Tier2Score(
+                name="Primary Green Escape",
+                points=points,
+                max_points=10,
+                details=details,
+            )
+
+        # Legacy path
         evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
         green_escape = evaluation.green_escape
 
@@ -2595,6 +2628,7 @@ def evaluate_property(
     result.urban_access = get_urban_access_profile(maps, lat, lng)
     result.transit_access = evaluate_transit_access(maps, lat, lng)
     result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
+    result.green_escape_evaluation = evaluate_green_escape(maps, lat, lng)
     result.transit_score = get_transit_score(listing.address, lat, lng)
     result.walk_scores = get_walk_scores(listing.address, lat, lng)
 
@@ -2623,7 +2657,11 @@ def evaluate_property(
     
     if result.passed_tier1:
         result.tier2_scores.append(
-            score_park_access(maps, lat, lng, result.green_space_evaluation)
+            score_park_access(
+                maps, lat, lng,
+                green_space_evaluation=result.green_space_evaluation,
+                green_escape_evaluation=result.green_escape_evaluation,
+            )
         )
         result.tier2_scores.append(score_third_place_access(maps, lat, lng))
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))

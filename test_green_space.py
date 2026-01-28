@@ -1,0 +1,294 @@
+"""
+Tests for the Green Escape engine (green_space.py).
+
+Uses mocked Google Places + Distance Matrix + Overpass responses.
+Run with: python -m pytest test_green_space.py -v
+"""
+
+import unittest
+from unittest.mock import MagicMock, patch
+
+from green_space import (
+    find_green_spaces,
+    score_green_space,
+    evaluate_green_escape,
+    _is_garbage,
+    _is_green_space,
+    _score_walk_time,
+    _score_size_loop,
+    _score_quality,
+    _score_nature_feel,
+    _evaluate_criteria,
+    green_escape_to_dict,
+    GreenEscapeEvaluation,
+    GreenSpaceResult,
+    _cache,
+)
+
+
+def _make_place(name, place_id, types, rating=4.0, reviews=100, lat=40.99, lng=-73.78):
+    """Helper to build a mock Google Places result dict."""
+    return {
+        "place_id": place_id,
+        "name": name,
+        "types": types,
+        "rating": rating,
+        "user_ratings_total": reviews,
+        "geometry": {"location": {"lat": lat, "lng": lng}},
+    }
+
+
+def _mock_maps_client(places_by_type=None, text_results=None, walk_times=None):
+    """Create a mock GoogleMapsClient."""
+    client = MagicMock()
+
+    places_by_type = places_by_type or {}
+    text_results = text_results or {}
+    walk_times = walk_times or {}
+
+    def places_nearby(lat, lng, place_type, radius_meters=2000):
+        return places_by_type.get(place_type, [])
+
+    def text_search(query, lat, lng, radius_meters=2000):
+        return text_results.get(query, [])
+
+    def walking_time(origin, dest):
+        key = (round(dest[0], 4), round(dest[1], 4))
+        return walk_times.get(key, 15)
+
+    client.places_nearby = MagicMock(side_effect=places_nearby)
+    client.text_search = MagicMock(side_effect=text_search)
+    client.walking_time = MagicMock(side_effect=walking_time)
+    return client
+
+
+class TestGarbageFilter(unittest.TestCase):
+    """Test 1: Non-park POIs are excluded (e.g., Sam's Club)."""
+
+    def test_sams_club_is_garbage(self):
+        self.assertTrue(_is_garbage("Sam's Club", ["store", "point_of_interest"]))
+
+    def test_walmart_is_garbage(self):
+        self.assertTrue(_is_garbage("Walmart Supercenter", ["department_store", "point_of_interest"]))
+
+    def test_hotel_is_garbage(self):
+        self.assertTrue(_is_garbage("Holiday Inn Express", ["lodging", "point_of_interest"]))
+
+    def test_restaurant_is_garbage(self):
+        self.assertTrue(_is_garbage("Olive Garden", ["restaurant", "point_of_interest"]))
+
+    def test_real_park_not_garbage(self):
+        self.assertFalse(_is_garbage("Central Park", ["park", "point_of_interest"]))
+
+    def test_nature_preserve_not_garbage(self):
+        self.assertFalse(_is_garbage("Eagle Creek Nature Preserve", ["tourist_attraction"]))
+
+    def test_park_with_store_type_kept(self):
+        # A park that also happens to have a store type should be kept
+        # because it has "park" in its types
+        self.assertFalse(_is_garbage("Memorial Park Gift Shop", ["park", "store"]))
+
+    def test_find_green_spaces_excludes_sams_club(self):
+        """Integration: find_green_spaces must filter out Sam's Club."""
+        _cache.clear()
+        places = {
+            "park": [
+                _make_place("Riverside Park", "p1", ["park"], 4.5, 300),
+                _make_place("Sam's Club", "p2", ["store", "point_of_interest"], 4.0, 500),
+            ],
+        }
+        client = _mock_maps_client(places_by_type=places)
+        results = find_green_spaces(client, 40.99, -73.78)
+        names = [p["name"] for p in results]
+        self.assertIn("Riverside Park", names)
+        self.assertNotIn("Sam's Club", names)
+
+
+class TestTrailKeywordInclusion(unittest.TestCase):
+    """Test 2: A trail/greenway entity is included even without strict 'park' type."""
+
+    def test_greenway_is_green_space(self):
+        self.assertTrue(_is_green_space("Bronx River Greenway", ["tourist_attraction"]))
+
+    def test_trail_is_green_space(self):
+        self.assertTrue(_is_green_space("South County Trailway", ["tourist_attraction"]))
+
+    def test_riverwalk_is_green_space(self):
+        self.assertTrue(_is_green_space("Tarrytown Riverwalk", ["tourist_attraction"]))
+
+    def test_preserve_is_green_space(self):
+        self.assertTrue(_is_green_space("Mianus River Gorge Preserve", ["tourist_attraction"]))
+
+    def test_botanical_garden_is_green_space(self):
+        self.assertTrue(_is_green_space("New York Botanical Garden", ["tourist_attraction"]))
+
+    def test_generic_attraction_not_green(self):
+        self.assertFalse(_is_green_space("Dave & Buster's", ["tourist_attraction", "restaurant"]))
+
+    def test_keyword_search_includes_trail(self):
+        """Integration: trail entity found via keyword search is included."""
+        _cache.clear()
+        text_results = {
+            "trailhead": [
+                _make_place("Colonial Greenway Trailhead", "t1", ["tourist_attraction"], 4.2, 45),
+            ],
+        }
+        client = _mock_maps_client(text_results=text_results)
+        results = find_green_spaces(client, 40.99, -73.78)
+        names = [p["name"] for p in results]
+        self.assertIn("Colonial Greenway Trailhead", names)
+
+
+class TestComprehensiveResults(unittest.TestCase):
+    """Test 3: Results always include nearby list even if no items pass strict criteria."""
+
+    def test_nearby_list_populated_even_when_all_fail(self):
+        """Even when no parks meet PASS criteria, nearby list is populated."""
+        _cache.clear()
+
+        # Create parks that will likely fail (far away, low ratings)
+        places = {
+            "park": [
+                _make_place("Tiny Pocket Park", "p1", ["park"], 3.0, 5, lat=41.01, lng=-73.80),
+                _make_place("Distant Fields", "p2", ["park"], 3.5, 12, lat=41.02, lng=-73.82),
+                _make_place("Small Green", "p3", ["park"], 3.2, 8, lat=41.015, lng=-73.81),
+            ],
+        }
+        walk_times = {
+            (41.01, -73.8): 25,
+            (41.02, -73.82): 28,
+            (41.015, -73.81): 22,
+        }
+        client = _mock_maps_client(places_by_type=places, walk_times=walk_times)
+
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        # Nearby list should always be populated
+        total_spaces = len(evaluation.nearby_green_spaces)
+        if evaluation.best_daily_park:
+            total_spaces += 1
+        self.assertGreater(total_spaces, 0, "Must have at least one space in results")
+
+        # Even if best park doesn't fully PASS, it should be shown
+        self.assertIsNotNone(
+            evaluation.best_daily_park,
+            "best_daily_park should be set even when nothing strictly passes"
+        )
+
+    def test_all_spaces_have_criteria_status(self):
+        """Every space in results has a criteria_status field."""
+        _cache.clear()
+        places = {
+            "park": [
+                _make_place("Good Park", "p1", ["park"], 4.5, 300),
+                _make_place("OK Park", "p2", ["park"], 3.8, 40),
+            ],
+        }
+        client = _mock_maps_client(places_by_type=places)
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        if evaluation.best_daily_park:
+            self.assertIn(evaluation.best_daily_park.criteria_status, ["PASS", "BORDERLINE", "FAIL"])
+
+        for space in evaluation.nearby_green_spaces:
+            self.assertIn(space.criteria_status, ["PASS", "BORDERLINE", "FAIL"])
+
+
+class TestScoringModel(unittest.TestCase):
+    """Additional tests for the scoring model components."""
+
+    def test_walk_time_scoring(self):
+        score, _ = _score_walk_time(5)
+        self.assertEqual(score, 3.0)
+
+        score, _ = _score_walk_time(15)
+        self.assertGreaterEqual(score, 2.0)
+        self.assertLessEqual(score, 3.0)
+
+        score, _ = _score_walk_time(25)
+        self.assertGreaterEqual(score, 1.0)
+        self.assertLessEqual(score, 2.0)
+
+        score, _ = _score_walk_time(35)
+        self.assertEqual(score, 0.5)
+
+    def test_quality_scoring(self):
+        score, _ = _score_quality(4.5, 300)
+        self.assertGreater(score, 1.5)
+
+        score, _ = _score_quality(3.0, 5)
+        self.assertLess(score, 1.0)
+
+        score, _ = _score_quality(None, 0)
+        self.assertEqual(score, 0.0)
+
+    def test_size_loop_fallback_proxy(self):
+        """When no OSM data, uses review count as proxy."""
+        score, reason, is_estimate = _score_size_loop({}, 4.5, 500, "Big State Park")
+        self.assertTrue(is_estimate)
+        self.assertGreater(score, 0)
+        self.assertIn("estimate", reason)
+
+    def test_size_loop_osm_enriched(self):
+        """With OSM data, uses area and path count."""
+        osm_data = {
+            "enriched": True,
+            "area_sqm": 50_000,
+            "path_count": 6,
+            "has_trail": True,
+        }
+        score, reason, is_estimate = _score_size_loop(osm_data, 4.0, 100, "Trail Park")
+        self.assertFalse(is_estimate)
+        self.assertGreater(score, 2.0)
+
+    def test_nature_feel_with_osm_tags(self):
+        osm_data = {
+            "nature_tags": ["landuse=forest", "natural=wood", "waterway=river"],
+        }
+        score, _ = _score_nature_feel(osm_data, "Forest River Park", ["park"])
+        self.assertGreater(score, 1.0)
+
+    def test_criteria_pass(self):
+        status, _ = _evaluate_criteria(7.0, 2.5, 2.0, 10)
+        self.assertEqual(status, "PASS")
+
+    def test_criteria_fail_too_far(self):
+        status, reasons = _evaluate_criteria(7.0, 2.5, 2.0, 35)
+        self.assertEqual(status, "FAIL")
+        self.assertTrue(any("exceeds" in r for r in reasons))
+
+    def test_criteria_borderline(self):
+        status, _ = _evaluate_criteria(4.0, 1.5, 0.5, 20)
+        self.assertEqual(status, "BORDERLINE")
+
+
+class TestGreenEscapeToDict(unittest.TestCase):
+    """Test serialization to dict."""
+
+    def test_empty_evaluation(self):
+        evaluation = GreenEscapeEvaluation()
+        d = green_escape_to_dict(evaluation)
+        self.assertIsNone(d["best_daily_park"])
+        self.assertEqual(d["nearby_green_spaces"], [])
+        self.assertEqual(d["green_escape_score_0_10"], 0.0)
+
+    def test_with_best_park(self):
+        _cache.clear()
+        places = {
+            "park": [
+                _make_place("Great Park", "p1", ["park"], 4.6, 500),
+            ],
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times={(40.99, -73.78): 8},
+        )
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+        d = green_escape_to_dict(evaluation)
+        self.assertIsNotNone(d["best_daily_park"])
+        self.assertEqual(d["best_daily_park"]["name"], "Great Park")
+        self.assertGreater(d["green_escape_score_0_10"], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
