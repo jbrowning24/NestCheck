@@ -536,16 +536,18 @@
         </div>
       {% endif %}
 
-      <!-- TIER 0: URBAN ACCESS -->
+      <!-- URBAN ACCESS ENGINE -->
       {% if result.urban_access %}
         <div class="tier-section">
-          <h2>Urban Access</h2>
+          <h2>Urban Access Engine</h2>
           <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #ff9800;">
+
+            {# --- Transit Score (from Walk Score API) --- #}
             <div style="margin-bottom: 18px;">
               <strong style="color: #ef6c00;">Transit Score</strong>
               {% if result.transit_score and result.transit_score.transit_score is not none %}
                 <div style="margin-top: 8px;">
-                  🚇 Transit Score: {{ result.transit_score.transit_score }}
+                  Transit Score: {{ result.transit_score.transit_score }}
                   {% if result.transit_score.transit_rating %}
                     — {{ result.transit_score.transit_rating }}
                   {% endif %}
@@ -559,7 +561,7 @@
                   <ul style="list-style: none; margin-top: 10px; padding-left: 0;">
                     {% for line in result.transit_score.nearby_transit_lines[:5] %}
                       <li style="margin-bottom: 6px;">
-                        • {{ line.name }}
+                        &bull; {{ line.name }}
                         {% if line.type %}<span style="color: #666;">({{ line.type }})</span>{% endif %}
                         {% if line.distance_miles is not none %}
                           — {{ "%.1f"|format(line.distance_miles) }} mi
@@ -572,24 +574,27 @@
                 <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">Transit data not available</div>
               {% endif %}
             </div>
+
+            {# --- 1. Primary Transit Node --- #}
             <div style="margin-bottom: 18px;">
-              <strong style="color: #ef6c00;">Primary Transit Access</strong>
+              <strong style="color: #ef6c00;">Primary Transit Node</strong>
               {% if result.urban_access.primary_transit %}
+                {% set pt = result.urban_access.primary_transit %}
                 <div style="margin-top: 8px;">
-                  {{ result.urban_access.primary_transit.name }} ({{ result.urban_access.primary_transit.mode }})
-                  — {{ result.urban_access.primary_transit.walk_time_min }} min walk
+                  {{ pt.name }} ({{ pt.mode }})
+                  — {{ pt.walk_time_min }} min walk
                 </div>
-                {% if result.urban_access.primary_transit.drive_time_min %}
+                {% if pt.drive_time_min %}
                   <div style="color: #666; margin-top: 6px;">
-                    Drive to station — {{ result.urban_access.primary_transit.drive_time_min }} min
+                    Drive to station — {{ pt.drive_time_min }} min
                   </div>
                 {% endif %}
-                {% if result.urban_access.primary_transit.frequency_class %}
+                {% if pt.frequency_class %}
                   <div style="color: #666; margin-top: 4px;">
-                    Frequency — {{ result.urban_access.primary_transit.frequency_class }}
+                    Frequency — {{ pt.frequency_class }}
                   </div>
                 {% endif %}
-                {% if result.urban_access.primary_transit.parking_available %}
+                {% if pt.parking_available %}
                   <div style="color: #666; margin-top: 4px;">
                     Parking — available
                   </div>
@@ -598,22 +603,74 @@
                 <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No nearby transit stops found</div>
               {% endif %}
             </div>
-            <div>
-              <strong style="color: #ef6c00;">Urban Access</strong>
-              {% if result.urban_access.major_hub %}
-                <div style="margin-top: 8px;">
-                  {% if result.urban_access.major_hub.route_summary %}
-                    {{ result.urban_access.major_hub.route_summary }}
-                  {% elif result.urban_access.major_hub.travel_time_min %}
-                    {{ result.urban_access.major_hub.name }} — {{ result.urban_access.major_hub.travel_time_min }} min {{ result.urban_access.major_hub.transit_mode }}
-                  {% else %}
-                    {{ result.urban_access.major_hub.name }} — travel time unavailable
+
+            {# --- 2. Commute to Primary Hub --- #}
+            <div style="margin-bottom: 18px;">
+              <strong style="color: #ef6c00;">Commute to Primary Hub</strong>
+              {% if result.urban_access.primary_hub_commute %}
+                {% set phc = result.urban_access.primary_hub_commute %}
+                <div style="margin-top: 8px; padding: 10px; background: white; border-radius: 4px;">
+                  <strong>{{ phc.hub_name }}</strong>
+                  — {{ phc.time_min }} min via {{ phc.mode }}
+                  {% if phc.fallback %}
+                    <span style="color: #e67e22; font-size: 0.85em;">(transit unavailable, driving estimate)</span>
                   {% endif %}
+                  <span style="display: inline-block; margin-left: 8px; padding: 2px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
+                    {% if phc.verdict == 'Great' %}
+                      background: #d4edda; color: #155724;
+                    {% elif phc.verdict == 'OK' %}
+                      background: #fff3cd; color: #856404;
+                    {% else %}
+                      background: #f8d7da; color: #721c24;
+                    {% endif %}
+                  ">{{ phc.verdict }}</span>
                 </div>
               {% else %}
-                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">No major hub identified</div>
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                  Primary hub commute data unavailable
+                </div>
               {% endif %}
             </div>
+
+            {# --- 3. Reachability Hubs --- #}
+            <div>
+              <strong style="color: #ef6c00;">Reachability</strong>
+              {% if result.urban_access.reachability_hubs %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">
+                  {% for hub in result.urban_access.reachability_hubs %}
+                    <div style="padding: 12px; background: white; border-radius: 6px; border-left: 3px solid
+                      {% if hub.verdict == 'Great' %}#28a745{% elif hub.verdict == 'OK' %}#ffc107{% else %}#dc3545{% endif %};">
+                      <div style="font-size: 0.8em; color: #6c757d; text-transform: uppercase; letter-spacing: 0.04em;">
+                        {{ hub.category }}
+                      </div>
+                      <div style="font-weight: 600; margin-top: 4px;">{{ hub.hub_name }}</div>
+                      <div style="margin-top: 6px;">
+                        {{ hub.total_time_min }} min via {{ hub.best_mode }}
+                        {% if hub.fallback %}
+                          <span style="color: #e67e22; font-size: 0.85em;">(driving fallback)</span>
+                        {% endif %}
+                      </div>
+                      <div style="margin-top: 4px;">
+                        <span style="display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;
+                          {% if hub.verdict == 'Great' %}
+                            background: #d4edda; color: #155724;
+                          {% elif hub.verdict == 'OK' %}
+                            background: #fff3cd; color: #856404;
+                          {% else %}
+                            background: #f8d7da; color: #721c24;
+                          {% endif %}
+                        ">{{ hub.verdict }}</span>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div style="color: #7f8c8d; font-style: italic; margin-top: 8px;">
+                  No reachability data available
+                </div>
+              {% endif %}
+            </div>
+
           </div>
         </div>
       {% endif %}

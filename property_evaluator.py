@@ -26,6 +26,11 @@ from enum import Enum
 import requests
 from urllib.parse import quote
 from dotenv import load_dotenv
+from urban_access import (
+    UrbanAccessEngine,
+    UrbanAccessResult,
+    urban_access_result_to_dict,
+)
 
 load_dotenv()
 
@@ -232,6 +237,7 @@ class MajorHubAccess:
 class UrbanAccessProfile:
     primary_transit: Optional[PrimaryTransitOption] = None
     major_hub: Optional[MajorHubAccess] = None
+    engine_result: Optional[UrbanAccessResult] = None
 
 
 @dataclass
@@ -543,7 +549,15 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 # EVALUATION FUNCTIONS
 # =============================================================================
 
+def _coerce_score(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
+    """Fetch detailed transit score data from the Walk Score API."""
     api_key = os.environ.get("WALKSCORE_API_KEY")
     default_response = {
         "transit_score": None,
@@ -554,25 +568,6 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     if not api_key:
         return default_response
-def _coerce_score(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_scores = {
-        "walk_score": None,
-        "walk_description": None,
-        "transit_score": None,
-        "transit_description": None,
-        "bike_score": None,
-        "bike_description": None,
-    }
-    if not api_key:
-        return default_scores
 
     url = "https://api.walkscore.com/score"
     params = {
@@ -626,6 +621,39 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "transit_rating": transit_description,
         "transit_summary": transit_summary,
         "nearby_transit_lines": nearby_transit_lines or None,
+    }
+
+
+def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    """Fetch walk, transit, and bike scores from the Walk Score API."""
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_scores = {
+        "walk_score": None,
+        "walk_description": None,
+        "transit_score": None,
+        "transit_description": None,
+        "bike_score": None,
+        "bike_description": None,
+    }
+    if not api_key:
+        return default_scores
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
         return default_scores
 
     if data.get("status") != 1:
@@ -1533,9 +1561,27 @@ def get_urban_access_profile(
     if major_hub:
         major_hub.route_summary = urban_access_route_summary(primary_transit, major_hub)
 
+    # --- Urban Access Engine ---
+    engine = UrbanAccessEngine(maps, lat, lng)
+    primary_transit_dict = None
+    if primary_transit:
+        primary_transit_dict = {
+            "name": primary_transit.name,
+            "mode": primary_transit.mode,
+            "lat": primary_transit.lat,
+            "lng": primary_transit.lng,
+            "walk_time_min": primary_transit.walk_time_min,
+            "drive_time_min": primary_transit.drive_time_min,
+            "parking_available": primary_transit.parking_available,
+            "user_ratings_total": primary_transit.user_ratings_total,
+            "frequency_class": primary_transit.frequency_class,
+        }
+    engine_result = engine.evaluate(primary_transit_data=primary_transit_dict)
+
     return UrbanAccessProfile(
         primary_transit=primary_transit,
-        major_hub=major_hub
+        major_hub=major_hub,
+        engine_result=engine_result,
     )
 
 
@@ -2563,25 +2609,15 @@ def main():
                     )
                 }
             },
-            "urban_access": {
-                "primary_transit": {
-                    "name": result.urban_access.primary_transit.name,
-                    "mode": result.urban_access.primary_transit.mode,
-                    "lat": result.urban_access.primary_transit.lat,
-                    "lng": result.urban_access.primary_transit.lng,
-                    "walk_time_min": result.urban_access.primary_transit.walk_time_min,
-                    "drive_time_min": result.urban_access.primary_transit.drive_time_min,
-                    "parking_available": result.urban_access.primary_transit.parking_available,
-                    "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
-                    "frequency_class": result.urban_access.primary_transit.frequency_class,
-                } if result.urban_access and result.urban_access.primary_transit else None,
-                "major_hub": {
-                    "name": result.urban_access.major_hub.name,
-                    "travel_time_min": result.urban_access.major_hub.travel_time_min,
-                    "transit_mode": result.urban_access.major_hub.transit_mode,
-                    "route_summary": result.urban_access.major_hub.route_summary,
-                } if result.urban_access and result.urban_access.major_hub else None,
-            },
+            "urban_access": (
+                urban_access_result_to_dict(result.urban_access.engine_result)
+                if result.urban_access and result.urban_access.engine_result
+                else {
+                    "primary_transit": None,
+                    "primary_hub_commute": None,
+                    "reachability_hubs": [],
+                }
+            ),
             "green_space_evaluation": {
                 "green_escape": {
                     "name": result.green_space_evaluation.green_escape.name,
