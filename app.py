@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult
 )
+from urban_access import urban_access_result_to_dict
 
 load_dotenv()
 
@@ -35,22 +36,107 @@ def generate_verdict(result_dict):
         return "Significant daily-life gaps"
 
 
+def _serialize_green_escape(evaluation):
+    """Serialize GreenEscapeEvaluation to template dict."""
+    if not evaluation:
+        return None
+
+    best_park = None
+    if evaluation.best_daily_park:
+        p = evaluation.best_daily_park
+        best_park = {
+            "name": p.name,
+            "rating": p.rating,
+            "user_ratings_total": p.user_ratings_total,
+            "walk_time_min": p.walk_time_min,
+            "types_display": p.types_display,
+            "daily_walk_value": p.daily_walk_value,
+            "criteria_status": p.criteria_status,
+            "criteria_reasons": p.criteria_reasons,
+            "subscores": [
+                {
+                    "name": s.name,
+                    "score": s.score,
+                    "max_score": s.max_score,
+                    "reason": s.reason,
+                    "is_estimate": s.is_estimate,
+                }
+                for s in p.subscores
+            ],
+            "reasons": p.reasons,
+            "osm_enriched": p.osm_enriched,
+            "osm_area_sqm": p.osm_area_sqm,
+            "osm_path_count": p.osm_path_count,
+            "osm_has_trail": p.osm_has_trail,
+            "osm_nature_tags": p.osm_nature_tags,
+        }
+
+    nearby = []
+    for s in evaluation.nearby_green_spaces:
+        nearby.append({
+            "name": s.name,
+            "rating": s.rating,
+            "user_ratings_total": s.user_ratings_total,
+            "walk_time_min": s.walk_time_min,
+            "daily_walk_value": s.daily_walk_value,
+            "criteria_status": s.criteria_status,
+            "criteria_reasons": s.criteria_reasons,
+        })
+
+    return {
+        "best_daily_park": best_park,
+        "nearby_green_spaces": nearby,
+        "green_escape_score_0_10": evaluation.green_escape_score_0_10,
+        "messages": evaluation.messages,
+        "criteria": evaluation.criteria,
+    }
+
+
+def _serialize_urban_access(urban_access):
+    """Serialize UrbanAccessProfile to template dict."""
+    if not urban_access:
+        return None
+
+    primary_transit = None
+    if urban_access.primary_transit:
+        pt = urban_access.primary_transit
+        primary_transit = {
+            "name": pt.name,
+            "mode": pt.mode,
+            "walk_time_min": pt.walk_time_min,
+            "drive_time_min": pt.drive_time_min,
+            "parking_available": pt.parking_available,
+            "frequency_class": pt.frequency_class,
+        }
+
+    major_hub = None
+    if urban_access.major_hub:
+        mh = urban_access.major_hub
+        major_hub = {
+            "name": mh.name,
+            "travel_time_min": mh.travel_time_min,
+            "transit_mode": mh.transit_mode,
+            "route_summary": mh.route_summary,
+        }
+
+    # Engine result (primary hub commute + reachability hubs)
+    engine = None
+    if urban_access.engine_result:
+        engine = urban_access_result_to_dict(urban_access.engine_result)
+
+    return {
+        "primary_transit": primary_transit,
+        "major_hub": major_hub,
+        "engine": engine,
+    }
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
         "address": result.listing.address,
         "coordinates": {"lat": result.lat, "lng": result.lng},
         "walk_scores": result.walk_scores,
-        "neighborhood_snapshot": [
-            {
-                "category": p.category,
-                "name": p.name,
-                "rating": p.rating,
-                "walk_time_min": p.walk_time_min,
-                "place_type": p.place_type
-            }
-            for p in (result.neighborhood_snapshot.places if result.neighborhood_snapshot else [])
-        ],
         "child_schooling_snapshot": {
             "childcare": [
                 {
@@ -58,7 +144,7 @@ def result_to_dict(result):
                     "rating": p.rating,
                     "user_ratings_total": p.user_ratings_total,
                     "walk_time_min": p.walk_time_min,
-                    "website": p.website
+                    "website": p.website,
                 }
                 for p in (result.child_schooling_snapshot.childcare if result.child_schooling_snapshot else [])
             ],
@@ -78,71 +164,19 @@ def result_to_dict(result):
                     result.child_schooling_snapshot.schools_by_level.items()
                     if result.child_schooling_snapshot else {}
                 )
-            }
+            },
         },
-        "urban_access": {
-            "primary_transit": {
-                "name": result.urban_access.primary_transit.name,
-                "mode": result.urban_access.primary_transit.mode,
-                "lat": result.urban_access.primary_transit.lat,
-                "lng": result.urban_access.primary_transit.lng,
-                "walk_time_min": result.urban_access.primary_transit.walk_time_min,
-                "drive_time_min": result.urban_access.primary_transit.drive_time_min,
-                "parking_available": result.urban_access.primary_transit.parking_available,
-                "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
-                "frequency_class": result.urban_access.primary_transit.frequency_class,
-            } if result.urban_access and result.urban_access.primary_transit else None,
-            "major_hub": {
-                "name": result.urban_access.major_hub.name,
-                "travel_time_min": result.urban_access.major_hub.travel_time_min,
-                "transit_mode": result.urban_access.major_hub.transit_mode,
-                "route_summary": result.urban_access.major_hub.route_summary,
-            } if result.urban_access and result.urban_access.major_hub else None,
-        },
-        "green_space_evaluation": {
-            "green_escape": {
-                "name": result.green_space_evaluation.green_escape.name,
-                "rating": result.green_space_evaluation.green_escape.rating,
-                "user_ratings_total": result.green_space_evaluation.green_escape.user_ratings_total,
-                "walk_time_min": result.green_space_evaluation.green_escape.walk_time_min,
-                "types": result.green_space_evaluation.green_escape.types,
-                "types_display": result.green_space_evaluation.green_escape.types_display,
-            } if result.green_space_evaluation and result.green_space_evaluation.green_escape else None,
-            "green_escape_message": (
-                result.green_space_evaluation.green_escape_message
-                if result.green_space_evaluation else None
-            ),
-            "green_spaces": [
-                {
-                    "name": space.name,
-                    "rating": space.rating,
-                    "user_ratings_total": space.user_ratings_total,
-                    "walk_time_min": space.walk_time_min,
-                    "types": space.types,
-                    "types_display": space.types_display,
-                }
-                for space in (result.green_space_evaluation.green_spaces if result.green_space_evaluation else [])
-            ],
-            "other_green_spaces": [
-                {
-                    "name": space.name,
-                    "rating": space.rating,
-                    "user_ratings_total": space.user_ratings_total,
-                    "walk_time_min": space.walk_time_min,
-                    "types": space.types,
-                    "types_display": space.types_display,
-                }
-                for space in (result.green_space_evaluation.other_green_spaces if result.green_space_evaluation else [])
-            ],
-            "green_spaces_message": (
-                result.green_space_evaluation.green_spaces_message
-                if result.green_space_evaluation else None
-            ),
-        },
+        "urban_access": _serialize_urban_access(result.urban_access),
+        "transit_access": {
+            "primary_stop": result.transit_access.primary_stop,
+            "walk_minutes": result.transit_access.walk_minutes,
+            "mode": result.transit_access.mode,
+            "frequency_bucket": result.transit_access.frequency_bucket,
+            "score_0_10": result.transit_access.score_0_10,
+            "reasons": result.transit_access.reasons,
+        } if result.transit_access else None,
+        "green_escape": _serialize_green_escape(result.green_escape_evaluation),
         "transit_score": result.transit_score,
-        "bike_score": result.bike_score,
-        "bike_rating": result.bike_rating,
-        "bike_metadata": result.bike_metadata,
         "passed_tier1": result.passed_tier1,
         "tier1_checks": [
             {
