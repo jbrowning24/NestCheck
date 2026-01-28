@@ -2551,27 +2551,6 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
-def estimate_percentile(final_score: int) -> Tuple[int, str]:
-    """Estimate percentile ranking for a final score (0-100)."""
-    bounded_score = max(0, min(100, final_score))
-    percentile_map = [
-        (90, 5),
-        (85, 10),
-        (80, 15),
-        (75, 20),
-        (70, 25),
-        (65, 30),
-        (60, 35),
-        (55, 40),
-        (50, 50),
-        (0, 60),
-    ]
-
-    for threshold, percentile in percentile_map:
-        if bounded_score >= threshold:
-            return percentile, f"Top {percentile}% nationally for families"
-
-    return 60, "Top 60% nationally for families"
 def estimate_percentile(score: int) -> Tuple[int, str]:
     """Estimate percentile bucket from a normalized 0-100 score."""
     buckets = [
@@ -2750,8 +2729,7 @@ def format_result(result: EvaluationResult) -> str:
     # Final
     lines.append(f"\n{'=' * 70}")
     lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} (already capped at 100)")
+    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
     
     # Notes
