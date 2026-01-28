@@ -235,6 +235,19 @@ class UrbanAccessProfile:
 
 
 @dataclass
+class TransitAccessResult:
+    """Result of the smart transit frequency approximation."""
+    primary_stop: Optional[str] = None
+    walk_minutes: Optional[int] = None
+    mode: Optional[str] = None
+    frequency_bucket: str = "Very low"
+    score_0_10: int = 0
+    reasons: List[str] = field(default_factory=list)
+    nearby_node_count: int = 0
+    density_node_count: int = 0
+
+
+@dataclass
 class PropertyListing:
     """Property listing data - can be populated from manual input or scraped"""
     address: str
@@ -257,6 +270,7 @@ class EvaluationResult:
     neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
+    transit_access: Optional[TransitAccessResult] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
     transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
@@ -554,25 +568,6 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     if not api_key:
         return default_response
-def _coerce_score(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_scores = {
-        "walk_score": None,
-        "walk_description": None,
-        "transit_score": None,
-        "transit_description": None,
-        "bike_score": None,
-        "bike_description": None,
-    }
-    if not api_key:
-        return default_scores
 
     url = "https://api.walkscore.com/score"
     params = {
@@ -626,6 +621,45 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "transit_rating": transit_description,
         "transit_summary": transit_summary,
         "nearby_transit_lines": nearby_transit_lines or None,
+    }
+
+
+def _coerce_score(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_scores = {
+        "walk_score": None,
+        "walk_description": None,
+        "transit_score": None,
+        "transit_description": None,
+        "bike_score": None,
+        "bike_description": None,
+    }
+    if not api_key:
+        return default_scores
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
         return default_scores
 
     if data.get("status") != 1:
@@ -1539,6 +1573,217 @@ def get_urban_access_profile(
     )
 
 
+# =============================================================================
+# SMART TRANSIT FREQUENCY APPROXIMATION
+# =============================================================================
+#
+# How the heuristic works:
+#
+#   We cannot access GTFS feeds or real-time schedules, so we approximate
+#   transit service frequency using four signals available from Google Places:
+#
+#   1. MODE WEIGHT (0-3 pts) — Rail/subway modes correlate with higher
+#      frequency service than bus-only corridors.  subway/rail=3, light_rail=2,
+#      tram=2, bus=1, ferry=1.
+#
+#   2. NODE DENSITY (0-3 pts) — Count distinct transit places (transit_station,
+#      bus_station, subway_station) within a 1.2 km radius.  More stops in a
+#      small area imply overlapping routes and higher aggregate frequency.
+#      >=6 nodes=3, >=3=2, >=1=1, 0=0.
+#
+#   3. WALK-REACHABLE NODES (0-2 pts) — Count of distinct transit nodes within
+#      a 15-min walk (≈1.2 km radius, but using walking API for accuracy).
+#      Uses the nearby search results already fetched for density.
+#      >=4 nodes=2, >=2=1, else 0.
+#
+#   4. REVIEW-COUNT PROXY (0-2 pts) — Google user_ratings_total on the primary
+#      stop is a rough proxy for foot traffic volume, which correlates with
+#      service frequency.  >=5000=2, >=1000=1, else 0.
+#
+#   Total raw score 0-10 maps directly to Urban Access Score.
+#   Frequency bucket thresholds:  >=8 High, >=5 Medium, >=3 Low, else Very low.
+#
+# How to tune:
+#   - Adjust MODE_WEIGHTS dict to change mode importance.
+#   - Adjust DENSITY_THRESHOLDS / WALK_NODE_THRESHOLDS for different urban contexts.
+#   - Adjust FREQUENCY_BUCKET_THRESHOLDS to shift bucket boundaries.
+#   - The radius_meters for density search (1200) assumes flat walking terrain;
+#     increase in hilly or spread-out areas.
+#
+
+MODE_WEIGHTS = {
+    "Subway": 3,
+    "Train": 3,
+    "Light Rail": 2,
+    "Tram": 2,
+    "Commuter Rail": 3,
+    "Bus": 1,
+    "Ferry": 1,
+}
+
+TRANSIT_SEARCH_TYPES = [
+    "transit_station",
+    "bus_station",
+    "subway_station",
+]
+
+# (threshold, points)
+DENSITY_THRESHOLDS = [(6, 3), (3, 2), (1, 1)]
+WALK_NODE_THRESHOLDS = [(4, 2), (2, 1)]
+REVIEW_THRESHOLDS = [(5000, 2), (1000, 1)]
+FREQUENCY_BUCKET_THRESHOLDS = [(8, "High"), (5, "Medium"), (3, "Low")]
+
+
+def _classify_mode(place: Dict) -> str:
+    """Classify transit mode from Place types and name keywords."""
+    types = set(place.get("types", []))
+    name = (place.get("name") or "").lower()
+
+    # Check commuter rail keywords first (before generic subway/metro match)
+    commuter_kw = ("commuter", "metra", "caltrain", "lirr", "metro-north", "nj transit")
+    if "train_station" in types and any(kw in name for kw in commuter_kw):
+        return "Commuter Rail"
+    if "subway_station" in types or "subway" in name:
+        return "Subway"
+    if "train_station" in types:
+        if "metro" in name:
+            return "Subway"
+        return "Train"
+    if "light_rail_station" in types or "light rail" in name or "tram" in name or "streetcar" in name:
+        return "Light Rail"
+    if any(kw in name for kw in ("ferry", "water taxi")):
+        return "Ferry"
+    if "bus_station" in types or "bus" in name:
+        return "Bus"
+    if "transit_station" in types:
+        if "metro" in name:
+            return "Subway"
+        return "Train"  # default for generic transit_station
+    return "Bus"
+
+
+def _score_from_thresholds(value: int, thresholds: List[Tuple[int, int]]) -> int:
+    """Return points for value given descending (threshold, points) pairs."""
+    for threshold, points in thresholds:
+        if value >= threshold:
+            return points
+    return 0
+
+
+def evaluate_transit_access(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float,
+) -> TransitAccessResult:
+    """Approximate transit service frequency using Google Places signals.
+
+    Returns a TransitAccessResult with primary_stop, walk_minutes, mode,
+    frequency_bucket (Very low / Low / Medium / High), score_0_10, and
+    human-readable reasons list.
+    """
+    reasons: List[str] = []
+
+    # ------------------------------------------------------------------
+    # 1. Gather all nearby transit nodes within density radius (1200 m)
+    # ------------------------------------------------------------------
+    seen_ids: set = set()
+    all_nodes: List[Dict] = []
+    for place_type in TRANSIT_SEARCH_TYPES:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=1200)
+        except Exception:
+            continue
+        for p in places:
+            pid = p.get("place_id")
+            if pid and pid not in seen_ids:
+                seen_ids.add(pid)
+                all_nodes.append(p)
+
+    density_count = len(all_nodes)
+
+    if density_count == 0:
+        return TransitAccessResult(
+            frequency_bucket="Very low",
+            score_0_10=0,
+            reasons=["No transit stations found within 1.2 km"],
+        )
+
+    # ------------------------------------------------------------------
+    # 2. Find primary node (closest walkable transit stop)
+    # ------------------------------------------------------------------
+    # Compute walk time for each node
+    node_walk_times: List[Tuple[int, Dict]] = []
+    for node in all_nodes:
+        node_lat = node["geometry"]["location"]["lat"]
+        node_lng = node["geometry"]["location"]["lng"]
+        try:
+            wt = maps.walking_time((lat, lng), (node_lat, node_lng))
+        except Exception:
+            wt = 9999
+        node_walk_times.append((wt, node))
+
+    node_walk_times.sort(key=lambda x: x[0])
+    walk_min, primary = node_walk_times[0]
+
+    primary_name = primary.get("name", "Unknown stop")
+    primary_mode = _classify_mode(primary)
+    user_ratings = primary.get("user_ratings_total") or 0
+
+    # ------------------------------------------------------------------
+    # 3. Count walk-reachable nodes (within 15 min walk)
+    # ------------------------------------------------------------------
+    walk_reachable = sum(1 for wt, _ in node_walk_times if wt <= 15)
+
+    # ------------------------------------------------------------------
+    # 4. Score each signal
+    # ------------------------------------------------------------------
+    mode_pts = MODE_WEIGHTS.get(primary_mode, 1)
+    density_pts = _score_from_thresholds(density_count, DENSITY_THRESHOLDS)
+    walk_node_pts = _score_from_thresholds(walk_reachable, WALK_NODE_THRESHOLDS)
+    review_pts = _score_from_thresholds(user_ratings, REVIEW_THRESHOLDS)
+
+    raw_score = mode_pts + density_pts + walk_node_pts + review_pts
+    score = min(10, raw_score)
+
+    # ------------------------------------------------------------------
+    # 5. Determine frequency bucket
+    # ------------------------------------------------------------------
+    bucket = "Very low"
+    for threshold, label in FREQUENCY_BUCKET_THRESHOLDS:
+        if score >= threshold:
+            bucket = label
+            break
+
+    # ------------------------------------------------------------------
+    # 6. Build explanation reasons
+    # ------------------------------------------------------------------
+    reasons.append(
+        f"Mode: {primary_mode} (+{mode_pts} pts) — "
+        f"{'rail/subway modes score higher' if mode_pts >= 2 else 'bus/ferry modes score lower'}"
+    )
+    reasons.append(
+        f"Density: {density_count} transit node(s) within 1.2 km (+{density_pts} pts)"
+    )
+    reasons.append(
+        f"Walk-reachable: {walk_reachable} node(s) within 15 min walk (+{walk_node_pts} pts)"
+    )
+    reasons.append(
+        f"Foot traffic proxy: {user_ratings:,} reviews on primary stop (+{review_pts} pts)"
+    )
+    reasons.append(f"Total raw: {raw_score} -> Score {score}/10 -> Bucket: {bucket}")
+
+    return TransitAccessResult(
+        primary_stop=primary_name,
+        walk_minutes=walk_min if walk_min != 9999 else None,
+        mode=primary_mode,
+        frequency_bucket=bucket,
+        score_0_10=score,
+        reasons=reasons,
+        nearby_node_count=walk_reachable,
+        density_node_count=density_count,
+    )
+
+
 def is_nature_based_attraction(place: Dict) -> bool:
     """Return True if a tourist attraction is clearly nature-based."""
     types = place.get("types", [])
@@ -1915,9 +2160,15 @@ def score_transit_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    transit_keywords: Optional[List[str]] = None
+    transit_keywords: Optional[List[str]] = None,
+    transit_access: Optional[TransitAccessResult] = None,
 ) -> Tier2Score:
-    """Score urban access via rail transit (0-10 points)."""
+    """Score urban access via rail transit (0-10 points).
+
+    When a pre-computed TransitAccessResult is supplied its score is used
+    directly for the frequency component (replacing the old review-count
+    proxy).  The hub-travel component is still fetched independently.
+    """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
             return 4
@@ -1959,13 +2210,27 @@ def score_transit_access(
         )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
-        frequency_class = primary_transit.frequency_class or "Very low frequency"
-        frequency_points = {
-            "High frequency": 3,
-            "Medium frequency": 2,
-            "Low frequency": 1,
-            "Very low frequency": 0,
-        }.get(frequency_class, 0)
+
+        # Use smart heuristic bucket when available, else fall back to
+        # the original review-count frequency_class.
+        if transit_access and transit_access.frequency_bucket:
+            frequency_points = {
+                "High": 3,
+                "Medium": 2,
+                "Low": 1,
+                "Very low": 0,
+            }.get(transit_access.frequency_bucket, 0)
+            frequency_label = f"{transit_access.frequency_bucket} frequency"
+        else:
+            frequency_class = primary_transit.frequency_class or "Very low frequency"
+            frequency_points = {
+                "High frequency": 3,
+                "Medium frequency": 2,
+                "Low frequency": 1,
+                "Very low frequency": 0,
+            }.get(frequency_class, 0)
+            frequency_label = frequency_class
+
         hub_time = major_hub.travel_time_min if major_hub else None
         hub_points = hub_travel_points(hub_time)
 
@@ -1986,7 +2251,7 @@ def score_transit_access(
             details=(
                 f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
                 f"{drive_note} | "
-                f"Frequency: {frequency_class} | "
+                f"Service: {frequency_label} | "
                 f"Hub: {hub_note}"
             )
         )
@@ -2304,6 +2569,7 @@ def evaluate_property(
     result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
     result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
     result.urban_access = get_urban_access_profile(maps, lat, lng)
+    result.transit_access = evaluate_transit_access(maps, lat, lng)
     result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
     result.transit_score = get_transit_score(listing.address, lat, lng)
     result.walk_scores = get_walk_scores(listing.address, lat, lng)
@@ -2339,7 +2605,9 @@ def evaluate_property(
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
-        result.tier2_scores.append(score_transit_access(maps, lat, lng))
+        result.tier2_scores.append(
+            score_transit_access(maps, lat, lng, transit_access=result.transit_access)
+        )
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
@@ -2582,6 +2850,16 @@ def main():
                     "route_summary": result.urban_access.major_hub.route_summary,
                 } if result.urban_access and result.urban_access.major_hub else None,
             },
+            "transit_access": {
+                "primary_stop": result.transit_access.primary_stop,
+                "walk_minutes": result.transit_access.walk_minutes,
+                "mode": result.transit_access.mode,
+                "frequency_bucket": result.transit_access.frequency_bucket,
+                "score_0_10": result.transit_access.score_0_10,
+                "reasons": result.transit_access.reasons,
+                "nearby_node_count": result.transit_access.nearby_node_count,
+                "density_node_count": result.transit_access.density_node_count,
+            } if result.transit_access else None,
             "green_space_evaluation": {
                 "green_escape": {
                     "name": result.green_space_evaluation.green_escape.name,
