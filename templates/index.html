@@ -638,7 +638,16 @@
     <div class="error-banner">
       <strong>Could not evaluate address</strong>
       {{ error }}
+      {% if request_id %}
+        <div style="margin-top: 6px; font-size: 0.82em; color: #b91c1c;">ref: {{ request_id }}</div>
+      {% endif %}
     </div>
+    {% if is_builder and error_detail %}
+    <details class="builder-debug" style="max-width: 640px; margin: 0 auto 16px;">
+      <summary>Builder diagnostic</summary>
+      <pre>{{ error_detail | tojson(indent=2) }}</pre>
+    </details>
+    {% endif %}
   {% endif %}
   <form method="POST" id="evalForm">
     <div class="search-box">
@@ -1139,13 +1148,15 @@ transit_access: {{ result.transit_access }}</pre>
   </div>
   {% endif %}
 
-  {# ── SHARE BAR ────────────────────────────────────────────── #}
+  {# ── SHARE + EXPORT BAR ────────────────────────────────────── #}
   {% if snapshot_id %}
   <div class="share-bar">
     <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span id="shareBtnText">Copy share link</span>
     </button>
+    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn" style="text-decoration: none; background: #334155;">JSON</a>
+    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn" style="text-decoration: none; background: #334155;">CSV</a>
   </div>
   {% endif %}
 

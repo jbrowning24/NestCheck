@@ -1,10 +1,13 @@
 import os
+import io
+import csv
 import logging
 import uuid
+import traceback
 from functools import wraps
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    make_response, abort, jsonify, g
+    make_response, abort, jsonify, g, Response
 )
 from dotenv import load_dotenv
 from property_evaluator import (
@@ -24,6 +27,13 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Request ID middleware — every request gets a unique ID for tracing
+# ---------------------------------------------------------------------------
+def _generate_request_id():
+    return uuid.uuid4().hex[:10]
 
 # ---------------------------------------------------------------------------
 # Feature config — togglable for future pack logic
@@ -68,7 +78,8 @@ def _is_builder(req):
 
 @app.before_request
 def _set_request_context():
-    """Set builder mode and visitor ID on every request."""
+    """Set builder mode, visitor ID, and request ID on every request."""
+    g.request_id = _generate_request_id()
     g.is_builder = _is_builder(request)
 
     # Visitor ID: anonymous, cookie-based, for return-visit tracking
@@ -305,32 +316,68 @@ def result_to_dict(result):
 # Routes
 # ---------------------------------------------------------------------------
 
+def _check_service_config():
+    """
+    Validate required service configuration.
+    Returns (is_ok, missing_keys) tuple.
+    """
+    missing = []
+    if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+        missing.append("GOOGLE_MAPS_API_KEY")
+    return (len(missing) == 0, missing)
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
     error = None
+    error_detail = None  # builder-mode diagnostic
     address = ""
     snapshot_id = None
+    request_id = getattr(g, "request_id", "unknown")
 
     if request.method == "POST":
         address = request.form.get("address", "").strip()
+        logger.info(
+            "[%s] POST / address=%r builder=%s",
+            request_id, address, g.is_builder,
+        )
 
         if not address:
             error = "Please enter a property address to evaluate."
             return render_template(
                 "index.html", result=result, error=error,
+                error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
-                is_builder=g.is_builder,
+                is_builder=g.is_builder, request_id=request_id,
             )
 
-        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-        if not api_key:
-            error = "Service configuration error. Please contact support."
-            logger.error("GOOGLE_MAPS_API_KEY not set")
+        config_ok, missing_keys = _check_service_config()
+        if not config_ok:
+            logger.error(
+                "[%s] Missing required env vars: %s", request_id, missing_keys
+            )
+            error = (
+                "NestCheck cannot evaluate addresses right now because "
+                "required API keys are not configured. "
+                "If you are the site operator, check the deployment environment "
+                "for: " + ", ".join(missing_keys) + "."
+            )
+            error_detail = {
+                "request_id": request_id,
+                "missing_keys": missing_keys,
+                "hint": "Set these environment variables in your Railway/Render dashboard.",
+            }
+            log_event("evaluation_error", visitor_id=g.visitor_id,
+                      metadata={"address": address,
+                                "error": "missing_config",
+                                "missing_keys": missing_keys,
+                                "request_id": request_id})
             return render_template(
                 "index.html", result=result, error=error,
+                error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
-                is_builder=g.is_builder,
+                is_builder=g.is_builder, request_id=request_id,
             )
 
         # TODO [PACK_LOGIC]: Check evaluation limits here.
@@ -340,6 +387,7 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
+        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
         try:
             listing = PropertyListing(address=address)
             eval_result = evaluate_property(listing, api_key)
@@ -360,22 +408,36 @@ def index():
                 log_event("return_visit", snapshot_id=snapshot_id,
                           visitor_id=g.visitor_id)
 
-            logger.info("Snapshot %s created for: %s", snapshot_id, address)
+            logger.info(
+                "[%s] Snapshot %s created for: %s",
+                request_id, snapshot_id, address,
+            )
 
         except Exception as e:
-            logger.exception("Evaluation failed for address: %s", address)
+            logger.exception(
+                "[%s] Evaluation failed for address: %s", request_id, address
+            )
             log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address, "error": str(e)})
+                      metadata={"address": address,
+                                "error": str(e),
+                                "request_id": request_id})
             error = (
                 "Something went wrong while evaluating this address. "
                 "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized by Google Maps."
+                "If the problem persists, the address may not be recognized "
+                "by Google Maps. (ref: " + request_id + ")"
             )
+            error_detail = {
+                "request_id": request_id,
+                "exception": str(e),
+                "traceback": traceback.format_exc(),
+            }
 
     return render_template(
         "index.html", result=result, error=error,
+        error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
-        is_builder=g.is_builder,
+        is_builder=g.is_builder, request_id=request_id,
     )
 
 
@@ -397,6 +459,88 @@ def view_snapshot(snapshot_id):
         result=snapshot["result"],
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+    )
+
+
+@app.route("/api/snapshot/<snapshot_id>/json")
+def export_snapshot_json(snapshot_id):
+    """JSON export of a snapshot evaluation result."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    export = {
+        "snapshot_id": snapshot_id,
+        "address_input": snapshot["address_input"],
+        "address_norm": snapshot["address_norm"],
+        "created_at": snapshot["created_at"],
+        "verdict": snapshot["verdict"],
+        "final_score": snapshot["final_score"],
+        "passed_tier1": bool(snapshot["passed_tier1"]),
+        "result": snapshot["result"],
+    }
+    return jsonify(export)
+
+
+@app.route("/api/snapshot/<snapshot_id>/csv")
+def export_snapshot_csv(snapshot_id):
+    """CSV export of a snapshot — flattened key scores."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    result = snapshot["result"]
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header
+    writer.writerow([
+        "snapshot_id", "address", "created_at", "verdict",
+        "final_score", "passed_tier1",
+        "tier2_score", "tier2_max", "tier2_normalized", "tier3_bonus",
+    ])
+    writer.writerow([
+        snapshot_id,
+        result.get("address", snapshot["address_input"]),
+        snapshot["created_at"],
+        snapshot["verdict"],
+        result.get("final_score", ""),
+        result.get("passed_tier1", ""),
+        result.get("tier2_score", ""),
+        result.get("tier2_max", ""),
+        result.get("tier2_normalized", ""),
+        result.get("tier3_bonus", ""),
+    ])
+
+    # Tier 2 scores breakdown
+    writer.writerow([])
+    writer.writerow(["category", "points", "max", "details"])
+    for score in result.get("tier2_scores", []):
+        writer.writerow([
+            score.get("name", ""),
+            score.get("points", ""),
+            score.get("max", ""),
+            score.get("details", ""),
+        ])
+
+    # Tier 1 checks
+    writer.writerow([])
+    writer.writerow(["check_name", "result", "details", "required"])
+    for check in result.get("tier1_checks", []):
+        writer.writerow([
+            check.get("name", ""),
+            check.get("result", ""),
+            check.get("details", ""),
+            check.get("required", ""),
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=nestcheck-{snapshot_id}.csv"
+        },
     )
 
 
