@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NestCheck — {{ result.address }}</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #f0f2f5;
+    }
+
+    /* --- NAV --- */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav .logo {
+      font-size: 1.35em;
+      font-weight: 700;
+      color: #16213e;
+      text-decoration: none;
+    }
+    nav .logo span { color: #0f3460; }
+    nav a.nav-link {
+      color: #555;
+      text-decoration: none;
+      font-size: 0.95em;
+      font-weight: 500;
+      margin-left: 20px;
+    }
+    nav a.nav-link:hover { color: #0f3460; }
+
+    /* --- TOOLBAR --- */
+    .toolbar {
+      max-width: 800px;
+      margin: 20px auto 0;
+      padding: 0 24px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.88em;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid #d0d5dd;
+      background: #fff;
+      color: #344054;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .toolbar .btn:hover { background: #f5f6f8; border-color: #0f3460; color: #0f3460; }
+    .toolbar .btn-primary {
+      background: #0f3460;
+      color: #fff;
+      border-color: #0f3460;
+    }
+    .toolbar .btn-primary:hover { background: #16213e; }
+    .toolbar .spacer { flex: 1; }
+    .copy-toast {
+      display: none;
+      padding: 4px 12px;
+      border-radius: 6px;
+      background: #065f46;
+      color: #fff;
+      font-size: 0.82em;
+      font-weight: 500;
+    }
+    .copy-toast.show { display: inline-block; }
+
+    /* --- REPORT CONTAINER --- */
+    .report {
+      max-width: 800px;
+      margin: 20px auto 60px;
+      padding: 0 24px;
+    }
+
+    /* --- VERDICT HEADER --- */
+    .verdict-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+    .verdict-address {
+      font-size: 0.9em;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+    .verdict-text {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #16213e;
+      margin-bottom: 20px;
+    }
+    .score-circle {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .score-circle .number {
+      font-size: 2.4em;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .score-circle .label {
+      font-size: 0.72em;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+    .score-failed .score-circle {
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    }
+    .percentile-label {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 4px;
+    }
+    .final-score-text {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: #0f3460;
+      margin-top: 8px;
+    }
+
+    /* --- COLLAPSIBLE SECTION --- */
+    .report-section {
+      background: #fff;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 18px 28px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .section-header:hover { background: #fafbfc; }
+    .section-header h2 {
+      font-size: 1.15em;
+      color: #16213e;
+      margin: 0;
+    }
+    .section-toggle {
+      font-size: 1.1em;
+      color: #999;
+      transition: transform 0.2s;
+    }
+    .section-body {
+      padding: 0 28px 24px;
+    }
+    .report-section.collapsed .section-body { display: none; }
+    .report-section.collapsed .section-toggle { transform: rotate(-90deg); }
+    .section-empty {
+      color: #888;
+      font-style: italic;
+      font-size: 0.92em;
+    }
+
+    /* --- PLACE ITEMS --- */
+    .place-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .place-item:last-child { border-bottom: none; }
+    .place-name { font-weight: 600; color: #1a1a2e; }
+    .place-meta { font-size: 0.88em; color: #777; margin-top: 2px; }
+    .place-time {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: #0f3460;
+      white-space: nowrap;
+      padding-left: 16px;
+    }
+
+    /* --- STATUS BADGES --- */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+    .badge-pass { background: #d1fae5; color: #065f46; }
+    .badge-borderline { background: #fff3e0; color: #e65100; }
+    .badge-fail { background: #fee2e2; color: #991b1b; }
+    .badge-great { background: #d1fae5; color: #065f46; }
+    .badge-ok { background: #fff3cd; color: #856404; }
+    .badge-painful { background: #fee2e2; color: #991b1b; }
+
+    /* --- CHECK ITEMS --- */
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .check-row:last-child { border-bottom: none; }
+    .check-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75em;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-right: 12px;
+      margin-top: 1px;
+    }
+    .check-pass { background: #d1fae5; color: #065f46; }
+    .check-fail { background: #fee2e2; color: #991b1b; }
+    .check-unknown { background: #fef3c7; color: #92400e; }
+    .check-text { flex: 1; }
+    .check-label { font-weight: 600; font-size: 0.95em; color: #1a1a2e; }
+    .check-detail { font-size: 0.88em; color: #666; }
+
+    /* --- SCORE ROWS --- */
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .score-row:last-child { border-bottom: none; }
+    .score-info { flex: 1; }
+    .score-name { font-weight: 600; font-size: 0.95em; color: #1a1a2e; }
+    .score-detail { font-size: 0.85em; color: #777; margin-top: 2px; }
+    .score-pts {
+      font-weight: 700;
+      font-size: 1em;
+      color: #0f3460;
+      white-space: nowrap;
+      padding-left: 16px;
+    }
+
+    /* --- SCORE BAR --- */
+    .score-bar-container {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid #f0f2f5;
+    }
+    .score-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 5px;
+      background: #0f3460;
+      transition: width 0.6s ease;
+    }
+    .score-bar-label {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 0.85em;
+      color: #888;
+    }
+
+    /* --- LEGEND --- */
+    .score-legend {
+      background: #f8f9fb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-top: 16px;
+    }
+    .score-legend h3 {
+      font-size: 0.88em;
+      color: #555;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .legend-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88em;
+      padding: 4px 0;
+      color: #555;
+    }
+    .legend-row .cat { font-weight: 500; }
+    .legend-row .pts { color: #0f3460; font-weight: 600; }
+
+    /* --- MISSING INFO --- */
+    .missing-section {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+    }
+    .missing-section .section-header h2 {
+      color: #92400e;
+    }
+    .missing-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 8px 0;
+      gap: 10px;
+    }
+    .missing-bullet {
+      color: #d97706;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .missing-text { font-size: 0.92em; color: #78350f; }
+
+    /* --- PARK SUBSCORES --- */
+    .subscore-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .subscore-card {
+      background: #f8f9fb;
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .subscore-label {
+      font-size: 0.78em;
+      color: #666;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .subscore-label .est { color: #d97706; }
+    .subscore-value {
+      font-weight: 700;
+      color: #16213e;
+      font-size: 1em;
+    }
+    .subscore-reason {
+      font-size: 0.78em;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    /* --- HUB ROW --- */
+    .hub-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .hub-row:last-child { border-bottom: none; }
+    .hub-info { flex: 1; }
+    .hub-name { font-weight: 600; font-size: 0.95em; color: #1a1a2e; }
+    .hub-detail { font-size: 0.85em; color: #777; margin-top: 2px; }
+    .hub-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 16px;
+    }
+    .hub-time { font-weight: 600; color: #0f3460; font-size: 0.95em; white-space: nowrap; }
+
+    /* --- WALK SCORE PILLS --- */
+    .walkscore-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .walkscore-pill {
+      flex: 1;
+      min-width: 100px;
+      background: #f8f9fb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .walkscore-pill .ws-label {
+      font-size: 0.72em;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .walkscore-pill .ws-value {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #16213e;
+    }
+    .walkscore-pill .ws-desc {
+      font-size: 0.78em;
+      color: #666;
+    }
+
+    /* --- EMAIL FORM --- */
+    .email-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .email-row input[type="email"] {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 0.88em;
+    }
+
+    /* --- DISCLAIMER / FOOTER --- */
+    .disclaimer {
+      max-width: 800px;
+      margin: 0 auto 40px;
+      padding: 20px 24px;
+      font-size: 0.82em;
+      color: #999;
+      line-height: 1.6;
+    }
+    .disclaimer strong { color: #777; }
+
+    footer {
+      border-top: 1px solid #e0e0e0;
+      padding: 24px;
+      text-align: center;
+      font-size: 0.85em;
+      color: #999;
+      background: #fff;
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 640px) {
+      .verdict-card { padding: 24px 20px; }
+      .section-body { padding: 0 20px 20px; }
+      .section-header { padding: 16px 20px; }
+      .score-circle { width: 100px; height: 100px; }
+      .score-circle .number { font-size: 2em; }
+      .subscore-grid { grid-template-columns: 1fr 1fr; }
+      .toolbar { gap: 6px; }
+      .toolbar .btn { padding: 6px 12px; font-size: 0.82em; }
+    }
+
+    /* --- PRINT --- */
+    @media print {
+      nav, .toolbar, .loading-overlay, footer, .email-row { display: none; }
+      body { background: #fff; }
+      .report { margin: 0 auto; }
+      .report-section { box-shadow: none; border: 1px solid #ddd; }
+      .report-section.collapsed .section-body { display: block !important; }
+      .verdict-card { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="logo">Nest<span>Check</span></a>
+  <div>
+    <a href="/" class="nav-link">New evaluation</a>
+  </div>
+</nav>
+
+<!-- TOOLBAR: share + export -->
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="copyShareLink()" id="shareBtn">Copy share link</button>
+  <span class="copy-toast" id="copyToast">Copied!</span>
+  <div class="spacer"></div>
+  <a class="btn" href="/e/{{ evaluation_id }}.json{% if evaluation_id == 't' %}?d={{ request.args.get('d', '') }}{% endif %}" target="_blank">Export JSON</a>
+  <a class="btn" href="/e/{{ evaluation_id }}.csv{% if evaluation_id == 't' %}?d={{ request.args.get('d', '') }}{% endif %}">Export CSV</a>
+  <button class="btn" onclick="copyJSON()">Copy JSON</button>
+</div>
+
+<div class="report">
+
+  {# ── 0. VERDICT + SCORE ──────────────────────────────────── #}
+  <div class="verdict-card{% if not result.passed_tier1 %} score-failed{% endif %}">
+    <div class="verdict-address">{{ result.address }}</div>
+    <div class="score-circle">
+      <div class="number">{{ result.final_score }}</div>
+      <div class="label">/ 100</div>
+    </div>
+    <div class="verdict-text">{{ result.verdict }}</div>
+    <div class="final-score-text">Final Score: {{ result.final_score }} / 100</div>
+    {% if result.passed_tier1 and result.percentile_label %}
+      <div class="percentile-label">{{ result.percentile_label }}</div>
+    {% endif %}
+  </div>
+
+  {% if result.passed_tier1 %}
+
+  {# ── 1. GREEN ESCAPE ─────────────────────────────────────── #}
+  <div class="report-section" id="sec-green">
+    <div class="section-header" onclick="toggleSection('sec-green')">
+      <h2>Green Escape</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      {% if result.green_escape and result.green_escape.best_daily_park %}
+        {% set park = result.green_escape.best_daily_park %}
+        <div style="margin-bottom: 16px;">
+          <div class="place-item" style="border-bottom: none; padding-bottom: 4px;">
+            <div>
+              <div class="place-name">{{ park.name }}</div>
+              <div class="place-meta">
+                {% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}
+                {% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}
+                {% if park.types_display %} &middot; {{ park.types_display }}{% endif %}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div class="place-time">{{ park.walk_time_min }} min walk</div>
+              <div style="font-size: 0.82em; color: #666; margin-top: 2px;">
+                Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
+              </div>
+            </div>
+          </div>
+
+          {% if park.subscores %}
+          <div class="subscore-grid">
+            {% for ss in park.subscores %}
+              <div class="subscore-card">
+                <div class="subscore-label">
+                  {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
+                </div>
+                <div class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</div>
+                <div class="subscore-reason">{{ ss.reason }}</div>
+              </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% if park.osm_enriched %}
+            <div style="margin-top: 8px; font-size: 0.78em; color: #888;">
+              OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
+              {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
+              {% if park.osm_has_trail %} &middot; trail detected{% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="section-empty">No major green space found within walking distance.</p>
+      {% endif %}
+
+      {% if result.green_escape and result.green_escape.nearby_green_spaces %}
+        <div style="margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+          <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Other nearby green spaces</div>
+          {% for space in result.green_escape.nearby_green_spaces[:5] %}
+            <div class="place-item">
+              <div>
+                <div class="place-name" style="font-weight: 500;">
+                  {{ space.name }}
+                  <span class="badge {% if space.criteria_status == 'PASS' %}badge-pass{% elif space.criteria_status == 'BORDERLINE' %}badge-borderline{% else %}badge-fail{% endif %}" style="margin-left: 6px;">{{ space.criteria_status }}</span>
+                </div>
+                <div class="place-meta">
+                  {% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}
+                  {% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %}
+                  &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
+                </div>
+              </div>
+              <div class="place-time">{{ space.walk_time_min }} min walk</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── 2. URBAN ACCESS ─────────────────────────────────────── #}
+  <div class="report-section" id="sec-urban">
+    <div class="section-header" onclick="toggleSection('sec-urban')">
+      <h2>Urban Access</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      {% if result.urban_access and result.urban_access.primary_transit %}
+        {% set pt = result.urban_access.primary_transit %}
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
+        <div class="hub-row">
+          <div class="hub-info">
+            <div class="hub-name">{{ pt.name }}</div>
+            <div class="hub-detail">
+              {{ pt.mode }}
+              {% if pt.frequency_class %} &middot; {{ pt.frequency_class }} frequency{% endif %}
+              {% if pt.parking_available %} &middot; parking available{% endif %}
+            </div>
+          </div>
+          <div class="hub-right">
+            <span class="hub-time">{{ pt.walk_time_min }} min walk</span>
+            {% if pt.drive_time_min %}
+              <span style="font-size: 0.82em; color: #888;">/ {{ pt.drive_time_min }} min drive</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if result.transit_access and result.transit_access.primary_stop %}
+        <div class="hub-row">
+          <div class="hub-info">
+            <div class="hub-name">Transit Frequency</div>
+            <div class="hub-detail">
+              {{ result.transit_access.frequency_bucket }} service
+              &middot; Score: {{ result.transit_access.score_0_10 }}/10
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if result.urban_access and result.urban_access.engine %}
+        {% set engine = result.urban_access.engine %}
+
+        {% if engine.primary_hub_commute %}
+          {% set phc = engine.primary_hub_commute %}
+          <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Hub Commute</div>
+          <div class="hub-row">
+            <div class="hub-info">
+              <div class="hub-name">{{ phc.hub_name }}</div>
+              <div class="hub-detail">
+                via {{ phc.mode }}
+                {% if phc.fallback %} (transit unavailable, driving estimate){% endif %}
+              </div>
+            </div>
+            <div class="hub-right">
+              <span class="hub-time">{{ phc.time_min }} min</span>
+              <span class="badge badge-{{ phc.verdict|lower }}">{{ phc.verdict }}</span>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if engine.reachability_hubs %}
+          <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Reachability</div>
+          {% for hub in engine.reachability_hubs %}
+            <div class="hub-row">
+              <div class="hub-info">
+                <div class="hub-name">{{ hub.hub_name }}</div>
+                <div class="hub-detail">
+                  {{ hub.category }} &middot; via {{ hub.best_mode }}
+                  {% if hub.fallback %} (fallback){% endif %}
+                </div>
+              </div>
+              <div class="hub-right">
+                <span class="hub-time">{{ hub.total_time_min }} min</span>
+                <span class="badge badge-{{ hub.verdict|lower }}">{{ hub.verdict }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endif %}
+
+      {% if result.walk_scores %}
+        <div class="walkscore-row">
+          {% if result.walk_scores.walk_score is not none %}
+            <div class="walkscore-pill">
+              <div class="ws-label">Walk Score</div>
+              <div class="ws-value">{{ result.walk_scores.walk_score }}</div>
+              {% if result.walk_scores.walk_description %}
+                <div class="ws-desc">{{ result.walk_scores.walk_description }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+          {% if result.walk_scores.transit_score is not none %}
+            <div class="walkscore-pill">
+              <div class="ws-label">Transit Score</div>
+              <div class="ws-value">{{ result.walk_scores.transit_score }}</div>
+              {% if result.walk_scores.transit_description %}
+                <div class="ws-desc">{{ result.walk_scores.transit_description }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+          {% if result.walk_scores.bike_score is not none %}
+            <div class="walkscore-pill">
+              <div class="ws-label">Bike Score</div>
+              <div class="ws-value">{{ result.walk_scores.bike_score }}</div>
+              {% if result.walk_scores.bike_description %}
+                <div class="ws-desc">{{ result.walk_scores.bike_description }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if not result.urban_access and not result.transit_access %}
+        <p class="section-empty">Urban access data not available for this address.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── 3. FAMILY & SCHOOLING ──────────────────────────────── #}
+  {% if result.child_schooling_snapshot %}
+  <div class="report-section" id="sec-family">
+    <div class="section-header" onclick="toggleSection('sec-family')">
+      <h2>Family &amp; Schooling</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      {% if result.child_schooling_snapshot.childcare %}
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Childcare (ages 0-5)</div>
+        {% for place in result.child_schooling_snapshot.childcare[:3] %}
+          <div class="place-item">
+            <div>
+              <div class="place-name" style="font-weight: 500;">{{ place.name }}</div>
+              <div class="place-meta">
+                {% if place.rating %}{{ "%.1f"|format(place.rating) }} stars{% endif %}
+                {% if place.user_ratings_total %}({{ place.user_ratings_total }} reviews){% endif %}
+                {% if place.website %}&middot; <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #0f3460;">Website</a>{% endif %}
+              </div>
+            </div>
+            <div class="place-time">{{ place.walk_time_min }} min walk</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="section-empty" style="margin-bottom: 12px;">No nearby childcare options found.</p>
+      {% endif %}
+
+      {% if result.child_schooling_snapshot.schools_by_level %}
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 16px; margin-bottom: 8px;">Schools (ages 5-18)</div>
+        {% for level in ["Elementary", "Middle", "High"] %}
+          {% set place = result.child_schooling_snapshot.schools_by_level.get(level) %}
+          <div class="place-item">
+            <div>
+              <div class="place-name" style="font-weight: 500;">
+                {{ level }}:
+                {% if place %}
+                  {{ place.name }}
+                {% else %}
+                  <span style="color: #999; font-weight: 400; font-style: italic;">Not found nearby</span>
+                {% endif %}
+              </div>
+              {% if place %}
+                <div class="place-meta">
+                  {% if place.rating %}{{ "%.1f"|format(place.rating) }} stars{% endif %}
+                  {% if place.user_ratings_total %}({{ place.user_ratings_total }} reviews){% endif %}
+                  {% if place.website %}&middot; <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #0f3460;">Website</a>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+            {% if place %}
+              <div class="place-time">{{ place.walk_time_min }} min walk</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── 4. HEALTH & SAFETY ──────────────────────────────────── #}
+  <div class="report-section" id="sec-safety">
+    <div class="section-header" onclick="toggleSection('sec-safety')">
+      <h2>Health &amp; Safety Checks</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      {% for check in result.tier1_checks %}
+        <div class="check-row">
+          <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ check.name }}</div>
+            <div class="check-detail">{{ check.details }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── 5. WHAT'S MISSING ──────────────────────────────────── #}
+  {% set unknown_checks = [] %}
+  {% for check in result.tier1_checks %}
+    {% if check.result == "UNKNOWN" %}
+      {% if unknown_checks.append(check) %}{% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {% set missing_items = [] %}
+  {% if not result.walk_scores or result.walk_scores.walk_score is none %}
+    {% if missing_items.append("Walk Score data not available — walkability estimate is based on Google Places only.") %}{% endif %}
+  {% endif %}
+  {% if not result.green_escape or not result.green_escape.best_daily_park %}
+    {% if missing_items.append("No qualifying park or green space found within walking distance. Check satellite imagery for unreported trails or paths.") %}{% endif %}
+  {% endif %}
+  {% if not result.urban_access or not result.urban_access.primary_transit %}
+    {% if missing_items.append("No transit station found nearby. This area may require a car for most trips.") %}{% endif %}
+  {% endif %}
+
+  {% if unknown_checks or missing_items %}
+  <div class="report-section missing-section" id="sec-missing">
+    <div class="section-header" onclick="toggleSection('sec-missing')">
+      <h2>What's Missing / Needs Verification</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size: 0.88em; color: #92400e; margin-bottom: 12px;">These items could not be verified automatically. Check with the listing or local sources.</p>
+      {% for check in unknown_checks %}
+        <div class="missing-item">
+          <div class="missing-bullet">&#9744;</div>
+          <div class="missing-text"><strong>{{ check.name }}:</strong> {{ check.details }}</div>
+        </div>
+      {% endfor %}
+      {% for item in missing_items %}
+        <div class="missing-item">
+          <div class="missing-bullet">&#9888;</div>
+          <div class="missing-text">{{ item }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── 6. SCORE BREAKDOWN ──────────────────────────────────── #}
+  <div class="report-section" id="sec-scores">
+    <div class="section-header" onclick="toggleSection('sec-scores')">
+      <h2>Score Breakdown</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      {% for score in result.tier2_scores %}
+        <div class="score-row">
+          <div class="score-info">
+            <div class="score-name">{{ score.name }}</div>
+            <div class="score-detail">{{ score.details }}</div>
+          </div>
+          <div class="score-pts">{{ score.points }} / {{ score.max }}</div>
+        </div>
+      {% endfor %}
+
+      {% if result.tier3_bonuses %}
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #f0f2f5;">
+          <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Bonus Features</div>
+          {% for bonus in result.tier3_bonuses %}
+            <div class="score-row">
+              <div class="score-info">
+                <div class="score-name">{{ bonus.name }}</div>
+                <div class="score-detail">{{ bonus.details }}</div>
+              </div>
+              <div class="score-pts">+{{ bonus.points }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="score-bar-container">
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" style="width: {{ result.final_score }}%;"></div>
+        </div>
+        <div class="score-bar-label">
+          <span>0</span>
+          <span>Final Score: {{ result.final_score }} / 100</span>
+          <span>100</span>
+        </div>
+      </div>
+
+      <div class="score-legend">
+        <h3>How the score works</h3>
+        <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
+          Six daily-life factors are scored (0-10 each) and normalized to 100.
+          Bonus points (up to +15) for parking, outdoor space, and extra bedrooms.
+          Properties that fail health/safety checks are disqualified before scoring.
+        </p>
+        <div class="legend-row"><span class="cat">Park &amp; Green Access</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row"><span class="cat">Third Place (cafe, social)</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row"><span class="cat">Provisioning (grocery)</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row"><span class="cat">Fitness Access</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row"><span class="cat">Cost / Affordability</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row"><span class="cat">Transit Access</span><span class="pts">0-10 pts</span></div>
+        <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px;">
+          <span class="cat">Subtotal (normalized to 100)</span><span class="pts">0-100</span>
+        </div>
+        <div class="legend-row"><span class="cat">Bonus (parking, outdoor, 3+ BR)</span><span class="pts">up to +15</span></div>
+        <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px; font-weight: 600;">
+          <span class="cat">Final Score (capped at 100)</span><span class="pts">{{ result.final_score }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endif %} {# end passed_tier1 #}
+
+  {% if not result.passed_tier1 %}
+  {# ── DISQUALIFIED ────────────────────────────────────────── #}
+  <div class="report-section" style="border: 2px solid #fca5a5;">
+    <div class="section-header">
+      <h2 style="color: #991b1b;">Disqualified</h2>
+    </div>
+    <div class="section-body">
+      <p style="color: #991b1b; margin-bottom: 16px;">This address failed one or more health and safety requirements. Detailed scoring is only available for qualifying addresses.</p>
+      {% for check in result.tier1_checks %}
+        <div class="check-row">
+          <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ check.name }}</div>
+            <div class="check-detail">{{ check.details }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── OPTIONAL EMAIL ──────────────────────────────────────── #}
+  {% if smtp_configured and evaluation_id != 't' %}
+  <div class="report-section" id="sec-email">
+    <div class="section-header" onclick="toggleSection('sec-email')">
+      <h2>Email Results</h2>
+      <span class="section-toggle">&#9660;</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size: 0.88em; color: #666; margin-bottom: 8px;">Send a summary to your inbox.</p>
+      <div class="email-row">
+        <input type="email" id="emailInput" placeholder="you@example.com">
+        <button class="btn btn-primary" onclick="sendEmail()">Send</button>
+      </div>
+      <div id="emailStatus" style="font-size: 0.85em; margin-top: 6px;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── DISCLAIMER + DATA SOURCES ───────────────────────────── #}
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> NestCheck is a decision-support tool, not professional real estate, health, or legal advice.
+    Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
+    <br><br>
+    <strong>Data sources:</strong> Google Maps Platform (Places, Distance Matrix, Geocoding), OpenStreetMap (road classification and green space polygons via Overpass API).
+    Walk Score data shown when API key is configured. School and childcare results are from Google Places and may not reflect official district assignments.
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  NestCheck &middot; Decision support for families optimizing daily life.
+</footer>
+
+<script>
+  // --- Collapsible sections ---
+  function toggleSection(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('collapsed');
+  }
+
+  // --- Copy share link ---
+  function copyShareLink() {
+    var url = {{ share_url|tojson }};
+    navigator.clipboard.writeText(url).then(function() {
+      var toast = document.getElementById('copyToast');
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 2000);
+    });
+  }
+
+  // --- Copy JSON ---
+  function copyJSON() {
+    var url = '/e/{{ evaluation_id }}.json{% if evaluation_id == "t" %}?d={{ request.args.get("d", "") }}{% endif %}';
+    fetch(url).then(function(r) { return r.text(); }).then(function(text) {
+      navigator.clipboard.writeText(text).then(function() {
+        var toast = document.getElementById('copyToast');
+        toast.textContent = 'JSON copied!';
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); toast.textContent = 'Copied!'; }, 2000);
+      });
+    });
+  }
+
+  // --- Send email ---
+  function sendEmail() {
+    var email = document.getElementById('emailInput').value;
+    var status = document.getElementById('emailStatus');
+    if (!email) { status.textContent = 'Please enter an email address.'; status.style.color = '#991b1b'; return; }
+    status.textContent = 'Sending...'; status.style.color = '#555';
+    fetch('/e/{{ evaluation_id }}/email', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'email=' + encodeURIComponent(email)
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.ok) { status.textContent = 'Sent!'; status.style.color = '#065f46'; }
+      else { status.textContent = data.error || 'Failed to send.'; status.style.color = '#991b1b'; }
+    }).catch(function() { status.textContent = 'Network error.'; status.style.color = '#991b1b'; });
+  }
+</script>
+
+</body>
+</html>

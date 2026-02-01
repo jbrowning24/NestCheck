@@ -1,6 +1,20 @@
 import os
+import io
+import csv
+import json
+import uuid
+import sqlite3
 import logging
-from flask import Flask, request, render_template
+import hashlib
+import hmac
+import base64
+import zlib
+from datetime import datetime, timezone
+
+from flask import (
+    Flask, request, render_template, redirect, url_for,
+    jsonify, abort, Response,
+)
 from dotenv import load_dotenv
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult
@@ -15,6 +29,106 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Persistence — SQLite (file on container; ephemeral across redeploys)
+# Falls back to stateless token-based share links if DB is unavailable.
+# ---------------------------------------------------------------------------
+DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "evaluations.db")
+
+
+def _get_db():
+    """Return a SQLite connection (created per-request)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_db():
+    """Create the evaluations table if it doesn't exist."""
+    try:
+        conn = _get_db()
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS evaluations (
+                id          TEXT PRIMARY KEY,
+                address     TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at  TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        logger.exception("Could not initialise SQLite database")
+        return False
+
+
+DB_AVAILABLE = _init_db()
+
+
+def _save_evaluation(evaluation_id, address, result_dict):
+    """Persist an evaluation. Returns True on success."""
+    if not DB_AVAILABLE:
+        return False
+    try:
+        conn = _get_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO evaluations (id, address, result_json, created_at) VALUES (?, ?, ?, ?)",
+            (evaluation_id, address, json.dumps(result_dict), datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except Exception:
+        logger.exception("Failed to save evaluation %s", evaluation_id)
+        return False
+
+
+def _load_evaluation(evaluation_id):
+    """Load an evaluation by id. Returns (address, result_dict, created_at) or None."""
+    if not DB_AVAILABLE:
+        return None
+    try:
+        conn = _get_db()
+        row = conn.execute("SELECT address, result_json, created_at FROM evaluations WHERE id = ?", (evaluation_id,)).fetchone()
+        conn.close()
+        if row:
+            return row["address"], json.loads(row["result_json"]), row["created_at"]
+    except Exception:
+        logger.exception("Failed to load evaluation %s", evaluation_id)
+    return None
+
+# ---------------------------------------------------------------------------
+# Stateless share tokens (fallback when SQLite isn't reliable)
+# Encode the result dict as a compressed+signed URL-safe token.
+# ---------------------------------------------------------------------------
+_SIGN_KEY = app.config['SECRET_KEY'].encode()
+
+
+def _make_token(result_dict):
+    """Compress + sign a result dict into a URL-safe token."""
+    payload = zlib.compress(json.dumps(result_dict, separators=(',', ':')).encode(), level=9)
+    b64 = base64.urlsafe_b64encode(payload).decode()
+    sig = hmac.new(_SIGN_KEY, payload, hashlib.sha256).hexdigest()[:16]
+    return f"{sig}.{b64}"
+
+
+def _decode_token(token):
+    """Verify and decompress a stateless token. Returns dict or None."""
+    try:
+        sig, b64 = token.split(".", 1)
+        payload = base64.urlsafe_b64decode(b64)
+        expected = hmac.new(_SIGN_KEY, payload, hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(sig, expected):
+            return None
+        return json.loads(zlib.decompress(payload))
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Serialisers (unchanged logic, cleaned up from old app.py)
+# ---------------------------------------------------------------------------
 
 def generate_verdict(result_dict):
     """Generate a one-line verdict based on the evaluation result."""
@@ -23,7 +137,6 @@ def generate_verdict(result_dict):
 
     if not passed:
         return "Does not meet baseline requirements"
-
     if score >= 85:
         return "Exceptional daily-life match"
     elif score >= 70:
@@ -119,7 +232,6 @@ def _serialize_urban_access(urban_access):
             "route_summary": mh.route_summary,
         }
 
-    # Engine result (primary hub commute + reachability hubs)
     engine = None
     if urban_access.engine_result:
         engine = urban_access_result_to_dict(urban_access.engine_result)
@@ -132,7 +244,7 @@ def _serialize_urban_access(urban_access):
 
 
 def result_to_dict(result):
-    """Convert EvaluationResult to template-friendly dict."""
+    """Convert EvaluationResult to a serialisable dict."""
     output = {
         "address": result.listing.address,
         "coordinates": {"lat": result.lat, "lng": result.lng},
@@ -209,43 +321,248 @@ def result_to_dict(result):
     return output
 
 
-@app.route("/", methods=["GET", "POST"])
+# ---------------------------------------------------------------------------
+# CSV helper
+# ---------------------------------------------------------------------------
+
+def _result_to_csv(result_dict):
+    """Flatten a result dict into a downloadable CSV string."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+
+    # Header row
+    writer.writerow(["Section", "Name", "Value", "Details"])
+
+    # Summary
+    writer.writerow(["Summary", "Address", result_dict.get("address", ""), ""])
+    writer.writerow(["Summary", "Final Score", result_dict.get("final_score", ""), ""])
+    writer.writerow(["Summary", "Verdict", result_dict.get("verdict", ""), ""])
+    writer.writerow(["Summary", "Passed Tier 1", result_dict.get("passed_tier1", ""), ""])
+
+    # Tier 1 checks
+    for c in result_dict.get("tier1_checks", []):
+        writer.writerow(["Health & Safety", c.get("name", ""), c.get("result", ""), c.get("details", "")])
+
+    # Tier 2 scores
+    for s in result_dict.get("tier2_scores", []):
+        writer.writerow(["Score Breakdown", s.get("name", ""), f'{s.get("points", "")}/{s.get("max", "")}', s.get("details", "")])
+
+    # Tier 3 bonuses
+    for b in result_dict.get("tier3_bonuses", []):
+        writer.writerow(["Bonus", b.get("name", ""), f'+{b.get("points", "")}', b.get("details", "")])
+
+    # Walk scores
+    ws = result_dict.get("walk_scores") or {}
+    if ws:
+        for key in ("walk_score", "transit_score", "bike_score"):
+            val = ws.get(key)
+            if val is not None:
+                writer.writerow(["Walk Scores", key.replace("_", " ").title(), val, ws.get(key.replace("score", "description"), "")])
+
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/")
 def index():
-    result = None
-    error = None
-    address = ""
+    return render_template("index.html")
 
-    if request.method == "POST":
-        address = request.form.get("address", "").strip()
 
-        if not address:
-            error = "Please enter a property address to evaluate."
-            return render_template("index.html", result=result, error=error, address=address)
+@app.route("/evaluate", methods=["POST"])
+def evaluate():
+    """Run evaluation, persist results, redirect to results page."""
+    address = request.form.get("address", "").strip()
 
-        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-        if not api_key:
-            error = "Service configuration error. Please contact support."
-            logger.error("GOOGLE_MAPS_API_KEY not set")
-            return render_template("index.html", result=result, error=error, address=address)
+    if not address:
+        return render_template("index.html", error="Please enter a property address to evaluate.")
 
-        try:
-            listing = PropertyListing(address=address)
-            eval_result = evaluate_property(listing, api_key)
-            result = result_to_dict(eval_result)
-        except Exception as e:
-            logger.exception("Evaluation failed for address: %s", address)
-            error = (
-                "Something went wrong while evaluating this address. "
-                "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized by Google Maps."
-            )
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        error = (
+            "Google Maps API key is not configured. "
+            "The server administrator needs to set the GOOGLE_MAPS_API_KEY environment variable."
+        )
+        logger.error("GOOGLE_MAPS_API_KEY not set")
+        return render_template("index.html", error=error, address=address)
 
-    return render_template("index.html", result=result, error=error, address=address)
+    try:
+        listing = PropertyListing(address=address)
+        eval_result = evaluate_property(listing, api_key)
+        result_dict = result_to_dict(eval_result)
+    except Exception:
+        logger.exception("Evaluation failed for address: %s", address)
+        error = (
+            "Something went wrong while evaluating this address. "
+            "Please check the address and try again. "
+            "If the problem persists, the address may not be recognized by Google Maps."
+        )
+        return render_template("index.html", error=error, address=address)
+
+    # Persist
+    evaluation_id = uuid.uuid4().hex[:12]
+    saved = _save_evaluation(evaluation_id, address, result_dict)
+
+    if saved:
+        return redirect(url_for("view_evaluation", evaluation_id=evaluation_id))
+
+    # Fallback: stateless token redirect
+    token = _make_token(result_dict)
+    return redirect(url_for("view_evaluation", evaluation_id="t") + f"?d={token}")
+
+
+@app.route("/e/<evaluation_id>")
+def view_evaluation(evaluation_id):
+    """Render the results page for a saved evaluation."""
+    result_dict = None
+    address = None
+    created_at = None
+    share_url = request.url
+
+    # Stateless token mode
+    if evaluation_id == "t":
+        token = request.args.get("d")
+        if token:
+            result_dict = _decode_token(token)
+        if not result_dict:
+            abort(404)
+        address = result_dict.get("address", "")
+        created_at = datetime.now(timezone.utc).isoformat()
+    else:
+        loaded = _load_evaluation(evaluation_id)
+        if not loaded:
+            abort(404)
+        address, result_dict, created_at = loaded
+
+    return render_template(
+        "results.html",
+        result=result_dict,
+        address=address,
+        evaluation_id=evaluation_id,
+        created_at=created_at,
+        share_url=share_url,
+    )
+
+
+@app.route("/e/<evaluation_id>.json")
+def evaluation_json(evaluation_id):
+    """Return evaluation results as JSON."""
+    result_dict = None
+
+    if evaluation_id == "t":
+        token = request.args.get("d")
+        if token:
+            result_dict = _decode_token(token)
+    else:
+        loaded = _load_evaluation(evaluation_id)
+        if loaded:
+            _, result_dict, _ = loaded
+
+    if not result_dict:
+        abort(404)
+
+    return jsonify({
+        "evaluation_id": evaluation_id,
+        "data": result_dict,
+    })
+
+
+@app.route("/e/<evaluation_id>.csv")
+def evaluation_csv(evaluation_id):
+    """Return evaluation results as CSV download."""
+    result_dict = None
+
+    if evaluation_id == "t":
+        token = request.args.get("d")
+        if token:
+            result_dict = _decode_token(token)
+    else:
+        loaded = _load_evaluation(evaluation_id)
+        if loaded:
+            _, result_dict, _ = loaded
+
+    if not result_dict:
+        abort(404)
+
+    csv_data = _result_to_csv(result_dict)
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=nestcheck-{evaluation_id}.csv"},
+    )
 
 
 @app.route("/pricing")
 def pricing():
     return render_template("pricing.html")
+
+
+# ---------------------------------------------------------------------------
+# Optional email delivery (only visible if SMTP env vars are set)
+# ---------------------------------------------------------------------------
+
+def _smtp_configured():
+    return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_FROM"))
+
+
+@app.route("/e/<evaluation_id>/email", methods=["POST"])
+def email_results(evaluation_id):
+    """Send evaluation results via email (requires SMTP_* env vars)."""
+    if not _smtp_configured():
+        abort(404)
+
+    import smtplib
+    from email.mime.text import MIMEText
+
+    recipient = request.form.get("email", "").strip()
+    if not recipient:
+        return jsonify({"error": "Email address required"}), 400
+
+    loaded = _load_evaluation(evaluation_id)
+    if not loaded:
+        abort(404)
+    address, result_dict, _ = loaded
+
+    body = (
+        f"NestCheck Results for {address}\n"
+        f"Score: {result_dict.get('final_score', 'N/A')} / 100\n"
+        f"Verdict: {result_dict.get('verdict', '')}\n\n"
+        f"View full results: {request.host_url}e/{evaluation_id}\n"
+    )
+
+    msg = MIMEText(body)
+    msg["Subject"] = f"NestCheck Results: {address}"
+    msg["From"] = os.environ["SMTP_FROM"]
+    msg["To"] = recipient
+
+    try:
+        host = os.environ["SMTP_HOST"]
+        port = int(os.environ.get("SMTP_PORT", "587"))
+        user = os.environ.get("SMTP_USER", "")
+        password = os.environ.get("SMTP_PASSWORD", "")
+
+        with smtplib.SMTP(host, port) as server:
+            server.starttls()
+            if user and password:
+                server.login(user, password)
+            server.send_message(msg)
+        return jsonify({"ok": True})
+    except Exception:
+        logger.exception("Failed to send email for evaluation %s", evaluation_id)
+        return jsonify({"error": "Failed to send email. Please try again."}), 500
+
+
+# ---------------------------------------------------------------------------
+# Template context
+# ---------------------------------------------------------------------------
+
+@app.context_processor
+def inject_globals():
+    return {
+        "smtp_configured": _smtp_configured(),
+    }
 
 
 if __name__ == "__main__":
