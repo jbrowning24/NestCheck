@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NestCheck — Builder Dashboard</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.6;
+      padding: 24px;
+    }
+    h1 { color: #58a6ff; font-size: 1.4em; margin-bottom: 24px; }
+    h2 { color: #fbbf24; font-size: 1.1em; margin: 24px 0 12px; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat .num {
+      font-size: 2em;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+    .stat .lbl {
+      font-size: 0.8em;
+      color: #8b949e;
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85em;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid #30363d;
+      color: #8b949e;
+      font-weight: 600;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #21262d;
+    }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .badge-event {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.78em;
+      font-weight: 600;
+    }
+    .badge-created { background: #1f6feb33; color: #58a6ff; }
+    .badge-viewed { background: #23863633; color: #3fb950; }
+    .badge-shared { background: #9e6a0333; color: #fbbf24; }
+    .badge-return { background: #8b5cf633; color: #a78bfa; }
+    .badge-error { background: #f8514933; color: #f85149; }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: #8b949e;
+    }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">&larr; Back to NestCheck</a>
+  <h1>Builder Dashboard</h1>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="num">{{ counts.get('snapshot_created', 0) }}</div>
+      <div class="lbl">Snapshots Created</div>
+    </div>
+    <div class="stat">
+      <div class="num">{{ counts.get('snapshot_viewed', 0) }}</div>
+      <div class="lbl">Snapshot Views</div>
+    </div>
+    <div class="stat">
+      <div class="num">{{ counts.get('snapshot_shared', 0) }}</div>
+      <div class="lbl">Share Clicks</div>
+    </div>
+    <div class="stat">
+      <div class="num">{{ counts.get('return_visit', 0) }}</div>
+      <div class="lbl">Return Visits</div>
+    </div>
+    <div class="stat">
+      <div class="num">{{ counts.get('evaluation_error', 0) }}</div>
+      <div class="lbl">Errors</div>
+    </div>
+  </div>
+
+  <h2>Recent Snapshots</h2>
+  <div class="card">
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Address</th>
+        <th>Score</th>
+        <th>Views</th>
+        <th>Created</th>
+      </tr>
+      {% for s in recent_snapshots %}
+      <tr>
+        <td><a href="/s/{{ s.snapshot_id }}">{{ s.snapshot_id }}</a></td>
+        <td>{{ s.address_input[:50] }}{% if s.address_input|length > 50 %}...{% endif %}</td>
+        <td>{{ s.final_score }}</td>
+        <td>{{ s.view_count }}</td>
+        <td>{{ s.created_at[:19] }}</td>
+      </tr>
+      {% endfor %}
+      {% if not recent_snapshots %}
+      <tr><td colspan="5" style="color: #8b949e; text-align: center;">No snapshots yet</td></tr>
+      {% endif %}
+    </table>
+  </div>
+
+  <h2>Recent Events</h2>
+  <div class="card">
+    <table>
+      <tr>
+        <th>Event</th>
+        <th>Snapshot</th>
+        <th>Visitor</th>
+        <th>Time</th>
+      </tr>
+      {% for e in recent_events %}
+      <tr>
+        <td>
+          <span class="badge-event
+            {% if e.event_type == 'snapshot_created' %}badge-created
+            {% elif e.event_type == 'snapshot_viewed' %}badge-viewed
+            {% elif e.event_type == 'snapshot_shared' %}badge-shared
+            {% elif e.event_type == 'return_visit' %}badge-return
+            {% else %}badge-error{% endif %}
+          ">{{ e.event_type }}</span>
+        </td>
+        <td>{% if e.snapshot_id %}<a href="/s/{{ e.snapshot_id }}">{{ e.snapshot_id }}</a>{% else %}-{% endif %}</td>
+        <td>{{ e.visitor_id[:8] if e.visitor_id else '-' }}...</td>
+        <td>{{ e.created_at[:19] }}</td>
+      </tr>
+      {% endfor %}
+      {% if not recent_events %}
+      <tr><td colspan="4" style="color: #8b949e; text-align: center;">No events yet</td></tr>
+      {% endif %}
+    </table>
+  </div>
+</body>
+</html>

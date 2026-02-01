@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NestCheck — Know Before You Move</title>
-  {% if result %}
+  <title>NestCheck — {{ result.address }}</title>
+
+  <!-- Open Graph for link previews -->
   <meta property="og:title" content="NestCheck — {{ result.address }}">
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
-  {% endif %}
+  <meta property="og:type" content="article">
+  <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation snapshot">
+
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -43,152 +46,44 @@
     }
     nav a.nav-link:hover { color: #0f3460; }
 
-    /* --- HERO / LANDING --- */
-    .hero {
-      max-width: 700px;
-      margin: 60px auto 0;
-      text-align: center;
+    /* --- SHARE BAR --- */
+    .share-bar {
+      max-width: 800px;
+      margin: 20px auto 0;
       padding: 0 24px;
-    }
-    .hero h1 {
-      font-size: 2.6em;
-      font-weight: 800;
-      color: #16213e;
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
-    }
-    .hero .tagline {
-      font-size: 1.15em;
-      color: #555;
-      margin-bottom: 36px;
-      max-width: 520px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    /* --- FORM --- */
-    .search-section {
-      max-width: 640px;
-      margin: 0 auto 30px;
-      padding: 0 24px;
-    }
-    .search-box {
       display: flex;
-      gap: 10px;
-      background: #fff;
-      padding: 8px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      border: 2px solid #e8e8e8;
-      transition: border-color 0.2s;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
     }
-    .search-box:focus-within {
-      border-color: #0f3460;
+    .share-bar .snapshot-meta {
+      font-size: 0.85em;
+      color: #888;
     }
-    .search-box input[type="text"] {
-      flex: 1;
-      padding: 14px 16px;
-      border: none;
-      font-size: 16px;
-      background: transparent;
-      outline: none;
-      color: #1a1a2e;
-    }
-    .search-box input[type="text"]::placeholder { color: #999; }
-    .search-box button {
-      padding: 14px 28px;
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
       background: #0f3460;
       color: #fff;
       border: none;
       border-radius: 8px;
-      font-size: 15px;
+      font-size: 0.88em;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
       white-space: nowrap;
     }
-    .search-box button:hover { background: #16213e; }
-    .search-box button:disabled {
-      background: #8899aa;
-      cursor: not-allowed;
+    .share-btn:hover { background: #16213e; }
+    .share-btn.copied {
+      background: #065f46;
     }
-
-    /* --- FEATURES (landing) --- */
-    .features {
-      max-width: 700px;
-      margin: 40px auto 60px;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-    }
-    .feature-card {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      border: 1px solid #eee;
-    }
-    .feature-card h3 {
-      font-size: 0.95em;
-      color: #16213e;
-      margin-bottom: 6px;
-    }
-    .feature-card p {
-      font-size: 0.88em;
-      color: #666;
-      line-height: 1.5;
-    }
-
-    /* --- LOADING --- */
-    .loading-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(255,255,255,0.92);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    }
-    .loading-overlay.active { display: flex; }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 4px solid #e0e0e0;
-      border-top-color: #0f3460;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text {
-      margin-top: 20px;
-      font-size: 1.05em;
-      color: #333;
-      font-weight: 500;
-    }
-    .loading-sub {
-      margin-top: 8px;
-      font-size: 0.88em;
-      color: #888;
-    }
-
-    /* --- ERROR --- */
-    .error-banner {
-      max-width: 640px;
-      margin: 0 auto 20px;
-      padding: 16px 20px;
-      background: #fef2f2;
-      border: 1px solid #fca5a5;
-      border-radius: 10px;
-      color: #991b1b;
-      font-size: 0.95em;
-    }
-    .error-banner strong { display: block; margin-bottom: 4px; }
 
     /* --- REPORT CONTAINER --- */
     .report {
       max-width: 800px;
-      margin: 30px auto 60px;
+      margin: 16px auto 60px;
       padding: 0 24px;
     }
 
@@ -270,6 +165,31 @@
       color: #888;
       font-style: italic;
       font-size: 0.92em;
+    }
+
+    /* --- COLLAPSIBLE SECTIONS --- */
+    .collapsible-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .collapsible-toggle h2 { cursor: pointer; flex: 1; }
+    .collapse-icon {
+      font-size: 0.85em;
+      color: #888;
+      transition: transform 0.2s;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+    .collapsible-body {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .collapsible-body.collapsed {
+      max-height: 0;
     }
 
     /* --- PLACE ITEMS --- */
@@ -512,6 +432,46 @@
       color: #666;
     }
 
+    /* --- DATA UNAVAILABLE --- */
+    .data-unavailable {
+      color: #888;
+      font-style: italic;
+      font-size: 0.9em;
+      padding: 8px 0;
+    }
+
+    /* --- CTA BANNER (snapshot) --- */
+    .snapshot-cta {
+      background: #fff;
+      border: 2px solid #0f3460;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .snapshot-cta h3 {
+      font-size: 1.1em;
+      color: #16213e;
+      margin-bottom: 6px;
+    }
+    .snapshot-cta p {
+      font-size: 0.9em;
+      color: #666;
+      margin-bottom: 14px;
+    }
+    .snapshot-cta a {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #0f3460;
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92em;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .snapshot-cta a:hover { background: #16213e; }
+
     /* --- DISCLAIMER / FOOTER --- */
     .disclaimer {
       max-width: 800px;
@@ -532,38 +492,10 @@
       background: #fff;
     }
 
-    /* --- SHARE BAR --- */
-    .share-bar {
-      max-width: 800px;
-      margin: 0 auto 16px;
-      padding: 0 24px;
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 12px;
-    }
-    .share-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      background: #0f3460;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.88em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-    .share-btn:hover { background: #16213e; }
-    .share-btn.copied { background: #065f46; }
-
     /* --- BUILDER DEBUG --- */
     .builder-debug {
       max-width: 800px;
-      margin: 0 auto 16px;
+      margin: 16px auto;
       padding: 12px 20px;
       background: #1a1a2e;
       color: #a5f3a5;
@@ -585,19 +517,20 @@
 
     /* --- RESPONSIVE --- */
     @media (max-width: 640px) {
-      .hero h1 { font-size: 2em; }
-      .search-box { flex-direction: column; }
-      .search-box button { width: 100%; }
       .verdict-card { padding: 24px 20px; }
       .report-section { padding: 20px; }
       .score-circle { width: 100px; height: 100px; }
       .score-circle .number { font-size: 2em; }
       .subscore-grid { grid-template-columns: 1fr 1fr; }
+      .share-bar { flex-direction: column; align-items: stretch; }
+      .share-btn { justify-content: center; }
+      .hub-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .hub-right { padding-left: 0; }
     }
 
-    /* --- PRINT-FRIENDLY / SHARE-READY --- */
+    /* --- PRINT --- */
     @media print {
-      nav, .search-section, .share-bar, .builder-debug, .loading-overlay, footer { display: none; }
+      nav, .share-bar, .snapshot-cta, .builder-debug, footer { display: none; }
       body { background: #fff; }
       .report { margin: 0 auto; }
       .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
@@ -611,98 +544,37 @@
 <nav>
   <a href="/" class="logo">Nest<span>Check</span></a>
   <div>
-    {% if is_builder %}
-      <a href="/builder/dashboard" class="nav-link" style="color: #fbbf24;">Dashboard</a>
-    {% endif %}
+    <a href="/" class="nav-link">Evaluate an address</a>
   </div>
 </nav>
 
-<!-- LOADING OVERLAY -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">Evaluating this address...</div>
-  <div class="loading-sub">Checking parks, transit, schools, safety, and more. This takes 15-45 seconds.</div>
+<!-- SHARE BAR -->
+<div class="share-bar">
+  <div class="snapshot-meta">
+    Snapshot created {{ snapshot.created_at[:10] }}
+    {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
+  </div>
+  <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    <span id="shareBtnText">Copy share link</span>
+  </button>
 </div>
 
-{% if not result %}
-{# ============================================================ #}
-{#                     LANDING PAGE                              #}
-{# ============================================================ #}
-<div class="hero">
-  <h1>Know before you move.</h1>
-  <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — instant results, shareable link.</p>
-</div>
-
-<div class="search-section">
-  {% if error %}
-    <div class="error-banner">
-      <strong>Could not evaluate address</strong>
-      {{ error }}
-    </div>
-  {% endif %}
-  <form method="POST" id="evalForm">
-    <div class="search-box">
-      <input type="text" name="address" placeholder="Enter any U.S. address..." value="{{ address }}" required>
-      <button type="submit" id="evalBtn">Evaluate</button>
-    </div>
-  </form>
-</div>
-
-<div class="features">
-  <div class="feature-card">
-    <h3>Green Escape</h3>
-    <p>Parks, trails, and nature within walking distance. Scored by quality and accessibility.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Urban Access</h3>
-    <p>Transit options, commute times, and connectivity to major hubs.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Family &amp; Schools</h3>
-    <p>Nearby schools, childcare, and family-friendly infrastructure.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Health &amp; Safety</h3>
-    <p>Distance from highways, gas stations, and high-volume roads.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Daily Essentials</h3>
-    <p>Walkable groceries, cafes, fitness — the fabric of daily life.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Final Score</h3>
-    <p>One number, 0-100. Clear breakdown of how it was computed.</p>
-  </div>
-</div>
-
-{% else %}
-{# ============================================================ #}
-{#                        EVALUATION RESULT                      #}
-{# ============================================================ #}
-<div class="search-section" style="margin-top: 24px;">
-  <form method="POST" id="evalForm">
-    <div class="search-box">
-      <input type="text" name="address" placeholder="Enter any U.S. address..." value="{{ address }}" required>
-      <button type="submit" id="evalBtn">New evaluation</button>
-    </div>
-  </form>
-</div>
-
-{% if is_builder and result %}
+{% if is_builder %}
 <!-- BUILDER DEBUG (only visible in builder mode) -->
 <details class="builder-debug">
-  <summary>Builder Debug{% if snapshot_id %} — Snapshot {{ snapshot_id }}{% endif %}</summary>
-  <pre>{% if snapshot_id %}snapshot_id: {{ snapshot_id }}
-snapshot_url: /s/{{ snapshot_id }}
-{% endif %}address: {{ result.address }}
+  <summary>Builder Debug — Snapshot {{ snapshot_id }}</summary>
+  <pre>snapshot_id: {{ snapshot_id }}
+address_input: {{ snapshot.address_input }}
+address_norm: {{ snapshot.address_norm }}
+created_at: {{ snapshot.created_at }}
+view_count: {{ snapshot.view_count }}
 final_score: {{ result.final_score }}
 passed_tier1: {{ result.passed_tier1 }}
 coordinates: {{ result.coordinates }}
 tier2_raw: {{ result.tier2_score }}/{{ result.tier2_max }}
 tier2_normalized: {{ result.tier2_normalized }}
-tier3_bonus: {{ result.tier3_bonus }}
-walk_scores: {{ result.walk_scores }}
-transit_access: {{ result.transit_access }}</pre>
+tier3_bonus: {{ result.tier3_bonus }}</pre>
 </details>
 {% endif %}
 
@@ -726,9 +598,11 @@ transit_access: {{ result.transit_access }}</pre>
 
   {# ── 1. GREEN ESCAPE ───────────────────────────────────────── #}
   <div class="report-section">
-    <h2>Green Escape</h2>
-
-    {# Best Daily Park (from new Green Escape engine) #}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Green Escape</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
       <div style="margin-bottom: 16px;">
@@ -749,7 +623,6 @@ transit_access: {{ result.transit_access }}</pre>
           </div>
         </div>
 
-        {# Subscore breakdown #}
         {% if park.subscores %}
         <div class="subscore-grid">
           {% for ss in park.subscores %}
@@ -764,7 +637,6 @@ transit_access: {{ result.transit_access }}</pre>
         </div>
         {% endif %}
 
-        {# OSM data note #}
         {% if park.osm_enriched %}
           <div style="margin-top: 8px; font-size: 0.78em; color: #888;">
             OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
@@ -773,12 +645,10 @@ transit_access: {{ result.transit_access }}</pre>
           </div>
         {% endif %}
       </div>
-
     {% else %}
-      <p class="section-empty">No major green space found within walking distance.</p>
+      <p class="data-unavailable">Green space data unavailable for this address.</p>
     {% endif %}
 
-    {# Other nearby green spaces #}
     {% if result.green_escape and result.green_escape.nearby_green_spaces %}
       <div style="margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
         <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Other nearby green spaces</div>
@@ -800,13 +670,16 @@ transit_access: {{ result.transit_access }}</pre>
         {% endfor %}
       </div>
     {% endif %}
+    </div>
   </div>
 
   {# ── 2. URBAN ACCESS ───────────────────────────────────────── #}
   <div class="report-section">
-    <h2>Urban Access</h2>
-
-    {# Primary Transit Node #}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Urban Access</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
     {% if result.urban_access and result.urban_access.primary_transit %}
       {% set pt = result.urban_access.primary_transit %}
       <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
@@ -828,7 +701,6 @@ transit_access: {{ result.transit_access }}</pre>
       </div>
     {% endif %}
 
-    {# Transit frequency (smart approximation) #}
     {% if result.transit_access and result.transit_access.primary_stop %}
       <div class="hub-row">
         <div class="hub-info">
@@ -841,7 +713,6 @@ transit_access: {{ result.transit_access }}</pre>
       </div>
     {% endif %}
 
-    {# Primary Hub Commute #}
     {% if result.urban_access and result.urban_access.engine %}
       {% set engine = result.urban_access.engine %}
 
@@ -863,7 +734,6 @@ transit_access: {{ result.transit_access }}</pre>
         </div>
       {% endif %}
 
-      {# Reachability hubs #}
       {% if engine.reachability_hubs %}
         <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Reachability</div>
         {% for hub in engine.reachability_hubs %}
@@ -884,7 +754,6 @@ transit_access: {{ result.transit_access }}</pre>
       {% endif %}
     {% endif %}
 
-    {# Walk / Transit / Bike Scores #}
     {% if result.walk_scores %}
       <div class="walkscore-row">
         {% if result.walk_scores.walk_score is not none %}
@@ -918,82 +787,98 @@ transit_access: {{ result.transit_access }}</pre>
     {% endif %}
 
     {% if not result.urban_access and not result.transit_access %}
-      <p class="section-empty">Urban access data not available for this address.</p>
+      <p class="data-unavailable">Urban access data unavailable for this address.</p>
     {% endif %}
+    </div>
   </div>
 
   {# ── 3. FAMILY & SCHOOLING ────────────────────────────────── #}
-  {% if result.child_schooling_snapshot %}
   <div class="report-section">
-    <h2>Family &amp; Schooling</h2>
-
-    {% if result.child_schooling_snapshot.childcare %}
-      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Childcare (ages 0-5)</div>
-      {% for place in result.child_schooling_snapshot.childcare[:3] %}
-        <div class="place-item">
-          <div>
-            <div class="place-name" style="font-weight: 500;">{{ place.name }}</div>
-            <div class="place-meta">
-              {% if place.rating %}{{ "%.1f"|format(place.rating) }} stars{% endif %}
-              {% if place.user_ratings_total %}({{ place.user_ratings_total }} reviews){% endif %}
-              {% if place.website %}&middot; <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #0f3460;">Website</a>{% endif %}
-            </div>
-          </div>
-          <div class="place-time">{{ place.walk_time_min }} min walk</div>
-        </div>
-      {% endfor %}
-    {% else %}
-      <p class="section-empty" style="margin-bottom: 12px;">No nearby childcare options found.</p>
-    {% endif %}
-
-    {% if result.child_schooling_snapshot.schools_by_level %}
-      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 16px; margin-bottom: 8px;">Schools (ages 5-18)</div>
-      {% for level in ["Elementary", "Middle", "High"] %}
-        {% set place = result.child_schooling_snapshot.schools_by_level.get(level) %}
-        <div class="place-item">
-          <div>
-            <div class="place-name" style="font-weight: 500;">
-              {{ level }}:
-              {% if place %}
-                {{ place.name }}
-              {% else %}
-                <span style="color: #999; font-weight: 400; font-style: italic;">Not found nearby</span>
-              {% endif %}
-            </div>
-            {% if place %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Family &amp; Schooling</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% if result.child_schooling_snapshot and (result.child_schooling_snapshot.childcare or result.child_schooling_snapshot.schools_by_level) %}
+      {% if result.child_schooling_snapshot.childcare %}
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Childcare (ages 0-5)</div>
+        {% for place in result.child_schooling_snapshot.childcare[:3] %}
+          <div class="place-item">
+            <div>
+              <div class="place-name" style="font-weight: 500;">{{ place.name }}</div>
               <div class="place-meta">
                 {% if place.rating %}{{ "%.1f"|format(place.rating) }} stars{% endif %}
                 {% if place.user_ratings_total %}({{ place.user_ratings_total }} reviews){% endif %}
                 {% if place.website %}&middot; <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #0f3460;">Website</a>{% endif %}
               </div>
+            </div>
+            <div class="place-time">{{ place.walk_time_min }} min walk</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="data-unavailable" style="margin-bottom: 12px;">Childcare data unavailable for this area.</p>
+      {% endif %}
+
+      {% if result.child_schooling_snapshot.schools_by_level %}
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 16px; margin-bottom: 8px;">Schools (ages 5-18)</div>
+        {% for level in ["Elementary", "Middle", "High"] %}
+          {% set place = result.child_schooling_snapshot.schools_by_level.get(level) %}
+          <div class="place-item">
+            <div>
+              <div class="place-name" style="font-weight: 500;">
+                {{ level }}:
+                {% if place %}
+                  {{ place.name }}
+                {% else %}
+                  <span style="color: #999; font-weight: 400; font-style: italic;">Data unavailable</span>
+                {% endif %}
+              </div>
+              {% if place %}
+                <div class="place-meta">
+                  {% if place.rating %}{{ "%.1f"|format(place.rating) }} stars{% endif %}
+                  {% if place.user_ratings_total %}({{ place.user_ratings_total }} reviews){% endif %}
+                  {% if place.website %}&middot; <a href="{{ place.website }}" target="_blank" rel="noopener" style="color: #0f3460;">Website</a>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+            {% if place %}
+              <div class="place-time">{{ place.walk_time_min }} min walk</div>
             {% endif %}
           </div>
-          {% if place %}
-            <div class="place-time">{{ place.walk_time_min }} min walk</div>
-          {% endif %}
-        </div>
-      {% endfor %}
+        {% endfor %}
+      {% endif %}
+    {% else %}
+      <p class="data-unavailable">Family and schooling data unavailable for this address.</p>
     {% endif %}
+    </div>
   </div>
-  {% endif %}
 
   {# ── 4. HEALTH & SAFETY ────────────────────────────────────── #}
   <div class="report-section">
-    <h2>Health &amp; Safety Checks</h2>
-    {% for check in result.tier1_checks %}
-      <div class="check-row">
-        <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
-          {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Health &amp; Safety Checks</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% if result.tier1_checks %}
+      {% for check in result.tier1_checks %}
+        <div class="check-row">
+          <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ check.name }}</div>
+            <div class="check-detail">{{ check.details }}</div>
+          </div>
         </div>
-        <div class="check-text">
-          <div class="check-label">{{ check.name }}</div>
-          <div class="check-detail">{{ check.details }}</div>
-        </div>
-      </div>
-    {% endfor %}
+      {% endfor %}
+    {% else %}
+      <p class="data-unavailable">Health and safety data unavailable.</p>
+    {% endif %}
+    </div>
   </div>
 
-  {# ── 5. WHAT'S MISSING / NEEDS VERIFICATION ────────────────── #}
+  {# ── 5. WHAT'S MISSING ─────────────────────────────────────── #}
   {% set unknown_checks = [] %}
   {% for check in result.tier1_checks %}
     {% if check.result == "UNKNOWN" %}
@@ -1006,7 +891,7 @@ transit_access: {{ result.transit_access }}</pre>
     {% if missing_items.append("Walk Score data not available — walkability estimate is based on Google Places only.") %}{% endif %}
   {% endif %}
   {% if not result.green_escape or not result.green_escape.best_daily_park %}
-    {% if missing_items.append("No qualifying park or green space found within walking distance. Check satellite imagery for unreported trails or paths.") %}{% endif %}
+    {% if missing_items.append("No qualifying park or green space found within walking distance.") %}{% endif %}
   {% endif %}
   {% if not result.urban_access or not result.urban_access.primary_transit %}
     {% if missing_items.append("No transit station found nearby. This area may require a car for most trips.") %}{% endif %}
@@ -1015,7 +900,7 @@ transit_access: {{ result.transit_access }}</pre>
   {% if unknown_checks or missing_items %}
   <div class="report-section missing-section">
     <h2>What's Missing / Needs Verification</h2>
-    <p style="font-size: 0.88em; color: #92400e; margin-bottom: 12px;">These items could not be verified automatically. Check with the listing or local sources.</p>
+    <p style="font-size: 0.88em; color: #92400e; margin-bottom: 12px;">These items could not be verified automatically.</p>
     {% for check in unknown_checks %}
       <div class="missing-item">
         <div class="missing-bullet">&#9744;</div>
@@ -1033,7 +918,11 @@ transit_access: {{ result.transit_access }}</pre>
 
   {# ── 6. SCORE BREAKDOWN ────────────────────────────────────── #}
   <div class="report-section">
-    <h2>Score Breakdown</h2>
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Score Breakdown</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
     {% for score in result.tier2_scores %}
       <div class="score-row">
         <div class="score-info">
@@ -1059,7 +948,6 @@ transit_access: {{ result.transit_access }}</pre>
       </div>
     {% endif %}
 
-    {# Score bar #}
     <div class="score-bar-container">
       <div class="score-bar-bg">
         <div class="score-bar-fill" style="width: {{ result.final_score }}%;"></div>
@@ -1071,7 +959,6 @@ transit_access: {{ result.transit_access }}</pre>
       </div>
     </div>
 
-    {# Legend #}
     <div class="score-legend">
       <h3>How the score works</h3>
       <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
@@ -1079,42 +966,20 @@ transit_access: {{ result.transit_access }}</pre>
         Bonus points (up to +15) for parking, outdoor space, and extra bedrooms.
         Properties that fail health/safety checks are disqualified before scoring.
       </p>
-      <div class="legend-row">
-        <span class="cat">Park &amp; Green Access</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Third Place (cafe, social)</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Provisioning (grocery)</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Fitness Access</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Cost / Affordability</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Transit Access</span>
-        <span class="pts">0-10 pts</span>
-      </div>
+      <div class="legend-row"><span class="cat">Park &amp; Green Access</span><span class="pts">0-10 pts</span></div>
+      <div class="legend-row"><span class="cat">Third Place (cafe, social)</span><span class="pts">0-10 pts</span></div>
+      <div class="legend-row"><span class="cat">Provisioning (grocery)</span><span class="pts">0-10 pts</span></div>
+      <div class="legend-row"><span class="cat">Fitness Access</span><span class="pts">0-10 pts</span></div>
+      <div class="legend-row"><span class="cat">Cost / Affordability</span><span class="pts">0-10 pts</span></div>
+      <div class="legend-row"><span class="cat">Transit Access</span><span class="pts">0-10 pts</span></div>
       <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px;">
-        <span class="cat">Subtotal (normalized to 100)</span>
-        <span class="pts">0-100</span>
+        <span class="cat">Subtotal (normalized to 100)</span><span class="pts">0-100</span>
       </div>
-      <div class="legend-row">
-        <span class="cat">Bonus (parking, outdoor, 3+ BR)</span>
-        <span class="pts">up to +15</span>
-      </div>
+      <div class="legend-row"><span class="cat">Bonus (parking, outdoor, 3+ BR)</span><span class="pts">up to +15</span></div>
       <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px; font-weight: 600;">
-        <span class="cat">Final Score (capped at 100)</span>
-        <span class="pts">{{ result.final_score }}</span>
+        <span class="cat">Final Score (capped at 100)</span><span class="pts">{{ result.final_score }}</span>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1124,7 +989,7 @@ transit_access: {{ result.transit_access }}</pre>
   {# ── DISQUALIFIED ──────────────────────────────────────────── #}
   <div class="report-section" style="border: 2px solid #fca5a5;">
     <h2 style="color: #991b1b; border-bottom-color: #fca5a5;">Disqualified</h2>
-    <p style="color: #991b1b; margin-bottom: 16px;">This address failed one or more health and safety requirements. Detailed scoring is only available for qualifying addresses.</p>
+    <p style="color: #991b1b; margin-bottom: 16px;">This address failed one or more health and safety requirements.</p>
     {% for check in result.tier1_checks %}
       <div class="check-row">
         <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
@@ -1139,27 +1004,22 @@ transit_access: {{ result.transit_access }}</pre>
   </div>
   {% endif %}
 
-  {# ── SHARE BAR ────────────────────────────────────────────── #}
-  {% if snapshot_id %}
-  <div class="share-bar">
-    <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <span id="shareBtnText">Copy share link</span>
-    </button>
+  {# ── CTA: Try your own address ─────────────────────────────── #}
+  <div class="snapshot-cta">
+    <h3>Evaluate your own address</h3>
+    <p>See how any U.S. address scores for walkability, green space, transit, and daily life.</p>
+    <a href="/">Try NestCheck</a>
   </div>
-  {% endif %}
 
-  {# ── DISCLAIMER + DATA SOURCES ─────────────────────────────── #}
+  {# ── DISCLAIMER ────────────────────────────────────────────── #}
   <div class="disclaimer">
     <strong>Disclaimer:</strong> NestCheck is a decision-support tool, not professional real estate, health, or legal advice.
     Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
     <br><br>
-    <strong>Data sources:</strong> Google Maps Platform (Places, Distance Matrix, Geocoding), OpenStreetMap (road classification and green space polygons via Overpass API).
-    Walk Score data shown when API key is configured. School and childcare results are from Google Places and may not reflect official district assignments.
+    <strong>Data sources:</strong> Google Maps Platform, OpenStreetMap, Walk Score.
   </div>
 
 </div>
-{% endif %}
 
 <!-- FOOTER -->
 <footer>
@@ -1167,18 +1027,8 @@ transit_access: {{ result.transit_access }}</pre>
 </footer>
 
 <script>
-  document.getElementById('evalForm').addEventListener('submit', function() {
-    var btn = document.getElementById('evalBtn');
-    var overlay = document.getElementById('loadingOverlay');
-    btn.disabled = true;
-    btn.textContent = 'Evaluating...';
-    overlay.classList.add('active');
-  });
-
   function copyShareLink() {
-    var snapshotId = '{{ snapshot_id or "" }}';
-    if (!snapshotId) return;
-    var url = window.location.origin + '/s/' + snapshotId;
+    var url = window.location.href;
     navigator.clipboard.writeText(url).then(function() {
       var btn = document.getElementById('shareBtn');
       var txt = document.getElementById('shareBtnText');
@@ -1195,10 +1045,22 @@ transit_access: {{ result.transit_access }}</pre>
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           event_type: 'snapshot_shared',
-          snapshot_id: snapshotId
+          snapshot_id: '{{ snapshot_id }}'
         })
-      }).catch(function() {});
+      }).catch(function() {}); // fire-and-forget
     });
+  }
+
+  function toggleSection(el) {
+    var body = el.nextElementSibling;
+    var icon = el.querySelector('.collapse-icon');
+    if (body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      icon.innerHTML = '&#9660;';
+    } else {
+      body.classList.add('collapsed');
+      icon.innerHTML = '&#9654;';
+    }
   }
 </script>
 
