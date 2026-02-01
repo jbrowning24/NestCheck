@@ -30,14 +30,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Startup: warn immediately if required config is missing
+# Startup: one-time env diagnostics (always runs, even when key IS present)
 # ---------------------------------------------------------------------------
-if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+_startup_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+_startup_builder = os.environ.get("BUILDER_MODE", "")
+logger.info(
+    "ENV CHECK: GOOGLE_MAPS_API_KEY present=%s length=%d",
+    _startup_key is not None,
+    len(_startup_key) if _startup_key else 0,
+)
+logger.info(
+    "ENV CHECK: BUILDER_MODE=%r effective=%s",
+    _startup_builder,
+    _startup_builder.lower() == "true",
+)
+if not _startup_key:
     logger.warning(
         "GOOGLE_MAPS_API_KEY is not set. "
-        "Address evaluations will fail until it is configured. "
-        "For local development, copy .env.example to .env and add your key."
+        "Real evaluations will fail. "
+        "If BUILDER_MODE=true, demo evaluations will still work."
     )
+del _startup_key, _startup_builder
 
 
 # ---------------------------------------------------------------------------
@@ -507,13 +520,16 @@ def index():
         key_diag = _diagnose_api_key(request_id)
 
         if not key_diag["usable"]:
+            logger.warning(
+                "[%s] GOOGLE_MAPS_API_KEY not usable "
+                "(present=%s, length=%d). builder=%s → %s",
+                request_id, key_diag["present"], key_diag["length"],
+                g.is_builder,
+                "DEMO_EVAL" if g.is_builder else "BLOCK",
+            )
+
             # ----- BUILDER MODE: demo evaluation -----
             if g.is_builder:
-                logger.warning(
-                    "[%s] API key missing but BUILDER_MODE active — "
-                    "generating demo evaluation for: %s",
-                    request_id, address,
-                )
                 result = _generate_demo_result(address)
                 is_demo = True
 
@@ -531,11 +547,6 @@ def index():
                 )
             else:
                 # ----- NON-BUILDER: actionable error -----
-                logger.error(
-                    "[%s] Missing required env vars: GOOGLE_MAPS_API_KEY "
-                    "(present=%s, usable=%s)",
-                    request_id, key_diag["present"], key_diag["usable"],
-                )
                 error = (
                     "NestCheck cannot evaluate addresses right now because "
                     "required API keys are not configured. "
@@ -660,6 +671,7 @@ def export_snapshot_json(snapshot_id):
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
+    result_data = snapshot["result"]
     export = {
         "snapshot_id": snapshot_id,
         "address_input": snapshot["address_input"],
@@ -668,7 +680,8 @@ def export_snapshot_json(snapshot_id):
         "verdict": snapshot["verdict"],
         "final_score": snapshot["final_score"],
         "passed_tier1": bool(snapshot["passed_tier1"]),
-        "result": snapshot["result"],
+        "demo": bool(result_data.get("_demo_mode")),
+        "result": result_data,
     }
     return jsonify(export)
 
@@ -775,6 +788,31 @@ def builder_dashboard():
 @app.route("/pricing")
 def pricing():
     return render_template("pricing.html")
+
+
+# ---------------------------------------------------------------------------
+# Health-check endpoint
+# ---------------------------------------------------------------------------
+
+@app.route("/healthz")
+def healthz():
+    """
+    Internal health-check — returns JSON config diagnostic.
+
+    Hit this after a deploy to confirm env vars are loaded:
+        curl https://yourapp/healthz
+    """
+    request_id = getattr(g, "request_id", "unknown")
+    raw_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    diag = {
+        "api_key_present": raw_key is not None,
+        "api_key_usable": bool(raw_key and raw_key.strip()),
+        "api_key_length": len(raw_key) if raw_key else 0,
+        "builder_mode_effective": g.is_builder,
+        "request_id": request_id,
+    }
+    logger.info("[%s] /healthz → %s", request_id, diag)
+    return jsonify(diag)
 
 
 # ---------------------------------------------------------------------------

@@ -174,6 +174,8 @@ class TestExportEndpoints:
         assert data["final_score"] == 72
         assert data["verdict"] == "Strong daily-life match"
         assert "result" in data
+        # Non-demo snapshots must have demo=False
+        assert data["demo"] is False
 
     def test_csv_export_returns_csv(self, client_with_snapshot):
         client, snapshot_id = client_with_snapshot
@@ -256,9 +258,56 @@ class TestBuilderDemoEvaluation:
         assert "GOOGLE_MAPS_API_KEY" in body
         assert "Demo Mode" not in body
 
+    def test_demo_json_export_has_demo_flag(self, builder_client):
+        """Demo snapshots must have demo=true in their JSON export."""
+        # Create a demo snapshot via POST
+        resp = builder_client.post("/", data={"address": "50 Demo Ln"})
+        body = resp.data.decode()
+        assert "Demo Mode" in body
+        # Extract snapshot_id from the rendered page (/s/<id> link)
+        import re
+        match = re.search(r'/s/([a-zA-Z0-9_-]+)', body)
+        assert match, "Demo result page must contain a snapshot link"
+        snap_id = match.group(1)
+        # Fetch JSON export
+        resp = builder_client.get(f"/api/snapshot/{snap_id}/json")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data["demo"] is True
+
 
 # ---------------------------------------------------------------------------
-# 5. Error classification
+# 5. Healthz endpoint
+# ---------------------------------------------------------------------------
+
+class TestHealthz:
+    """The /healthz endpoint returns config diagnostics."""
+
+    def test_healthz_returns_json(self, app_client):
+        resp = app_client.get("/healthz")
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert "api_key_present" in data
+        assert "api_key_usable" in data
+        assert "builder_mode_effective" in data
+        assert "request_id" in data
+
+    def test_healthz_reports_missing_key(self, app_client):
+        """When GOOGLE_MAPS_API_KEY is not set, healthz reflects that."""
+        resp = app_client.get("/healthz")
+        data = json.loads(resp.data)
+        assert data["api_key_present"] is False
+        assert data["api_key_usable"] is False
+
+    def test_healthz_reports_builder_mode(self, builder_client):
+        """When BUILDER_MODE=true, healthz reflects that."""
+        resp = builder_client.get("/healthz")
+        data = json.loads(resp.data)
+        assert data["builder_mode_effective"] is True
+
+
+# ---------------------------------------------------------------------------
+# 6. Error classification (unit tests — no Flask client needed)
 # ---------------------------------------------------------------------------
 
 class TestErrorClassification:
@@ -351,7 +400,7 @@ class TestApiKeyDiagnostic:
 
 
 # ---------------------------------------------------------------------------
-# 7. "Never again" codebase grep guard
+# 8. "Never again" codebase grep guard
 # ---------------------------------------------------------------------------
 
 class TestCodebaseGuard:
