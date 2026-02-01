@@ -688,6 +688,16 @@
 {# ============================================================ #}
 {#                        EVALUATION RESULT                      #}
 {# ============================================================ #}
+
+{% if is_demo %}
+<div style="max-width: 720px; margin: 20px auto 0; padding: 12px 18px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; font-size: 0.92em; color: #92400e;">
+  <strong>Demo Mode</strong> &mdash;
+  This evaluation used placeholder data because the Google Maps API key is
+  not available. Scores are illustrative only. Set <code>GOOGLE_MAPS_API_KEY</code>
+  in your environment for live evaluations.
+</div>
+{% endif %}
+
 <div class="search-section" style="margin-top: 24px;">
   <form method="POST" id="evalForm">
     <div class="search-box">

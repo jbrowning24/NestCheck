@@ -5,6 +5,7 @@ import logging
 import uuid
 import traceback
 from functools import wraps
+import requests
 from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response
@@ -326,15 +327,153 @@ def result_to_dict(result):
 # Routes
 # ---------------------------------------------------------------------------
 
-def _check_service_config():
+def _diagnose_api_key(request_id="unknown"):
     """
-    Validate required service configuration.
-    Returns (is_ok, missing_keys) tuple.
+    Diagnose the state of GOOGLE_MAPS_API_KEY at request time.
+
+    Reads the env var *fresh* every call (never cached) so that hot-reloads
+    or late-set env vars are picked up immediately.
+
+    Returns dict:
+        present  – True if the var exists in os.environ (even if empty)
+        usable   – True if the var is non-empty (can be sent to Google)
+        length   – len(value) if present, else 0
+        redacted – first 8 chars + "…" for log safety
     """
-    missing = []
-    if not os.environ.get("GOOGLE_MAPS_API_KEY"):
-        missing.append("GOOGLE_MAPS_API_KEY")
-    return (len(missing) == 0, missing)
+    raw = os.environ.get("GOOGLE_MAPS_API_KEY")
+    diag = {
+        "present": raw is not None,
+        "usable": bool(raw and raw.strip()),
+        "length": len(raw) if raw else 0,
+        "redacted": (raw[:8] + "...") if raw and len(raw) > 8 else repr(raw),
+    }
+    logger.info(
+        "[%s] API key diagnostic: present=%s usable=%s length=%d redacted=%s",
+        request_id, diag["present"], diag["usable"], diag["length"],
+        diag["redacted"],
+    )
+    return diag
+
+
+def _classify_evaluation_error(exc):
+    """
+    Map an evaluation exception to a user-friendly (category, message) tuple.
+
+    Categories:
+        key_rejected  – key present but Google refused it (REQUEST_DENIED)
+        quota_exceeded – OVER_QUERY_LIMIT
+        network_error – connection / DNS failure
+        timeout       – request timeout
+        bad_address   – geocoding returned no results
+        unknown       – everything else
+    """
+    msg = str(exc)
+
+    if "REQUEST_DENIED" in msg:
+        return (
+            "key_rejected",
+            "The Google Maps API key was rejected. "
+            "This usually means the key is invalid, IP-restricted, or the "
+            "required APIs (Geocoding, Places, Distance Matrix) are not "
+            "enabled on the Google Cloud project.",
+        )
+    if "OVER_QUERY_LIMIT" in msg:
+        return (
+            "quota_exceeded",
+            "Google Maps API quota exceeded. "
+            "Evaluations will resume when the quota resets or is increased.",
+        )
+    if isinstance(exc, requests.exceptions.ConnectionError):
+        return (
+            "network_error",
+            "Could not reach the Google Maps API. "
+            "This may be a temporary network issue — please try again.",
+        )
+    if isinstance(exc, requests.exceptions.Timeout):
+        return (
+            "timeout",
+            "The Google Maps API did not respond in time. Please try again.",
+        )
+    if "Geocoding failed" in msg and "ZERO_RESULTS" in msg:
+        return (
+            "bad_address",
+            "Google Maps could not find this address. "
+            "Please check the address and try again.",
+        )
+    return (
+        "unknown",
+        "Something went wrong while evaluating this address. "
+        "Please check the address and try again.",
+    )
+
+
+def _generate_demo_result(address):
+    """
+    Return a template-ready result dict with clearly-labelled demo data.
+
+    Used in BUILDER_MODE when the API key is unavailable so the full
+    UI → snapshot → share → export flow can be tested end-to-end.
+    """
+    return {
+        "address": address,
+        "coordinates": {"lat": 40.9176, "lng": -73.8551},
+        "walk_scores": {
+            "walk_score": 72,
+            "walk_description": "Very Walkable",
+            "transit_score": 58,
+            "transit_description": "Good Transit",
+            "bike_score": 45,
+            "bike_description": "Bikeable",
+        },
+        "child_schooling_snapshot": {
+            "childcare": [],
+            "schools_by_level": {},
+        },
+        "urban_access": None,
+        "transit_access": None,
+        "green_escape": None,
+        "transit_score": 58,
+        "passed_tier1": True,
+        "tier1_checks": [
+            {"name": "Highway buffer", "result": "PASS",
+             "details": "Demo — no live data", "required": True},
+            {"name": "Gas station buffer", "result": "PASS",
+             "details": "Demo — no live data", "required": True},
+            {"name": "High-volume road buffer", "result": "PASS",
+             "details": "Demo — no live data", "required": True},
+        ],
+        "tier2_score": 42,
+        "tier2_max": 60,
+        "tier2_normalized": 70,
+        "tier2_scores": [
+            {"name": "Park & Green Access", "points": 7, "max": 10,
+             "details": "Demo score"},
+            {"name": "Third-Place Access", "points": 8, "max": 10,
+             "details": "Demo score"},
+            {"name": "Provisioning Access", "points": 7, "max": 10,
+             "details": "Demo score"},
+            {"name": "Fitness Access", "points": 6, "max": 10,
+             "details": "Demo score"},
+            {"name": "Transit Access", "points": 7, "max": 10,
+             "details": "Demo score"},
+            {"name": "Cost", "points": 7, "max": 10,
+             "details": "Demo score"},
+        ],
+        "tier3_bonus": 5,
+        "tier3_bonuses": [
+            {"name": "Demo bonus", "points": 5, "details": "Illustrative"},
+        ],
+        "tier3_bonus_reasons": [],
+        "final_score": 75,
+        "percentile_top": 30,
+        "percentile_label": "~top 30% nationally for families",
+        "verdict": "Strong daily-life match (demo)",
+        "_demo_mode": True,
+        "_demo_notice": (
+            "This evaluation used demo data because the Google Maps "
+            "API key is not available. Scores are illustrative only."
+        ),
+    }
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -344,6 +483,7 @@ def index():
     error_detail = None  # builder-mode diagnostic
     address = ""
     snapshot_id = None
+    is_demo = False
     request_id = getattr(g, "request_id", "unknown")
 
     if request.method == "POST":
@@ -360,98 +500,135 @@ def index():
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
+                is_demo=is_demo,
             )
 
-        config_ok, missing_keys = _check_service_config()
-        if not config_ok:
-            logger.error(
-                "[%s] Missing required env vars: %s", request_id, missing_keys
-            )
-            error = (
-                "NestCheck cannot evaluate addresses right now because "
-                "required API keys are not configured. "
-                "If you are the site operator, check the deployment environment "
-                "for: " + ", ".join(missing_keys) + "."
-            )
-            error_detail = {
-                "request_id": request_id,
-                "missing_keys": missing_keys,
-                "hint": (
-                    "For local development: copy .env.example to .env and "
-                    "add your keys. For production: set these environment "
-                    "variables in your Railway/Render dashboard."
-                ),
-            }
-            log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "error": "missing_config",
-                                "missing_keys": missing_keys,
-                                "request_id": request_id})
-            return render_template(
-                "index.html", result=result, error=error,
-                error_detail=error_detail,
-                address=address, snapshot_id=snapshot_id,
-                is_builder=g.is_builder, request_id=request_id,
-            )
+        # --- Diagnose API key at request time (never cached) ---
+        key_diag = _diagnose_api_key(request_id)
 
-        # TODO [PACK_LOGIC]: Check evaluation limits here.
-        # if not g.is_builder and FEATURE_CONFIG["max_evaluations_per_day"]:
-        #     count = get_daily_eval_count(g.visitor_id)
-        #     if count >= FEATURE_CONFIG["max_evaluations_per_day"]:
-        #         error = "Daily evaluation limit reached."
-        #         return render_template(...)
+        if not key_diag["usable"]:
+            # ----- BUILDER MODE: demo evaluation -----
+            if g.is_builder:
+                logger.warning(
+                    "[%s] API key missing but BUILDER_MODE active — "
+                    "generating demo evaluation for: %s",
+                    request_id, address,
+                )
+                result = _generate_demo_result(address)
+                is_demo = True
 
-        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-        try:
-            listing = PropertyListing(address=address)
-            eval_result = evaluate_property(listing, api_key)
-            result = result_to_dict(eval_result)
+                snapshot_id = save_snapshot(
+                    address_input=address,
+                    address_norm=address,
+                    result_dict=result,
+                )
+                log_event("snapshot_created", snapshot_id=snapshot_id,
+                          visitor_id=g.visitor_id,
+                          metadata={"address": address, "demo": True})
+                logger.info(
+                    "[%s] Demo snapshot %s created for: %s",
+                    request_id, snapshot_id, address,
+                )
+            else:
+                # ----- NON-BUILDER: actionable error -----
+                logger.error(
+                    "[%s] Missing required env vars: GOOGLE_MAPS_API_KEY "
+                    "(present=%s, usable=%s)",
+                    request_id, key_diag["present"], key_diag["usable"],
+                )
+                error = (
+                    "NestCheck cannot evaluate addresses right now because "
+                    "required API keys are not configured. "
+                    "If you are the site operator, check the deployment "
+                    "environment for: GOOGLE_MAPS_API_KEY."
+                )
+                error_detail = {
+                    "request_id": request_id,
+                    "missing_keys": ["GOOGLE_MAPS_API_KEY"],
+                    "key_diagnostic": {
+                        "present": key_diag["present"],
+                        "usable": key_diag["usable"],
+                        "length": key_diag["length"],
+                    },
+                    "hint": (
+                        "For local development: copy .env.example to .env "
+                        "and add your key. For production: set the env var "
+                        "in your Railway/Render dashboard, then redeploy."
+                    ),
+                }
+                log_event("evaluation_error", visitor_id=g.visitor_id,
+                          metadata={"address": address,
+                                    "error": "missing_config",
+                                    "missing_keys": ["GOOGLE_MAPS_API_KEY"],
+                                    "request_id": request_id})
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    is_demo=is_demo,
+                )
 
-            # Persist snapshot
-            address_norm = result.get("address", address)
-            snapshot_id = save_snapshot(address_input=address,
-                                        address_norm=address_norm,
-                                        result_dict=result)
+        # --- API key is available: run real evaluation ---
+        if not is_demo:
+            # TODO [PACK_LOGIC]: Check evaluation limits here.
 
-            # Log events
-            is_return = check_return_visit(g.visitor_id)
-            log_event("snapshot_created", snapshot_id=snapshot_id,
-                      visitor_id=g.visitor_id,
-                      metadata={"address": address})
-            if is_return:
-                log_event("return_visit", snapshot_id=snapshot_id,
-                          visitor_id=g.visitor_id)
+            api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+            try:
+                listing = PropertyListing(address=address)
+                eval_result = evaluate_property(listing, api_key)
+                result = result_to_dict(eval_result)
 
-            logger.info(
-                "[%s] Snapshot %s created for: %s",
-                request_id, snapshot_id, address,
-            )
+                # Persist snapshot
+                address_norm = result.get("address", address)
+                snapshot_id = save_snapshot(address_input=address,
+                                            address_norm=address_norm,
+                                            result_dict=result)
 
-        except Exception as e:
-            logger.exception(
-                "[%s] Evaluation failed for address: %s", request_id, address
-            )
-            log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "error": str(e),
-                                "request_id": request_id})
-            error = (
-                "Something went wrong while evaluating this address. "
-                "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized "
-                "by Google Maps. (ref: " + request_id + ")"
-            )
-            error_detail = {
-                "request_id": request_id,
-                "exception": str(e),
-                "traceback": traceback.format_exc(),
-            }
+                # Log events
+                is_return = check_return_visit(g.visitor_id)
+                log_event("snapshot_created", snapshot_id=snapshot_id,
+                          visitor_id=g.visitor_id,
+                          metadata={"address": address})
+                if is_return:
+                    log_event("return_visit", snapshot_id=snapshot_id,
+                              visitor_id=g.visitor_id)
+
+                logger.info(
+                    "[%s] Snapshot %s created for: %s",
+                    request_id, snapshot_id, address,
+                )
+
+            except Exception as e:
+                category, user_message = _classify_evaluation_error(e)
+                logger.exception(
+                    "[%s] Evaluation failed (category=%s) for address: %s",
+                    request_id, category, address,
+                )
+                log_event("evaluation_error", visitor_id=g.visitor_id,
+                          metadata={"address": address,
+                                    "error": str(e),
+                                    "category": category,
+                                    "request_id": request_id})
+                error = user_message + " (ref: " + request_id + ")"
+                error_detail = {
+                    "request_id": request_id,
+                    "category": category,
+                    "exception": str(e),
+                    "traceback": traceback.format_exc(),
+                    "key_diagnostic": {
+                        "present": key_diag["present"],
+                        "usable": key_diag["usable"],
+                        "length": key_diag["length"],
+                    },
+                }
 
     return render_template(
         "index.html", result=result, error=error,
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
         is_builder=g.is_builder, request_id=request_id,
+        is_demo=is_demo,
     )
 
 

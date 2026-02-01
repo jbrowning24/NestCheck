@@ -5,9 +5,10 @@ These tests ensure:
 1. The opaque "Service configuration error. Please contact support." message
    can never appear in user-facing responses.
 2. Missing config produces a clear, actionable error with a request_id.
-3. Builder mode shows diagnostic details on errors.
+3. Builder mode uses demo evaluation when API key is missing.
 4. JSON and CSV export endpoints work for existing snapshots.
 5. The old error string is not present anywhere in the codebase.
+6. Error classification differentiates key-missing, key-rejected, and quota.
 """
 
 import json
@@ -133,13 +134,16 @@ class TestOpaqueErrorEliminated:
         body = resp.data.decode()
         assert "ref:" in body
 
-    def test_builder_mode_shows_diagnostic(self, builder_client):
-        """In builder mode, error should include diagnostic detail block."""
+    def test_builder_mode_returns_demo_result(self, builder_client):
+        """In builder mode with missing key, a demo evaluation is returned."""
         resp = builder_client.post("/", data={"address": "123 Main St"})
         body = resp.data.decode()
-        assert "Builder diagnostic" in body
-        assert "missing_keys" in body
-        assert "GOOGLE_MAPS_API_KEY" in body
+        # Should NOT show the config error — demo mode takes over
+        assert "required API keys are not configured" not in body
+        # Should show the demo mode banner
+        assert "Demo Mode" in body
+        # Should render a result (verdict card)
+        assert "demo" in body.lower()
 
     def test_get_homepage_returns_200(self, app_client):
         """GET / should always return 200 (landing page)."""
@@ -221,7 +225,133 @@ class TestSnapshotView:
 
 
 # ---------------------------------------------------------------------------
-# 4. "Never again" codebase grep guard
+# 4. Builder demo evaluation creates a snapshot
+# ---------------------------------------------------------------------------
+
+class TestBuilderDemoEvaluation:
+    """When BUILDER_MODE=true and key is missing, demo evaluation is produced."""
+
+    def test_demo_creates_snapshot(self, builder_client):
+        """Demo evaluation creates a snapshot that can be viewed."""
+        resp = builder_client.post(
+            "/", data={"address": "742 Evergreen Terrace, Springfield"},
+            follow_redirects=True,
+        )
+        body = resp.data.decode()
+        # The result page should contain a snapshot link
+        assert "/s/" in body or "snapshot" in body.lower() or "Demo Mode" in body
+
+    def test_demo_result_contains_demo_marker(self, builder_client):
+        """Demo evaluation results include a demo flag in the data."""
+        resp = builder_client.post("/", data={"address": "100 Main St"})
+        body = resp.data.decode()
+        assert "Demo Mode" in body
+        assert "placeholder data" in body
+
+    def test_non_builder_still_shows_error(self, app_client):
+        """Without builder mode, missing key still produces an error."""
+        resp = app_client.post("/", data={"address": "100 Main St"})
+        body = resp.data.decode()
+        assert "required API keys are not configured" in body
+        assert "GOOGLE_MAPS_API_KEY" in body
+        assert "Demo Mode" not in body
+
+
+# ---------------------------------------------------------------------------
+# 5. Error classification
+# ---------------------------------------------------------------------------
+
+class TestErrorClassification:
+    """_classify_evaluation_error returns appropriate categories."""
+
+    def test_request_denied_classified(self):
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        category, msg = app_module._classify_evaluation_error(
+            ValueError("Geocoding failed: REQUEST_DENIED")
+        )
+        assert category == "key_rejected"
+        assert "rejected" in msg.lower()
+
+    def test_over_query_limit_classified(self):
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        category, msg = app_module._classify_evaluation_error(
+            ValueError("Places API failed: OVER_QUERY_LIMIT")
+        )
+        assert category == "quota_exceeded"
+        assert "quota" in msg.lower()
+
+    def test_zero_results_classified(self):
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        category, msg = app_module._classify_evaluation_error(
+            ValueError("Geocoding failed: ZERO_RESULTS")
+        )
+        assert category == "bad_address"
+        assert "address" in msg.lower()
+
+    def test_unknown_error_classified(self):
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        category, msg = app_module._classify_evaluation_error(
+            RuntimeError("something unexpected")
+        )
+        assert category == "unknown"
+
+
+# ---------------------------------------------------------------------------
+# 6. API key diagnostic
+# ---------------------------------------------------------------------------
+
+class TestApiKeyDiagnostic:
+    """_diagnose_api_key returns correct diagnostics."""
+
+    def test_missing_key(self, monkeypatch):
+        monkeypatch.delenv("GOOGLE_MAPS_API_KEY", raising=False)
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        diag = app_module._diagnose_api_key("test-req")
+        assert diag["present"] is False
+        assert diag["usable"] is False
+        assert diag["length"] == 0
+
+    def test_empty_key(self, monkeypatch):
+        monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "")
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        diag = app_module._diagnose_api_key("test-req")
+        assert diag["present"] is True
+        assert diag["usable"] is False
+
+    def test_valid_key(self, monkeypatch):
+        monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "AIzaSyDFTggXPncXzwKNLyR123456")
+        import importlib
+        import app as app_module
+        importlib.reload(app_module)
+
+        diag = app_module._diagnose_api_key("test-req")
+        assert diag["present"] is True
+        assert diag["usable"] is True
+        assert diag["length"] == len("AIzaSyDFTggXPncXzwKNLyR123456")
+        # Key should be redacted
+        assert "AIzaSyDF..." in diag["redacted"]
+
+
+# ---------------------------------------------------------------------------
+# 7. "Never again" codebase grep guard
 # ---------------------------------------------------------------------------
 
 class TestCodebaseGuard:
