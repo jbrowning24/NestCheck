@@ -210,3 +210,6 @@ __marimo__/
 nestcheck.db
 nestcheck.db-wal
 nestcheck.db-shm
+.env
+.DS_Store
+ (Add .env example and ignore local env + macOS files)
