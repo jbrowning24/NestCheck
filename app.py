@@ -28,6 +28,16 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Startup: warn immediately if required config is missing
+# ---------------------------------------------------------------------------
+if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+    logger.warning(
+        "GOOGLE_MAPS_API_KEY is not set. "
+        "Address evaluations will fail until it is configured. "
+        "For local development, copy .env.example to .env and add your key."
+    )
+
 
 # ---------------------------------------------------------------------------
 # Request ID middleware — every request gets a unique ID for tracing
@@ -366,7 +376,11 @@ def index():
             error_detail = {
                 "request_id": request_id,
                 "missing_keys": missing_keys,
-                "hint": "Set these environment variables in your Railway/Render dashboard.",
+                "hint": (
+                    "For local development: copy .env.example to .env and "
+                    "add your keys. For production: set these environment "
+                    "variables in your Railway/Render dashboard."
+                ),
             }
             log_event("evaluation_error", visitor_id=g.visitor_id,
                       metadata={"address": address,
