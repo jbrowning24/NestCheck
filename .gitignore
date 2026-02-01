@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# NestCheck SQLite database (runtime data, not code)
+nestcheck.db
+nestcheck.db-wal
+nestcheck.db-shm
