@@ -31,6 +31,10 @@ from urban_access import (
     UrbanAccessResult,
     urban_access_result_to_dict,
 )
+from green_space import (
+    GreenEscapeEvaluation,
+    evaluate_green_escape,
+)
 
 load_dotenv()
 
