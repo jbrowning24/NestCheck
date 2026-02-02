@@ -337,6 +337,12 @@ def _check_service_config():
     return (len(missing) == 0, missing)
 
 
+def _wants_json():
+    """Return True if the client prefers a JSON response."""
+    accept = request.headers.get("Accept", "")
+    return "application/json" in accept
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -355,6 +361,8 @@ def index():
 
         if not address:
             error = "Please enter a property address to evaluate."
+            if _wants_json():
+                return jsonify({"error": error, "request_id": request_id}), 400
             return render_template(
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
@@ -387,6 +395,8 @@ def index():
                                 "error": "missing_config",
                                 "missing_keys": missing_keys,
                                 "request_id": request_id})
+            if _wants_json():
+                return jsonify({"error": error, "request_id": request_id}), 503
             return render_template(
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
@@ -427,6 +437,13 @@ def index():
                 request_id, snapshot_id, address,
             )
 
+            # Return JSON for fetch-based clients, HTML for traditional form POST
+            if _wants_json():
+                return jsonify({
+                    "snapshot_id": snapshot_id,
+                    "redirect_url": f"/s/{snapshot_id}",
+                })
+
         except Exception as e:
             logger.exception(
                 "[%s] Evaluation failed for address: %s", request_id, address
@@ -446,6 +463,8 @@ def index():
                 "exception": str(e),
                 "traceback": traceback.format_exc(),
             }
+            if _wants_json():
+                return jsonify({"error": error, "request_id": request_id}), 500
 
     return render_template(
         "index.html", result=result, error=error,
@@ -598,6 +617,16 @@ def builder_dashboard():
 @app.route("/pricing")
 def pricing():
     return render_template("pricing.html")
+
+
+@app.route("/healthz")
+def healthz():
+    """Lightweight health-check endpoint for monitoring."""
+    config_ok, missing = _check_service_config()
+    return jsonify({
+        "status": "ok" if config_ok else "degraded",
+        "missing_keys": missing,
+    }), 200 if config_ok else 503
 
 
 # ---------------------------------------------------------------------------

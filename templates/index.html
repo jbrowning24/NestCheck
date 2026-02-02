@@ -151,6 +151,27 @@
       flex-direction: column;
     }
     .loading-overlay.active { display: flex; }
+
+    /* --- ERROR BANNER (injected by JS on failure) --- */
+    .error-banner {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      color: #991b1b;
+      line-height: 1.5;
+    }
+    .error-banner strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1em;
+    }
+    .error-banner .error-msg {
+      display: block;
+      font-size: 0.92em;
+      color: #7f1d1d;
+    }
     .spinner {
       width: 48px;
       height: 48px;
@@ -1178,13 +1199,103 @@ transit_access: {{ result.transit_access }}</pre>
 </footer>
 
 <script>
-  document.getElementById('evalForm').addEventListener('submit', function() {
-    var btn = document.getElementById('evalBtn');
-    var overlay = document.getElementById('loadingOverlay');
-    btn.disabled = true;
-    btn.textContent = 'Evaluating...';
-    overlay.classList.add('active');
-  });
+  (function() {
+    var CLIENT_TIMEOUT_MS = 120000; // 2 minutes — generous budget
+
+    document.getElementById('evalForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var form = e.target;
+      var btn = document.getElementById('evalBtn');
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingText = overlay.querySelector('.loading-text');
+      var loadingSub = overlay.querySelector('.loading-sub');
+      var address = form.querySelector('input[name="address"]').value.trim();
+
+      if (!address) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Evaluating...';
+      overlay.classList.add('active');
+      loadingText.textContent = 'Evaluating this address...';
+      loadingSub.textContent = 'Checking parks, transit, schools, safety, and more. This takes 15\u201345 seconds.';
+
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function() {
+        controller.abort();
+      }, CLIENT_TIMEOUT_MS);
+
+      // Progress updates while waiting
+      var elapsed = 0;
+      var progressId = setInterval(function() {
+        elapsed += 5;
+        if (elapsed >= 60) {
+          loadingSub.textContent = 'Still working (' + elapsed + 's)... Almost there.';
+        } else if (elapsed >= 30) {
+          loadingSub.textContent = 'Gathering transit and urban access data (' + elapsed + 's)...';
+        } else if (elapsed >= 15) {
+          loadingSub.textContent = 'Checking green spaces and schools (' + elapsed + 's)...';
+        }
+      }, 5000);
+
+      var body = new FormData(form);
+
+      fetch('/', {
+        method: 'POST',
+        body: body,
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      })
+      .then(function(resp) {
+        clearTimeout(timeoutId);
+        clearInterval(progressId);
+        return resp.json().then(function(data) {
+          if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+          } else if (data.error) {
+            showError(data.error);
+          } else {
+            showError('Unexpected response from server.');
+          }
+        });
+      })
+      .catch(function(err) {
+        clearTimeout(timeoutId);
+        clearInterval(progressId);
+        if (err.name === 'AbortError') {
+          showError(
+            'The evaluation timed out after 2 minutes. ' +
+            'This may be due to a temporary API issue. Please try again.'
+          );
+        } else {
+          showError(
+            'A network error occurred. Please check your connection and try again. (' + err.message + ')'
+          );
+        }
+      });
+
+      function showError(msg) {
+        overlay.classList.remove('active');
+        btn.disabled = false;
+        btn.textContent = btn.dataset.originalText || 'Evaluate';
+
+        // Insert or update error banner
+        var existingBanner = document.querySelector('.error-banner');
+        if (existingBanner) {
+          existingBanner.querySelector('.error-msg').textContent = msg;
+        } else {
+          var banner = document.createElement('div');
+          banner.className = 'error-banner';
+          banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
+          form.parentNode.insertBefore(banner, form);
+        }
+      }
+    });
+
+    // Store original button text
+    var evalBtn = document.getElementById('evalBtn');
+    if (evalBtn) evalBtn.dataset.originalText = evalBtn.textContent;
+  })();
 
   function copyShareLink() {
     var snapshotId = '{{ snapshot_id or "" }}';

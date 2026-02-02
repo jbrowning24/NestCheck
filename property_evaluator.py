@@ -18,12 +18,16 @@ import os
 import sys
 import json
 import math
+import time
+import logging
 import argparse
 import re
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple, Dict, Any
 from enum import Enum
 import requests
+
+logger = logging.getLogger(__name__)
 from urllib.parse import quote
 from dotenv import load_dotenv
 from urban_access import (
@@ -315,7 +319,11 @@ class EvaluationResult:
 
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
-    
+
+    # Per-call timeout in seconds.  Keeps any single request from hanging
+    # the whole evaluation.  10 s is generous for Google Maps — p99 is < 2 s.
+    DEFAULT_TIMEOUT = 10
+
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
@@ -329,12 +337,12 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
-        
+
         if data["status"] != "OK":
             raise ValueError(f"Geocoding failed: {data['status']}")
-        
+
         location = data["results"][0]["geometry"]["location"]
         return location["lat"], location["lng"]
     
@@ -356,10 +364,10 @@ class GoogleMapsClient:
         }
         if keyword:
             params["keyword"] = keyword
-        
-        response = self.session.get(url, params=params)
+
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
-        
+
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
         
@@ -381,9 +389,9 @@ class GoogleMapsClient:
             "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
-        
+
         if data["status"] != "OK":
             raise ValueError(f"Place Details API failed: {data['status']}")
         
@@ -398,7 +406,7 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
         
         if data["status"] != "OK":
@@ -419,7 +427,7 @@ class GoogleMapsClient:
             "mode": "driving",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
 
         if data["status"] != "OK":
@@ -440,7 +448,7 @@ class GoogleMapsClient:
             "mode": "transit",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
 
         if data["status"] != "OK":
@@ -467,7 +475,7 @@ class GoogleMapsClient:
             "radius": radius_meters,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -493,12 +501,14 @@ class GoogleMapsClient:
 
 class OverpassClient:
     """Client for OpenStreetMap Overpass API - for road data"""
-    
+
+    DEFAULT_TIMEOUT = 25
+
     def __init__(self):
         self.base_url = "https://overpass-api.de/api/interpreter"
         self.session = requests.Session()
         self.session.trust_env = False
-    
+
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
         query = f"""
@@ -510,7 +520,7 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        response = self.session.post(self.base_url, data={"data": query})
+        response = self.session.post(self.base_url, data={"data": query}, timeout=self.DEFAULT_TIMEOUT)
         data = response.json()
         
         roads = []
@@ -2579,17 +2589,38 @@ def estimate_percentile(score: int) -> Tuple[int, str]:
 # MAIN EVALUATION
 # =============================================================================
 
+def _timed_stage(stage_name, fn, *args, **kwargs):
+    """Run *fn* with timing.  Logs duration and re-raises on failure."""
+    t0 = time.time()
+    try:
+        result = fn(*args, **kwargs)
+        elapsed = time.time() - t0
+        logger.info("  [stage] %s OK (%.1fs)", stage_name, elapsed)
+        return result
+    except Exception:
+        elapsed = time.time() - t0
+        logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, elapsed, exc_info=True)
+        raise
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str
 ) -> EvaluationResult:
-    """Run full evaluation on a property listing"""
-    
+    """Run full evaluation on a property listing.
+
+    Each enrichment stage is wrapped in try/except so that a single
+    failing API call (timeout, quota, etc.) degrades gracefully
+    instead of aborting the whole evaluation.
+    """
+    eval_start = time.time()
+
     maps = GoogleMapsClient(api_key)
     overpass = OverpassClient()
-    
-    # Geocode the address
-    lat, lng = maps.geocode(listing.address)
+
+    # Geocode is the one stage that MUST succeed — without coords nothing
+    # else can run.  Let this propagate on failure.
+    lat, lng = _timed_stage("geocode", maps.geocode, listing.address)
 
     result = EvaluationResult(
         listing=listing,
@@ -2597,47 +2628,87 @@ def evaluate_property(
         lng=lng
     )
 
-    bike_data = get_bike_score(listing.address, lat, lng)
-    result.bike_score = bike_data.get("bike_score")
-    result.bike_rating = bike_data.get("bike_rating")
-    result.bike_metadata = bike_data.get("bike_metadata")
+    # --- Optional enrichments (each fails independently) ---
 
-    # ===================
-    # NEIGHBORHOOD SNAPSHOT
-    # ===================
+    try:
+        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
+        result.bike_score = bike_data.get("bike_score")
+        result.bike_rating = bike_data.get("bike_rating")
+        result.bike_metadata = bike_data.get("bike_metadata")
+    except Exception:
+        pass
 
-    result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
-    result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
-    result.urban_access = get_urban_access_profile(maps, lat, lng)
-    result.transit_access = evaluate_transit_access(maps, lat, lng)
-    result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
-    result.green_escape_evaluation = evaluate_green_escape(maps, lat, lng)
-    result.transit_score = get_transit_score(listing.address, lat, lng)
-    result.walk_scores = get_walk_scores(listing.address, lat, lng)
+    try:
+        result.neighborhood_snapshot = _timed_stage(
+            "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.child_schooling_snapshot = _timed_stage(
+            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.urban_access = _timed_stage(
+            "urban_access", get_urban_access_profile, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.transit_access = _timed_stage(
+            "transit_access", evaluate_transit_access, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.green_space_evaluation = _timed_stage(
+            "green_spaces", evaluate_green_spaces, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.green_escape_evaluation = _timed_stage(
+            "green_escape", evaluate_green_escape, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.transit_score = _timed_stage(
+            "transit_score", get_transit_score, listing.address, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.walk_scores = _timed_stage(
+            "walk_scores", get_walk_scores, listing.address, lat, lng)
+    except Exception:
+        pass
 
     # ===================
     # TIER 1 CHECKS
     # ===================
-    
+
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
     result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
     result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
-    
+
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
-    
+
     # Determine if passed tier 1
     fail_count = sum(
         1 for c in result.tier1_checks
         if c.result == CheckResult.FAIL and c.required
     )
     result.passed_tier1 = (fail_count == 0)
-    
+
     # ===================
     # TIER 2 SCORING
     # ===================
-    
+
     if result.passed_tier1:
         result.tier2_scores.append(
             score_park_access(
@@ -2660,20 +2731,20 @@ def evaluate_property(
             result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
         else:
             result.tier2_normalized = 0
-    
+
     # ===================
     # TIER 3 BONUSES
     # ===================
-    
+
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
         result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
-    
+
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
-    
+
     if result.tier2_max > 0:
         result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
     else:
@@ -2681,7 +2752,11 @@ def evaluate_property(
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
-    
+
+    elapsed_total = time.time() - eval_start
+    logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",
+                listing.address, result.final_score, elapsed_total)
+
     return result
 
 
