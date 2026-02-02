@@ -28,6 +28,7 @@ from enum import Enum
 import requests
 
 logger = logging.getLogger(__name__)
+from nc_trace import get_trace
 from urllib.parse import quote
 from dotenv import load_dotenv
 from urban_access import (
@@ -329,7 +330,25 @@ class GoogleMapsClient:
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.session = requests.Session()
         self.session.trust_env = False
-    
+
+    def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
+        """GET request with automatic trace recording."""
+        t0 = time.time()
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        elapsed_ms = int((time.time() - t0) * 1000)
+        data = response.json()
+        provider_status = data.get("status", "") if isinstance(data, dict) else ""
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="google_maps",
+                endpoint=endpoint_name,
+                elapsed_ms=elapsed_ms,
+                status_code=response.status_code,
+                provider_status=provider_status,
+            )
+        return data
+
     def geocode(self, address: str) -> Tuple[float, float]:
         """Convert address to lat/lng coordinates"""
         url = f"{self.base_url}/geocode/json"
@@ -337,8 +356,7 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("geocode", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Geocoding failed: {data['status']}")
@@ -365,12 +383,11 @@ class GoogleMapsClient:
         if keyword:
             params["keyword"] = keyword
 
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("places_nearby", url, params)
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
-        
+
         return data.get("results", [])
     
     def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
@@ -389,12 +406,11 @@ class GoogleMapsClient:
             "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("place_details", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Place Details API failed: {data['status']}")
-        
+
         return data.get("result", {})
 
     def walking_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
@@ -406,16 +422,15 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
-        
+        data = self._traced_get("walking_time", url, params)
+
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
-        
+
         element = data["rows"][0]["elements"][0]
         if element["status"] != "OK":
             return 9999  # Unreachable
-        
+
         return element["duration"]["value"] // 60  # Convert seconds to minutes
 
     def driving_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
@@ -427,8 +442,7 @@ class GoogleMapsClient:
             "mode": "driving",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("driving_time", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
@@ -448,8 +462,7 @@ class GoogleMapsClient:
             "mode": "transit",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("transit_time", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
@@ -475,14 +488,13 @@ class GoogleMapsClient:
             "radius": radius_meters,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("text_search", url, params)
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Text Search API failed: {data['status']}")
 
         return data.get("results", [])
-    
+
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
         # Haversine formula
@@ -509,6 +521,22 @@ class OverpassClient:
         self.session = requests.Session()
         self.session.trust_env = False
 
+    def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
+        """POST request with automatic trace recording."""
+        t0 = time.time()
+        response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
+        elapsed_ms = int((time.time() - t0) * 1000)
+        data = response.json()
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="overpass",
+                endpoint=endpoint_name,
+                elapsed_ms=elapsed_ms,
+                status_code=response.status_code,
+            )
+        return data
+
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
         query = f"""
@@ -520,8 +548,7 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        response = self.session.post(self.base_url, data={"data": query}, timeout=self.DEFAULT_TIMEOUT)
-        data = response.json()
+        data = self._traced_post("get_nearby_roads", self.base_url, {"data": query})
         
         roads = []
         for element in data.get("elements", []):
@@ -553,9 +580,18 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
     }
 
     try:
+        _t0 = time.time()
         response = requests.get(url, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_bike_score",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
     except (requests.RequestException, ValueError):
         return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
 
@@ -602,9 +638,18 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
     }
 
     try:
+        _t0 = time.time()
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_transit_score",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
     except (requests.RequestException, ValueError):
         return default_response
 
@@ -677,9 +722,18 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
     }
 
     try:
+        _t0 = time.time()
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_walk_scores",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
     except (requests.RequestException, ValueError):
         return default_scores
 
@@ -1165,7 +1219,15 @@ def get_child_and_schooling_snapshot(
         if not website:
             return ""
         try:
+            _t0 = time.time()
             response = requests.get(website, timeout=6)
+            _elapsed = int((time.time() - _t0) * 1000)
+            _trace = get_trace()
+            if _trace:
+                _trace.record_api_call(
+                    service="website", endpoint="fetch_website_text",
+                    elapsed_ms=_elapsed, status_code=response.status_code,
+                )
             if response.status_code >= 400:
                 return ""
             text = re.sub(r"<[^>]+>", " ", response.text)
@@ -2591,15 +2653,28 @@ def estimate_percentile(score: int) -> Tuple[int, str]:
 
 def _timed_stage(stage_name, fn, *args, **kwargs):
     """Run *fn* with timing.  Logs duration and re-raises on failure."""
+    trace = get_trace()
+    if trace:
+        trace.start_stage(stage_name)
     t0 = time.time()
     try:
         result = fn(*args, **kwargs)
-        elapsed = time.time() - t0
-        logger.info("  [stage] %s OK (%.1fs)", stage_name, elapsed)
+        t1 = time.time()
+        if trace:
+            trace.record_stage(stage_name, t0, t1)
+        else:
+            logger.info("  [stage] %s OK (%.1fs)", stage_name, t1 - t0)
         return result
-    except Exception:
-        elapsed = time.time() - t0
-        logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, elapsed, exc_info=True)
+    except Exception as exc:
+        t1 = time.time()
+        if trace:
+            trace.record_stage(
+                stage_name, t0, t1,
+                error_class=type(exc).__name__,
+                error_message=str(exc)[:200],
+            )
+        else:
+            logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, t1 - t0, exc_info=True)
         raise
 
 
@@ -2690,6 +2765,11 @@ def evaluate_property(
     # TIER 1 CHECKS
     # ===================
 
+    trace = get_trace()
+    if trace:
+        trace.start_stage("tier1_checks")
+    _t0_tier1 = time.time()
+
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
     result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
@@ -2697,6 +2777,9 @@ def evaluate_property(
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
+
+    if trace:
+        trace.record_stage("tier1_checks", _t0_tier1, time.time())
 
     # Determine if passed tier 1
     fail_count = sum(
@@ -2711,18 +2794,25 @@ def evaluate_property(
 
     if result.passed_tier1:
         result.tier2_scores.append(
-            score_park_access(
+            _timed_stage(
+                "score_park_access", score_park_access,
                 maps, lat, lng,
                 green_space_evaluation=result.green_space_evaluation,
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        result.tier2_scores.append(score_third_place_access(maps, lat, lng))
-        result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
-        result.tier2_scores.append(score_fitness_access(maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_third_place", score_third_place_access, maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_fitness", score_fitness_access, maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(
-            score_transit_access(maps, lat, lng, transit_access=result.transit_access)
+            _timed_stage(
+                "score_transit_access", score_transit_access,
+                maps, lat, lng, transit_access=result.transit_access,
+            )
         )
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)

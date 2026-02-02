@@ -1253,7 +1253,8 @@ transit_access: {{ result.transit_access }}</pre>
           if (data.redirect_url) {
             window.location.href = data.redirect_url;
           } else if (data.error) {
-            showError(data.error);
+            var traceRef = data.request_id ? ' (trace: ' + data.request_id + ')' : '';
+            showError(data.error + traceRef);
           } else {
             showError('Unexpected response from server.');
           }
@@ -1265,7 +1266,8 @@ transit_access: {{ result.transit_access }}</pre>
         if (err.name === 'AbortError') {
           showError(
             'The evaluation timed out after 2 minutes. ' +
-            'This may be due to a temporary API issue. Please try again.'
+            'The server may still be processing. ' +
+            'This typically means an upstream API (Google/Overpass) is slow. Please try again.'
           );
         } else {
           showError(
