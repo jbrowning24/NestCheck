@@ -4,6 +4,7 @@ import csv
 import logging
 import uuid
 import traceback
+import subprocess
 from functools import wraps
 import requests
 from flask import (
@@ -32,10 +33,19 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Startup: one-time env diagnostics (always runs, even when key IS present)
 # ---------------------------------------------------------------------------
+try:
+    _GIT_COMMIT = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"],
+        stderr=subprocess.DEVNULL,
+    ).decode().strip()
+except Exception:
+    _GIT_COMMIT = os.environ.get("RAILWAY_GIT_COMMIT_SHA", "unknown")[:7]
+
 _startup_key = os.environ.get("GOOGLE_MAPS_API_KEY")
 _startup_builder = os.environ.get("BUILDER_MODE", "")
 logger.info(
-    "ENV CHECK: GOOGLE_MAPS_API_KEY present=%s length=%d",
+    "ENV CHECK: commit=%s GOOGLE_MAPS_API_KEY present=%s length=%d",
+    _GIT_COMMIT,
     _startup_key is not None,
     len(_startup_key) if _startup_key else 0,
 )
@@ -805,6 +815,7 @@ def healthz():
     request_id = getattr(g, "request_id", "unknown")
     raw_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     diag = {
+        "git_commit": _GIT_COMMIT,
         "api_key_present": raw_key is not None,
         "api_key_usable": bool(raw_key and raw_key.strip()),
         "api_key_length": len(raw_key) if raw_key else 0,
