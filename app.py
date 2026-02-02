@@ -10,6 +10,7 @@ from flask import (
     make_response, abort, jsonify, g, Response
 )
 from dotenv import load_dotenv
+from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult
 )
@@ -412,13 +413,17 @@ def index():
         #         return render_template(...)
 
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+        trace_ctx = TraceContext(trace_id=request_id)
+        set_trace(trace_ctx)
         try:
             listing = PropertyListing(address=address)
             eval_result = evaluate_property(listing, api_key)
             result = result_to_dict(eval_result)
 
-            # Persist snapshot
+            # Persist snapshot — include trace_id in metadata
             address_norm = result.get("address", address)
+            trace_summary = trace_ctx.summary_dict()
+            result["_trace"] = trace_summary
             snapshot_id = save_snapshot(address_input=address,
                                         address_norm=address_norm,
                                         result_dict=result)
@@ -427,10 +432,14 @@ def index():
             is_return = check_return_visit(g.visitor_id)
             log_event("snapshot_created", snapshot_id=snapshot_id,
                       visitor_id=g.visitor_id,
-                      metadata={"address": address})
+                      metadata={"address": address,
+                                "trace_id": request_id})
             if is_return:
                 log_event("return_visit", snapshot_id=snapshot_id,
                           visitor_id=g.visitor_id)
+
+            # Emit the end-of-request summary log line
+            trace_ctx.log_summary()
 
             logger.info(
                 "[%s] Snapshot %s created for: %s",
@@ -442,16 +451,20 @@ def index():
                 return jsonify({
                     "snapshot_id": snapshot_id,
                     "redirect_url": f"/s/{snapshot_id}",
+                    "trace_id": request_id,
+                    "trace_summary": trace_summary,
                 })
 
         except Exception as e:
+            trace_ctx.log_summary()
             logger.exception(
                 "[%s] Evaluation failed for address: %s", request_id, address
             )
             log_event("evaluation_error", visitor_id=g.visitor_id,
                       metadata={"address": address,
                                 "error": str(e),
-                                "request_id": request_id})
+                                "request_id": request_id,
+                                "trace_summary": trace_ctx.summary_dict()})
             error = (
                 "Something went wrong while evaluating this address. "
                 "Please check the address and try again. "
@@ -464,7 +477,13 @@ def index():
                 "traceback": traceback.format_exc(),
             }
             if _wants_json():
-                return jsonify({"error": error, "request_id": request_id}), 500
+                return jsonify({
+                    "error": error,
+                    "request_id": request_id,
+                    "trace_summary": trace_ctx.summary_dict(),
+                }), 500
+        finally:
+            clear_trace()
 
     return render_template(
         "index.html", result=result, error=error,
@@ -627,6 +646,72 @@ def healthz():
         "status": "ok" if config_ok else "degraded",
         "missing_keys": missing,
     }), 200 if config_ok else 503
+
+
+@app.route("/debug/trace/<snapshot_id>")
+def debug_trace(snapshot_id):
+    """View trace data for a snapshot (safe, no secrets). Builder-only."""
+    if not g.is_builder:
+        abort(404)
+
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    result = snapshot.get("result", {})
+    trace_data = result.get("_trace")
+
+    return jsonify({
+        "snapshot_id": snapshot_id,
+        "address": snapshot.get("address_input"),
+        "created_at": snapshot.get("created_at"),
+        "trace": trace_data,
+    })
+
+
+@app.route("/debug/eval", methods=["POST"])
+def debug_eval():
+    """Run an evaluation and return full trace data. Builder-only.
+
+    Accepts JSON: {"address": "123 Main St, City, ST"}
+    Returns: full trace with per-stage and per-call timing.
+    """
+    if not g.is_builder:
+        abort(404)
+
+    data = request.get_json(silent=True) or {}
+    address = data.get("address", "").strip()
+    if not address:
+        return jsonify({"error": "address is required"}), 400
+
+    config_ok, missing_keys = _check_service_config()
+    if not config_ok:
+        return jsonify({"error": "missing config", "missing_keys": missing_keys}), 503
+
+    request_id = getattr(g, "request_id", "unknown")
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    trace_ctx = TraceContext(trace_id=request_id)
+    set_trace(trace_ctx)
+    try:
+        listing = PropertyListing(address=address)
+        eval_result = evaluate_property(listing, api_key)
+        trace_ctx.log_summary()
+
+        return jsonify({
+            "address": address,
+            "final_score": eval_result.final_score,
+            "passed_tier1": eval_result.passed_tier1,
+            "trace": trace_ctx.full_trace_dict(),
+        })
+    except Exception as e:
+        trace_ctx.log_summary()
+        return jsonify({
+            "address": address,
+            "error": str(e),
+            "trace": trace_ctx.full_trace_dict(),
+        }), 500
+    finally:
+        clear_trace()
 
 
 # ---------------------------------------------------------------------------

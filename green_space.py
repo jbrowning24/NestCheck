@@ -26,6 +26,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 import requests
+from nc_trace import get_trace
 
 
 # =============================================================================
@@ -384,8 +385,18 @@ def _overpass_query(query: str) -> Dict:
     session = requests.Session()
     session.trust_env = False
     try:
+        t0 = time.time()
         resp = session.post(url, data={"data": query}, timeout=25)
+        elapsed_ms = int((time.time() - t0) * 1000)
         data = resp.json()
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="overpass",
+                endpoint="osm_enrich_query",
+                elapsed_ms=elapsed_ms,
+                status_code=resp.status_code,
+            )
     except Exception:
         data = {"elements": []}
 
