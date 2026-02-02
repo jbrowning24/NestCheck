@@ -22,7 +22,7 @@ from models import (
     create_queued_snapshot, update_snapshot_status,
 )
 from worker import (
-    submit_evaluation, start_workers, initial_modules_status,
+    start_workers, initial_modules_status,
     DISPLAY_MODULES,
 )
 
@@ -408,20 +408,12 @@ def index():
                 is_builder=g.is_builder, request_id=request_id,
             )
 
-        # --- Async evaluation: create snapshot immediately, dispatch to worker ---
-        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+        # --- Async evaluation: create snapshot, worker picks it up from DB ---
         modules = initial_modules_status()
         snapshot_id = create_queued_snapshot(
             address_input=address,
             trace_id=request_id,
             modules_status=modules,
-        )
-
-        submit_evaluation(
-            snapshot_id=snapshot_id,
-            address=address,
-            api_key=api_key,
-            trace_id=request_id,
             visitor_id=g.visitor_id,
         )
 
@@ -470,19 +462,11 @@ def evaluate_api():
             "request_id": request_id,
         }), 503
 
-    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     modules = initial_modules_status()
     snapshot_id = create_queued_snapshot(
         address_input=address,
         trace_id=request_id,
         modules_status=modules,
-    )
-
-    submit_evaluation(
-        snapshot_id=snapshot_id,
-        address=address,
-        api_key=api_key,
-        trace_id=request_id,
         visitor_id=g.visitor_id,
     )
 
@@ -533,13 +517,44 @@ def snapshot_status(snapshot_id):
     Polling endpoint for async evaluation progress.
     Returns current status and per-module progress.
     Called by snapshot.html every 2-3 seconds until done/failed.
+
+    Race-condition guard: if the job is 'running' but the lock is stale
+    (worker died), we proactively mark it as failed so the client sees
+    the failure on the next poll rather than waiting for the stale-check
+    timer in the worker loop.
     """
+    from datetime import datetime, timezone, timedelta
+    from worker import STALE_TIMEOUT_S
+    from models import update_snapshot_status as _update_status
+
     snapshot = get_snapshot(snapshot_id)
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
     status = snapshot.get("status", "done")
     modules = snapshot.get("modules_status", {})
+
+    # Detect stale running jobs (worker died mid-evaluation)
+    if status == "running":
+        locked_at = snapshot.get("locked_at")
+        if locked_at:
+            try:
+                lock_time = datetime.fromisoformat(locked_at)
+                age = (datetime.now(timezone.utc) - lock_time).total_seconds()
+                if age > STALE_TIMEOUT_S:
+                    # Worker is dead — mark failed immediately
+                    logger.warning(
+                        "[status] Stale running job detected: %s locked %.0fs ago",
+                        snapshot_id, age,
+                    )
+                    for mid in modules:
+                        if modules[mid].get("status") in ("queued", "running"):
+                            modules[mid]["status"] = "failed"
+                            modules[mid]["error"] = "Worker timed out"
+                    _update_status(snapshot_id, "failed", modules_status=modules)
+                    status = "failed"
+            except (ValueError, TypeError):
+                pass
 
     resp = {
         "snapshot_id": snapshot_id,
