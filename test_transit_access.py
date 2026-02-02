@@ -85,11 +85,25 @@ class TestScoreFromThresholds(unittest.TestCase):
 class TestEvaluateTransitAccess(unittest.TestCase):
     """Integration-style smoke tests with mocked GoogleMapsClient."""
 
+    @staticmethod
+    def _real_distance_feet(origin, dest):
+        """Pure-math haversine — same as GoogleMapsClient.distance_feet."""
+        import math
+        R = 20902231
+        lat1, lon1 = math.radians(origin[0]), math.radians(origin[1])
+        lat2, lon2 = math.radians(dest[0]), math.radians(dest[1])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+        return int(R * 2 * math.asin(math.sqrt(a)))
+
     def _mock_client(self, nearby_results, walk_time=5):
         """Return a GoogleMapsClient mock with pre-set nearby and walk responses."""
         client = MagicMock(spec=GoogleMapsClient)
         client.places_nearby.return_value = nearby_results
         client.walking_time.return_value = walk_time
+        # distance_feet is used for sorting by proximity; use real haversine.
+        client.distance_feet.side_effect = self._real_distance_feet
         return client
 
     def test_high_frequency_dense_subway(self):

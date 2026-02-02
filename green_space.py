@@ -337,9 +337,22 @@ def find_green_spaces(
 
         filtered.append(place)
 
-    # Get walk times (batch where possible, but API calls one-by-one here)
+    # Sort by straight-line distance and cap walk-time API calls to
+    # the closest N to prevent 30+ sequential requests.
+    MAX_WALK_CHECKS = 12
+
+    def _haversine_dist(p):
+        plat = p.get("geometry", {}).get("location", {}).get("lat", 0)
+        plng = p.get("geometry", {}).get("location", {}).get("lng", 0)
+        # Quick haversine approximation (degrees to meters)
+        dlat = abs(plat - lat) * 111_000
+        dlng = abs(plng - lng) * 111_000 * math.cos(math.radians(lat))
+        return math.sqrt(dlat * dlat + dlng * dlng)
+
+    filtered.sort(key=_haversine_dist)
+
     results = []
-    for place in filtered:
+    for place in filtered[:MAX_WALK_CHECKS]:
         place_lat = place.get("geometry", {}).get("location", {}).get("lat")
         place_lng = place.get("geometry", {}).get("location", {}).get("lng")
         if place_lat is None or place_lng is None:
@@ -885,14 +898,16 @@ def evaluate_green_escape(
         evaluation.messages.append("No green spaces found within search radius.")
         return evaluation
 
-    # Step 2: Enrich with OSM and score each place
+    # Step 2: Enrich with OSM and score each place.
+    # Cap OSM enrichment to the closest N spaces to limit Overpass calls.
+    MAX_OSM_ENRICHMENTS = 8
     scored: List[GreenSpaceResult] = []
-    for place in places:
+    for idx, place in enumerate(places):
         place_lat = place.get("_lat", 0)
         place_lng = place.get("_lng", 0)
 
         osm_data = {}
-        if enable_osm and place_lat and place_lng:
+        if enable_osm and place_lat and place_lng and idx < MAX_OSM_ENRICHMENTS:
             try:
                 osm_data = enrich_from_osm(place_lat, place_lng, place.get("name", ""))
             except Exception:

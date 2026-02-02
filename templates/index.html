@@ -1200,7 +1200,7 @@ transit_access: {{ result.transit_access }}</pre>
 
 <script>
   (function() {
-    var CLIENT_TIMEOUT_MS = 120000; // 2 minutes — generous budget
+    var CLIENT_TIMEOUT_MS = 75000; // 75s — server budget is 45s + network buffer
 
     document.getElementById('evalForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -1218,7 +1218,7 @@ transit_access: {{ result.transit_access }}</pre>
       btn.textContent = 'Evaluating...';
       overlay.classList.add('active');
       loadingText.textContent = 'Evaluating this address...';
-      loadingSub.textContent = 'Checking parks, transit, schools, safety, and more. This takes 15\u201345 seconds.';
+      loadingSub.textContent = 'Checking parks, transit, schools, safety, and more. Usually takes 15\u201340 seconds.';
 
       var controller = new AbortController();
       var timeoutId = setTimeout(function() {
@@ -1264,7 +1264,7 @@ transit_access: {{ result.transit_access }}</pre>
         clearInterval(progressId);
         if (err.name === 'AbortError') {
           showError(
-            'The evaluation timed out after 2 minutes. ' +
+            'The evaluation took longer than expected. ' +
             'This may be due to a temporary API issue. Please try again.'
           );
         } else {

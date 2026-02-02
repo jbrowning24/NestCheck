@@ -316,6 +316,8 @@ def result_to_dict(result):
         "final_score": result.final_score,
         "percentile_top": result.percentile_top,
         "percentile_label": result.percentile_label,
+        "partial": result.partial,
+        "skipped_stages": result.skipped_stages,
     }
 
     output["verdict"] = generate_verdict(output)

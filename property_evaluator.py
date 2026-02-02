@@ -312,6 +312,10 @@ class EvaluationResult:
     percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
+    # Partial-result tracking: True when time budget forced skipping stages
+    partial: bool = False
+    skipped_stages: List[str] = field(default_factory=list)
+
 
 # =============================================================================
 # API CLIENTS
@@ -329,7 +333,19 @@ class GoogleMapsClient:
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.session = requests.Session()
         self.session.trust_env = False
-    
+        self.call_count = 0          # total HTTP calls made
+        self.call_seconds = 0.0      # cumulative HTTP wall-clock time
+
+    def _get(self, url, params):
+        """Tracked GET with timeout."""
+        t0 = time.time()
+        try:
+            resp = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+            return resp
+        finally:
+            self.call_count += 1
+            self.call_seconds += time.time() - t0
+
     def geocode(self, address: str) -> Tuple[float, float]:
         """Convert address to lat/lng coordinates"""
         url = f"{self.base_url}/geocode/json"
@@ -337,7 +353,7 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] != "OK":
@@ -365,7 +381,7 @@ class GoogleMapsClient:
         if keyword:
             params["keyword"] = keyword
 
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -389,7 +405,7 @@ class GoogleMapsClient:
             "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] != "OK":
@@ -406,9 +422,9 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
-        
+
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
         
@@ -427,7 +443,7 @@ class GoogleMapsClient:
             "mode": "driving",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] != "OK":
@@ -448,7 +464,7 @@ class GoogleMapsClient:
             "mode": "transit",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] != "OK":
@@ -475,7 +491,7 @@ class GoogleMapsClient:
             "radius": radius_meters,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        response = self._get(url, params)
         data = response.json()
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -1067,10 +1083,19 @@ def get_neighborhood_snapshot(
                     continue
 
             if places:
-                # Find closest
+                # Sort by straight-line distance and only check walk time
+                # for the N closest to avoid unbounded API calls.
+                MAX_WALK_CHECKS = 3
+                places.sort(
+                    key=lambda p: maps.distance_feet(
+                        (lat, lng),
+                        (p["geometry"]["location"]["lat"],
+                         p["geometry"]["location"]["lng"]),
+                    )
+                )
                 best = None
                 best_time = 9999
-                for place in places:
+                for place in places[:MAX_WALK_CHECKS]:
                     p_lat = place["geometry"]["location"]["lat"]
                     p_lng = place["geometry"]["location"]["lng"]
                     walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
@@ -1276,11 +1301,12 @@ def get_child_and_schooling_snapshot(
             if place_id and place_id not in childcare_places:
                 childcare_places[place_id] = place
 
+    # Cap candidates to avoid unbounded place_details + website fetches.
+    # Use name/type heuristic only (skip website scraping — too slow).
+    MAX_CHILDCARE_CANDIDATES = 8
     childcare_candidates = []
-    for place in childcare_places.values():
-        details = fetch_place_details(place)
-        website_text = fetch_website_text(details.get("website"))
-        if is_childcare(place, website_text):
+    for place in list(childcare_places.values())[:MAX_CHILDCARE_CANDIDATES]:
+        if is_childcare(place, ""):
             childcare_candidates.append(place)
 
     snapshot.childcare = build_childcare_places(childcare_candidates, 5)
@@ -1319,13 +1345,18 @@ def get_child_and_schooling_snapshot(
                 level=level,
             )
 
+    # Cap schools to avoid unbounded place_details + website + walking_time
+    # calls.  Keep at most 5 per query (15 total), use name/type heuristic.
+    MAX_SCHOOLS_TO_CHECK = 15
+    checked = 0
     for place in school_candidates.values():
-        details = fetch_place_details(place)
-        website = details.get("website")
-        website_text = fetch_website_text(website)
-        if not is_public_school(place, website_text):
+        if checked >= MAX_SCHOOLS_TO_CHECK:
+            break
+        checked += 1
+        # Use name/type heuristic only — skip slow website fetch.
+        if not is_public_school(place, ""):
             continue
-        level = infer_school_level(place, website_text)
+        level = infer_school_level(place, "")
         if not level:
             continue
         p_lat = place["geometry"]["location"]["lat"]
@@ -1333,6 +1364,7 @@ def get_child_and_schooling_snapshot(
         walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
         if walk_time > SCHOOL_WALK_MAX_MIN:
             continue
+        website = None  # skip slow place_details call
         if level == "K-12":
             for level_name in schools_by_level.keys():
                 maybe_set_school(level_name, place, walk_time, website)
@@ -1398,7 +1430,10 @@ def find_primary_transit(
         ("light_rail_station", "Light Rail", 1),
     ]
 
-    candidates: List[Tuple[int, int, Dict, str]] = []
+    # Collect all transit places, then only compute walk time for the
+    # closest N by straight-line distance to limit API calls.
+    MAX_TRANSIT_WALK_CHECKS = 5
+    raw_places: List[Tuple[int, float, Dict, str]] = []
     for place_type, mode, priority in search_types:
         try:
             places = maps.places_nearby(lat, lng, place_type, radius_meters=5000)
@@ -1407,8 +1442,18 @@ def find_primary_transit(
         for place in places:
             place_lat = place["geometry"]["location"]["lat"]
             place_lng = place["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
-            candidates.append((priority, walk_time, place, mode))
+            dist = maps.distance_feet((lat, lng), (place_lat, place_lng))
+            raw_places.append((priority, dist, place, mode))
+
+    # Sort by (priority, straight-line distance) and only check walk time
+    # for the top N.
+    raw_places.sort(key=lambda item: (item[0], item[1]))
+    candidates: List[Tuple[int, int, Dict, str]] = []
+    for priority, _dist, place, mode in raw_places[:MAX_TRANSIT_WALK_CHECKS]:
+        place_lat = place["geometry"]["location"]["lat"]
+        place_lng = place["geometry"]["location"]["lng"]
+        walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
+        candidates.append((priority, walk_time, place, mode))
 
     if not candidates:
         return None
@@ -1750,9 +1795,17 @@ def evaluate_transit_access(
     # ------------------------------------------------------------------
     # 2. Find primary node (closest walkable transit stop)
     # ------------------------------------------------------------------
-    # Compute walk time for each node
+    # Sort by straight-line distance, only compute walk time for closest N.
+    MAX_TRANSIT_WALK = 8
+    all_nodes.sort(
+        key=lambda n: maps.distance_feet(
+            (lat, lng),
+            (n["geometry"]["location"]["lat"],
+             n["geometry"]["location"]["lng"]),
+        )
+    )
     node_walk_times: List[Tuple[int, Dict]] = []
-    for node in all_nodes:
+    for node in all_nodes[:MAX_TRANSIT_WALK]:
         node_lat = node["geometry"]["location"]["lat"]
         node_lng = node["geometry"]["location"]["lng"]
         try:
@@ -1929,8 +1982,18 @@ def evaluate_green_spaces(
                 "types": set(place.get("types", [])),
             }
 
+    # Sort by straight-line distance, only check walk time for closest N.
+    MAX_GREEN_WALK_CHECKS = 12
+    entries_sorted = sorted(
+        places_by_id.values(),
+        key=lambda e: maps.distance_feet(
+            (lat, lng),
+            (e["place"]["geometry"]["location"]["lat"],
+             e["place"]["geometry"]["location"]["lng"]),
+        ),
+    )
     green_spaces: List[GreenSpace] = []
-    for entry in places_by_id.values():
+    for entry in entries_sorted[:MAX_GREEN_WALK_CHECKS]:
         place = entry["place"]
         place_id = place.get("place_id")
         place_lat = place["geometry"]["location"]["lat"]
@@ -2148,17 +2211,25 @@ def score_third_place_access(
                 details="No high-quality third places within walking distance"
             )
 
-        # Find best scoring place
+        # Sort by straight-line distance, check walk time for closest N only.
+        MAX_WALK_CHECKS = 5
+        eligible_places.sort(
+            key=lambda p: maps.distance_feet(
+                (lat, lng),
+                (p["geometry"]["location"]["lat"],
+                 p["geometry"]["location"]["lng"]),
+            )
+        )
+
         best_score = 0
         best_place = None
         best_walk_time = 9999
 
-        for place in eligible_places:
+        for place in eligible_places[:MAX_WALK_CHECKS]:
             place_lat = place["geometry"]["location"]["lat"]
             place_lng = place["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
 
-            # Score based on walk time
             score = 0
             if walk_time <= 15:
                 score = 10
@@ -2174,7 +2245,6 @@ def score_third_place_access(
                 best_place = place
                 best_walk_time = walk_time
 
-        # Format details
         name = best_place.get("name", "Third place")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
@@ -2233,12 +2303,18 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None,
     transit_access: Optional[TransitAccessResult] = None,
+    primary_transit: Optional[PrimaryTransitOption] = None,
+    major_hub: Optional[MajorHubAccess] = None,
 ) -> Tier2Score:
     """Score urban access via rail transit (0-10 points).
 
+    When *primary_transit* and *major_hub* are supplied (from the
+    urban_access enrichment stage) they are reused directly, avoiding
+    duplicate find_primary_transit / determine_major_hub API calls.
+
     When a pre-computed TransitAccessResult is supplied its score is used
     directly for the frequency component (replacing the old review-count
-    proxy).  The hub-travel component is still fetched independently.
+    proxy).
     """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
@@ -2263,7 +2339,9 @@ def score_transit_access(
         return 0
 
     try:
-        primary_transit = find_primary_transit(maps, lat, lng)
+        # Reuse pre-computed results when available to avoid duplicate API calls.
+        if primary_transit is None:
+            primary_transit = find_primary_transit(maps, lat, lng)
         if not primary_transit:
             return Tier2Score(
                 name="Urban access",
@@ -2272,13 +2350,14 @@ def score_transit_access(
                 details="No rail transit stations found within reach"
             )
 
-        major_hub = determine_major_hub(
-            maps,
-            lat,
-            lng,
-            primary_transit.mode,
-            transit_origin=(primary_transit.lat, primary_transit.lng),
-        )
+        if major_hub is None:
+            major_hub = determine_major_hub(
+                maps,
+                lat,
+                lng,
+                primary_transit.mode,
+                transit_origin=(primary_transit.lat, primary_transit.lng),
+            )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
 
@@ -2389,12 +2468,21 @@ def score_provisioning_access(
                 details="No full-service provisioning options within walking distance"
             )
 
-        # Find best scoring store
+        # Sort by straight-line distance, check walk time for closest N only.
+        MAX_WALK_CHECKS = 5
+        eligible_stores.sort(
+            key=lambda p: maps.distance_feet(
+                (lat, lng),
+                (p["geometry"]["location"]["lat"],
+                 p["geometry"]["location"]["lng"]),
+            )
+        )
+
         best_score = 0
         best_store = None
         best_walk_time = 9999
 
-        for store in eligible_stores:
+        for store in eligible_stores[:MAX_WALK_CHECKS]:
             store_lat = store["geometry"]["location"]["lat"]
             store_lng = store["geometry"]["location"]["lng"]
             walk_time = maps.walking_time((lat, lng), (store_lat, store_lng))
@@ -2465,12 +2553,21 @@ def score_fitness_access(
                 details="No gyms or fitness centers found within 30 min walk"
             )
 
-        # Find best scored facility
+        # Sort by straight-line distance, check walk time for closest N only.
+        MAX_WALK_CHECKS = 5
+        fitness_places.sort(
+            key=lambda p: maps.distance_feet(
+                (lat, lng),
+                (p["geometry"]["location"]["lat"],
+                 p["geometry"]["location"]["lng"]),
+            )
+        )
+
         best_score = 0
         best_facility = None
         best_details = ""
 
-        for facility in fitness_places:
+        for facility in fitness_places[:MAX_WALK_CHECKS]:
             rating = facility.get("rating", 0)
             facility_lat = facility["geometry"]["location"]["lat"]
             facility_lng = facility["geometry"]["location"]["lng"]
@@ -2603,6 +2700,9 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
         raise
 
 
+EVAL_TIME_BUDGET_S = 45  # seconds — skip remaining optional stages if exceeded
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str
@@ -2612,11 +2712,19 @@ def evaluate_property(
     Each enrichment stage is wrapped in try/except so that a single
     failing API call (timeout, quota, etc.) degrades gracefully
     instead of aborting the whole evaluation.
+
+    A time budget of ~45 s is enforced: after each stage, if wall-clock
+    time exceeds the budget the remaining optional stages are skipped
+    and the result is marked ``partial=True``.
     """
     eval_start = time.time()
 
     maps = GoogleMapsClient(api_key)
     overpass = OverpassClient()
+
+    def _budget_ok() -> bool:
+        """Return True while we are within the time budget."""
+        return (time.time() - eval_start) < EVAL_TIME_BUDGET_S
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run.  Let this propagate on failure.
@@ -2629,62 +2737,59 @@ def evaluate_property(
     )
 
     # --- Optional enrichments (each fails independently) ---
+    # Ordered from most valuable / cheapest to most expensive so that
+    # when the time budget runs out the least critical stages are skipped.
 
-    try:
-        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
-        result.bike_score = bike_data.get("bike_score")
-        result.bike_rating = bike_data.get("bike_rating")
-        result.bike_metadata = bike_data.get("bike_metadata")
-    except Exception:
-        pass
+    def _run_optional(stage_name, setter, fn, *args, **kwargs):
+        """Run an optional stage; skip if over budget."""
+        if not _budget_ok():
+            result.partial = True
+            result.skipped_stages.append(stage_name)
+            logger.info("  [stage] %s SKIPPED (time budget exceeded)", stage_name)
+            return
+        try:
+            val = _timed_stage(stage_name, fn, *args, **kwargs)
+            setter(val)
+        except Exception:
+            pass
 
-    try:
-        result.neighborhood_snapshot = _timed_stage(
-            "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    _run_optional("bike_score",
+        lambda d: (
+            setattr(result, "bike_score", d.get("bike_score")),
+            setattr(result, "bike_rating", d.get("bike_rating")),
+            setattr(result, "bike_metadata", d.get("bike_metadata")),
+        ),
+        get_bike_score, listing.address, lat, lng)
 
-    try:
-        result.child_schooling_snapshot = _timed_stage(
-            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    _run_optional("neighborhood",
+        lambda v: setattr(result, "neighborhood_snapshot", v),
+        get_neighborhood_snapshot, maps, lat, lng)
 
-    try:
-        result.urban_access = _timed_stage(
-            "urban_access", get_urban_access_profile, maps, lat, lng)
-    except Exception:
-        pass
+    _run_optional("schools",
+        lambda v: setattr(result, "child_schooling_snapshot", v),
+        get_child_and_schooling_snapshot, maps, lat, lng)
 
-    try:
-        result.transit_access = _timed_stage(
-            "transit_access", evaluate_transit_access, maps, lat, lng)
-    except Exception:
-        pass
+    _run_optional("urban_access",
+        lambda v: setattr(result, "urban_access", v),
+        get_urban_access_profile, maps, lat, lng)
 
-    try:
-        result.green_space_evaluation = _timed_stage(
-            "green_spaces", evaluate_green_spaces, maps, lat, lng)
-    except Exception:
-        pass
+    _run_optional("transit_access",
+        lambda v: setattr(result, "transit_access", v),
+        evaluate_transit_access, maps, lat, lng)
 
-    try:
-        result.green_escape_evaluation = _timed_stage(
-            "green_escape", evaluate_green_escape, maps, lat, lng)
-    except Exception:
-        pass
+    # Legacy green_spaces stage removed — green_escape covers the same
+    # functionality with better scoring and fewer API calls.
+    _run_optional("green_escape",
+        lambda v: setattr(result, "green_escape_evaluation", v),
+        evaluate_green_escape, maps, lat, lng)
 
-    try:
-        result.transit_score = _timed_stage(
-            "transit_score", get_transit_score, listing.address, lat, lng)
-    except Exception:
-        pass
+    _run_optional("transit_score",
+        lambda v: setattr(result, "transit_score", v),
+        get_transit_score, listing.address, lat, lng)
 
-    try:
-        result.walk_scores = _timed_stage(
-            "walk_scores", get_walk_scores, listing.address, lat, lng)
-    except Exception:
-        pass
+    _run_optional("walk_scores",
+        lambda v: setattr(result, "walk_scores", v),
+        get_walk_scores, listing.address, lat, lng)
 
     # ===================
     # TIER 1 CHECKS
@@ -2721,8 +2826,16 @@ def evaluate_property(
         result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
         result.tier2_scores.append(score_fitness_access(maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
+        # Reuse primary_transit and major_hub from the urban_access stage
+        # to avoid ~25-45 duplicate API calls.
+        _ua = result.urban_access
         result.tier2_scores.append(
-            score_transit_access(maps, lat, lng, transit_access=result.transit_access)
+            score_transit_access(
+                maps, lat, lng,
+                transit_access=result.transit_access,
+                primary_transit=_ua.primary_transit if _ua else None,
+                major_hub=_ua.major_hub if _ua else None,
+            )
         )
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
@@ -2754,8 +2867,13 @@ def evaluate_property(
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
 
     elapsed_total = time.time() - eval_start
-    logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",
-                listing.address, result.final_score, elapsed_total)
+    logger.info(
+        "Evaluation complete for %r  score=%d  partial=%s  "
+        "api_calls=%d  api_seconds=%.1f  wall=%.1fs  skipped=%s",
+        listing.address, result.final_score, result.partial,
+        maps.call_count, maps.call_seconds, elapsed_total,
+        result.skipped_stages or "none",
+    )
 
     return result
 

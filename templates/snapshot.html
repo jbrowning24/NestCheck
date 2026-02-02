@@ -87,6 +87,22 @@
       padding: 0 24px;
     }
 
+    /* --- PARTIAL RESULTS BANNER --- */
+    .partial-banner {
+      background: #fef3cd;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      font-size: 0.92em;
+      color: #856404;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .partial-banner strong { white-space: nowrap; }
+    .partial-banner .skipped-list { font-size: 0.88em; color: #6c5a00; margin-top: 4px; }
+
     /* --- VERDICT HEADER --- */
     .verdict-card {
       background: #fff;
@@ -597,6 +613,17 @@ tier3_bonus: {{ result.tier3_bonus }}</pre>
       <div class="percentile-label">{{ result.percentile_label }}</div>
     {% endif %}
   </div>
+
+  {% if result.partial %}
+  <div class="partial-banner">
+    <div>
+      <strong>Partial results</strong> — some enrichment stages were skipped to stay within the time budget.
+      {% if result.skipped_stages %}
+      <div class="skipped-list">Skipped: {{ result.skipped_stages | join(', ') }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   {% if result.passed_tier1 %}
 
