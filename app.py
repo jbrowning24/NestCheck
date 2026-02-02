@@ -19,6 +19,11 @@ from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
+    create_queued_snapshot, update_snapshot_status,
+)
+from worker import (
+    submit_evaluation, start_workers, initial_modules_status,
+    DISPLAY_MODULES,
 )
 
 load_dotenv()
@@ -346,11 +351,9 @@ def _wants_json():
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    result = None
     error = None
-    error_detail = None  # builder-mode diagnostic
+    error_detail = None
     address = ""
-    snapshot_id = None
     request_id = getattr(g, "request_id", "unknown")
 
     if request.method == "POST":
@@ -365,9 +368,9 @@ def index():
             if _wants_json():
                 return jsonify({"error": error, "request_id": request_id}), 400
             return render_template(
-                "index.html", result=result, error=error,
+                "index.html", result=None, error=error,
                 error_detail=error_detail,
-                address=address, snapshot_id=snapshot_id,
+                address=address, snapshot_id=None,
                 is_builder=g.is_builder, request_id=request_id,
             )
 
@@ -399,98 +402,102 @@ def index():
             if _wants_json():
                 return jsonify({"error": error, "request_id": request_id}), 503
             return render_template(
-                "index.html", result=result, error=error,
+                "index.html", result=None, error=error,
                 error_detail=error_detail,
-                address=address, snapshot_id=snapshot_id,
+                address=address, snapshot_id=None,
                 is_builder=g.is_builder, request_id=request_id,
             )
 
-        # TODO [PACK_LOGIC]: Check evaluation limits here.
-        # if not g.is_builder and FEATURE_CONFIG["max_evaluations_per_day"]:
-        #     count = get_daily_eval_count(g.visitor_id)
-        #     if count >= FEATURE_CONFIG["max_evaluations_per_day"]:
-        #         error = "Daily evaluation limit reached."
-        #         return render_template(...)
-
+        # --- Async evaluation: create snapshot immediately, dispatch to worker ---
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-        trace_ctx = TraceContext(trace_id=request_id)
-        set_trace(trace_ctx)
-        try:
-            listing = PropertyListing(address=address)
-            eval_result = evaluate_property(listing, api_key)
-            result = result_to_dict(eval_result)
+        modules = initial_modules_status()
+        snapshot_id = create_queued_snapshot(
+            address_input=address,
+            trace_id=request_id,
+            modules_status=modules,
+        )
 
-            # Persist snapshot — include trace_id in metadata
-            address_norm = result.get("address", address)
-            trace_summary = trace_ctx.summary_dict()
-            result["_trace"] = trace_summary
-            snapshot_id = save_snapshot(address_input=address,
-                                        address_norm=address_norm,
-                                        result_dict=result)
+        submit_evaluation(
+            snapshot_id=snapshot_id,
+            address=address,
+            api_key=api_key,
+            trace_id=request_id,
+            visitor_id=g.visitor_id,
+        )
 
-            # Log events
-            is_return = check_return_visit(g.visitor_id)
-            log_event("snapshot_created", snapshot_id=snapshot_id,
-                      visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "trace_id": request_id})
-            if is_return:
-                log_event("return_visit", snapshot_id=snapshot_id,
-                          visitor_id=g.visitor_id)
+        logger.info(
+            "[%s] Snapshot %s queued for async evaluation: %s",
+            request_id, snapshot_id, address,
+        )
 
-            # Emit the end-of-request summary log line
-            trace_ctx.log_summary()
+        # Return immediately — client redirects to snapshot page
+        if _wants_json():
+            return jsonify({
+                "snapshot_id": snapshot_id,
+                "redirect_url": f"/s/{snapshot_id}",
+                "status": "queued",
+                "trace_id": request_id,
+            })
 
-            logger.info(
-                "[%s] Snapshot %s created for: %s",
-                request_id, snapshot_id, address,
-            )
-
-            # Return JSON for fetch-based clients, HTML for traditional form POST
-            if _wants_json():
-                return jsonify({
-                    "snapshot_id": snapshot_id,
-                    "redirect_url": f"/s/{snapshot_id}",
-                    "trace_id": request_id,
-                    "trace_summary": trace_summary,
-                })
-
-        except Exception as e:
-            trace_ctx.log_summary()
-            logger.exception(
-                "[%s] Evaluation failed for address: %s", request_id, address
-            )
-            log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "error": str(e),
-                                "request_id": request_id,
-                                "trace_summary": trace_ctx.summary_dict()})
-            error = (
-                "Something went wrong while evaluating this address. "
-                "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized "
-                "by Google Maps. (ref: " + request_id + ")"
-            )
-            error_detail = {
-                "request_id": request_id,
-                "exception": str(e),
-                "traceback": traceback.format_exc(),
-            }
-            if _wants_json():
-                return jsonify({
-                    "error": error,
-                    "request_id": request_id,
-                    "trace_summary": trace_ctx.summary_dict(),
-                }), 500
-        finally:
-            clear_trace()
+        return redirect(f"/s/{snapshot_id}")
 
     return render_template(
-        "index.html", result=result, error=error,
+        "index.html", result=None, error=error,
         error_detail=error_detail,
-        address=address, snapshot_id=snapshot_id,
+        address=address, snapshot_id=None,
         is_builder=g.is_builder, request_id=request_id,
     )
+
+
+@app.route("/evaluate", methods=["POST"])
+def evaluate_api():
+    """
+    JSON API for submitting evaluations. Returns snapshot_id immediately.
+    The evaluation runs in the background.
+    """
+    request_id = getattr(g, "request_id", "unknown")
+    data = request.get_json(silent=True) or {}
+    address = data.get("address", "").strip()
+
+    if not address:
+        return jsonify({"error": "address is required", "request_id": request_id}), 400
+
+    config_ok, missing_keys = _check_service_config()
+    if not config_ok:
+        return jsonify({
+            "error": "Required API keys are not configured",
+            "missing_keys": missing_keys,
+            "request_id": request_id,
+        }), 503
+
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    modules = initial_modules_status()
+    snapshot_id = create_queued_snapshot(
+        address_input=address,
+        trace_id=request_id,
+        modules_status=modules,
+    )
+
+    submit_evaluation(
+        snapshot_id=snapshot_id,
+        address=address,
+        api_key=api_key,
+        trace_id=request_id,
+        visitor_id=g.visitor_id,
+    )
+
+    logger.info(
+        "[%s] POST /evaluate snapshot=%s queued for: %s",
+        request_id, snapshot_id, address,
+    )
+
+    return jsonify({
+        "snapshot_id": snapshot_id,
+        "status": "queued",
+        "status_url": f"/api/snapshot/{snapshot_id}/status",
+        "snapshot_url": f"/s/{snapshot_id}",
+        "trace_id": request_id,
+    })
 
 
 @app.route("/s/<snapshot_id>")
@@ -500,8 +507,11 @@ def view_snapshot(snapshot_id):
     if not snapshot:
         abort(404)
 
-    # Track view
-    increment_view_count(snapshot_id)
+    status = snapshot.get("status", "done")
+
+    # Track view (only for completed snapshots to avoid inflating counts)
+    if status == "done":
+        increment_view_count(snapshot_id)
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
@@ -511,7 +521,45 @@ def view_snapshot(snapshot_id):
         result=snapshot["result"],
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+        status=status,
+        modules_status=snapshot.get("modules_status", {}),
+        display_modules=DISPLAY_MODULES,
     )
+
+
+@app.route("/api/snapshot/<snapshot_id>/status")
+def snapshot_status(snapshot_id):
+    """
+    Polling endpoint for async evaluation progress.
+    Returns current status and per-module progress.
+    Called by snapshot.html every 2-3 seconds until done/failed.
+    """
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    status = snapshot.get("status", "done")
+    modules = snapshot.get("modules_status", {})
+
+    resp = {
+        "snapshot_id": snapshot_id,
+        "status": status,
+        "modules": modules,
+    }
+
+    # Include result data once done
+    if status == "done":
+        resp["result"] = {
+            "verdict": snapshot.get("verdict", ""),
+            "final_score": snapshot.get("final_score", 0),
+            "passed_tier1": bool(snapshot.get("passed_tier1")),
+            "address": snapshot["result"].get("address", snapshot.get("address_input", "")),
+        }
+
+    if status == "failed":
+        resp["error"] = "Evaluation failed. Please try again."
+
+    return jsonify(resp)
 
 
 @app.route("/api/snapshot/<snapshot_id>/json")
@@ -729,6 +777,9 @@ def not_found(e):
 
 # Initialize database on import (safe to call repeatedly)
 init_db()
+
+# Start background evaluation worker(s)
+start_workers()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))

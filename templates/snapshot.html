@@ -3,13 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NestCheck — {{ result.address }}</title>
+  <title>NestCheck — {{ snapshot.address_input }}</title>
 
   <!-- Open Graph for link previews -->
-  <meta property="og:title" content="NestCheck — {{ result.address }}">
+  <meta property="og:title" content="NestCheck — {{ snapshot.address_input }}">
+  {% if status == 'done' %}
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
-  <meta property="og:type" content="article">
   <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation snapshot">
+  {% else %}
+  <meta property="og:description" content="Evaluation in progress...">
+  <meta name="description" content="NestCheck evaluation in progress for {{ snapshot.address_input }}">
+  {% endif %}
+  <meta property="og:type" content="article">
 
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -492,6 +497,107 @@
       background: #fff;
     }
 
+    /* --- PROGRESS UI --- */
+    .progress-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .progress-title {
+      font-size: 1.2em;
+      font-weight: 700;
+      color: #16213e;
+      margin-bottom: 6px;
+    }
+    .progress-address {
+      font-size: 0.9em;
+      color: #888;
+      margin-bottom: 24px;
+    }
+    .progress-module {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    .progress-module:last-child { border-bottom: none; }
+    .progress-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 14px;
+      font-size: 0.75em;
+      font-weight: 700;
+    }
+    .progress-icon.queued {
+      background: #f3f4f6;
+      color: #9ca3af;
+    }
+    .progress-icon.running {
+      background: #dbeafe;
+      color: #2563eb;
+      animation: pulse-icon 1.2s ease-in-out infinite;
+    }
+    .progress-icon.done {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .progress-icon.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .progress-icon.skipped {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    @keyframes pulse-icon {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .progress-label {
+      flex: 1;
+      font-size: 0.95em;
+      color: #1a1a2e;
+      font-weight: 500;
+    }
+    .progress-label.queued { color: #9ca3af; }
+    .progress-label.running { color: #2563eb; }
+    .progress-label.done { color: #065f46; }
+    .progress-label.failed { color: #991b1b; }
+    .progress-time {
+      font-size: 0.82em;
+      color: #888;
+      white-space: nowrap;
+      padding-left: 12px;
+    }
+    .progress-failed-msg {
+      max-width: 800px;
+      margin: 0 auto 24px;
+      padding: 20px 24px;
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 12px;
+      text-align: center;
+    }
+    .progress-failed-msg h3 { color: #991b1b; margin-bottom: 8px; }
+    .progress-failed-msg p { color: #7f1d1d; font-size: 0.92em; margin-bottom: 14px; }
+    .progress-failed-msg a {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #0f3460;
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92em;
+      text-decoration: none;
+    }
+
     /* --- BUILDER DEBUG --- */
     .builder-debug {
       max-width: 800px;
@@ -548,7 +654,8 @@
   </div>
 </nav>
 
-<!-- SHARE + EXPORT BAR -->
+{% if status == 'done' %}
+<!-- SHARE + EXPORT BAR (only shown when evaluation is complete) -->
 <div class="share-bar">
   <div class="snapshot-meta">
     Snapshot created {{ snapshot.created_at[:10] }}
@@ -563,26 +670,86 @@
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn" style="text-decoration: none; background: #334155;">CSV</a>
   </div>
 </div>
+{% endif %}
 
 {% if is_builder %}
 <!-- BUILDER DEBUG (only visible in builder mode) -->
 <details class="builder-debug">
-  <summary>Builder Debug — Snapshot {{ snapshot_id }}</summary>
+  <summary>Builder Debug — Snapshot {{ snapshot_id }} (status: {{ status }})</summary>
   <pre>snapshot_id: {{ snapshot_id }}
+status: {{ status }}
 address_input: {{ snapshot.address_input }}
 address_norm: {{ snapshot.address_norm }}
 created_at: {{ snapshot.created_at }}
+trace_id: {{ snapshot.trace_id }}
 view_count: {{ snapshot.view_count }}
-final_score: {{ result.final_score }}
+{% if status == 'done' %}final_score: {{ result.final_score }}
 passed_tier1: {{ result.passed_tier1 }}
 coordinates: {{ result.coordinates }}
 tier2_raw: {{ result.tier2_score }}/{{ result.tier2_max }}
 tier2_normalized: {{ result.tier2_normalized }}
-tier3_bonus: {{ result.tier3_bonus }}</pre>
+tier3_bonus: {{ result.tier3_bonus }}{% endif %}
+modules_status: {{ modules_status }}</pre>
 </details>
 {% endif %}
 
-<div class="report">
+{# ── PROGRESS VIEW (shown while evaluating) ───────────────── #}
+{% if status in ('queued', 'running') %}
+<div class="report" id="progressView">
+  <div class="progress-card">
+    <div class="progress-title">Evaluating this address...</div>
+    <div class="progress-address">{{ snapshot.address_input }}</div>
+
+    {% for mod in display_modules %}
+      {% set mod_data = modules_status.get(mod.id, {}) %}
+      {% set mod_status = mod_data.get('status', 'queued') %}
+      <div class="progress-module" data-module="{{ mod.id }}">
+        <div class="progress-icon {{ mod_status }}">
+          {% if mod_status == 'done' %}&#10003;{% elif mod_status == 'running' %}&#9679;{% elif mod_status == 'failed' %}&#10007;{% elif mod_status == 'skipped' %}&#8212;{% else %}&#9675;{% endif %}
+        </div>
+        <div class="progress-label {{ mod_status }}">{{ mod.label }}</div>
+        {% if mod_data.get('elapsed_ms') %}
+          <div class="progress-time">{{ '%.1f'|format(mod_data.elapsed_ms / 1000) }}s</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── FAILED VIEW ──────────────────────────────────────────── #}
+{% if status == 'failed' %}
+<div class="progress-failed-msg">
+  <h3>Evaluation could not be completed</h3>
+  <p>Something went wrong while evaluating this address. This may be due to a timeout or API issue.</p>
+  <a href="/">Try again</a>
+</div>
+
+<div class="report" id="progressView">
+  <div class="progress-card">
+    <div class="progress-title" style="color: #991b1b;">Evaluation failed</div>
+    <div class="progress-address">{{ snapshot.address_input }}</div>
+
+    {% for mod in display_modules %}
+      {% set mod_data = modules_status.get(mod.id, {}) %}
+      {% set mod_status = mod_data.get('status', 'queued') %}
+      <div class="progress-module" data-module="{{ mod.id }}">
+        <div class="progress-icon {{ mod_status }}">
+          {% if mod_status == 'done' %}&#10003;{% elif mod_status == 'running' %}&#9679;{% elif mod_status == 'failed' %}&#10007;{% elif mod_status == 'skipped' %}&#8212;{% else %}&#9675;{% endif %}
+        </div>
+        <div class="progress-label {{ mod_status }}">{{ mod.label }}</div>
+        {% if mod_data.get('elapsed_ms') %}
+          <div class="progress-time">{{ '%.1f'|format(mod_data.elapsed_ms / 1000) }}s</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── COMPLETED RESULTS VIEW ───────────────────────────────── #}
+{% if status == 'done' %}
+<div class="report" id="resultsView">
 
   {# ── 0. VERDICT + SCORE ────────────────────────────────────── #}
   <div class="verdict-card{% if not result.passed_tier1 %} score-failed{% endif %}">
@@ -1024,6 +1191,7 @@ tier3_bonus: {{ result.tier3_bonus }}</pre>
   </div>
 
 </div>
+{% endif %} {# end status == 'done' #}
 
 <!-- FOOTER -->
 <footer>
@@ -1066,6 +1234,94 @@ tier3_bonus: {{ result.tier3_bonus }}</pre>
       icon.innerHTML = '&#9654;';
     }
   }
+
+  // --- Polling for async evaluation progress ---
+  (function() {
+    var status = '{{ status }}';
+    if (status !== 'queued' && status !== 'running') return;
+
+    var snapshotId = '{{ snapshot_id }}';
+    var pollInterval = 2500; // 2.5 seconds
+    var maxPolls = 120;      // 5 minutes max
+    var pollCount = 0;
+
+    var iconMap = {
+      'done': '&#10003;',
+      'running': '&#9679;',
+      'failed': '&#10007;',
+      'skipped': '&#8212;',
+      'queued': '&#9675;'
+    };
+
+    function updateProgress(data) {
+      var modules = data.modules || {};
+
+      // Update each module row
+      var rows = document.querySelectorAll('.progress-module');
+      rows.forEach(function(row) {
+        var modId = row.getAttribute('data-module');
+        var modData = modules[modId];
+        if (!modData) return;
+
+        var icon = row.querySelector('.progress-icon');
+        var label = row.querySelector('.progress-label');
+        var timeEl = row.querySelector('.progress-time');
+
+        // Update icon
+        icon.className = 'progress-icon ' + modData.status;
+        icon.innerHTML = iconMap[modData.status] || iconMap['queued'];
+
+        // Update label styling
+        label.className = 'progress-label ' + modData.status;
+
+        // Update time
+        if (modData.elapsed_ms) {
+          if (!timeEl) {
+            timeEl = document.createElement('div');
+            timeEl.className = 'progress-time';
+            row.appendChild(timeEl);
+          }
+          timeEl.textContent = (modData.elapsed_ms / 1000).toFixed(1) + 's';
+        }
+      });
+    }
+
+    function poll() {
+      pollCount++;
+      if (pollCount > maxPolls) {
+        var title = document.querySelector('.progress-title');
+        if (title) title.textContent = 'Polling timed out. Refresh the page to check status.';
+        return;
+      }
+
+      fetch('/api/snapshot/' + snapshotId + '/status')
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+          if (data.status === 'done') {
+            // Evaluation complete — reload the page to show full results
+            window.location.reload();
+            return;
+          }
+
+          if (data.status === 'failed') {
+            // Evaluation failed — reload to show the failed state
+            window.location.reload();
+            return;
+          }
+
+          // Still running — update progress and poll again
+          updateProgress(data);
+          setTimeout(poll, pollInterval);
+        })
+        .catch(function() {
+          // Network error — retry after longer delay
+          setTimeout(poll, pollInterval * 2);
+        });
+    }
+
+    // Start polling after a short initial delay
+    setTimeout(poll, 1000);
+  })();
 </script>
 
 </body>

@@ -72,6 +72,7 @@ class TraceContext:
     stages: List[StageRecord] = field(default_factory=list)
     api_calls: List[APICallRecord] = field(default_factory=list)
     _current_stage: str = ""
+    on_stage_complete: Optional[object] = None  # callable(stage_name, elapsed_ms, error)
 
     # ------------------------------------------------------------------
     # Stage lifecycle
@@ -116,6 +117,14 @@ class TraceContext:
             api_in_stage,
             err_info,
         )
+
+        # Fire progress callback (used by background worker to update DB)
+        if self.on_stage_complete:
+            try:
+                error_str = f"{error_class}: {error_message}" if error_class else None
+                self.on_stage_complete(stage_name, rec.elapsed_ms, error_str)
+            except Exception:
+                logger.debug("on_stage_complete callback failed", exc_info=True)
 
     # ------------------------------------------------------------------
     # API call recording
