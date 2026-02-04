@@ -288,6 +288,11 @@ class EvaluationResult:
 # API CLIENTS
 # =============================================================================
 
+# Timeout in seconds for external API HTTP requests (Maps, Overpass).
+# Avoids indefinite hangs when the network or API is slow. If you see repeated
+# timeouts, they may be quota-related (e.g. Google Maps API rate or usage limits).
+API_REQUEST_TIMEOUT = 25
+
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
     
@@ -304,7 +309,7 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
         
         if data["status"] != "OK":
@@ -332,7 +337,7 @@ class GoogleMapsClient:
         if keyword:
             params["keyword"] = keyword
         
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
         
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -356,7 +361,7 @@ class GoogleMapsClient:
             "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
         
         if data["status"] != "OK":
@@ -373,7 +378,7 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
         
         if data["status"] != "OK":
@@ -394,7 +399,7 @@ class GoogleMapsClient:
             "mode": "driving",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
 
         if data["status"] != "OK":
@@ -415,7 +420,7 @@ class GoogleMapsClient:
             "mode": "transit",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
 
         if data["status"] != "OK":
@@ -442,7 +447,7 @@ class GoogleMapsClient:
             "radius": radius_meters,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params)
+        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
         data = response.json()
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
@@ -485,7 +490,9 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        response = self.session.post(self.base_url, data={"data": query})
+        response = self.session.post(
+            self.base_url, data={"data": query}, timeout=API_REQUEST_TIMEOUT
+        )
         data = response.json()
         
         roads = []

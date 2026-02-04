@@ -40,6 +40,8 @@ Get your API key from: https://console.cloud.google.com/google/maps-apis
 
 **Cost estimate**: ~$0.02-0.05 per property evaluated (mostly Places API calls)
 
+API requests use a 25s timeout to avoid indefinite hangs. Repeated timeouts can indicate network issues or Google Maps API quota/rate limits—check your Cloud Console quotas and usage.
+
 ### 2. Install Dependencies
 
 ```bash
