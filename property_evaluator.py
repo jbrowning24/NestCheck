@@ -18,14 +18,28 @@ import os
 import sys
 import json
 import math
+import time
+import logging
 import argparse
 import re
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple, Dict, Any
 from enum import Enum
 import requests
+
+logger = logging.getLogger(__name__)
+from nc_trace import get_trace
 from urllib.parse import quote
 from dotenv import load_dotenv
+from urban_access import (
+    UrbanAccessEngine,
+    UrbanAccessResult,
+    urban_access_result_to_dict,
+)
+from green_space import (
+    GreenEscapeEvaluation,
+    evaluate_green_escape,
+)
 
 load_dotenv()
 
@@ -232,6 +246,20 @@ class MajorHubAccess:
 class UrbanAccessProfile:
     primary_transit: Optional[PrimaryTransitOption] = None
     major_hub: Optional[MajorHubAccess] = None
+    engine_result: Optional[UrbanAccessResult] = None
+
+
+@dataclass
+class TransitAccessResult:
+    """Result of the smart transit frequency approximation."""
+    primary_stop: Optional[str] = None
+    walk_minutes: Optional[int] = None
+    mode: Optional[str] = None
+    frequency_bucket: str = "Very low"
+    score_0_10: int = 0
+    reasons: List[str] = field(default_factory=list)
+    nearby_node_count: int = 0
+    density_node_count: int = 0
 
 
 @dataclass
@@ -257,7 +285,9 @@ class EvaluationResult:
     neighborhood_snapshot: Optional[NeighborhoodSnapshot] = None
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
+    transit_access: Optional[TransitAccessResult] = None
     green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    green_escape_evaluation: Optional[GreenEscapeEvaluation] = None
     transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
     bike_score: Optional[int] = None
@@ -295,13 +325,35 @@ API_REQUEST_TIMEOUT = 25
 
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
-    
+
+    # Per-call timeout in seconds.  Keeps any single request from hanging
+    # the whole evaluation.  10 s is generous for Google Maps — p99 is < 2 s.
+    DEFAULT_TIMEOUT = 10
+
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.session = requests.Session()
         self.session.trust_env = False
-    
+
+    def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
+        """GET request with automatic trace recording."""
+        t0 = time.time()
+        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        elapsed_ms = int((time.time() - t0) * 1000)
+        data = response.json()
+        provider_status = data.get("status", "") if isinstance(data, dict) else ""
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="google_maps",
+                endpoint=endpoint_name,
+                elapsed_ms=elapsed_ms,
+                status_code=response.status_code,
+                provider_status=provider_status,
+            )
+        return data
+
     def geocode(self, address: str) -> Tuple[float, float]:
         """Convert address to lat/lng coordinates"""
         url = f"{self.base_url}/geocode/json"
@@ -309,12 +361,11 @@ class GoogleMapsClient:
             "address": address,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
-        
+        data = self._traced_get("geocode", url, params)
+
         if data["status"] != "OK":
             raise ValueError(f"Geocoding failed: {data['status']}")
-        
+
         location = data["results"][0]["geometry"]["location"]
         return location["lat"], location["lng"]
     
@@ -336,13 +387,12 @@ class GoogleMapsClient:
         }
         if keyword:
             params["keyword"] = keyword
-        
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
-        
+
+        data = self._traced_get("places_nearby", url, params)
+
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
-        
+
         return data.get("results", [])
     
     def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
@@ -361,12 +411,11 @@ class GoogleMapsClient:
             "fields": ",".join(fields or default_fields),
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
-        
+        data = self._traced_get("place_details", url, params)
+
         if data["status"] != "OK":
             raise ValueError(f"Place Details API failed: {data['status']}")
-        
+
         return data.get("result", {})
 
     def walking_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
@@ -378,16 +427,15 @@ class GoogleMapsClient:
             "mode": "walking",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
-        
+        data = self._traced_get("walking_time", url, params)
+
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
-        
+
         element = data["rows"][0]["elements"][0]
         if element["status"] != "OK":
             return 9999  # Unreachable
-        
+
         return element["duration"]["value"] // 60  # Convert seconds to minutes
 
     def driving_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
@@ -399,8 +447,7 @@ class GoogleMapsClient:
             "mode": "driving",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("driving_time", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
@@ -420,8 +467,7 @@ class GoogleMapsClient:
             "mode": "transit",
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("transit_time", url, params)
 
         if data["status"] != "OK":
             raise ValueError(f"Distance Matrix API failed: {data['status']}")
@@ -447,14 +493,13 @@ class GoogleMapsClient:
             "radius": radius_meters,
             "key": self.api_key
         }
-        response = self.session.get(url, params=params, timeout=API_REQUEST_TIMEOUT)
-        data = response.json()
+        data = self._traced_get("text_search", url, params)
 
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Text Search API failed: {data['status']}")
 
         return data.get("results", [])
-    
+
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
         # Haversine formula
@@ -473,12 +518,30 @@ class GoogleMapsClient:
 
 class OverpassClient:
     """Client for OpenStreetMap Overpass API - for road data"""
-    
+
+    DEFAULT_TIMEOUT = 25
+
     def __init__(self):
         self.base_url = "https://overpass-api.de/api/interpreter"
         self.session = requests.Session()
         self.session.trust_env = False
-    
+
+    def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
+        """POST request with automatic trace recording."""
+        t0 = time.time()
+        response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
+        elapsed_ms = int((time.time() - t0) * 1000)
+        data = response.json()
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="overpass",
+                endpoint=endpoint_name,
+                elapsed_ms=elapsed_ms,
+                status_code=response.status_code,
+            )
+        return data
+
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
         query = f"""
@@ -490,10 +553,7 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        response = self.session.post(
-            self.base_url, data={"data": query}, timeout=API_REQUEST_TIMEOUT
-        )
-        data = response.json()
+        data = self._traced_post("get_nearby_roads", self.base_url, {"data": query})
         
         roads = []
         for element in data.get("elements", []):
@@ -525,9 +585,18 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
     }
 
     try:
+        _t0 = time.time()
         response = requests.get(url, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_bike_score",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
     except (requests.RequestException, ValueError):
         return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
 
@@ -561,25 +630,6 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     if not api_key:
         return default_response
-def _coerce_score(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_scores = {
-        "walk_score": None,
-        "walk_description": None,
-        "transit_score": None,
-        "transit_description": None,
-        "bike_score": None,
-        "bike_description": None,
-    }
-    if not api_key:
-        return default_scores
 
     url = "https://api.walkscore.com/score"
     params = {
@@ -593,9 +643,18 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
     }
 
     try:
+        _t0 = time.time()
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_transit_score",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
     except (requests.RequestException, ValueError):
         return default_response
 
@@ -633,6 +692,54 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "transit_rating": transit_description,
         "transit_summary": transit_summary,
         "nearby_transit_lines": nearby_transit_lines or None,
+    }
+
+
+def _coerce_score(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
+    api_key = os.environ.get("WALKSCORE_API_KEY")
+    default_scores = {
+        "walk_score": None,
+        "walk_description": None,
+        "transit_score": None,
+        "transit_description": None,
+        "bike_score": None,
+        "bike_description": None,
+    }
+    if not api_key:
+        return default_scores
+
+    url = "https://api.walkscore.com/score"
+    params = {
+        "format": "json",
+        "address": address,
+        "lat": lat,
+        "lon": lon,
+        "transit": 1,
+        "bike": 1,
+        "wsapikey": api_key,
+    }
+
+    try:
+        _t0 = time.time()
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        _elapsed = int((time.time() - _t0) * 1000)
+        _trace = get_trace()
+        if _trace:
+            _trace.record_api_call(
+                service="walkscore", endpoint="get_walk_scores",
+                elapsed_ms=_elapsed, status_code=response.status_code,
+                provider_status=str(data.get("status", "")),
+            )
+    except (requests.RequestException, ValueError):
         return default_scores
 
     if data.get("status") != 1:
@@ -1117,7 +1224,15 @@ def get_child_and_schooling_snapshot(
         if not website:
             return ""
         try:
+            _t0 = time.time()
             response = requests.get(website, timeout=6)
+            _elapsed = int((time.time() - _t0) * 1000)
+            _trace = get_trace()
+            if _trace:
+                _trace.record_api_call(
+                    service="website", endpoint="fetch_website_text",
+                    elapsed_ms=_elapsed, status_code=response.status_code,
+                )
             if response.status_code >= 400:
                 return ""
             text = re.sub(r"<[^>]+>", " ", response.text)
@@ -1540,9 +1655,238 @@ def get_urban_access_profile(
     if major_hub:
         major_hub.route_summary = urban_access_route_summary(primary_transit, major_hub)
 
+    # --- Urban Access Engine ---
+    engine = UrbanAccessEngine(maps, lat, lng)
+    primary_transit_dict = None
+    if primary_transit:
+        primary_transit_dict = {
+            "name": primary_transit.name,
+            "mode": primary_transit.mode,
+            "lat": primary_transit.lat,
+            "lng": primary_transit.lng,
+            "walk_time_min": primary_transit.walk_time_min,
+            "drive_time_min": primary_transit.drive_time_min,
+            "parking_available": primary_transit.parking_available,
+            "user_ratings_total": primary_transit.user_ratings_total,
+            "frequency_class": primary_transit.frequency_class,
+        }
+    engine_result = engine.evaluate(primary_transit_data=primary_transit_dict)
+
     return UrbanAccessProfile(
         primary_transit=primary_transit,
-        major_hub=major_hub
+        major_hub=major_hub,
+        engine_result=engine_result,
+    )
+
+
+# =============================================================================
+# SMART TRANSIT FREQUENCY APPROXIMATION
+# =============================================================================
+#
+# How the heuristic works:
+#
+#   We cannot access GTFS feeds or real-time schedules, so we approximate
+#   transit service frequency using four signals available from Google Places:
+#
+#   1. MODE WEIGHT (0-3 pts) — Rail/subway modes correlate with higher
+#      frequency service than bus-only corridors.  subway/rail=3, light_rail=2,
+#      tram=2, bus=1, ferry=1.
+#
+#   2. NODE DENSITY (0-3 pts) — Count distinct transit places (transit_station,
+#      bus_station, subway_station) within a 1.2 km radius.  More stops in a
+#      small area imply overlapping routes and higher aggregate frequency.
+#      >=6 nodes=3, >=3=2, >=1=1, 0=0.
+#
+#   3. WALK-REACHABLE NODES (0-2 pts) — Count of distinct transit nodes within
+#      a 15-min walk (≈1.2 km radius, but using walking API for accuracy).
+#      Uses the nearby search results already fetched for density.
+#      >=4 nodes=2, >=2=1, else 0.
+#
+#   4. REVIEW-COUNT PROXY (0-2 pts) — Google user_ratings_total on the primary
+#      stop is a rough proxy for foot traffic volume, which correlates with
+#      service frequency.  >=5000=2, >=1000=1, else 0.
+#
+#   Total raw score 0-10 maps directly to Urban Access Score.
+#   Frequency bucket thresholds:  >=8 High, >=5 Medium, >=3 Low, else Very low.
+#
+# How to tune:
+#   - Adjust MODE_WEIGHTS dict to change mode importance.
+#   - Adjust DENSITY_THRESHOLDS / WALK_NODE_THRESHOLDS for different urban contexts.
+#   - Adjust FREQUENCY_BUCKET_THRESHOLDS to shift bucket boundaries.
+#   - The radius_meters for density search (1200) assumes flat walking terrain;
+#     increase in hilly or spread-out areas.
+#
+
+MODE_WEIGHTS = {
+    "Subway": 3,
+    "Train": 3,
+    "Light Rail": 2,
+    "Tram": 2,
+    "Commuter Rail": 3,
+    "Bus": 1,
+    "Ferry": 1,
+}
+
+TRANSIT_SEARCH_TYPES = [
+    "transit_station",
+    "bus_station",
+    "subway_station",
+]
+
+# (threshold, points)
+DENSITY_THRESHOLDS = [(6, 3), (3, 2), (1, 1)]
+WALK_NODE_THRESHOLDS = [(4, 2), (2, 1)]
+REVIEW_THRESHOLDS = [(5000, 2), (1000, 1)]
+FREQUENCY_BUCKET_THRESHOLDS = [(8, "High"), (5, "Medium"), (3, "Low")]
+
+
+def _classify_mode(place: Dict) -> str:
+    """Classify transit mode from Place types and name keywords."""
+    types = set(place.get("types", []))
+    name = (place.get("name") or "").lower()
+
+    # Check commuter rail keywords first (before generic subway/metro match)
+    commuter_kw = ("commuter", "metra", "caltrain", "lirr", "metro-north", "nj transit")
+    if "train_station" in types and any(kw in name for kw in commuter_kw):
+        return "Commuter Rail"
+    if "subway_station" in types or "subway" in name:
+        return "Subway"
+    if "train_station" in types:
+        if "metro" in name:
+            return "Subway"
+        return "Train"
+    if "light_rail_station" in types or "light rail" in name or "tram" in name or "streetcar" in name:
+        return "Light Rail"
+    if any(kw in name for kw in ("ferry", "water taxi")):
+        return "Ferry"
+    if "bus_station" in types or "bus" in name:
+        return "Bus"
+    if "transit_station" in types:
+        if "metro" in name:
+            return "Subway"
+        return "Train"  # default for generic transit_station
+    return "Bus"
+
+
+def _score_from_thresholds(value: int, thresholds: List[Tuple[int, int]]) -> int:
+    """Return points for value given descending (threshold, points) pairs."""
+    for threshold, points in thresholds:
+        if value >= threshold:
+            return points
+    return 0
+
+
+def evaluate_transit_access(
+    maps: GoogleMapsClient,
+    lat: float,
+    lng: float,
+) -> TransitAccessResult:
+    """Approximate transit service frequency using Google Places signals.
+
+    Returns a TransitAccessResult with primary_stop, walk_minutes, mode,
+    frequency_bucket (Very low / Low / Medium / High), score_0_10, and
+    human-readable reasons list.
+    """
+    reasons: List[str] = []
+
+    # ------------------------------------------------------------------
+    # 1. Gather all nearby transit nodes within density radius (1200 m)
+    # ------------------------------------------------------------------
+    seen_ids: set = set()
+    all_nodes: List[Dict] = []
+    for place_type in TRANSIT_SEARCH_TYPES:
+        try:
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=1200)
+        except Exception:
+            continue
+        for p in places:
+            pid = p.get("place_id")
+            if pid and pid not in seen_ids:
+                seen_ids.add(pid)
+                all_nodes.append(p)
+
+    density_count = len(all_nodes)
+
+    if density_count == 0:
+        return TransitAccessResult(
+            frequency_bucket="Very low",
+            score_0_10=0,
+            reasons=["No transit stations found within 1.2 km"],
+        )
+
+    # ------------------------------------------------------------------
+    # 2. Find primary node (closest walkable transit stop)
+    # ------------------------------------------------------------------
+    # Compute walk time for each node
+    node_walk_times: List[Tuple[int, Dict]] = []
+    for node in all_nodes:
+        node_lat = node["geometry"]["location"]["lat"]
+        node_lng = node["geometry"]["location"]["lng"]
+        try:
+            wt = maps.walking_time((lat, lng), (node_lat, node_lng))
+        except Exception:
+            wt = 9999
+        node_walk_times.append((wt, node))
+
+    node_walk_times.sort(key=lambda x: x[0])
+    walk_min, primary = node_walk_times[0]
+
+    primary_name = primary.get("name", "Unknown stop")
+    primary_mode = _classify_mode(primary)
+    user_ratings = primary.get("user_ratings_total") or 0
+
+    # ------------------------------------------------------------------
+    # 3. Count walk-reachable nodes (within 15 min walk)
+    # ------------------------------------------------------------------
+    walk_reachable = sum(1 for wt, _ in node_walk_times if wt <= 15)
+
+    # ------------------------------------------------------------------
+    # 4. Score each signal
+    # ------------------------------------------------------------------
+    mode_pts = MODE_WEIGHTS.get(primary_mode, 1)
+    density_pts = _score_from_thresholds(density_count, DENSITY_THRESHOLDS)
+    walk_node_pts = _score_from_thresholds(walk_reachable, WALK_NODE_THRESHOLDS)
+    review_pts = _score_from_thresholds(user_ratings, REVIEW_THRESHOLDS)
+
+    raw_score = mode_pts + density_pts + walk_node_pts + review_pts
+    score = min(10, raw_score)
+
+    # ------------------------------------------------------------------
+    # 5. Determine frequency bucket
+    # ------------------------------------------------------------------
+    bucket = "Very low"
+    for threshold, label in FREQUENCY_BUCKET_THRESHOLDS:
+        if score >= threshold:
+            bucket = label
+            break
+
+    # ------------------------------------------------------------------
+    # 6. Build explanation reasons
+    # ------------------------------------------------------------------
+    reasons.append(
+        f"Mode: {primary_mode} (+{mode_pts} pts) — "
+        f"{'rail/subway modes score higher' if mode_pts >= 2 else 'bus/ferry modes score lower'}"
+    )
+    reasons.append(
+        f"Density: {density_count} transit node(s) within 1.2 km (+{density_pts} pts)"
+    )
+    reasons.append(
+        f"Walk-reachable: {walk_reachable} node(s) within 15 min walk (+{walk_node_pts} pts)"
+    )
+    reasons.append(
+        f"Foot traffic proxy: {user_ratings:,} reviews on primary stop (+{review_pts} pts)"
+    )
+    reasons.append(f"Total raw: {raw_score} -> Score {score}/10 -> Bucket: {bucket}")
+
+    return TransitAccessResult(
+        primary_stop=primary_name,
+        walk_minutes=walk_min if walk_min != 9999 else None,
+        mode=primary_mode,
+        frequency_bucket=bucket,
+        score_0_10=score,
+        reasons=reasons,
+        nearby_node_count=walk_reachable,
+        density_node_count=density_count,
     )
 
 
@@ -1745,10 +2089,42 @@ def score_park_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    green_space_evaluation: Optional[GreenSpaceEvaluation] = None
+    green_space_evaluation: Optional[GreenSpaceEvaluation] = None,
+    green_escape_evaluation: Optional[GreenEscapeEvaluation] = None,
 ) -> Tier2Score:
-    """Score primary green escape access (0-10 points)"""
+    """Score primary green escape access (0-10 points).
+
+    Uses the new green_space.py engine when a GreenEscapeEvaluation is provided,
+    falling back to the legacy GreenSpaceEvaluation otherwise.
+    """
     try:
+        # New engine path
+        if green_escape_evaluation is not None:
+            best = green_escape_evaluation.best_daily_park
+            if not best:
+                return Tier2Score(
+                    name="Primary Green Escape",
+                    points=0,
+                    max_points=10,
+                    details="No green spaces found within walking distance",
+                )
+
+            # Use the daily walk value score directly (already 0–10)
+            points = round(best.daily_walk_value)
+            rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
+            details = (
+                f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
+                f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10 "
+                f"[{best.criteria_status}]"
+            )
+            return Tier2Score(
+                name="Primary Green Escape",
+                points=points,
+                max_points=10,
+                details=details,
+            )
+
+        # Legacy path
         evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
         green_escape = evaluation.green_escape
 
@@ -1922,9 +2298,15 @@ def score_transit_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    transit_keywords: Optional[List[str]] = None
+    transit_keywords: Optional[List[str]] = None,
+    transit_access: Optional[TransitAccessResult] = None,
 ) -> Tier2Score:
-    """Score urban access via rail transit (0-10 points)."""
+    """Score urban access via rail transit (0-10 points).
+
+    When a pre-computed TransitAccessResult is supplied its score is used
+    directly for the frequency component (replacing the old review-count
+    proxy).  The hub-travel component is still fetched independently.
+    """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
             return 4
@@ -1966,13 +2348,27 @@ def score_transit_access(
         )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
-        frequency_class = primary_transit.frequency_class or "Very low frequency"
-        frequency_points = {
-            "High frequency": 3,
-            "Medium frequency": 2,
-            "Low frequency": 1,
-            "Very low frequency": 0,
-        }.get(frequency_class, 0)
+
+        # Use smart heuristic bucket when available, else fall back to
+        # the original review-count frequency_class.
+        if transit_access and transit_access.frequency_bucket:
+            frequency_points = {
+                "High": 3,
+                "Medium": 2,
+                "Low": 1,
+                "Very low": 0,
+            }.get(transit_access.frequency_bucket, 0)
+            frequency_label = f"{transit_access.frequency_bucket} frequency"
+        else:
+            frequency_class = primary_transit.frequency_class or "Very low frequency"
+            frequency_points = {
+                "High frequency": 3,
+                "Medium frequency": 2,
+                "Low frequency": 1,
+                "Very low frequency": 0,
+            }.get(frequency_class, 0)
+            frequency_label = frequency_class
+
         hub_time = major_hub.travel_time_min if major_hub else None
         hub_points = hub_travel_points(hub_time)
 
@@ -1993,7 +2389,7 @@ def score_transit_access(
             details=(
                 f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
                 f"{drive_note} | "
-                f"Frequency: {frequency_class} | "
+                f"Service: {frequency_label} | "
                 f"Hub: {hub_note}"
             )
         )
@@ -2236,27 +2632,6 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
-def estimate_percentile(final_score: int) -> Tuple[int, str]:
-    """Estimate percentile ranking for a final score (0-100)."""
-    bounded_score = max(0, min(100, final_score))
-    percentile_map = [
-        (90, 5),
-        (85, 10),
-        (80, 15),
-        (75, 20),
-        (70, 25),
-        (65, 30),
-        (60, 35),
-        (55, 40),
-        (50, 50),
-        (0, 60),
-    ]
-
-    for threshold, percentile in percentile_map:
-        if bounded_score >= threshold:
-            return percentile, f"Top {percentile}% nationally for families"
-
-    return 60, "Top 60% nationally for families"
 def estimate_percentile(score: int) -> Tuple[int, str]:
     """Estimate percentile bucket from a normalized 0-100 score."""
     buckets = [
@@ -2281,17 +2656,51 @@ def estimate_percentile(score: int) -> Tuple[int, str]:
 # MAIN EVALUATION
 # =============================================================================
 
+def _timed_stage(stage_name, fn, *args, **kwargs):
+    """Run *fn* with timing.  Logs duration and re-raises on failure."""
+    trace = get_trace()
+    if trace:
+        trace.start_stage(stage_name)
+    t0 = time.time()
+    try:
+        result = fn(*args, **kwargs)
+        t1 = time.time()
+        if trace:
+            trace.record_stage(stage_name, t0, t1)
+        else:
+            logger.info("  [stage] %s OK (%.1fs)", stage_name, t1 - t0)
+        return result
+    except Exception as exc:
+        t1 = time.time()
+        if trace:
+            trace.record_stage(
+                stage_name, t0, t1,
+                error_class=type(exc).__name__,
+                error_message=str(exc)[:200],
+            )
+        else:
+            logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, t1 - t0, exc_info=True)
+        raise
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str
 ) -> EvaluationResult:
-    """Run full evaluation on a property listing"""
-    
+    """Run full evaluation on a property listing.
+
+    Each enrichment stage is wrapped in try/except so that a single
+    failing API call (timeout, quota, etc.) degrades gracefully
+    instead of aborting the whole evaluation.
+    """
+    eval_start = time.time()
+
     maps = GoogleMapsClient(api_key)
     overpass = OverpassClient()
-    
-    # Geocode the address
-    lat, lng = maps.geocode(listing.address)
+
+    # Geocode is the one stage that MUST succeed — without coords nothing
+    # else can run.  Let this propagate on failure.
+    lat, lng = _timed_stage("geocode", maps.geocode, listing.address)
 
     result = EvaluationResult(
         listing=listing,
@@ -2299,54 +2708,117 @@ def evaluate_property(
         lng=lng
     )
 
-    bike_data = get_bike_score(listing.address, lat, lng)
-    result.bike_score = bike_data.get("bike_score")
-    result.bike_rating = bike_data.get("bike_rating")
-    result.bike_metadata = bike_data.get("bike_metadata")
+    # --- Optional enrichments (each fails independently) ---
 
-    # ===================
-    # NEIGHBORHOOD SNAPSHOT
-    # ===================
+    try:
+        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
+        result.bike_score = bike_data.get("bike_score")
+        result.bike_rating = bike_data.get("bike_rating")
+        result.bike_metadata = bike_data.get("bike_metadata")
+    except Exception:
+        pass
 
-    result.neighborhood_snapshot = get_neighborhood_snapshot(maps, lat, lng)
-    result.child_schooling_snapshot = get_child_and_schooling_snapshot(maps, lat, lng)
-    result.urban_access = get_urban_access_profile(maps, lat, lng)
-    result.green_space_evaluation = evaluate_green_spaces(maps, lat, lng)
-    result.transit_score = get_transit_score(listing.address, lat, lng)
-    result.walk_scores = get_walk_scores(listing.address, lat, lng)
+    try:
+        result.neighborhood_snapshot = _timed_stage(
+            "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.child_schooling_snapshot = _timed_stage(
+            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.urban_access = _timed_stage(
+            "urban_access", get_urban_access_profile, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.transit_access = _timed_stage(
+            "transit_access", evaluate_transit_access, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.green_space_evaluation = _timed_stage(
+            "green_spaces", evaluate_green_spaces, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.green_escape_evaluation = _timed_stage(
+            "green_escape", evaluate_green_escape, maps, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.transit_score = _timed_stage(
+            "transit_score", get_transit_score, listing.address, lat, lng)
+    except Exception:
+        pass
+
+    try:
+        result.walk_scores = _timed_stage(
+            "walk_scores", get_walk_scores, listing.address, lat, lng)
+    except Exception:
+        pass
 
     # ===================
     # TIER 1 CHECKS
     # ===================
-    
+
+    trace = get_trace()
+    if trace:
+        trace.start_stage("tier1_checks")
+    _t0_tier1 = time.time()
+
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
     result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
     result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
-    
+
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
-    
+
+    if trace:
+        trace.record_stage("tier1_checks", _t0_tier1, time.time())
+
     # Determine if passed tier 1
     fail_count = sum(
         1 for c in result.tier1_checks
         if c.result == CheckResult.FAIL and c.required
     )
     result.passed_tier1 = (fail_count == 0)
-    
+
     # ===================
     # TIER 2 SCORING
     # ===================
-    
+
     if result.passed_tier1:
         result.tier2_scores.append(
-            score_park_access(maps, lat, lng, result.green_space_evaluation)
+            _timed_stage(
+                "score_park_access", score_park_access,
+                maps, lat, lng,
+                green_space_evaluation=result.green_space_evaluation,
+                green_escape_evaluation=result.green_escape_evaluation,
+            )
         )
-        result.tier2_scores.append(score_third_place_access(maps, lat, lng))
-        result.tier2_scores.append(score_provisioning_access(maps, lat, lng))
-        result.tier2_scores.append(score_fitness_access(maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_third_place", score_third_place_access, maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage("score_fitness", score_fitness_access, maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
-        result.tier2_scores.append(score_transit_access(maps, lat, lng))
+        result.tier2_scores.append(
+            _timed_stage(
+                "score_transit_access", score_transit_access,
+                maps, lat, lng, transit_access=result.transit_access,
+            )
+        )
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
@@ -2354,20 +2826,20 @@ def evaluate_property(
             result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
         else:
             result.tier2_normalized = 0
-    
+
     # ===================
     # TIER 3 BONUSES
     # ===================
-    
+
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
         result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
-    
+
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
-    
+
     if result.tier2_max > 0:
         result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
     else:
@@ -2375,7 +2847,11 @@ def evaluate_property(
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
-    
+
+    elapsed_total = time.time() - eval_start
+    logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",
+                listing.address, result.final_score, elapsed_total)
+
     return result
 
 
@@ -2427,8 +2903,7 @@ def format_result(result: EvaluationResult) -> str:
     # Final
     lines.append(f"\n{'=' * 70}")
     lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts")
-    lines.append(f"Tier 3 Bonus: +{result.tier3_total} (already capped at 100)")
+    lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
     
     # Notes
@@ -2589,6 +3064,16 @@ def main():
                     "route_summary": result.urban_access.major_hub.route_summary,
                 } if result.urban_access and result.urban_access.major_hub else None,
             },
+            "transit_access": {
+                "primary_stop": result.transit_access.primary_stop,
+                "walk_minutes": result.transit_access.walk_minutes,
+                "mode": result.transit_access.mode,
+                "frequency_bucket": result.transit_access.frequency_bucket,
+                "score_0_10": result.transit_access.score_0_10,
+                "reasons": result.transit_access.reasons,
+                "nearby_node_count": result.transit_access.nearby_node_count,
+                "density_node_count": result.transit_access.density_node_count,
+            } if result.transit_access else None,
             "green_space_evaluation": {
                 "green_escape": {
                     "name": result.green_space_evaluation.green_escape.name,

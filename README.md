@@ -1,189 +1,163 @@
-# Westchester Property Evaluator
+# NestCheck
 
-A command-line tool to evaluate rental properties in Westchester County against health, lifestyle, and budget criteria.
+**Know before you move.** Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — in one report.
 
-## What It Does
+## What It Is
 
-Given a property address, this tool automatically checks:
+NestCheck is a livability evaluation tool. Enter any U.S. address and get a scored report covering:
 
-### Tier 1: Hard Disqualifiers (any fail = reject)
-- **Gas station proximity**: Must be >500 feet from any gas station (benzene exposure research)
-- **Highway proximity**: Must be >500 feet from I-95, Saw Mill, Hutch, etc.
-- **High-volume roads**: Must be >500 feet from 4+ lane roads or numbered routes (US-1, NY-9, etc.)
-- **Washer/dryer**: Must be IN the unit (not building laundry, not garage)
-- **Central air**: Required (no window units)
-- **Size**: Must be ≥1,700 sq ft
-- **Bedrooms**: Must be ≥2
-- **Rent**: Must be ≤$7,000/month
+- **Health & Safety** — Distance from gas stations, highways, and high-volume roads
+- **Green Escape** — Quality parks, trails, and nature within walking distance (scored 0-10 per space)
+- **Urban Access** — Transit options, hub commute times, and reachability (airport, downtown, hospital)
+- **Family & Schooling** — Nearby schools by level, childcare, and family-friendly infrastructure
+- **Daily Essentials** — Walkable groceries, cafes, and fitness
+- **Final Score** — 0-100 livability score with full breakdown and percentile estimate
 
-### Tier 2: Scored Preferences (0-60 points)
-- **Park access** (0-20 pts): Quality park within 20 min walk = 20 pts, 30 min = 10 pts
-- **Third Place** (0-15 pts): Quality third place within 20 min walk = 15 pts, 30 min = 8 pts
-- **Budget** (0-15 pts): ≤$6,000 = 15 pts, ≤$6,500 = 10 pts
-- **Metro North** (0-10 pts): Station within 20 min walk = 10 pts, 30 min = 5 pts
+## Who It's For
 
-### Tier 3: Bonus Points
-- Parking included: +5 pts
-- Outdoor space (yard/balcony): +5 pts  
-- 3+ bedrooms: +5 pts
+- **Families choosing where to live** — especially remote workers optimizing for daily life, not commute
+- **Renters evaluating apartments** — compare addresses objectively before visiting
+- **Homebuyers doing due diligence** — environmental and lifestyle checks before making an offer
 
-## Setup
+## How It Makes Money
 
-### 1. Get a Google Maps API Key
+- **$29 per report** — full livability evaluation for any U.S. address
+- **API cost per report: ~$0.10-0.15** — healthy margin at scale
+- **Coming soon:** 5-report bundles ($99), monthly subscriptions ($49/mo), PDF export, saved reports
+- **Revenue model:** Pay-per-report with premium tiers for professionals and frequent movers
+- **Current state:** Free preview while payment integration (Stripe) is being built. TODO markers in code for Stripe Checkout, PDF export, saved reports, and subscription management.
 
-You'll need a Google Cloud account with the following APIs enabled:
-- Geocoding API
-- Places API
-- Distance Matrix API
+## Report Sections
 
-Get your API key from: https://console.cloud.google.com/google/maps-apis
+Each report includes:
 
-**Cost estimate**: ~$0.02-0.05 per property evaluated (mostly Places API calls)
+1. **One-line verdict** — "Strong daily-life match" / "Compromised walkability" / etc.
+2. **Final Score: X / 100** — with percentile estimate
+3. **Green Escape** — Best daily park with Daily Walk Value score (0-10), subscores for walk time, size, quality, and nature feel. Plus up to 5 other nearby green spaces with PASS/BORDERLINE/FAIL status.
+4. **Urban Access** — Nearest transit node, transit frequency, primary hub commute time with Great/OK/Painful verdict, reachability to airport/downtown/hospital. Walk/Transit/Bike scores when available.
+5. **Family & Schooling** — Childcare (ages 0-5) and schools by level (Elementary, Middle, High) with walk times and ratings.
+6. **Health & Safety Checks** — Pass/fail checks for gas station proximity, highway proximity, and high-volume roads.
+7. **What's Missing / Needs Verification** — Automatically detected data gaps and items that need manual verification.
+8. **Score Breakdown** — Full tier-2 scoring (6 categories, 0-10 each) plus tier-3 bonuses. Legend explaining how the score is constructed.
 
-API requests use a 25s timeout to avoid indefinite hangs. Repeated timeouts can indicate network issues or Google Maps API quota/rate limits—check your Cloud Console quotas and usage.
+## Scoring System
 
-### 2. Install Dependencies
+| Category | Max Points | What It Measures |
+|----------|-----------|-----------------|
+| Park & Green Access | 10 | Quality park within walking distance |
+| Third Place | 10 | Cafe, bakery, or social space nearby |
+| Provisioning | 10 | Grocery/supermarket access |
+| Fitness | 10 | Gym or fitness center |
+| Affordability | 10 | Monthly cost vs. thresholds |
+| Transit Access | 10 | Train/subway proximity and frequency |
+| **Subtotal** | **60** | Normalized to 100 |
+| Bonus: Parking | +5 | If parking included |
+| Bonus: Outdoor | +5 | Yard or balcony |
+| Bonus: 3+ BR | +5 | Three or more bedrooms |
+| **Final Score** | **0-100** | Capped at 100 |
+
+Properties that fail health/safety checks (Tier 1) are disqualified before scoring.
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.11+
+- Google Maps API key (Places, Distance Matrix, Geocoding APIs enabled)
+- (Optional) Walk Score API key
+
+### Setup
+
+```bash
+git clone https://github.com/jbrowning24/NestCheck.git
+cd NestCheck
+
+pip install -r requirements.txt
+
+export GOOGLE_MAPS_API_KEY="your-google-maps-key"
+export WALKSCORE_API_KEY="your-walkscore-key"  # optional
+
+python app.py
+```
+
+The app will be available at `http://localhost:5001`.
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_MAPS_API_KEY` | Yes | Google Maps Platform API key |
+| `WALKSCORE_API_KEY` | No | Walk Score API key (for walk/transit/bike scores) |
+| `SECRET_KEY` | No | Flask session secret (auto-generated in production) |
+| `PORT` | No | Port to bind (default: 5001) |
+| `FLASK_DEBUG` | No | Set to "1" for debug mode |
+| `PRIMARY_HUB_ADDRESS` | No | Urban access primary hub (default: Grand Central Terminal) |
+| `AIRPORT_HUBS` | No | JSON list of airport hubs |
+| `DOWNTOWN_HUB` | No | Downtown hub address |
+| `HOSPITAL_HUB` | No | Hospital hub address |
+
+## Deploy to Render
+
+### One-click setup
+
+1. Push this repo to GitHub
+2. Go to [Render Dashboard](https://dashboard.render.com)
+3. Click **New > Web Service**
+4. Connect your GitHub repo
+5. Render will auto-detect `render.yaml` and configure:
+   - Build: `pip install -r requirements.txt`
+   - Start: `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 180 --workers 2`
+6. Add environment variables:
+   - `GOOGLE_MAPS_API_KEY` (required)
+   - `WALKSCORE_API_KEY` (optional)
+7. Deploy
+
+### Manual production run
 
 ```bash
 pip install -r requirements.txt
+gunicorn app:app --bind 0.0.0.0:$PORT --timeout 180 --workers 2
 ```
 
-### 3. Set Your API Key
+### Alternative: Fly.io
 
 ```bash
-export GOOGLE_MAPS_API_KEY="your-key-here"
+fly launch --name nestcheck
+fly secrets set GOOGLE_MAPS_API_KEY="your-key"
+fly deploy
 ```
 
-Or pass it via `--api-key` flag.
-
-### 4. (Optional) Add Walk Score
-
-Create a `.env` file (or export the env var) with your Walk Score API key:
-
-```bash
-WALKSCORE_API_KEY="your-walkscore-key"
-```
-
-## Usage
-
-### Basic Usage
-
-```bash
-python property_evaluator.py "123 Main St, Scarsdale, NY 10583"
-```
-
-### With Property Details
-
-```bash
-python property_evaluator.py "123 Main St, Scarsdale, NY 10583" \
-    --rent 6200 \
-    --sqft 1850 \
-    --bedrooms 3 \
-    --washer-dryer \
-    --central-air \
-    --parking
-```
-
-### JSON Output (for scripting)
-
-```bash
-python property_evaluator.py "123 Main St, Scarsdale, NY" --json
-```
-
-### Example Output
+## Architecture
 
 ```
-======================================================================
-PROPERTY: 123 Main St, Scarsdale, NY 10583
-RENT: $6,200/month
-COORDINATES: 40.988765, -73.784532
-======================================================================
-
-TIER 1 CHECKS:
-  ✓ Gas station: PASS — Nearest: Shell (1,245 ft)
-  ✓ Highway: PASS — No highways within 500 feet
-  ✓ High-volume road: PASS — No high-volume roads within 500 feet
-  ✓ W/D in unit: PASS — Washer/dryer in unit confirmed
-  ✓ Central air: PASS — Central air confirmed
-  ✓ Size: PASS — 1,850 sq ft
-  ✓ Bedrooms: PASS — 3 BR
-  ✓ Rent: PASS — $6,200/month
-
-✅ PASSED TIER 1
-
-TIER 2 SCORE: 52/60
-  - Park access: 20 pts — Scarsdale Village Park (4.5★, 234 reviews) — 12 min walk
-  - Third Place access: 15 pts — Local: Lange's Deli — 8 min walk
-  - Budget: 10 pts — $6,200 — within target range
-  - Metro North access: 7 pts — Scarsdale Station — 18 min walk
-
-TIER 3 BONUS: +10 pts
-  - Parking: +5 — Parking included
-  - Extra bedroom: +5 — 3 bedrooms
-
-======================================================================
-TOTAL SCORE: 62
-======================================================================
+app.py                    Flask web app (routes, template rendering)
+property_evaluator.py     Core evaluation engine (scoring, API clients)
+green_space.py            Green Escape engine (park quality + scoring)
+urban_access.py           Urban Access engine (hub reachability)
+templates/
+  index.html              Landing page + report template
+  pricing.html            Pricing page with Stripe TODO stubs
+render.yaml               Render deployment config
+Procfile                  Process file for PaaS platforms
+requirements.txt          Python dependencies
 ```
 
-## Criteria Definitions
+## Data Sources
 
-### What counts as a "quality park"?
-- Must have ≥4.0 stars on Google with ≥50 reviews, OR
-- Must be ≥5 acres (if acreage data available)
-- Small playgrounds are excluded
-- The goal: somewhere Theodore can run around and you can do a 15-30 min walking loop
+- **Google Maps Platform** — Places API, Distance Matrix API, Geocoding API
+- **OpenStreetMap** — Road classification and green space polygons via Overpass API
+- **Walk Score** — Walk, Transit, and Bike scores (when API key provided)
 
-### What counts as a third place?
-**Included examples:**
-- Cafes, bakeries, coffee shops, wine bars, bookstores with cafes
+School and childcare results are from Google Places and may not reflect official district assignments.
 
-**Required traits:**
-- Serves drinks or food
-- Allows seating
-- Not fast food
-- Not a convenience store
+## API Cost Estimate
 
-### What counts as a "high-volume road"?
-- Any highway/freeway (I-95, I-87, Saw Mill, Hutch, etc.)
-- Numbered state/US routes (US-1, NY-9, NY-9A, NY-22, etc.)
-- Roads with 4+ lanes
-- Central Avenue, Boston Post Road, etc.
+~$0.10-0.15 per evaluation. At $29/report, this supports a healthy margin.
 
-## Extending This Tool
+## Disclaimer
 
-### Adding a Zillow/Redfin scraper
+NestCheck is a decision-support tool, not professional real estate, health, or legal advice. Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
 
-The tool accepts listing data via command-line flags, but you could add a scraper module to auto-populate from URLs. See `property_evaluator.py` — the `PropertyListing` dataclass is designed to be populated from any source.
+## License
 
-### Adding a monitoring/notification system
-
-To get alerts when new listings match your criteria:
-1. Set up a cron job or GitHub Action to poll Zillow/Redfin RSS feeds
-2. Run each new listing through this evaluator
-3. Send notifications (email, Slack, text) for properties that pass Tier 1 and score above a threshold
-
-### Adding more data sources
-
-The tool uses:
-- **Google Places API** for gas stations, parks, cafes, transit
-- **OpenStreetMap Overpass API** for road classification
-
-You could enhance with:
-- County tax records for more accurate square footage
-- Walk Score API for additional walkability data
-- School district boundaries (for future planning)
-
-## Troubleshooting
-
-### "Geocoding failed" error
-- Check that the address is complete and valid
-- Ensure your Google Maps API key has Geocoding API enabled
-
-### "UNKNOWN" results for listing criteria
-- These come from missing data — add the flags (--washer-dryer, --central-air, etc.)
-- The tool will note what needs manual verification
-
-### Rate limiting
-- The free tier of Google Maps APIs should handle ~100 properties/day
-- Overpass API has no key requirement but may rate limit heavy usage
+Private — All rights reserved.
