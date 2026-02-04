@@ -318,6 +318,11 @@ class EvaluationResult:
 # API CLIENTS
 # =============================================================================
 
+# Timeout in seconds for external API HTTP requests (Maps, Overpass).
+# Avoids indefinite hangs when the network or API is slow. If you see repeated
+# timeouts, they may be quota-related (e.g. Google Maps API rate or usage limits).
+API_REQUEST_TIMEOUT = 25
+
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
 
