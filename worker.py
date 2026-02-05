@@ -15,6 +15,7 @@ import time
 from property_evaluator import PropertyListing, evaluate_property
 from nc_trace import TraceContext, set_trace, clear_trace
 from models import (
+    init_db,
     claim_next_job,
     update_job_stage,
     complete_job,
@@ -137,6 +138,9 @@ def start_worker() -> None:
     global _worker_thread
     if _worker_thread is not None and _worker_thread.is_alive():
         return
+    # Ensure DB tables exist in this process before worker thread starts.
+    # Critical for Railway/Render where each deploy starts with empty filesystem.
+    init_db()
     try:
         swept = requeue_stale_running_jobs(max_age_seconds=300)
         if swept:
