@@ -23,7 +23,7 @@ import logging
 import argparse
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple, Dict, Any, Callable
 from enum import Enum
 import requests
 
@@ -2685,14 +2685,23 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
 
 def evaluate_property(
     listing: PropertyListing,
-    api_key: str
+    api_key: str,
+    on_stage: Optional[Callable[[str], None]] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
     Each enrichment stage is wrapped in try/except so that a single
     failing API call (timeout, quota, etc.) degrades gracefully
     instead of aborting the whole evaluation.
+
+    on_stage: optional callback(stage_name: str) called at the start of each
+    stage, for progress reporting (e.g. async job queue).
     """
+    def _run_stage(name: str, fn, *args, **kwargs):
+        if on_stage:
+            on_stage(name)
+        return _timed_stage(name, fn, *args, **kwargs)
+
     eval_start = time.time()
 
     maps = GoogleMapsClient(api_key)
@@ -2700,7 +2709,7 @@ def evaluate_property(
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run.  Let this propagate on failure.
-    lat, lng = _timed_stage("geocode", maps.geocode, listing.address)
+    lat, lng = _run_stage("geocode", maps.geocode, listing.address)
 
     result = EvaluationResult(
         listing=listing,
@@ -2711,7 +2720,7 @@ def evaluate_property(
     # --- Optional enrichments (each fails independently) ---
 
     try:
-        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
+        bike_data = _run_stage("bike_score", get_bike_score, listing.address, lat, lng)
         result.bike_score = bike_data.get("bike_score")
         result.bike_rating = bike_data.get("bike_rating")
         result.bike_metadata = bike_data.get("bike_metadata")
@@ -2719,49 +2728,49 @@ def evaluate_property(
         pass
 
     try:
-        result.neighborhood_snapshot = _timed_stage(
+        result.neighborhood_snapshot = _run_stage(
             "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.child_schooling_snapshot = _timed_stage(
+        result.child_schooling_snapshot = _run_stage(
             "schools", get_child_and_schooling_snapshot, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.urban_access = _timed_stage(
+        result.urban_access = _run_stage(
             "urban_access", get_urban_access_profile, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_access = _timed_stage(
+        result.transit_access = _run_stage(
             "transit_access", evaluate_transit_access, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_space_evaluation = _timed_stage(
+        result.green_space_evaluation = _run_stage(
             "green_spaces", evaluate_green_spaces, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_escape_evaluation = _timed_stage(
+        result.green_escape_evaluation = _run_stage(
             "green_escape", evaluate_green_escape, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_score = _timed_stage(
+        result.transit_score = _run_stage(
             "transit_score", get_transit_score, listing.address, lat, lng)
     except Exception:
         pass
 
     try:
-        result.walk_scores = _timed_stage(
+        result.walk_scores = _run_stage(
             "walk_scores", get_walk_scores, listing.address, lat, lng)
     except Exception:
         pass
@@ -2769,6 +2778,8 @@ def evaluate_property(
     # ===================
     # TIER 1 CHECKS
     # ===================
+    if on_stage:
+        on_stage("tier1_checks")
 
     trace = get_trace()
     if trace:
@@ -2799,7 +2810,7 @@ def evaluate_property(
 
     if result.passed_tier1:
         result.tier2_scores.append(
-            _timed_stage(
+            _run_stage(
                 "score_park_access", score_park_access,
                 maps, lat, lng,
                 green_space_evaluation=result.green_space_evaluation,
@@ -2807,14 +2818,14 @@ def evaluate_property(
             )
         )
         result.tier2_scores.append(
-            _timed_stage("score_third_place", score_third_place_access, maps, lat, lng))
+            _run_stage("score_third_place", score_third_place_access, maps, lat, lng))
         result.tier2_scores.append(
-            _timed_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
+            _run_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
         result.tier2_scores.append(
-            _timed_stage("score_fitness", score_fitness_access, maps, lat, lng))
+            _run_stage("score_fitness", score_fitness_access, maps, lat, lng))
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(
-            _timed_stage(
+            _run_stage(
                 "score_transit_access", score_transit_access,
                 maps, lat, lng, transit_access=result.transit_access,
             )
@@ -2830,6 +2841,8 @@ def evaluate_property(
     # ===================
     # TIER 3 BONUSES
     # ===================
+    if on_stage:
+        on_stage("tier3_bonuses")
 
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)

@@ -1,0 +1,153 @@
+"""
+Background evaluation worker for the async job queue.
+
+Runs in a dedicated thread per gunicorn worker process. Polls the DB for
+queued jobs, claims one atomically, runs evaluate_property() with stage
+callbacks to update progress, then saves the snapshot and marks the job
+done or failed. Supports graceful shutdown via a stop event.
+"""
+
+import os
+import logging
+import threading
+import time
+
+from property_evaluator import PropertyListing, evaluate_property
+from nc_trace import TraceContext, set_trace, clear_trace
+from models import (
+    claim_next_job,
+    update_job_stage,
+    complete_job,
+    fail_job,
+    save_snapshot,
+    log_event,
+    check_return_visit,
+    requeue_stale_running_jobs,
+)
+
+logger = logging.getLogger(__name__)
+
+# Poll interval when no job is available (seconds)
+POLL_INTERVAL = 2.0
+
+# Stop event: set by the main process to signal the worker thread to exit
+_stop_event = threading.Event()
+_worker_thread = None
+
+
+def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None) -> None:
+    """
+    Run a single evaluation job: evaluate, save snapshot, complete or fail.
+    Updates current_stage in the DB as evaluation progresses.
+    """
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if not api_key:
+        fail_job(job_id, "GOOGLE_MAPS_API_KEY not configured")
+        log_event(
+            "evaluation_error",
+            visitor_id=visitor_id,
+            metadata={
+                "address": address,
+                "error": "missing_config",
+                "request_id": request_id,
+            },
+        )
+        return
+
+    trace_ctx = TraceContext(trace_id=request_id or job_id)
+    set_trace(trace_ctx)
+
+    def on_stage(stage_name: str) -> None:
+        update_job_stage(job_id, stage_name)
+
+    try:
+        listing = PropertyListing(address=address)
+        eval_result = evaluate_property(listing, api_key, on_stage=on_stage)
+
+        # Serialize result for snapshot (same as app.py). Lazy import to avoid
+        # circular dependency (app imports worker for start_worker).
+        from app import result_to_dict
+
+        result = result_to_dict(eval_result)
+        trace_summary = trace_ctx.summary_dict()
+        result["_trace"] = trace_summary
+        address_norm = result.get("address", address)
+
+        on_stage("saving")
+        snapshot_id = save_snapshot(
+            address_input=address,
+            address_norm=address_norm,
+            result_dict=result,
+        )
+        complete_job(job_id, snapshot_id)
+        is_return = check_return_visit(visitor_id)
+        log_event(
+            "snapshot_created",
+            snapshot_id=snapshot_id,
+            visitor_id=visitor_id,
+            metadata={"address": address, "trace_id": trace_summary.get("trace_id")},
+        )
+        if is_return:
+            log_event("return_visit", snapshot_id=snapshot_id, visitor_id=visitor_id)
+        logger.info("[worker] Job %s completed -> snapshot %s", job_id, snapshot_id)
+    except Exception as e:
+        logger.exception("[worker] Job %s failed: %s", job_id, e)
+        fail_job(job_id, str(e))
+        log_event(
+            "evaluation_error",
+            visitor_id=visitor_id,
+            metadata={
+                "address": address,
+                "error": str(e),
+                "request_id": request_id,
+                "trace_summary": trace_ctx.summary_dict(),
+            },
+        )
+    finally:
+        trace_ctx.log_summary()
+        clear_trace()
+
+
+def _worker_loop() -> None:
+    """Loop: claim next job, run it, repeat until stop event is set."""
+    logger.info("[worker] Evaluation worker thread started")
+    while not _stop_event.is_set():
+        job = claim_next_job()
+        if job:
+            job_id = job["job_id"]
+            address = job["address"]
+            visitor_id = job.get("visitor_id")
+            request_id = job.get("request_id")
+            logger.info("[worker] Claimed job %s: %r", job_id, address)
+            try:
+                _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id)
+            except Exception as e:
+                logger.exception("[worker] Unhandled error in job %s", job_id)
+                fail_job(job_id, str(e))
+        else:
+            _stop_event.wait(timeout=POLL_INTERVAL)
+    logger.info("[worker] Evaluation worker thread stopped")
+
+
+def start_worker() -> None:
+    """
+    Start the background worker thread. Safe to call from the main process
+    or from a gunicorn post_fork hook. Only one thread is started per process.
+    """
+    global _worker_thread
+    if _worker_thread is not None and _worker_thread.is_alive():
+        return
+    try:
+        swept = requeue_stale_running_jobs(max_age_seconds=300)
+        if swept:
+            logger.warning("[worker] Re-queued %d stale running jobs", swept)
+    except Exception:
+        logger.exception("[worker] Failed to sweep stale running jobs")
+    _stop_event.clear()
+    _worker_thread = threading.Thread(target=_worker_loop, daemon=True)
+    _worker_thread.start()
+
+
+def stop_worker() -> None:
+    """Signal the worker thread to stop (for tests or graceful shutdown)."""
+    _stop_event.set()
