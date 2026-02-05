@@ -106,7 +106,7 @@ The app will be available at `http://localhost:5001`.
 4. Connect your GitHub repo
 5. Render will auto-detect `render.yaml` and configure:
    - Build: `pip install -r requirements.txt`
-   - Start: `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 180 --workers 2`
+   - Start: `gunicorn app:app -c gunicorn_config.py --bind 0.0.0.0:$PORT --timeout 180 --workers 2`
 6. Add environment variables:
    - `GOOGLE_MAPS_API_KEY` (required)
    - `WALKSCORE_API_KEY` (optional)
@@ -116,7 +116,7 @@ The app will be available at `http://localhost:5001`.
 
 ```bash
 pip install -r requirements.txt
-gunicorn app:app --bind 0.0.0.0:$PORT --timeout 180 --workers 2
+gunicorn app:app -c gunicorn_config.py --bind 0.0.0.0:$PORT --timeout 180 --workers 2
 ```
 
 ### Alternative: Fly.io
