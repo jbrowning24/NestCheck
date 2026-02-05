@@ -19,6 +19,7 @@ from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
+    create_job, get_job,
 )
 
 load_dotenv()
@@ -412,85 +413,45 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
-        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-        trace_ctx = TraceContext(trace_id=request_id)
-        set_trace(trace_ctx)
-        try:
-            listing = PropertyListing(address=address)
-            eval_result = evaluate_property(listing, api_key)
-            result = result_to_dict(eval_result)
+        # Async queue: create job and return immediately. Worker picks up and runs evaluation.
+        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id)
+        logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
+        if _wants_json():
+            return jsonify({"job_id": job_id})
+        # Non-JS form POST: redirect to index with job_id so the page can poll
+        return redirect(url_for("index", job_id=job_id))
 
-            # Persist snapshot — include trace_id in metadata
-            address_norm = result.get("address", address)
-            trace_summary = trace_ctx.summary_dict()
-            result["_trace"] = trace_summary
-            snapshot_id = save_snapshot(address_input=address,
-                                        address_norm=address_norm,
-                                        result_dict=result)
-
-            # Log events
-            is_return = check_return_visit(g.visitor_id)
-            log_event("snapshot_created", snapshot_id=snapshot_id,
-                      visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "trace_id": request_id})
-            if is_return:
-                log_event("return_visit", snapshot_id=snapshot_id,
-                          visitor_id=g.visitor_id)
-
-            # Emit the end-of-request summary log line
-            trace_ctx.log_summary()
-
-            logger.info(
-                "[%s] Snapshot %s created for: %s",
-                request_id, snapshot_id, address,
-            )
-
-            # Return JSON for fetch-based clients, HTML for traditional form POST
-            if _wants_json():
-                return jsonify({
-                    "snapshot_id": snapshot_id,
-                    "redirect_url": f"/s/{snapshot_id}",
-                    "trace_id": request_id,
-                    "trace_summary": trace_summary,
-                })
-
-        except Exception as e:
-            trace_ctx.log_summary()
-            logger.exception(
-                "[%s] Evaluation failed for address: %s", request_id, address
-            )
-            log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "error": str(e),
-                                "request_id": request_id,
-                                "trace_summary": trace_ctx.summary_dict()})
-            error = (
-                "Something went wrong while evaluating this address. "
-                "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized "
-                "by Google Maps. (ref: " + request_id + ")"
-            )
-            error_detail = {
-                "request_id": request_id,
-                "exception": str(e),
-                "traceback": traceback.format_exc(),
-            }
-            if _wants_json():
-                return jsonify({
-                    "error": error,
-                    "request_id": request_id,
-                    "trace_summary": trace_ctx.summary_dict(),
-                }), 500
-        finally:
-            clear_trace()
+    # Optional: when redirected with ?job_id= after form POST, frontend will poll
+    job_id = request.args.get("job_id")
 
     return render_template(
         "index.html", result=result, error=error,
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
+        job_id=job_id,
         is_builder=g.is_builder, request_id=request_id,
     )
+
+
+@app.route("/job/<job_id>")
+def job_status(job_id):
+    """
+    Polling endpoint for async evaluation. Returns JSON:
+    {status, current_stage, snapshot_id?, error?}
+    status: queued | running | done | failed
+    """
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    payload = {
+        "status": job["status"],
+        "current_stage": job["current_stage"],
+    }
+    if job.get("result_snapshot_id"):
+        payload["snapshot_id"] = job["result_snapshot_id"]
+    if job.get("error"):
+        payload["error"] = job["error"]
+    return jsonify(payload)
 
 
 @app.route("/s/<snapshot_id>")
@@ -731,6 +692,20 @@ def not_found(e):
 init_db()
 
 if __name__ == "__main__":
+    # Development: start the async evaluation worker thread in this process
+    from worker import start_worker
+    start_worker()
     port = int(os.environ.get("PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
+if os.environ.get("FLASK_RUN_FROM_CLI") == "true" and os.environ.get("START_WORKER") != "1":
+    logger.warning(
+        "WARNING: No background worker running. Jobs will not process. "
+        "Use gunicorn or set START_WORKER=1."
+    )
+elif os.environ.get("START_WORKER") == "1":
+    try:
+        from worker import start_worker
+        start_worker()
+    except Exception:
+        logger.exception("Failed to start background worker via START_WORKER=1")

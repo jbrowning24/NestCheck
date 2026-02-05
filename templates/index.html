@@ -1200,103 +1200,140 @@ transit_access: {{ result.transit_access }}</pre>
 
 <script>
   (function() {
-    var CLIENT_TIMEOUT_MS = 120000; // 2 minutes — generous budget
+    var POLL_INTERVAL_MS = 2000;
+
+    // Stage names from backend -> user-facing progress text
+    var STAGE_DISPLAY = {
+      geocode: 'Locating address...',
+      bike_score: 'Checking bike infrastructure...',
+      neighborhood: 'Analyzing nearby amenities...',
+      schools: 'Finding schools and childcare...',
+      urban_access: 'Calculating commute times...',
+      transit_access: 'Evaluating transit options...',
+      green_spaces: 'Discovering parks and trails...',
+      green_escape: 'Finding your daily green escape...',
+      transit_score: 'Getting transit scores...',
+      walk_scores: 'Getting walkability scores...',
+      tier1_checks: 'Running safety checks...',
+      score_park_access: 'Calculating lifestyle scores...',
+      score_third_place: 'Calculating lifestyle scores...',
+      score_provisioning: 'Calculating lifestyle scores...',
+      score_fitness: 'Calculating lifestyle scores...',
+      score_transit_access: 'Calculating lifestyle scores...',
+      tier3_bonuses: 'Adding bonus points...',
+      saving: 'Saving your results...'
+    };
+
+    function stageDisplay(stage) {
+      return STAGE_DISPLAY[stage] || 'Working...';
+    }
+
+    function showError(msg, overlay, btn, form) {
+      overlay.classList.remove('active');
+      btn.disabled = false;
+      btn.textContent = btn.dataset.originalText || 'Evaluate';
+      var existingBanner = document.querySelector('.error-banner');
+      if (existingBanner) {
+        var el = existingBanner.querySelector('.error-msg');
+        if (el) el.textContent = msg;
+      } else {
+        var banner = document.createElement('div');
+        banner.className = 'error-banner';
+        banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
+        form.parentNode.insertBefore(banner, form);
+      }
+    }
+
+    function startPolling(jobId, overlay, loadingText, loadingSub, btn, form) {
+      overlay.classList.add('active');
+      loadingText.textContent = 'Evaluating this address...';
+      loadingSub.textContent = 'Starting...';
+
+      function poll() {
+        fetch('/job/' + jobId, { headers: { 'Accept': 'application/json' } })
+          .then(function(r) {
+            if (!r.ok) {
+              if (r.status === 404) showError('Job not found.', overlay, btn, form);
+              return null;
+            }
+            return r.json();
+          })
+          .then(function(data) {
+            if (!data) return;
+            if (data.current_stage) {
+              loadingSub.textContent = stageDisplay(data.current_stage);
+            }
+            if (data.status === 'done' && data.snapshot_id) {
+              window.location.href = '/s/' + data.snapshot_id;
+              return;
+            }
+            if (data.status === 'failed') {
+              showError(data.error || 'Evaluation failed.', overlay, btn, form);
+              return;
+            }
+            setTimeout(poll, POLL_INTERVAL_MS);
+          })
+          .catch(function(err) {
+            showError('Could not check job status. Please try again. (' + err.message + ')', overlay, btn, form);
+          });
+      }
+      poll();
+    }
 
     document.getElementById('evalForm').addEventListener('submit', function(e) {
       e.preventDefault();
-
       var form = e.target;
       var btn = document.getElementById('evalBtn');
       var overlay = document.getElementById('loadingOverlay');
       var loadingText = overlay.querySelector('.loading-text');
       var loadingSub = overlay.querySelector('.loading-sub');
       var address = form.querySelector('input[name="address"]').value.trim();
-
       if (!address) return;
 
       btn.disabled = true;
       btn.textContent = 'Evaluating...';
       overlay.classList.add('active');
       loadingText.textContent = 'Evaluating this address...';
-      loadingSub.textContent = 'Checking parks, transit, schools, safety, and more. This takes 15\u201345 seconds.';
-
-      var controller = new AbortController();
-      var timeoutId = setTimeout(function() {
-        controller.abort();
-      }, CLIENT_TIMEOUT_MS);
-
-      // Progress updates while waiting
-      var elapsed = 0;
-      var progressId = setInterval(function() {
-        elapsed += 5;
-        if (elapsed >= 60) {
-          loadingSub.textContent = 'Still working (' + elapsed + 's)... Almost there.';
-        } else if (elapsed >= 30) {
-          loadingSub.textContent = 'Gathering transit and urban access data (' + elapsed + 's)...';
-        } else if (elapsed >= 15) {
-          loadingSub.textContent = 'Checking green spaces and schools (' + elapsed + 's)...';
-        }
-      }, 5000);
+      loadingSub.textContent = 'Submitting...';
 
       var body = new FormData(form);
-
       fetch('/', {
         method: 'POST',
         body: body,
-        signal: controller.signal,
         headers: { 'Accept': 'application/json' }
       })
-      .then(function(resp) {
-        clearTimeout(timeoutId);
-        clearInterval(progressId);
-        return resp.json().then(function(data) {
-          if (data.redirect_url) {
-            window.location.href = data.redirect_url;
-          } else if (data.error) {
-            var traceRef = data.request_id ? ' (trace: ' + data.request_id + ')' : '';
-            showError(data.error + traceRef);
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+          if (data.error) {
+            var traceRef = data.request_id ? ' (ref: ' + data.request_id + ')' : '';
+            showError(data.error + traceRef, overlay, btn, form);
+          } else if (data.job_id) {
+            startPolling(data.job_id, overlay, loadingText, loadingSub, btn, form);
           } else {
-            showError('Unexpected response from server.');
+            showError('Unexpected response from server.', overlay, btn, form);
           }
+        })
+        .catch(function(err) {
+          showError('Network error. Please try again. (' + err.message + ')', overlay, btn, form);
         });
-      })
-      .catch(function(err) {
-        clearTimeout(timeoutId);
-        clearInterval(progressId);
-        if (err.name === 'AbortError') {
-          showError(
-            'The evaluation timed out after 2 minutes. ' +
-            'The server may still be processing. ' +
-            'This typically means an upstream API (Google/Overpass) is slow. Please try again.'
-          );
-        } else {
-          showError(
-            'A network error occurred. Please check your connection and try again. (' + err.message + ')'
-          );
-        }
-      });
-
-      function showError(msg) {
-        overlay.classList.remove('active');
-        btn.disabled = false;
-        btn.textContent = btn.dataset.originalText || 'Evaluate';
-
-        // Insert or update error banner
-        var existingBanner = document.querySelector('.error-banner');
-        if (existingBanner) {
-          existingBanner.querySelector('.error-msg').textContent = msg;
-        } else {
-          var banner = document.createElement('div');
-          banner.className = 'error-banner';
-          banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
-          form.parentNode.insertBefore(banner, form);
-        }
-      }
     });
 
-    // Store original button text
     var evalBtn = document.getElementById('evalBtn');
     if (evalBtn) evalBtn.dataset.originalText = evalBtn.textContent;
+
+    // If we landed with ?job_id= (e.g. non-JS form POST redirect), start polling
+    var initialJobId = '{{ job_id or "" }}';
+    if (initialJobId) {
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingText = overlay && overlay.querySelector('.loading-text');
+      var loadingSub = overlay && overlay.querySelector('.loading-sub');
+      if (overlay && loadingText && loadingSub) {
+        var form = document.getElementById('evalForm');
+        var btn = document.getElementById('evalBtn');
+        if (btn) btn.disabled = true;
+        startPolling(initialJobId, overlay, loadingText, loadingSub, btn || {}, form || document.body);
+      }
+    }
   })();
 
   function copyShareLink() {

@@ -10,7 +10,10 @@ import os
 import json
 import uuid
 import time
-from datetime import datetime, timezone
+import logging
+from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
@@ -53,7 +56,30 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_events_snapshot ON events(snapshot_id);
         CREATE INDEX IF NOT EXISTS idx_events_visitor ON events(visitor_id);
         CREATE INDEX IF NOT EXISTS idx_snapshots_created ON snapshots(created_at);
+
+        -- Async evaluation job queue (SQLite-backed; one worker thread per gunicorn worker)
+        CREATE TABLE IF NOT EXISTS evaluation_jobs (
+            job_id           TEXT PRIMARY KEY,
+            address          TEXT NOT NULL,
+            visitor_id       TEXT,
+            request_id       TEXT,
+            status           TEXT NOT NULL DEFAULT 'queued',
+            current_stage    TEXT,
+            result_snapshot_id TEXT,
+            error            TEXT,
+            created_at       TEXT NOT NULL,
+            started_at       TEXT,
+            completed_at     TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_jobs_status ON evaluation_jobs(status);
+        CREATE INDEX IF NOT EXISTS idx_jobs_created ON evaluation_jobs(created_at);
     """)
+    # Migrate existing evaluation_jobs table (add new columns if missing).
+    cols = {row["name"] for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()}
+    if "visitor_id" not in cols:
+        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN visitor_id TEXT")
+    if "request_id" not in cols:
+        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN request_id TEXT")
     conn.commit()
     conn.close()
 
@@ -109,7 +135,11 @@ def get_snapshot(snapshot_id):
         return None
 
     data = dict(row)
-    data["result"] = json.loads(data["result_json"])
+    try:
+        data["result"] = json.loads(data["result_json"])
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.error("Corrupted result_json for snapshot %s: %s", snapshot_id, e)
+        return None
     return data
 
 
@@ -207,3 +237,131 @@ def get_recent_snapshots(limit=20):
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+
+# ---------------------------------------------------------------------------
+# Evaluation job queue (async evaluation)
+# ---------------------------------------------------------------------------
+
+def create_job(address, visitor_id=None, request_id=None):
+    """
+    Enqueue an evaluation job. Returns job_id.
+    address: raw address string from the user.
+    """
+    job_id = uuid.uuid4().hex[:12]
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """INSERT INTO evaluation_jobs
+           (job_id, address, visitor_id, request_id, status, created_at)
+           VALUES (?, ?, ?, ?, 'queued', ?)""",
+        (job_id, address, visitor_id, request_id, now),
+    )
+    conn.commit()
+    conn.close()
+    return job_id
+
+
+def get_job(job_id):
+    """
+    Load a job by ID. Returns dict with job_id, address, status, current_stage,
+    result_snapshot_id, error, created_at, started_at, completed_at,
+    or None if not found.
+    """
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def claim_next_job():
+    """
+    Atomically claim the next queued job (set status to 'running', set started_at).
+    Returns the job dict or None if no queued job. Uses UPDATE with WHERE status='queued'
+    so only one worker can claim a given job.
+    """
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT job_id FROM evaluation_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1"
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None
+    job_id = row["job_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE evaluation_jobs SET status = 'running', started_at = ? WHERE job_id = ? AND status = 'queued'",
+        (now, job_id),
+    )
+    if conn.total_changes == 0:
+        conn.close()
+        return None  # Another worker claimed it
+    conn.commit()
+    job = conn.execute("SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)).fetchone()
+    conn.close()
+    return dict(job) if job else None
+
+
+def update_job_stage(job_id, current_stage):
+    """Update the current_stage for a running job (for progress display)."""
+    conn = _get_db()
+    conn.execute(
+        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ? AND status = 'running'",
+        (current_stage, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def complete_job(job_id, result_snapshot_id):
+    """Mark job as done and store the snapshot ID."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'done', result_snapshot_id = ?, completed_at = ?, current_stage = NULL
+           WHERE job_id = ?""",
+        (result_snapshot_id, now, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def fail_job(job_id, error_message):
+    """Mark job as failed and store the error message."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'failed', error = ?, completed_at = ?, current_stage = NULL
+           WHERE job_id = ?""",
+        (error_message[:2000] if error_message else None, now, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def requeue_stale_running_jobs(max_age_seconds=300):
+    """
+    Requeue jobs stuck in 'running' beyond max_age_seconds.
+    Returns the number of jobs reset.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
+    cutoff_iso = cutoff.isoformat()
+    conn = _get_db()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'queued',
+               started_at = NULL,
+               completed_at = NULL,
+               current_stage = NULL,
+               error = NULL
+           WHERE status = 'running' AND started_at IS NOT NULL AND started_at <= ?""",
+        (cutoff_iso,),
+    )
+    count = conn.total_changes
+    conn.commit()
+    conn.close()
+    return count
