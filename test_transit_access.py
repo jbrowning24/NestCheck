@@ -90,6 +90,10 @@ class TestEvaluateTransitAccess(unittest.TestCase):
         client = MagicMock(spec=GoogleMapsClient)
         client.places_nearby.return_value = nearby_results
         client.walking_time.return_value = walk_time
+        # Batch API used by evaluate_transit_access for node walk times
+        client.walking_times_batch.side_effect = (
+            lambda origin, destinations: [walk_time] * len(destinations)
+        )
         return client
 
     def test_high_frequency_dense_subway(self):

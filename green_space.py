@@ -61,6 +61,10 @@ MIN_RESULTS_BEFORE_EXPAND = 3
 # How many spaces to return in the nearby list
 NEARBY_LIST_SIZE = 8
 
+# Cap how many places we fetch walk times for (by straight-line distance).
+# Reduces Distance Matrix API calls; 50 places = 2 batched requests of 25.
+MAX_PLACES_FOR_WALK_TIMES = 50
+
 # Criteria pass/fail thresholds for "daily park" qualification
 DAILY_PARK_MIN_WALK_SCORE = 1     # At least marginal walk time
 DAILY_PARK_MIN_SIZE_SCORE = 1     # At least some size indication
@@ -338,26 +342,69 @@ def find_green_spaces(
 
         filtered.append(place)
 
-    # Get walk times (batch where possible, but API calls one-by-one here)
-    results = []
+    # Build list of places with valid coords; sort by straight-line distance and cap
+    # to limit Distance Matrix API calls (reduce scope).
+    places_with_coords = []
     for place in filtered:
         place_lat = place.get("geometry", {}).get("location", {}).get("lat")
         place_lng = place.get("geometry", {}).get("location", {}).get("lng")
         if place_lat is None or place_lng is None:
             continue
+        # Squared distance for ordering (avoid sqrt)
+        d2 = (place_lat - lat) ** 2 + (place_lng - lng) ** 2
+        places_with_coords.append((d2, place, place_lat, place_lng))
+    places_with_coords.sort(key=lambda x: x[0])
+    places_with_coords = places_with_coords[:MAX_PLACES_FOR_WALK_TIMES]
 
+    origin = (lat, lng)
+    # Separate cache hits from misses so we only call API for misses.
+    to_fetch: List[Tuple[Any, float, float]] = []  # (place, place_lat, place_lng)
+    cache_hits: List[Tuple[Any, float, float, int]] = []  # (place, lat, lng, walk_time)
+    for _d2, place, place_lat, place_lng in places_with_coords:
         wt_cache_key = _cache_key("walk", lat, lng, place_lat, place_lng)
         walk_time = _cached_get(wt_cache_key)
-        if walk_time is None:
+        if walk_time is not None:
+            # Filter cached failures (9999 = unreachable) same as batch/fallback paths.
+            if walk_time != 9999:
+                cache_hits.append((place, place_lat, place_lng, walk_time))
+        else:
+            to_fetch.append((place, place_lat, place_lng))
+
+    # Batch fetch walk times when the client supports it (1 request per 25 destinations).
+    if to_fetch and hasattr(maps_client, "walking_times_batch"):
+        destinations = [(p_lat, p_lng) for _p, p_lat, p_lng in to_fetch]
+        try:
+            times = maps_client.walking_times_batch(origin, destinations)
+            # Guard against malformed API response returning fewer elements.
+            if len(times) != len(to_fetch):
+                times = [9999] * len(to_fetch)
+        except Exception:
+            times = [9999] * len(to_fetch)
+        for (place, place_lat, place_lng), walk_time in zip(to_fetch, times):
+            wt_cache_key = _cache_key("walk", lat, lng, place_lat, place_lng)
+            _cached_set(wt_cache_key, walk_time)
+            if walk_time != 9999:
+                place["_walk_time_min"] = walk_time
+                place["_lat"] = place_lat
+                place["_lng"] = place_lng
+                cache_hits.append((place, place_lat, place_lng, walk_time))
+    else:
+        # Fallback: single walking_time call per place (e.g. when client is a mock).
+        for place, place_lat, place_lng in to_fetch:
             try:
-                walk_time = maps_client.walking_time((lat, lng), (place_lat, place_lng))
+                walk_time = maps_client.walking_time(origin, (place_lat, place_lng))
             except Exception:
                 walk_time = 9999
+            wt_cache_key = _cache_key("walk", lat, lng, place_lat, place_lng)
             _cached_set(wt_cache_key, walk_time)
+            if walk_time != 9999:
+                place["_walk_time_min"] = walk_time
+                place["_lat"] = place_lat
+                place["_lng"] = place_lng
+                cache_hits.append((place, place_lat, place_lng, walk_time))
 
-        if walk_time == 9999:
-            continue
-
+    results = []
+    for place, place_lat, place_lng, walk_time in cache_hits:
         place["_walk_time_min"] = walk_time
         place["_lat"] = place_lat
         place["_lng"] = place_lng

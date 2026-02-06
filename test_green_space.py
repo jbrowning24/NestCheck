@@ -56,9 +56,13 @@ def _mock_maps_client(places_by_type=None, text_results=None, walk_times=None):
         key = (round(dest[0], 4), round(dest[1], 4))
         return walk_times.get(key, 15)
 
+    def walking_times_batch(origin, destinations):
+        return [walk_times.get((round(d[0], 4), round(d[1], 4)), 15) for d in destinations]
+
     client.places_nearby = MagicMock(side_effect=places_nearby)
     client.text_search = MagicMock(side_effect=text_search)
     client.walking_time = MagicMock(side_effect=walking_time)
+    client.walking_times_batch = MagicMock(side_effect=walking_times_batch)
     return client
 
 
@@ -288,6 +292,79 @@ class TestGreenEscapeToDict(unittest.TestCase):
         self.assertIsNotNone(d["best_daily_park"])
         self.assertEqual(d["best_daily_park"]["name"], "Great Park")
         self.assertGreater(d["green_escape_score_0_10"], 0)
+
+
+class TestBatchWalkTimeBehavior(unittest.TestCase):
+    """Tests for batch walk-time paths: cached failures, length guards."""
+
+    def test_cached_9999_filtered_on_second_call(self):
+        """Cached walk_time=9999 must not leak into results on a later call.
+
+        Scenario: first call caches a 9999 value for a place.  Second call
+        (different radius → function-level cache miss) should still exclude
+        that place even though the per-place walk-time cache is warm.
+        """
+        _cache.clear()
+
+        unreachable = _make_place(
+            "Island Park", "unreachable1", ["park"], 4.0, 50,
+            lat=41.05, lng=-73.85,
+        )
+        reachable = _make_place(
+            "Riverside Park", "reachable1", ["park"], 4.5, 200,
+            lat=40.995, lng=-73.785,
+        )
+
+        places = {"park": [reachable, unreachable]}
+        walk_times = {
+            (40.995, -73.785): 10,   # reachable
+            (41.05, -73.85): 9999,   # unreachable
+        }
+        client = _mock_maps_client(places_by_type=places, walk_times=walk_times)
+
+        # First call: populates per-place walk-time cache (including 9999).
+        results_1 = find_green_spaces(client, 40.99, -73.78, radius_m=2000)
+        names_1 = [p["name"] for p in results_1]
+        self.assertIn("Riverside Park", names_1)
+        self.assertNotIn("Island Park", names_1)
+
+        # Clear only the function-level cache to simulate a second call with
+        # a different radius while per-place walk-time caches remain warm.
+        from green_space import _cache_key, _cache as raw_cache
+        fn_key = _cache_key("find_green", 40.99, -73.78, 2000)
+        raw_cache.pop(fn_key, None)
+
+        # Second call: per-place cache hits should still filter 9999.
+        results_2 = find_green_spaces(client, 40.99, -73.78, radius_m=2000)
+        names_2 = [p["name"] for p in results_2]
+        self.assertIn("Riverside Park", names_2)
+        self.assertNotIn("Island Park", names_2,
+                         "Cached walk_time=9999 must not leak into results")
+
+    def test_batch_response_length_mismatch_treated_as_failure(self):
+        """If walking_times_batch returns fewer items than requested,
+        all destinations in that batch should be treated as unreachable."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Park A", "pa", ["park"], 4.0, 100, lat=40.995, lng=-73.785),
+                _make_place("Park B", "pb", ["park"], 4.0, 100, lat=41.00, lng=-73.79),
+            ],
+        }
+
+        client = MagicMock()
+        client.places_nearby = MagicMock(
+            side_effect=lambda lat, lng, t, radius_meters=2000: places.get(t, [])
+        )
+        client.text_search = MagicMock(return_value=[])
+        # Return only 1 result for 2 destinations → length mismatch.
+        client.walking_times_batch = MagicMock(return_value=[10])
+
+        results = find_green_spaces(client, 40.99, -73.78)
+        # Length mismatch → all treated as 9999 → all filtered out.
+        self.assertEqual(len(results), 0,
+                         "Batch length mismatch should exclude all places")
 
 
 if __name__ == "__main__":
