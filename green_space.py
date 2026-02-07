@@ -19,6 +19,7 @@ Limitations:
   - Walk times come from Google Distance Matrix and assume sidewalk availability.
 """
 
+import logging
 import math
 import time
 import hashlib
@@ -27,6 +28,8 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 import requests
 from nc_trace import get_trace
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -303,6 +306,7 @@ def find_green_spaces(
                     existing_types.update(place.get("types", []))
                     places_by_id[pid]["types"] = list(existing_types)
         except Exception:
+            logger.debug("places_nearby failed for type %s", place_type, exc_info=True)
             continue
 
     # Search by keyword for non-standard green spaces
@@ -314,6 +318,7 @@ def find_green_spaces(
                 if pid and pid not in places_by_id:
                     places_by_id[pid] = place
         except Exception:
+            logger.debug("text_search failed for keyword %s", keyword, exc_info=True)
             continue
 
     # Also search "tourist_attraction" but only keep nature-based ones
@@ -327,7 +332,7 @@ def find_green_spaces(
                 if _is_green_space(name, types):
                     places_by_id[pid] = place
     except Exception:
-        pass
+        logger.debug("places_nearby failed for tourist_attraction", exc_info=True)
 
     # Filter: keep only real green spaces, remove garbage
     filtered = []
@@ -421,8 +426,12 @@ def find_green_spaces(
 # OSM ENRICHMENT (Overpass API)
 # =============================================================================
 
-def _overpass_query(query: str) -> Dict:
-    """Execute an Overpass query with caching."""
+def _overpass_query(query: str) -> Optional[Dict]:
+    """Execute an Overpass query with caching.
+
+    Returns the parsed JSON response, or ``None`` if the request failed.
+    Successful responses (even empty ones) are cached; failures are not.
+    """
     cache_key = _cache_key("overpass", query)
     cached = _cached_get(cache_key)
     if cached is not None:
@@ -445,7 +454,8 @@ def _overpass_query(query: str) -> Dict:
                 status_code=resp.status_code,
             )
     except Exception:
-        data = {"elements": []}
+        logger.warning("Overpass query failed", exc_info=True)
+        return None
 
     _cached_set(cache_key, data)
     return data
@@ -492,6 +502,8 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
     """
 
     data = _overpass_query(query)
+    if data is None:
+        return result  # Don't cache on failure
     elements = data.get("elements", [])
     if not elements:
         _cached_set(cache_key, result)
@@ -571,6 +583,218 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
 
     _cached_set(cache_key, result)
     return result
+
+
+def _parse_osm_elements_for_place(
+    elements: List[Dict],
+    place_lat: float,
+    place_lng: float,
+) -> Dict[str, Any]:
+    """Parse OSM elements near a single place into enrichment data.
+
+    ``elements`` should already be filtered/partitioned to those relevant
+    to this place (within ~300 m).
+    """
+    result: Dict[str, Any] = {
+        "area_sqm": None,
+        "path_count": 0,
+        "has_trail": False,
+        "nature_tags": [],
+        "enriched": False,
+    }
+    if not elements:
+        return result
+
+    result["enriched"] = True
+    max_area = 0
+    path_count = 0
+    nature_tags_found: set = set()
+    has_trail = False
+
+    for el in elements:
+        if el.get("type") not in ("way", "relation"):
+            continue
+        tags = el.get("tags", {})
+        if tags.get("leisure") in ("park", "nature_reserve", "garden"):
+            nature_tags_found.add(f"leisure={tags['leisure']}")
+        if tags.get("landuse") in ("forest", "meadow", "grass", "recreation_ground", "nature_reserve", "conservation"):
+            nature_tags_found.add(f"landuse={tags['landuse']}")
+        if tags.get("natural") in ("wood", "wetland", "water", "scrub", "heath", "grassland"):
+            nature_tags_found.add(f"natural={tags['natural']}")
+        if tags.get("waterway") in ("river", "stream", "canal"):
+            nature_tags_found.add(f"waterway={tags['waterway']}")
+        if tags.get("boundary") == "national_park":
+            nature_tags_found.add("boundary=national_park")
+        highway = tags.get("highway", "")
+        if highway in ("footway", "path", "cycleway", "track"):
+            path_count += 1
+            name = tags.get("name", "").lower()
+            if any(w in name for w in ["trail", "greenway", "path", "walk", "loop"]):
+                has_trail = True
+
+    node_lats = [el["lat"] for el in elements if el.get("type") == "node" and "lat" in el and "lon" in el]
+    node_lngs = [el["lon"] for el in elements if el.get("type") == "node" and "lat" in el and "lon" in el]
+
+    if node_lats and node_lngs:
+        lat_range = max(node_lats) - min(node_lats)
+        lng_range = max(node_lngs) - min(node_lngs)
+        lat_m = lat_range * 111_000
+        lng_m = lng_range * 111_000 * math.cos(math.radians(place_lat))
+        bbox_area = lat_m * lng_m
+        estimated_area = bbox_area * 0.5
+        if estimated_area > max_area:
+            max_area = estimated_area
+
+    result["area_sqm"] = max_area if max_area > 0 else None
+    result["path_count"] = path_count
+    result["has_trail"] = has_trail
+    result["nature_tags"] = sorted(nature_tags_found)
+    return result
+
+
+def batch_enrich_from_osm(
+    places: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Enrich multiple green spaces with a single Overpass query.
+
+    Each entry in *places* must have ``_lat`` and ``_lng`` keys.
+    Returns a list of enrichment dicts (same order as *places*).
+
+    Retries once on batch failure, then falls back to per-place
+    ``enrich_from_osm()`` for the affected chunk.
+    """
+    if not places:
+        return []
+
+    empty_result = {"area_sqm": None, "path_count": 0, "has_trail": False, "nature_tags": [], "enriched": False}
+
+    # Check per-place cache first, collect misses
+    results: List[Optional[Dict[str, Any]]] = [None] * len(places)
+    misses: List[int] = []  # indices into places
+    for i, place in enumerate(places):
+        p_lat = place.get("_lat", 0)
+        p_lng = place.get("_lng", 0)
+        if not p_lat or not p_lng:
+            results[i] = dict(empty_result)
+            continue
+        ck = _cache_key("osm_enrich", p_lat, p_lng)
+        cached = _cached_get(ck)
+        if cached is not None:
+            results[i] = cached
+        else:
+            misses.append(i)
+
+    if not misses:
+        return results  # type: ignore[return-value]
+
+    # Build a single Overpass union query with around() for each place
+    # Chunk into groups of 15 to avoid query timeout on dense areas
+    CHUNK_SIZE = 15
+    for chunk_start in range(0, len(misses), CHUNK_SIZE):
+        chunk_indices = misses[chunk_start : chunk_start + CHUNK_SIZE]
+        around_parts = []
+        for idx in chunk_indices:
+            p = places[idx]
+            p_lat, p_lng = p.get("_lat", 0), p.get("_lng", 0)
+            around_parts.append(
+                f'way["leisure"="park"](around:300,{p_lat},{p_lng});'
+                f'way["landuse"~"forest|meadow|grass|recreation_ground"](around:300,{p_lat},{p_lng});'
+                f'way["leisure"="nature_reserve"](around:300,{p_lat},{p_lng});'
+                f'way["natural"~"wood|wetland|water|grassland"](around:300,{p_lat},{p_lng});'
+                f'relation["leisure"="park"](around:300,{p_lat},{p_lng});'
+                f'relation["boundary"="national_park"](around:300,{p_lat},{p_lng});'
+                f'relation["leisure"="nature_reserve"](around:300,{p_lat},{p_lng});'
+                f'way["highway"~"footway|path|cycleway|track"](around:300,{p_lat},{p_lng});'
+                f'way["waterway"~"river|stream|canal"](around:300,{p_lat},{p_lng});'
+            )
+
+        union_body = "\n      ".join(around_parts)
+        query = f"""
+    [out:json][timeout:60];
+    (
+      {union_body}
+    );
+    out body;
+    >;
+    out skel qt;
+    """
+
+        data = _overpass_query(query)
+        if data is None:
+            # Retry once
+            data = _overpass_query(query)
+        if data is None:
+            # Fall back to per-place enrichment for this chunk
+            logger.warning(
+                "Batch Overpass query failed after retry, falling back to"
+                " per-place enrichment for %d places",
+                len(chunk_indices),
+            )
+            for idx in chunk_indices:
+                p = places[idx]
+                p_lat = p.get("_lat", 0)
+                p_lng = p.get("_lng", 0)
+                if p_lat and p_lng:
+                    results[idx] = enrich_from_osm(p_lat, p_lng, p.get("name", ""))
+                else:
+                    results[idx] = dict(empty_result)
+            continue
+
+        all_elements = data.get("elements", [])
+
+        # Build a lookup of node coords for proximity assignment
+        node_coords: Dict[int, Tuple[float, float]] = {}
+        for el in all_elements:
+            if el.get("type") == "node" and "lat" in el and "lon" in el:
+                node_coords[el["id"]] = (el["lat"], el["lon"])
+
+        # Assign each way/relation to the nearest place by comparing its
+        # first node's coords (or centroid of its nodes) to each place.
+        for idx in chunk_indices:
+            p = places[idx]
+            p_lat, p_lng = p.get("_lat", 0), p.get("_lng", 0)
+            nearby_elements: List[Dict] = []
+
+            for el in all_elements:
+                if el.get("type") == "node":
+                    # Include nodes within ~400m of this place (for area calc)
+                    if "lat" in el and "lon" in el:
+                        dlat = abs(el["lat"] - p_lat)
+                        dlng = abs(el["lon"] - p_lng)
+                        if dlat < 0.004 and dlng < 0.005:  # ~400m
+                            nearby_elements.append(el)
+                    continue
+
+                # For ways, check if any of its nodes are near this place
+                nodes = el.get("nodes", [])
+                if nodes:
+                    for nid in nodes[:3]:  # check first few nodes for speed
+                        nc = node_coords.get(nid)
+                        if nc and abs(nc[0] - p_lat) < 0.004 and abs(nc[1] - p_lng) < 0.005:
+                            nearby_elements.append(el)
+                            break
+                elif el.get("type") == "relation":
+                    # Relations use members, not nodes — resolve member node coords
+                    member_nids = [
+                        m["ref"] for m in el.get("members", [])
+                        if m.get("type") == "node"
+                    ]
+                    for nid in member_nids[:5]:
+                        nc = node_coords.get(nid)
+                        if nc and abs(nc[0] - p_lat) < 0.004 and abs(nc[1] - p_lng) < 0.005:
+                            nearby_elements.append(el)
+                            break
+
+            enrichment = _parse_osm_elements_for_place(nearby_elements, p_lat, p_lng)
+            results[idx] = enrichment
+            _cached_set(_cache_key("osm_enrich", p_lat, p_lng), enrichment)
+
+    # Fill any remaining Nones (shouldn't happen, but safety)
+    for i in range(len(results)):
+        if results[i] is None:
+            results[i] = dict(empty_result)
+
+    return results  # type: ignore[return-value]
 
 
 # =============================================================================
@@ -943,19 +1167,17 @@ def evaluate_green_escape(
         evaluation.messages.append("No green spaces found within search radius.")
         return evaluation
 
-    # Step 2: Enrich with OSM and score each place
+    # Step 2: Enrich with OSM (batched — single Overpass query) and score
+    if enable_osm:
+        try:
+            osm_results = batch_enrich_from_osm(places)
+        except Exception:
+            osm_results = [{}] * len(places)
+    else:
+        osm_results = [{}] * len(places)
+
     scored: List[GreenSpaceResult] = []
-    for place in places:
-        place_lat = place.get("_lat", 0)
-        place_lng = place.get("_lng", 0)
-
-        osm_data = {}
-        if enable_osm and place_lat and place_lng:
-            try:
-                osm_data = enrich_from_osm(place_lat, place_lng, place.get("name", ""))
-            except Exception:
-                osm_data = {}
-
+    for place, osm_data in zip(places, osm_results):
         result = score_green_space(place, lat, lng, osm_data)
         scored.append(result)
 

@@ -47,6 +47,9 @@ load_dotenv()
 # CONFIGURATION
 # =============================================================================
 
+# Feature flags
+ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "false").lower() == "true"
+
 # Health & Safety Thresholds (in feet)
 GAS_STATION_MIN_DISTANCE_FT = 500
 HIGHWAY_MIN_DISTANCE_FT = 500
@@ -78,49 +81,6 @@ MIN_BEDROOMS = 2
 MIN_PARK_ACRES = 5
 MIN_PARK_RATING = 4.0
 MIN_PARK_REVIEWS = 50
-GREEN_SPACE_WALK_MAX_MIN = 30
-GREEN_ESCAPE_MIN_REVIEWS = 100
-
-GREEN_SPACE_TYPES = [
-    "park",
-    "playground",
-    "campground",
-    "natural_feature",
-    "trail",
-    "rv_park",
-    "tourist_attraction",
-]
-
-PRIMARY_GREEN_ESCAPE_KEYWORDS = [
-    "nature preserve",
-    "state park",
-    "trail",
-    "riverwalk",
-    "forest",
-    "greenway",
-]
-
-EXCLUDED_PRIMARY_KEYWORDS = [
-    "dog park",
-    "playground",
-    "sports complex",
-    "skating rink",
-    "ice rink",
-    "roller rink",
-    "pocket park",
-    "mini park",
-    "tot lot",
-]
-
-EXCLUDED_PRIMARY_TYPES = {
-    "dog_park",
-    "sports_complex",
-    "stadium",
-    "ice_skating_rink",
-}
-
-SUPPORTING_GREEN_SPACE_TYPES = {"park", "playground"}
-
 # High-volume road detection is done via OSM tags (highway type, lane count)
 # No hardcoded road names needed - works anywhere in the US
 
@@ -311,25 +271,6 @@ def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
     return presented
 
 
-@dataclass
-class GreenSpace:
-    place_id: Optional[str]
-    name: str
-    rating: Optional[float]
-    user_ratings_total: int
-    walk_time_min: int
-    types: List[str]
-    types_display: str
-
-
-@dataclass
-class GreenSpaceEvaluation:
-    green_spaces: List[GreenSpace] = field(default_factory=list)
-    green_escape: Optional[GreenSpace] = None
-    other_green_spaces: List[GreenSpace] = field(default_factory=list)
-    green_escape_message: Optional[str] = None
-    green_spaces_message: Optional[str] = None
-
 
 @dataclass
 class NeighborhoodPlace:
@@ -345,6 +286,8 @@ class NeighborhoodPlace:
 class NeighborhoodSnapshot:
     """Collection of nearest key amenities"""
     places: List[NeighborhoodPlace] = field(default_factory=list)
+    # Raw Places API responses keyed by category, for downstream Tier 2 reuse
+    raw_places: Dict[str, List[Dict]] = field(default_factory=dict)
 
 
 @dataclass
@@ -437,7 +380,6 @@ class EvaluationResult:
     child_schooling_snapshot: Optional[ChildSchoolingSnapshot] = None
     urban_access: Optional[UrbanAccessProfile] = None
     transit_access: Optional[TransitAccessResult] = None
-    green_space_evaluation: Optional[GreenSpaceEvaluation] = None
     green_escape_evaluation: Optional[GreenEscapeEvaluation] = None
     transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
@@ -773,64 +715,36 @@ class OverpassClient:
         return roads
 
 
-def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    """Fetch bike score details from Walk Score API."""
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    if not api_key:
-        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
-
-    url = "https://api.walkscore.com/score"
-    params = {
-        "format": "json",
-        "address": address,
-        "lat": lat,
-        "lon": lon,
-        "bike": 1,
-        "wsapikey": api_key,
-    }
-
+def _coerce_score(value: Any) -> Optional[int]:
     try:
-        _t0 = time.time()
-        response = requests.get(url, params=params, timeout=15)
-        response.raise_for_status()
-        data = response.json()
-        _elapsed = int((time.time() - _t0) * 1000)
-        _trace = get_trace()
-        if _trace:
-            _trace.record_api_call(
-                service="walkscore", endpoint="get_bike_score",
-                elapsed_ms=_elapsed, status_code=response.status_code,
-                provider_status=str(data.get("status", "")),
-            )
-    except (requests.RequestException, ValueError):
-        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
-
-    bike_data = data.get("bike") if isinstance(data, dict) else None
-    if not bike_data:
-        return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
-
-    bike_score = bike_data.get("score")
-    bike_rating = bike_data.get("description")
-    metadata = {key: value for key, value in bike_data.items() if key not in {"score", "description"}}
-
-    return {
-        "bike_score": int(bike_score) if bike_score is not None else None,
-        "bike_rating": bike_rating,
-        "bike_metadata": metadata or None,
-    }
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 # =============================================================================
 # EVALUATION FUNCTIONS
 # =============================================================================
 
-def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
+def get_all_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Any]:
+    """Fetch walk, transit, and bike scores from Walk Score API in a single call.
+
+    Requests transit=1&bike=1 so one HTTP request returns all three scores,
+    plus nearby transit lines and bike metadata.
+    """
     api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_response = {
+    default_response: Dict[str, Any] = {
+        "walk_score": None,
+        "walk_description": None,
         "transit_score": None,
+        "transit_description": None,
         "transit_rating": None,
         "transit_summary": None,
         "nearby_transit_lines": None,
+        "bike_score": None,
+        "bike_description": None,
+        "bike_rating": None,
+        "bike_metadata": None,
     }
 
     if not api_key:
@@ -849,25 +763,30 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=15)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
         _trace = get_trace()
         if _trace:
             _trace.record_api_call(
-                service="walkscore", endpoint="get_transit_score",
+                service="walkscore", endpoint="get_all_walk_scores",
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
     except (requests.RequestException, ValueError):
         return default_response
 
-    if data.get("status") != 1:
+    if not isinstance(data, dict) or data.get("status") != 1:
         return default_response
 
+    # --- Walk score ---
+    walk_score = _coerce_score(data.get("walkscore"))
+    walk_description = data.get("description")
+
+    # --- Transit score + nearby lines ---
     transit_data = data.get("transit") or {}
-    transit_score = transit_data.get("score")
+    transit_score = _coerce_score(transit_data.get("score"))
     transit_description = transit_data.get("description")
     transit_summary = transit_data.get("summary")
     nearby_routes = transit_data.get("nearbyRoutes") or []
@@ -884,82 +803,32 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
         route_type_label = None
         if route_type:
             route_type_label = str(route_type).replace("_", " ").title()
-        nearby_transit_lines.append(
-            {
-                "name": name,
-                "type": route_type_label,
-                "distance_miles": distance,
-            }
-        )
+        nearby_transit_lines.append({
+            "name": name,
+            "type": route_type_label,
+            "distance_miles": distance,
+        })
+
+    # --- Bike score + metadata ---
+    bike_data = data.get("bike") or {}
+    bike_score_val = _coerce_score(bike_data.get("score"))
+    bike_description = bike_data.get("description")
+    bike_metadata = {
+        k: v for k, v in bike_data.items() if k not in {"score", "description"}
+    } or None
 
     return {
-        "transit_score": int(transit_score) if transit_score is not None else None,
+        "walk_score": walk_score,
+        "walk_description": walk_description,
+        "transit_score": transit_score,
+        "transit_description": transit_description,
         "transit_rating": transit_description,
         "transit_summary": transit_summary,
         "nearby_transit_lines": nearby_transit_lines or None,
-    }
-
-
-def _coerce_score(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[Any]]:
-    api_key = os.environ.get("WALKSCORE_API_KEY")
-    default_scores = {
-        "walk_score": None,
-        "walk_description": None,
-        "transit_score": None,
-        "transit_description": None,
-        "bike_score": None,
-        "bike_description": None,
-    }
-    if not api_key:
-        return default_scores
-
-    url = "https://api.walkscore.com/score"
-    params = {
-        "format": "json",
-        "address": address,
-        "lat": lat,
-        "lon": lon,
-        "transit": 1,
-        "bike": 1,
-        "wsapikey": api_key,
-    }
-
-    try:
-        _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        _elapsed = int((time.time() - _t0) * 1000)
-        _trace = get_trace()
-        if _trace:
-            _trace.record_api_call(
-                service="walkscore", endpoint="get_walk_scores",
-                elapsed_ms=_elapsed, status_code=response.status_code,
-                provider_status=str(data.get("status", "")),
-            )
-    except (requests.RequestException, ValueError):
-        return default_scores
-
-    if data.get("status") != 1:
-        return default_scores
-
-    transit = data.get("transit") or {}
-    bike = data.get("bike") or {}
-
-    return {
-        "walk_score": _coerce_score(data.get("walkscore")),
-        "walk_description": data.get("description"),
-        "transit_score": _coerce_score(transit.get("score")),
-        "transit_description": transit.get("description"),
-        "bike_score": _coerce_score(bike.get("score")),
-        "bike_description": bike.get("description"),
+        "bike_score": bike_score_val,
+        "bike_description": bike_description,
+        "bike_rating": bike_description,
+        "bike_metadata": bike_metadata,
     }
 
 def check_gas_stations(
@@ -1016,12 +885,13 @@ def check_highways(
     maps: GoogleMapsClient,
     overpass: OverpassClient,
     lat: float, 
-    lng: float
+    lng: float,
+    roads_data: Optional[List[Dict]] = None,
 ) -> Tier1Check:
     """Check distance to highways and major parkways"""
     try:
         # Use Overpass to find major roads nearby
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+        roads = roads_data if roads_data is not None else overpass.get_nearby_roads(lat, lng, radius_meters=200)
         
         # Filter for highways (motorway, trunk)
         highways_nearby = [
@@ -1057,11 +927,12 @@ def check_highways(
 def check_high_volume_roads(
     overpass: OverpassClient,
     lat: float,
-    lng: float
+    lng: float,
+    roads_data: Optional[List[Dict]] = None,
 ) -> Tier1Check:
     """Check distance to high-volume roads (4+ lanes or primary/secondary classification)"""
     try:
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+        roads = roads_data if roads_data is not None else overpass.get_nearby_roads(lat, lng, radius_meters=200)
 
         problem_roads = []
         for road in roads:
@@ -1255,6 +1126,9 @@ def get_neighborhood_snapshot(
             if secondary_type:
                 places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
 
+            # Stash raw Places API results for Tier 2 reuse
+            snapshot.raw_places[category] = list(places)
+
             # Special handling for Provisioning - apply household provisioning filter
             if category == "Provisioning":
                 eligible_places = []
@@ -1445,6 +1319,7 @@ def get_child_and_schooling_snapshot(
             text = re.sub(r"<[^>]+>", " ", response.text)
             return normalize_text(text)
         except Exception:
+            logger.debug("fetch_website_text failed for %s", website, exc_info=True)
             return ""
 
     def build_text_blob(place: Dict, website_text: str = "") -> str:
@@ -2122,182 +1997,6 @@ def evaluate_transit_access(
     )
 
 
-def is_nature_based_attraction(place: Dict) -> bool:
-    """Return True if a tourist attraction is clearly nature-based."""
-    types = place.get("types", [])
-    if "tourist_attraction" not in types:
-        return True
-
-    nature_types = {"park", "natural_feature", "campground", "trail", "rv_park"}
-    if any(t in types for t in nature_types):
-        return True
-
-    name = place.get("name", "").lower()
-    nature_keywords = [
-        "park",
-        "trail",
-        "preserve",
-        "nature",
-        "garden",
-        "arboretum",
-        "botanical",
-        "river",
-        "creek",
-        "lake",
-        "reservoir",
-        "beach",
-        "forest",
-        "woods",
-        "wetland",
-        "marsh",
-        "greenway",
-        "walk",
-        "hike",
-        "canyon",
-        "falls",
-        "waterfall",
-    ]
-    return any(keyword in name for keyword in nature_keywords)
-
-
-def format_place_types(types: List[str]) -> str:
-    if not types:
-        return "Unspecified"
-    return ", ".join([t.replace("_", " ").title() for t in types])
-
-
-def is_excluded_primary_green_space(name: str, types: List[str]) -> bool:
-    name_lower = name.lower()
-    has_park_type = "park" in types
-    if any(keyword in name_lower for keyword in EXCLUDED_PRIMARY_KEYWORDS):
-        if "playground" in name_lower and has_park_type:
-            return False
-        return True
-    if any(space_type in EXCLUDED_PRIMARY_TYPES for space_type in types):
-        return True
-    if "playground" in types and not has_park_type:
-        return True
-    return False
-
-
-def is_primary_green_escape(space: GreenSpace) -> bool:
-    if is_excluded_primary_green_space(space.name, space.types):
-        return False
-
-    name_lower = space.name.lower()
-    if any(keyword in name_lower for keyword in PRIMARY_GREEN_ESCAPE_KEYWORDS):
-        return True
-
-    reviews = space.user_ratings_total or 0
-    if "park" in space.types and reviews >= GREEN_ESCAPE_MIN_REVIEWS:
-        return True
-
-    return False
-
-
-def is_supporting_green_space(space: GreenSpace) -> bool:
-    return any(space_type in SUPPORTING_GREEN_SPACE_TYPES for space_type in space.types)
-
-
-def evaluate_green_spaces(
-    maps: GoogleMapsClient,
-    lat: float,
-    lng: float
-) -> GreenSpaceEvaluation:
-    """Collect all nearby green spaces and determine the best primary green escape."""
-    evaluation = GreenSpaceEvaluation()
-    places_by_id: Dict[str, Dict[str, Any]] = {}
-
-    for place_type in GREEN_SPACE_TYPES:
-        places = maps.places_nearby(lat, lng, place_type, radius_meters=2500)
-        for place in places:
-            if place_type == "tourist_attraction" and not is_nature_based_attraction(place):
-                continue
-
-            place_id = place.get("place_id")
-            if not place_id:
-                continue
-
-            entry = places_by_id.get(place_id)
-            if entry:
-                entry["types"].update(place.get("types", []))
-                continue
-
-            places_by_id[place_id] = {
-                "place": place,
-                "types": set(place.get("types", [])),
-            }
-
-    # Batch walk times for all candidate green spaces
-    entries_list = list(places_by_id.values())
-    if not entries_list:
-        green_spaces = []
-    else:
-        green_dests = [
-            (e["place"]["geometry"]["location"]["lat"], e["place"]["geometry"]["location"]["lng"])
-            for e in entries_list
-        ]
-        green_walk_times = _walking_times_batch(maps, (lat, lng), green_dests)
-        green_spaces = []
-        for entry, walk_time in zip(entries_list, green_walk_times):
-            if walk_time > GREEN_SPACE_WALK_MAX_MIN or walk_time == 9999:
-                continue
-            place = entry["place"]
-            place_id = place.get("place_id")
-            types = sorted(entry["types"])
-            green_spaces.append(GreenSpace(
-                place_id=place_id,
-                name=place.get("name", "Unknown"),
-                rating=place.get("rating"),
-                user_ratings_total=place.get("user_ratings_total", 0),
-                walk_time_min=walk_time,
-                types=types,
-                types_display=format_place_types(types),
-            ))
-
-    green_spaces.sort(
-        key=lambda space: (space.walk_time_min, -(space.rating or 0), -(space.user_ratings_total or 0))
-    )
-
-    evaluation.green_spaces = green_spaces
-
-    primary_green_escape_candidates = [
-        space for space in green_spaces if is_primary_green_escape(space)
-    ]
-
-    if primary_green_escape_candidates:
-        evaluation.green_escape = max(
-            primary_green_escape_candidates,
-            key=lambda space: (
-                (space.rating or 0) * math.log(space.user_ratings_total or 1),
-                -space.walk_time_min,
-            ),
-        )
-        evaluation.green_escape_message = None
-    else:
-        evaluation.green_escape_message = (
-            "No primary green escape within a 30-minute walk — nearby parks and playgrounds listed below."
-        )
-
-    supporting_green_spaces = [
-        space for space in green_spaces if is_supporting_green_space(space)
-    ]
-    if evaluation.green_escape:
-        evaluation.other_green_spaces = [
-            space for space in supporting_green_spaces
-            if space.place_id != evaluation.green_escape.place_id
-        ]
-    else:
-        evaluation.other_green_spaces = supporting_green_spaces.copy()
-
-    if not evaluation.other_green_spaces:
-        evaluation.green_spaces_message = "No other parks or playgrounds within a 30-minute walk."
-    else:
-        evaluation.green_spaces_message = "Other parks and playgrounds within a 30-minute walk."
-
-    return evaluation
-
-
 def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
     """Determine if a park meets quality criteria"""
     name = place.get("name", "Unknown")
@@ -2327,68 +2026,34 @@ def score_park_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float,
-    green_space_evaluation: Optional[GreenSpaceEvaluation] = None,
     green_escape_evaluation: Optional[GreenEscapeEvaluation] = None,
 ) -> Tier2Score:
     """Score primary green escape access (0-10 points).
 
-    Uses the new green_space.py engine when a GreenEscapeEvaluation is provided,
-    falling back to the legacy GreenSpaceEvaluation otherwise.
+    Uses the green_space.py engine's GreenEscapeEvaluation.
     """
     try:
-        # New engine path
-        if green_escape_evaluation is not None:
-            best = green_escape_evaluation.best_daily_park
-            if not best:
-                return Tier2Score(
-                    name="Primary Green Escape",
-                    points=0,
-                    max_points=10,
-                    details="No green spaces found within walking distance",
-                )
-
-            # Use the daily walk value score directly (already 0–10)
-            points = round(best.daily_walk_value)
-            rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
-            details = (
-                f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
-                f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10 "
-                f"[{best.criteria_status}]"
-            )
-            return Tier2Score(
-                name="Primary Green Escape",
-                points=points,
-                max_points=10,
-                details=details,
-            )
-
-        # Legacy path
-        evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
-        green_escape = evaluation.green_escape
-
-        if not green_escape:
+        if green_escape_evaluation is None or green_escape_evaluation.best_daily_park is None:
             return Tier2Score(
                 name="Primary Green Escape",
                 points=0,
                 max_points=10,
-                details="No primary green escape within a 30-minute walk"
+                details="No green spaces found within walking distance",
             )
 
-        if green_escape.walk_time_min <= PARK_WALK_IDEAL_MIN:
-            points = 10
-        else:
-            points = 6
-
+        best = green_escape_evaluation.best_daily_park
+        points = round(best.daily_walk_value)
+        rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
         details = (
-            f"{green_escape.name} ({green_escape.rating}★, "
-            f"{green_escape.user_ratings_total} reviews) — {green_escape.walk_time_min} min walk"
+            f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
+            f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10 "
+            f"[{best.criteria_status}]"
         )
-
         return Tier2Score(
             name="Primary Green Escape",
             points=points,
             max_points=10,
-            details=details
+            details=details,
         )
 
     except Exception as e:
@@ -2403,14 +2068,18 @@ def score_park_access(
 def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    pre_fetched_places: Optional[List[Dict]] = None,
 ) -> Tier2Score:
     """Score third-place access based on third-place quality (0-10 points)"""
     try:
-        # Search for cafes, coffee shops, and bakeries
-        all_places = []
-        all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
-        all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
+        # Reuse pre-fetched places from neighborhood snapshot if available
+        if pre_fetched_places is not None:
+            all_places = list(pre_fetched_places)
+        else:
+            all_places = []
+            all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
+            all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
 
         if not all_places:
             return Tier2Score(
@@ -2539,12 +2208,15 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None,
     transit_access: Optional[TransitAccessResult] = None,
+    primary_transit: Optional[PrimaryTransitOption] = None,
+    major_hub: Optional[MajorHubAccess] = None,
 ) -> Tier2Score:
     """Score urban access via rail transit (0-10 points).
 
-    When a pre-computed TransitAccessResult is supplied its score is used
-    directly for the frequency component (replacing the old review-count
-    proxy).  The hub-travel component is still fetched independently.
+    When pre-computed primary_transit and major_hub are supplied, they are
+    reused instead of re-fetching from the API.  When a pre-computed
+    TransitAccessResult is supplied its score is used directly for the
+    frequency component.
     """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
@@ -2569,7 +2241,8 @@ def score_transit_access(
         return 0
 
     try:
-        primary_transit = find_primary_transit(maps, lat, lng)
+        if primary_transit is None:
+            primary_transit = find_primary_transit(maps, lat, lng)
         if not primary_transit:
             return Tier2Score(
                 name="Urban access",
@@ -2578,13 +2251,14 @@ def score_transit_access(
                 details="No rail transit stations found within reach"
             )
 
-        major_hub = determine_major_hub(
-            maps,
-            lat,
-            lng,
-            primary_transit.mode,
-            transit_origin=(primary_transit.lat, primary_transit.lng),
-        )
+        if major_hub is None:
+            major_hub = determine_major_hub(
+                maps,
+                lat,
+                lng,
+                primary_transit.mode,
+                transit_origin=(primary_transit.lat, primary_transit.lng),
+            )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
 
@@ -2645,14 +2319,18 @@ def score_transit_access(
 def score_provisioning_access(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    pre_fetched_places: Optional[List[Dict]] = None,
 ) -> Tier2Score:
     """Score household provisioning store access (0-10 points)"""
     try:
-        # Search for full-service provisioning stores
-        all_stores = []
-        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
-        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
+        # Reuse pre-fetched places from neighborhood snapshot if available
+        if pre_fetched_places is not None:
+            all_stores = list(pre_fetched_places)
+        else:
+            all_stores = []
+            all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
+            all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
 
         if not all_stores:
             return Tier2Score(
@@ -2969,11 +2647,27 @@ def evaluate_property(
 
     # --- Optional enrichments (each fails independently) ---
 
+    # Walk Score: single API call returns walk + transit + bike scores
     try:
-        bike_data = _run_stage("bike_score", get_bike_score, listing.address, lat, lng)
-        result.bike_score = bike_data.get("bike_score")
-        result.bike_rating = bike_data.get("bike_rating")
-        result.bike_metadata = bike_data.get("bike_metadata")
+        all_scores = _run_stage(
+            "walk_scores", get_all_walk_scores, listing.address, lat, lng)
+        result.walk_scores = {
+            "walk_score": all_scores.get("walk_score"),
+            "walk_description": all_scores.get("walk_description"),
+            "transit_score": all_scores.get("transit_score"),
+            "transit_description": all_scores.get("transit_description"),
+            "bike_score": all_scores.get("bike_score"),
+            "bike_description": all_scores.get("bike_description"),
+        }
+        result.transit_score = {
+            "transit_score": all_scores.get("transit_score"),
+            "transit_rating": all_scores.get("transit_rating"),
+            "transit_summary": all_scores.get("transit_summary"),
+            "nearby_transit_lines": all_scores.get("nearby_transit_lines"),
+        }
+        result.bike_score = all_scores.get("bike_score")
+        result.bike_rating = all_scores.get("bike_rating")
+        result.bike_metadata = all_scores.get("bike_metadata")
     except Exception:
         pass
 
@@ -2983,11 +2677,12 @@ def evaluate_property(
     except Exception:
         pass
 
-    try:
-        result.child_schooling_snapshot = _run_stage(
-            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    if ENABLE_SCHOOLS:
+        try:
+            result.child_schooling_snapshot = _run_stage(
+                "schools", get_child_and_schooling_snapshot, maps, lat, lng)
+        except Exception:
+            pass
 
     try:
         result.urban_access = _run_stage(
@@ -3002,26 +2697,8 @@ def evaluate_property(
         pass
 
     try:
-        result.green_space_evaluation = _run_stage(
-            "green_spaces", evaluate_green_spaces, maps, lat, lng)
-    except Exception:
-        pass
-
-    try:
         result.green_escape_evaluation = _run_stage(
             "green_escape", evaluate_green_escape, maps, lat, lng)
-    except Exception:
-        pass
-
-    try:
-        result.transit_score = _run_stage(
-            "transit_score", get_transit_score, listing.address, lat, lng)
-    except Exception:
-        pass
-
-    try:
-        result.walk_scores = _run_stage(
-            "walk_scores", get_walk_scores, listing.address, lat, lng)
     except Exception:
         pass
 
@@ -3038,8 +2715,14 @@ def evaluate_property(
 
     # Location-based checks (single retry on UNKNOWN — likely transient API error)
     result.tier1_checks.append(_retry_once(check_gas_stations, maps, lat, lng))
-    result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng))
-    result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng))
+
+    # Fetch Overpass road data once, reuse for both highway and high-volume checks
+    try:
+        _roads_data = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+    except Exception:
+        _roads_data = None
+    result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng, _roads_data))
+    result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng, _roads_data))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
@@ -3062,21 +2745,33 @@ def evaluate_property(
         _run_stage(
             "score_park_access", score_park_access,
             maps, lat, lng,
-            green_space_evaluation=result.green_space_evaluation,
             green_escape_evaluation=result.green_escape_evaluation,
         )
     )
+    # Reuse raw places from neighborhood snapshot for Tier 2 scoring
+    _raw = result.neighborhood_snapshot.raw_places if result.neighborhood_snapshot else {}
     result.tier2_scores.append(
-        _run_stage("score_third_place", score_third_place_access, maps, lat, lng))
+        _run_stage("score_third_place", score_third_place_access, maps, lat, lng,
+                   pre_fetched_places=_raw.get("Third Place")))
     result.tier2_scores.append(
-        _run_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
+        _run_stage("score_provisioning", score_provisioning_access, maps, lat, lng,
+                   pre_fetched_places=_raw.get("Provisioning")))
     result.tier2_scores.append(
         _run_stage("score_fitness", score_fitness_access, maps, lat, lng))
     result.tier2_scores.append(score_cost(listing.cost))
+    _cached_primary_transit = (
+        result.urban_access.primary_transit if result.urban_access else None
+    )
+    _cached_major_hub = (
+        result.urban_access.major_hub if result.urban_access else None
+    )
     result.tier2_scores.append(
         _run_stage(
             "score_transit_access", score_transit_access,
-            maps, lat, lng, transit_access=result.transit_access,
+            maps, lat, lng,
+            transit_access=result.transit_access,
+            primary_transit=_cached_primary_transit,
+            major_hub=_cached_major_hub,
         )
     )
 
@@ -3335,46 +3030,6 @@ def main():
                 "nearby_node_count": result.transit_access.nearby_node_count,
                 "density_node_count": result.transit_access.density_node_count,
             } if result.transit_access else None,
-            "green_space_evaluation": {
-                "green_escape": {
-                    "name": result.green_space_evaluation.green_escape.name,
-                    "rating": result.green_space_evaluation.green_escape.rating,
-                    "user_ratings_total": result.green_space_evaluation.green_escape.user_ratings_total,
-                    "walk_time_min": result.green_space_evaluation.green_escape.walk_time_min,
-                    "types": result.green_space_evaluation.green_escape.types,
-                    "types_display": result.green_space_evaluation.green_escape.types_display,
-                } if result.green_space_evaluation and result.green_space_evaluation.green_escape else None,
-                "green_escape_message": (
-                    result.green_space_evaluation.green_escape_message
-                    if result.green_space_evaluation else None
-                ),
-                "green_spaces": [
-                    {
-                        "name": space.name,
-                        "rating": space.rating,
-                        "user_ratings_total": space.user_ratings_total,
-                        "walk_time_min": space.walk_time_min,
-                        "types": space.types,
-                        "types_display": space.types_display,
-                    }
-                    for space in (result.green_space_evaluation.green_spaces if result.green_space_evaluation else [])
-                ],
-                "other_green_spaces": [
-                    {
-                        "name": space.name,
-                        "rating": space.rating,
-                        "user_ratings_total": space.user_ratings_total,
-                        "walk_time_min": space.walk_time_min,
-                        "types": space.types,
-                        "types_display": space.types_display,
-                    }
-                    for space in (result.green_space_evaluation.other_green_spaces if result.green_space_evaluation else [])
-                ],
-                "green_spaces_message": (
-                    result.green_space_evaluation.green_spaces_message
-                    if result.green_space_evaluation else None
-                ),
-            },
             "transit_score": result.transit_score,
             "bike_score": result.bike_score,
             "bike_rating": result.bike_rating,
