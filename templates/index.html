@@ -739,20 +739,23 @@ transit_access: {{ result.transit_access }}</pre>
 <div class="report">
 
   {# ── 0. VERDICT + SCORE ────────────────────────────────────── #}
-  <div class="verdict-card{% if not result.passed_tier1 %} score-failed{% endif %}">
+  {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
+  <div class="verdict-card{% if not show_score %} score-failed{% endif %}">
     <div class="verdict-address">{{ result.address }}</div>
+    {% if show_score %}
     <div class="score-circle">
       <div class="number">{{ result.final_score }}</div>
       <div class="label">/ 100</div>
     </div>
+    {% endif %}
     <div class="verdict-text">{{ result.verdict }}</div>
+    {% if show_score %}
     <div class="final-score-text">Final Score: {{ result.final_score }} / 100</div>
-    {% if result.passed_tier1 and result.percentile_label %}
+    {% endif %}
+    {% if show_score and result.percentile_label %}
       <div class="percentile-label">{{ result.percentile_label }}</div>
     {% endif %}
   </div>
-
-  {% if result.passed_tier1 %}
 
   {# ── 1. GREEN ESCAPE ───────────────────────────────────────── #}
   <div class="report-section">
@@ -1010,26 +1013,76 @@ transit_access: {{ result.transit_access }}</pre>
   {# ── 4. HEALTH & SAFETY ────────────────────────────────────── #}
   <div class="report-section">
     <h2>Health &amp; Safety Checks</h2>
-    {% for check in result.tier1_checks %}
-      <div class="check-row">
-        <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
-          {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+    {% if result.presented_checks is defined %}
+      {# New structured rendering #}
+      {% for pc in result.presented_checks %}
+        {% if pc.category == "SAFETY" %}
+        <div class="check-row">
+          <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ pc.display_name }}</div>
+            <div class="check-detail">{{ pc.headline }}</div>
+            {% if pc.explanation and pc.result_type != "CLEAR" %}
+              <div class="check-detail" style="color: #555; margin-top: 4px; font-size: 0.85em;">{{ pc.explanation }}</div>
+            {% endif %}
+          </div>
         </div>
-        <div class="check-text">
-          <div class="check-label">{{ check.name }}</div>
-          <div class="check-detail">{{ check.details }}</div>
-        </div>
+        {% endif %}
+      {% endfor %}
+
+      {# Listing details subsection #}
+      {% set lifestyle_checks = [] %}
+      {% for pc in result.presented_checks %}
+        {% if pc.category == "LIFESTYLE" %}
+          {% if lifestyle_checks.append(pc) %}{% endif %}
+        {% endif %}
+      {% endfor %}
+      {% if lifestyle_checks %}
+      <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Listing Details</div>
+        {% for pc in lifestyle_checks %}
+          <div class="check-row">
+            <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'NOTED_TRADEOFF' %}check-unknown{% else %}check-unknown{% endif %}">
+              {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "NOTED_TRADEOFF" %}&#8252;{% else %}?{% endif %}
+            </div>
+            <div class="check-text">
+              <div class="check-label">{{ pc.display_name }}</div>
+              <div class="check-detail">{{ pc.headline }}</div>
+            </div>
+          </div>
+        {% endfor %}
       </div>
-    {% endfor %}
+      {% endif %}
+    {% else %}
+      {# Fallback for old snapshots #}
+      {% for check in result.tier1_checks %}
+        <div class="check-row">
+          <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ check.name }}</div>
+            <div class="check-detail">{{ check.details }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
   </div>
 
   {# ── 5. WHAT'S MISSING / NEEDS VERIFICATION ────────────────── #}
-  {% set unknown_checks = [] %}
-  {% for check in result.tier1_checks %}
-    {% if check.result == "UNKNOWN" %}
-      {% if unknown_checks.append(check) %}{% endif %}
-    {% endif %}
-  {% endfor %}
+  {% if result.presented_checks is defined %}
+    {# New: derive missing items from presented_checks #}
+    {% set needs_verification = [] %}
+    {% for pc in result.presented_checks %}
+      {% if pc.result_type in ["VERIFICATION_NEEDED", "LISTING_GAP"] %}
+        {% if needs_verification.append(pc) %}{% endif %}
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    {% set needs_verification = [] %}
+  {% endif %}
 
   {% set missing_items = [] %}
   {% if not result.walk_scores or result.walk_scores.walk_score is none %}
@@ -1042,10 +1095,28 @@ transit_access: {{ result.transit_access }}</pre>
     {% if missing_items.append("No transit station found nearby. This area may require a car for most trips.") %}{% endif %}
   {% endif %}
 
-  {% if unknown_checks or missing_items %}
+  {# Also include old-style unknown checks for old snapshots #}
+  {% if result.presented_checks is not defined %}
+    {% set unknown_checks = [] %}
+    {% for check in result.tier1_checks %}
+      {% if check.result == "UNKNOWN" %}
+        {% if unknown_checks.append(check) %}{% endif %}
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    {% set unknown_checks = [] %}
+  {% endif %}
+
+  {% if needs_verification or unknown_checks or missing_items %}
   <div class="report-section missing-section">
     <h2>What's Missing / Needs Verification</h2>
     <p style="font-size: 0.88em; color: #92400e; margin-bottom: 12px;">These items could not be verified automatically. Check with the listing or local sources.</p>
+    {% for pc in needs_verification %}
+      <div class="missing-item">
+        <div class="missing-bullet">{% if pc.result_type == "VERIFICATION_NEEDED" %}&#9744;{% else %}&#9888;{% endif %}</div>
+        <div class="missing-text"><strong>{{ pc.display_name }}:</strong> {{ pc.headline }}{% if pc.user_action %} <span style="color: #0f3460;">{{ pc.user_action }}</span>{% endif %}</div>
+      </div>
+    {% endfor %}
     {% for check in unknown_checks %}
       <div class="missing-item">
         <div class="missing-bullet">&#9744;</div>
@@ -1107,7 +1178,7 @@ transit_access: {{ result.transit_access }}</pre>
       <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
         Six daily-life factors are scored (0-10 each) and normalized to 100.
         Bonus points (up to +15) for parking, outdoor space, and extra bedrooms.
-        Properties that fail health/safety checks are disqualified before scoring.
+        Health and safety concerns are flagged separately and do not affect the score.
       </p>
       <div class="legend-row">
         <span class="cat">Park &amp; Green Access</span>
@@ -1148,13 +1219,33 @@ transit_access: {{ result.transit_access }}</pre>
     </div>
   </div>
 
-  {% endif %} {# end passed_tier1 #}
-
-  {% if not result.passed_tier1 %}
-  {# ── DISQUALIFIED ──────────────────────────────────────────── #}
+  {# ── CONCERNS SUMMARY (when safety issues exist) ─────────── #}
+  {% if not show_score and result.presented_checks is defined %}
   <div class="report-section" style="border: 2px solid #fca5a5;">
-    <h2 style="color: #991b1b; border-bottom-color: #fca5a5;">Disqualified</h2>
-    <p style="color: #991b1b; margin-bottom: 16px;">This address failed one or more health and safety requirements. Detailed scoring is only available for qualifying addresses.</p>
+    <h2 style="color: #991b1b; border-bottom-color: #fca5a5;">Health &amp; Safety Concerns</h2>
+    <p style="color: #78350f; margin-bottom: 16px; font-size: 0.92em;">{{ result.structured_summary }}</p>
+    {% for pc in result.presented_checks %}
+      {% if pc.result_type != 'CLEAR' %}
+      <div class="check-row">
+        <div class="check-icon {% if pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% elif pc.result_type == 'VERIFICATION_NEEDED' %}check-unknown{% elif pc.result_type == 'NOTED_TRADEOFF' %}check-unknown{% else %}check-unknown{% endif %}">
+          {% if pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% elif pc.result_type == "NOTED_TRADEOFF" %}&#8252;{% else %}?{% endif %}
+        </div>
+        <div class="check-text">
+          <div class="check-label">{{ pc.display_name }}</div>
+          <div class="check-detail">{{ pc.headline }}</div>
+          {% if pc.user_action %}
+            <div class="check-detail" style="color: #0f3460; margin-top: 4px;">{{ pc.user_action }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% elif not show_score %}
+  {# Fallback for old snapshots without presented_checks #}
+  <div class="report-section" style="border: 2px solid #fca5a5;">
+    <h2 style="color: #991b1b; border-bottom-color: #fca5a5;">Health &amp; Safety Concerns</h2>
+    <p style="color: #991b1b; margin-bottom: 16px;">This address has one or more health and safety concerns.</p>
     {% for check in result.tier1_checks %}
       <div class="check-row">
         <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">

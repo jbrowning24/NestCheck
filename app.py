@@ -12,7 +12,7 @@ from flask import (
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
-    PropertyListing, evaluate_property, CheckResult
+    PropertyListing, evaluate_property, CheckResult, present_checks
 )
 from urban_access import urban_access_result_to_dict
 from models import (
@@ -127,12 +127,53 @@ def _after_request(response):
 # Verdict generation
 # ---------------------------------------------------------------------------
 
+def generate_structured_summary(presented_checks: list) -> str:
+    """Generate a structured summary sentence from presented checks.
+
+    Replaces 'Does not meet baseline requirements' with an informational
+    count of issues, unknowns, trade-offs, and listing gaps.
+
+    Examples:
+        "1 confirmed concern · 1 item we couldn't verify"
+        "All safety checks passed"
+        "2 confirmed concerns · 1 listing trade-off · 3 listing details not provided"
+    """
+    confirmed = [c for c in presented_checks if c["result_type"] == "CONFIRMED_ISSUE"]
+    verification = [c for c in presented_checks if c["result_type"] == "VERIFICATION_NEEDED"]
+    tradeoffs = [c for c in presented_checks if c["result_type"] == "NOTED_TRADEOFF"]
+    listing_gaps = [c for c in presented_checks if c["result_type"] == "LISTING_GAP"]
+
+    parts = []
+    if confirmed:
+        n = len(confirmed)
+        parts.append(f"{n} confirmed concern{'s' if n != 1 else ''}")
+    if verification:
+        n = len(verification)
+        parts.append(f"{n} item{'s' if n != 1 else ''} we couldn't verify")
+    if tradeoffs:
+        n = len(tradeoffs)
+        parts.append(f"{n} listing trade-off{'s' if n != 1 else ''}")
+    if listing_gaps:
+        n = len(listing_gaps)
+        parts.append(f"{n} listing detail{'s' if n != 1 else ''} not provided")
+
+    if not parts:
+        return "All safety checks passed"
+
+    return " · ".join(parts)
+
+
 def generate_verdict(result_dict):
     """Generate a one-line verdict based on the evaluation result."""
     score = result_dict.get("final_score", 0)
     passed = result_dict.get("passed_tier1", False)
 
     if not passed:
+        # Use structured summary if presented_checks exist
+        presented = result_dict.get("presented_checks", [])
+        if presented:
+            return generate_structured_summary(presented)
+        # Fallback for old snapshots without presented_checks
         return "Does not meet baseline requirements"
 
     if score >= 85:
@@ -319,6 +360,15 @@ def result_to_dict(result):
         "percentile_top": result.percentile_top,
         "percentile_label": result.percentile_label,
     }
+
+    # Presentation layer for the new results UI
+    output["presented_checks"] = present_checks(result.tier1_checks)
+    output["show_score"] = not any(
+        c["blocks_scoring"] for c in output["presented_checks"]
+    )
+    output["structured_summary"] = generate_structured_summary(
+        output["presented_checks"]
+    )
 
     output["verdict"] = generate_verdict(output)
     return output

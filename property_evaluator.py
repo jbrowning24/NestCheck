@@ -161,6 +161,157 @@ class Tier3Bonus:
 
 
 @dataclass
+class CheckPresentation:
+    """Presentation layer for a Tier 1 check result.
+
+    Separates evaluation logic from user-facing narrative.
+    Raw check data is preserved; presentation fields add context.
+    """
+    check_id: str                   # Slugified name, e.g., "highway", "gas_station"
+    display_name: str               # User-facing name, e.g., "Highway Proximity"
+    result_type: str                # CONFIRMED_ISSUE | CLEAR | VERIFICATION_NEEDED | NOTED_TRADEOFF | LISTING_GAP
+    severity: str                   # HIGH | MEDIUM | LOW | NONE
+    category: str                   # SAFETY | LIFESTYLE
+    blocks_scoring: bool            # True only for required checks that FAIL
+    headline: str                   # One-line summary for the user
+    explanation: str                # Why this matters (plain language)
+    user_action: Optional[str]      # What the user should do, or None
+    raw_result: str                 # Original: PASS / FAIL / UNKNOWN
+    raw_details: str                # Original details string
+    raw_value: Optional[Any] = None # Original numeric value if any
+
+
+# =============================================================================
+# CHECK PRESENTATION — content dictionaries and transformation
+# =============================================================================
+
+CHECK_DISPLAY_NAMES = {
+    "Gas station": "Gas Station Proximity",
+    "Highway": "Highway Proximity",
+    "High-volume road": "High-Traffic Road Proximity",
+    "W/D in unit": "Washer/Dryer",
+    "Central air": "Central Air Conditioning",
+    "Size": "Square Footage",
+    "Bedrooms": "Bedroom Count",
+    "Cost": "Monthly Cost",
+}
+
+CHECK_EXPLANATIONS = {
+    "Gas station": "Gas stations within 500 feet are associated with elevated benzene exposure, a known carcinogen. This is especially relevant for families with young children.",
+    "Highway": "Highways within 500 feet significantly increase particulate matter (PM2.5) and ambient noise. Long-term exposure is linked to respiratory issues.",
+    "High-volume road": "High-traffic roads increase ambient noise and reduce air quality. Impact varies with distance, physical barriers, and traffic patterns.",
+    "W/D in unit": "In-unit laundry is a strong quality-of-life factor for families, reducing time spent on a recurring chore.",
+    "Central air": "Central air conditioning affects comfort and indoor air quality, particularly during summer months.",
+    "Size": "Square footage helps assess whether the space meets your household's needs.",
+    "Bedrooms": "Bedroom count is a core factor for families evaluating fit.",
+    "Cost": "Monthly cost is needed to assess affordability relative to your budget.",
+}
+
+_ACTION_HINTS = {
+    ("Gas station", "PASS"): None,
+    ("Gas station", "FAIL"): "Search for gas stations near this address on Google Maps to confirm distance and count.",
+    ("Highway", "PASS"): None,
+    ("Highway", "FAIL"): "Check Google Maps satellite view to assess highway proximity, barriers, and sound walls.",
+    ("Highway", "UNKNOWN"): "We couldn't verify this automatically. Check Google Maps satellite view for nearby highways.",
+    ("High-volume road", "PASS"): None,
+    ("High-volume road", "FAIL"): "Visit during rush hour (7-9 AM, 5-7 PM) to assess actual noise and traffic levels.",
+    ("High-volume road", "UNKNOWN"): "We couldn't verify this automatically. Visit during rush hour to assess traffic levels.",
+}
+
+SAFETY_CHECKS = {"Gas station", "Highway", "High-volume road"}
+LISTING_CHECKS = {"W/D in unit", "Central air", "Size", "Bedrooms", "Cost"}
+
+
+def _classify_check(check: Tier1Check) -> Tuple[str, str]:
+    """Classify a Tier1Check into (result_type, severity).
+
+    Categories:
+      CLEAR              — check passed, no issue
+      CONFIRMED_ISSUE    — required check failed (health/safety concern)
+      VERIFICATION_NEEDED — required check returned UNKNOWN (API error etc.)
+      NOTED_TRADEOFF     — non-required check explicitly failed (known negative)
+      LISTING_GAP        — non-required check is UNKNOWN (data not provided)
+    """
+    if check.result == CheckResult.PASS:
+        return ("CLEAR", "NONE")
+
+    if check.result == CheckResult.FAIL:
+        if check.required:
+            return ("CONFIRMED_ISSUE", "HIGH")
+        else:
+            # Listing explicitly states a negative value (e.g. "No central air",
+            # "1,200 sqft < 1,700 minimum").  This is a known compromise, not a
+            # missing data point.
+            return ("NOTED_TRADEOFF", "LOW")
+
+    # UNKNOWN
+    if check.name in SAFETY_CHECKS:
+        return ("VERIFICATION_NEEDED", "MEDIUM")
+    else:
+        return ("LISTING_GAP", "NONE")
+
+
+def _generate_headline(check: Tier1Check) -> str:
+    """Generate a user-facing one-line headline."""
+    if check.result == CheckResult.PASS:
+        return check.details
+
+    if check.result == CheckResult.FAIL:
+        if check.required:
+            # Safety concern — rewrite aggressive "TOO CLOSE" phrasing
+            if check.name == "High-volume road":
+                roads = check.details.replace("TOO CLOSE to: ", "")
+                return f"High-traffic roads nearby: {roads}"
+            return check.details.replace("TOO CLOSE to: ", "Nearby: ")
+        else:
+            # Non-required FAIL = NOTED_TRADEOFF — use details as-is,
+            # they already describe the known negative clearly.
+            return check.details
+
+    # UNKNOWN — distinguish API error from missing listing data
+    if check.name in SAFETY_CHECKS:
+        return "Could not be verified automatically"
+    else:
+        return "Not specified in listing"
+
+
+def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
+    """Transform raw Tier1Check results into presentation dicts.
+
+    This is the boundary between evaluation logic and user-facing narrative.
+    Returns dicts (not dataclasses) for direct JSON serialization.
+    """
+    presented = []
+    for check in tier1_checks:
+        result_type, severity = _classify_check(check)
+        raw_result_str = check.result.value if hasattr(check.result, 'value') else str(check.result)
+        category = "SAFETY" if check.name in SAFETY_CHECKS else "LIFESTYLE"
+
+        action_key = (check.name, raw_result_str)
+        user_action = _ACTION_HINTS.get(action_key)
+        if user_action is None and result_type == "LISTING_GAP":
+            user_action = "Check the listing or contact the landlord/agent."
+        elif user_action is None and result_type == "NOTED_TRADEOFF":
+            user_action = "This is a known trade-off based on listing data. Decide if it's acceptable for your needs."
+
+        presented.append({
+            "check_id": check.name.lower().replace(" ", "_").replace("/", ""),
+            "display_name": CHECK_DISPLAY_NAMES.get(check.name, check.name),
+            "result_type": result_type,
+            "severity": severity,
+            "category": category,
+            "blocks_scoring": (check.required and check.result == CheckResult.FAIL),
+            "headline": _generate_headline(check),
+            "explanation": CHECK_EXPLANATIONS.get(check.name, ""),
+            "user_action": user_action,
+            "raw_result": raw_result_str,
+            "raw_details": check.details,
+            "raw_value": check.value if hasattr(check, 'value') else None,
+        })
+    return presented
+
+
+@dataclass
 class GreenSpace:
     place_id: Optional[str]
     name: str
@@ -2773,6 +2924,15 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
         raise
 
 
+def _retry_once(check_fn: Callable[..., Tier1Check], *args) -> Tier1Check:
+    """Retry a Tier 1 check once if it returns UNKNOWN (likely transient API error)."""
+    result = check_fn(*args)
+    if result.result == CheckResult.UNKNOWN:
+        time.sleep(1)
+        result = check_fn(*args)
+    return result
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str,
@@ -2876,10 +3036,10 @@ def evaluate_property(
         trace.start_stage("tier1_checks")
     _t0_tier1 = time.time()
 
-    # Location-based checks
-    result.tier1_checks.append(check_gas_stations(maps, lat, lng))
-    result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
-    result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
+    # Location-based checks (single retry on UNKNOWN — likely transient API error)
+    result.tier1_checks.append(_retry_once(check_gas_stations, maps, lat, lng))
+    result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng))
+    result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
@@ -2895,49 +3055,47 @@ def evaluate_property(
     result.passed_tier1 = (fail_count == 0)
 
     # ===================
-    # TIER 2 SCORING
+    # TIER 2 SCORING — always runs. passed_tier1 is used for presentation only.
     # ===================
 
-    if result.passed_tier1:
-        result.tier2_scores.append(
-            _run_stage(
-                "score_park_access", score_park_access,
-                maps, lat, lng,
-                green_space_evaluation=result.green_space_evaluation,
-                green_escape_evaluation=result.green_escape_evaluation,
-            )
+    result.tier2_scores.append(
+        _run_stage(
+            "score_park_access", score_park_access,
+            maps, lat, lng,
+            green_space_evaluation=result.green_space_evaluation,
+            green_escape_evaluation=result.green_escape_evaluation,
         )
-        result.tier2_scores.append(
-            _run_stage("score_third_place", score_third_place_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _run_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _run_stage("score_fitness", score_fitness_access, maps, lat, lng))
-        result.tier2_scores.append(score_cost(listing.cost))
-        result.tier2_scores.append(
-            _run_stage(
-                "score_transit_access", score_transit_access,
-                maps, lat, lng, transit_access=result.transit_access,
-            )
+    )
+    result.tier2_scores.append(
+        _run_stage("score_third_place", score_third_place_access, maps, lat, lng))
+    result.tier2_scores.append(
+        _run_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
+    result.tier2_scores.append(
+        _run_stage("score_fitness", score_fitness_access, maps, lat, lng))
+    result.tier2_scores.append(score_cost(listing.cost))
+    result.tier2_scores.append(
+        _run_stage(
+            "score_transit_access", score_transit_access,
+            maps, lat, lng, transit_access=result.transit_access,
         )
+    )
 
-        result.tier2_total = sum(s.points for s in result.tier2_scores)
-        result.tier2_max = sum(s.max_points for s in result.tier2_scores)
-        if result.tier2_max > 0:
-            result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
-        else:
-            result.tier2_normalized = 0
+    result.tier2_total = sum(s.points for s in result.tier2_scores)
+    result.tier2_max = sum(s.max_points for s in result.tier2_scores)
+    if result.tier2_max > 0:
+        result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
+    else:
+        result.tier2_normalized = 0
 
     # ===================
-    # TIER 3 BONUSES
+    # TIER 3 BONUSES — always runs.
     # ===================
     if on_stage:
         on_stage("tier3_bonuses")
 
-    if result.passed_tier1:
-        result.tier3_bonuses = calculate_bonuses(listing)
-        result.tier3_total = sum(b.points for b in result.tier3_bonuses)
-        result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
+    result.tier3_bonuses = calculate_bonuses(listing)
+    result.tier3_total = sum(b.points for b in result.tier3_bonuses)
+    result.tier3_bonus_reasons = calculate_bonus_reasons(listing)
 
     # ===================
     # FINAL SCORE + PERCENTILE
