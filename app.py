@@ -162,24 +162,29 @@ def generate_verdict(result_dict):
     score = result_dict.get("final_score", 0)
     passed = result_dict.get("passed_tier1", False)
 
-    if not passed:
-        # Use structured summary if presented_checks exist
-        presented = result_dict.get("presented_checks", [])
-        if presented:
-            return generate_structured_summary(presented)
-        # Fallback for old snapshots without presented_checks
-        return "Does not meet baseline requirements"
-
+    # Score-based verdict always shown
     if score >= 85:
-        return "Exceptional daily-life match"
+        verdict = "Exceptional daily-life match"
     elif score >= 70:
-        return "Strong daily-life match"
+        verdict = "Strong daily-life match"
     elif score >= 55:
-        return "Solid foundation with trade-offs"
+        verdict = "Solid foundation with trade-offs"
     elif score >= 40:
-        return "Compromised walkability — car likely needed"
+        verdict = "Compromised walkability — car likely needed"
     else:
-        return "Significant daily-life gaps"
+        verdict = "Significant daily-life gaps"
+
+    # Append proximity concern suffix when tier1 checks failed
+    if not passed:
+        presented = result_dict.get("presented_checks", [])
+        has_confirmed = any(
+            pc.get("result_type") == "CONFIRMED_ISSUE"
+            for pc in presented
+        )
+        if has_confirmed:
+            verdict += " — has proximity concerns"
+
+    return verdict
 
 
 # ---------------------------------------------------------------------------
@@ -357,9 +362,7 @@ def result_to_dict(result):
 
     # Presentation layer for the new results UI
     output["presented_checks"] = present_checks(result.tier1_checks)
-    output["show_score"] = not any(
-        c["blocks_scoring"] for c in output["presented_checks"]
-    )
+    output["show_score"] = True
     output["structured_summary"] = generate_structured_summary(
         output["presented_checks"]
     )

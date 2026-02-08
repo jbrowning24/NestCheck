@@ -2070,7 +2070,7 @@ def score_park_access(
     try:
         if green_escape_evaluation is None or green_escape_evaluation.best_daily_park is None:
             return Tier2Score(
-                name="Primary Green Escape",
+                name="Parks & Green Space",
                 points=0,
                 max_points=10,
                 details="No green spaces found within walking distance",
@@ -2085,7 +2085,7 @@ def score_park_access(
             f"[{best.criteria_status}]"
         )
         return Tier2Score(
-            name="Primary Green Escape",
+            name="Parks & Green Space",
             points=points,
             max_points=10,
             details=details,
@@ -2093,7 +2093,7 @@ def score_park_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Primary Green Escape",
+            name="Parks & Green Space",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2118,7 +2118,7 @@ def score_third_place_access(
 
         if not all_places:
             return Tier2Score(
-                name="Third Place",
+                name="Coffee & Social Spots",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
@@ -2151,7 +2151,7 @@ def score_third_place_access(
 
         if not eligible_places:
             return Tier2Score(
-                name="Third Place",
+                name="Coffee & Social Spots",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
@@ -2191,7 +2191,7 @@ def score_third_place_access(
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         return Tier2Score(
-            name="Third Place",
+            name="Coffee & Social Spots",
             points=best_score,
             max_points=10,
             details=details
@@ -2199,7 +2199,7 @@ def score_third_place_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Third Place",
+            name="Coffee & Social Spots",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2280,7 +2280,7 @@ def score_transit_access(
             primary_transit = find_primary_transit(maps, lat, lng)
         if not primary_transit:
             return Tier2Score(
-                name="Urban access",
+                name="Getting Around",
                 points=0,
                 max_points=10,
                 details="No rail transit stations found within reach"
@@ -2331,7 +2331,7 @@ def score_transit_access(
             hub_note = f"{major_hub.name} — {hub_time} min"
 
         return Tier2Score(
-            name="Urban access",
+            name="Getting Around",
             points=total_points,
             max_points=10,
             details=(
@@ -2344,7 +2344,7 @@ def score_transit_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Urban access",
+            name="Getting Around",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2369,7 +2369,7 @@ def score_provisioning_access(
 
         if not all_stores:
             return Tier2Score(
-                name="Provisioning",
+                name="Daily Essentials",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
@@ -2402,7 +2402,7 @@ def score_provisioning_access(
 
         if not eligible_stores:
             return Tier2Score(
-                name="Provisioning",
+                name="Daily Essentials",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
@@ -2442,7 +2442,7 @@ def score_provisioning_access(
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         return Tier2Score(
-            name="Provisioning",
+            name="Daily Essentials",
             points=best_score,
             max_points=10,
             details=details
@@ -2450,7 +2450,7 @@ def score_provisioning_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Provisioning",
+            name="Daily Essentials",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2479,7 +2479,7 @@ def score_fitness_access(
 
         if not fitness_places:
             return Tier2Score(
-                name="Fitness access",
+                name="Fitness & Recreation",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
@@ -2514,14 +2514,14 @@ def score_fitness_access(
 
         if best_score == 0:
             return Tier2Score(
-                name="Fitness access",
+                name="Fitness & Recreation",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
             )
 
         return Tier2Score(
-            name="Fitness access",
+            name="Fitness & Recreation",
             points=best_score,
             max_points=10,
             details=best_details
@@ -2529,7 +2529,7 @@ def score_fitness_access(
 
     except Exception as e:
         return Tier2Score(
-            name="Fitness access",
+            name="Fitness & Recreation",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
@@ -2839,7 +2839,7 @@ def evaluate_property(
                    pre_fetched_places=_raw.get("Provisioning")))
     result.tier2_scores.append(
         _run_stage("score_fitness", score_fitness_access, maps, lat, lng))
-    result.tier2_scores.append(score_cost(listing.cost))
+    # score_cost removed — Cost/Affordability no longer part of scoring
     _cached_primary_transit = (
         result.urban_access.primary_transit if result.urban_access else None
     )

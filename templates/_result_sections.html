@@ -1,0 +1,433 @@
+{# ================================================================== #}
+{# Shared result rendering partial — included by index.html and       #}
+{# snapshot.html. Expects: result, snapshot_id, is_snapshot,          #}
+{# is_builder (optional).                                             #}
+{# ================================================================== #}
+
+<div class="report">
+
+  {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
+  {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
+  <div class="verdict-card{% if not show_score %} score-failed{% endif %}">
+    <div class="verdict-address">{{ result.address }}</div>
+    {% if show_score %}
+    <div class="score-circle">
+      <div class="number">{{ result.final_score }}</div>
+      <div class="label">/ 100</div>
+    </div>
+    {% endif %}
+    <div class="verdict-text">{{ result.verdict }}</div>
+    {% if show_score %}
+    <div class="final-score-text">Final Score: {{ result.final_score }} / 100</div>
+    {% endif %}
+    {% if show_score and result.percentile_label %}
+      <div class="percentile-label">{{ result.percentile_label }}</div>
+    {% endif %}
+  </div>
+
+  {# ── 2. NEIGHBORHOOD MAP (placeholder — Phase 3) ───────────── #}
+  <div id="neighborhood-map" class="report-section" style="display: none;">
+    {# Map will be rendered here in Phase 3 #}
+  </div>
+
+  {# ── 3. YOUR NEIGHBORHOOD (placeholder — Phase 4) ──────────── #}
+  <div id="your-neighborhood" class="report-section" style="display: none;">
+    {# Neighborhood detail cards will be rendered here in Phase 4 #}
+  </div>
+
+  {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
+  <div class="report-section">
+    {% if is_snapshot %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Getting Around</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% else %}
+    <h2>Getting Around</h2>
+    {% endif %}
+
+    {# Primary Transit Node #}
+    {% if result.urban_access and result.urban_access.primary_transit %}
+      {% set pt = result.urban_access.primary_transit %}
+      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
+      <div class="hub-row">
+        <div class="hub-info">
+          <div class="hub-name">{{ pt.name }}</div>
+          <div class="hub-detail">
+            {{ pt.mode }}
+            {% if pt.frequency_class %} &middot; {{ pt.frequency_class }} frequency{% endif %}
+            {% if pt.parking_available %} &middot; parking available{% endif %}
+          </div>
+        </div>
+        <div class="hub-right">
+          <span class="hub-time">{{ pt.walk_time_min }} min walk</span>
+          {% if pt.drive_time_min %}
+            <span style="font-size: 0.82em; color: #888;">/ {{ pt.drive_time_min }} min drive</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    {# Transit frequency (smart approximation) #}
+    {% if result.transit_access and result.transit_access.primary_stop %}
+      <div class="hub-row">
+        <div class="hub-info">
+          <div class="hub-name">Transit Frequency</div>
+          <div class="hub-detail">
+            {{ result.transit_access.frequency_bucket }} service
+            &middot; Score: {{ result.transit_access.score_0_10 }}/10
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Primary Hub Commute #}
+    {% if result.urban_access and result.urban_access.engine %}
+      {% set engine = result.urban_access.engine %}
+
+      {% if engine.primary_hub_commute %}
+        {% set phc = engine.primary_hub_commute %}
+        <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Hub Commute</div>
+        <div class="hub-row">
+          <div class="hub-info">
+            <div class="hub-name">{{ phc.hub_name }}</div>
+            <div class="hub-detail">
+              via {{ phc.mode }}
+              {% if phc.fallback %} (transit unavailable, driving estimate){% endif %}
+            </div>
+          </div>
+          <div class="hub-right">
+            <span class="hub-time">{{ phc.time_min }} min</span>
+            <span class="badge badge-{{ phc.verdict|lower }}">{{ phc.verdict }}</span>
+          </div>
+        </div>
+      {% endif %}
+
+      {# Reachability hubs #}
+      {% if engine.reachability_hubs %}
+        <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Reachability</div>
+        {% for hub in engine.reachability_hubs %}
+          <div class="hub-row">
+            <div class="hub-info">
+              <div class="hub-name">{{ hub.hub_name }}</div>
+              <div class="hub-detail">
+                {{ hub.category }} &middot; via {{ hub.best_mode }}
+                {% if hub.fallback %} (fallback){% endif %}
+              </div>
+            </div>
+            <div class="hub-right">
+              <span class="hub-time">{{ hub.total_time_min }} min</span>
+              <span class="badge badge-{{ hub.verdict|lower }}">{{ hub.verdict }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {# Walk / Transit / Bike Scores #}
+    {% if result.walk_scores %}
+      <div class="walkscore-row">
+        {% if result.walk_scores.walk_score is not none %}
+          <div class="walkscore-pill">
+            <div class="ws-label">Walk Score</div>
+            <div class="ws-value">{{ result.walk_scores.walk_score }}</div>
+            {% if result.walk_scores.walk_description %}
+              <div class="ws-desc">{{ result.walk_scores.walk_description }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if result.walk_scores.transit_score is not none %}
+          <div class="walkscore-pill">
+            <div class="ws-label">Transit Score</div>
+            <div class="ws-value">{{ result.walk_scores.transit_score }}</div>
+            {% if result.walk_scores.transit_description %}
+              <div class="ws-desc">{{ result.walk_scores.transit_description }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% if result.walk_scores.bike_score is not none %}
+          <div class="walkscore-pill">
+            <div class="ws-label">Bike Score</div>
+            <div class="ws-value">{{ result.walk_scores.bike_score }}</div>
+            {% if result.walk_scores.bike_description %}
+              <div class="ws-desc">{{ result.walk_scores.bike_description }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if not result.urban_access and not result.transit_access %}
+      <p class="section-empty">Urban access data not available for this address.</p>
+    {% endif %}
+
+    {% if is_snapshot %}</div>{% endif %}
+  </div>
+
+  {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
+  <div class="report-section">
+    {% if is_snapshot %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Parks &amp; Green Space</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% else %}
+    <h2>Parks &amp; Green Space</h2>
+    {% endif %}
+
+    {% if result.green_escape and result.green_escape.best_daily_park %}
+      {% set park = result.green_escape.best_daily_park %}
+      <div style="margin-bottom: 16px;">
+        <div class="place-item" style="border-bottom: none; padding-bottom: 4px;">
+          <div>
+            <div class="place-name">{{ park.name }}</div>
+            <div class="place-meta">
+              {% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}
+              {% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}
+              {% if park.types_display %} &middot; {{ park.types_display }}{% endif %}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div class="place-time">{{ park.walk_time_min }} min walk</div>
+            <div style="font-size: 0.82em; color: #666; margin-top: 2px;">
+              Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
+            </div>
+          </div>
+        </div>
+
+        {# Subscore breakdown #}
+        {% if park.subscores %}
+        <div class="subscore-grid">
+          {% for ss in park.subscores %}
+            <div class="subscore-card">
+              <div class="subscore-label">
+                {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
+              </div>
+              <div class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</div>
+              <div class="subscore-reason">{{ ss.reason }}</div>
+            </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# OSM data note #}
+        {% if park.osm_enriched %}
+          <div style="margin-top: 8px; font-size: 0.78em; color: #888;">
+            OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
+            {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
+            {% if park.osm_has_trail %} &middot; trail detected{% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+    {% else %}
+      <p class="section-empty">No major green space found within walking distance.</p>
+    {% endif %}
+
+    {# Other nearby green spaces #}
+    {% if result.green_escape and result.green_escape.nearby_green_spaces %}
+      <div style="margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Other nearby green spaces</div>
+        {% for space in result.green_escape.nearby_green_spaces[:5] %}
+          <div class="place-item">
+            <div>
+              <div class="place-name" style="font-weight: 500;">
+                {{ space.name }}
+                <span class="badge {% if space.criteria_status == 'PASS' %}badge-pass{% elif space.criteria_status == 'BORDERLINE' %}badge-borderline{% else %}badge-fail{% endif %}" style="margin-left: 6px;">{{ space.criteria_status }}</span>
+              </div>
+              <div class="place-meta">
+                {% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}
+                {% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %}
+                &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
+              </div>
+            </div>
+            <div class="place-time">{{ space.walk_time_min }} min walk</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if is_snapshot %}</div>{% endif %}
+  </div>
+
+  {# ── 6. PROXIMITY & ENVIRONMENT ────────────────────────────── #}
+  <div class="report-section">
+    {% if is_snapshot %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Proximity &amp; Environment</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% else %}
+    <h2>Proximity &amp; Environment</h2>
+    {% endif %}
+
+    {% if result.presented_checks is defined %}
+      {# SAFETY checks only — LIFESTYLE checks removed #}
+      {% for pc in result.presented_checks %}
+        {% if pc.category == "SAFETY" %}
+        <div class="check-row">
+          <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% else %}check-unknown{% endif %}">
+            {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% else %}?{% endif %}
+          </div>
+          <div class="check-text">
+            <div class="check-label">{{ pc.display_name }}</div>
+            <div class="check-detail">{{ pc.headline }}</div>
+            {% if pc.explanation and pc.result_type != "CLEAR" %}
+              <div class="check-detail" style="color: #555; margin-top: 4px; font-size: 0.85em;">{{ pc.explanation }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      {# Fallback for old snapshots without presented_checks #}
+      {% if result.tier1_checks is defined %}
+        {% for check in result.tier1_checks %}
+          <div class="check-row">
+            <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
+              {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
+            </div>
+            <div class="check-text">
+              <div class="check-label">{{ check.name }}</div>
+              <div class="check-detail">{{ check.details }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {% if is_snapshot %}</div>{% endif %}
+  </div>
+
+  {# ── 7. HOW WE SCORE ──────────────────────────────────────── #}
+  <div class="report-section">
+    {% if is_snapshot %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>How We Score</h2>
+      <span class="collapse-icon">&#9654;</span>
+    </div>
+    <div class="collapsible-body collapsed">
+    {% else %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>How We Score</h2>
+      <span class="collapse-icon">&#9654;</span>
+    </div>
+    <div class="collapsible-body collapsed">
+    {% endif %}
+
+    {% for score in result.tier2_scores|default([]) %}
+      <div class="score-row">
+        <div class="score-info">
+          <div class="score-name">{{ score.name }}</div>
+          <div class="score-detail">{{ score.details }}</div>
+        </div>
+        <div class="score-pts">{{ score.points }} / {{ score.max }}</div>
+      </div>
+    {% endfor %}
+
+    {% if result.tier3_bonuses is defined and result.tier3_bonuses %}
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #f0f2f5;">
+        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Bonus Features</div>
+        {% for bonus in result.tier3_bonuses %}
+          <div class="score-row">
+            <div class="score-info">
+              <div class="score-name">{{ bonus.name }}</div>
+              <div class="score-detail">{{ bonus.details }}</div>
+            </div>
+            <div class="score-pts">+{{ bonus.points }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {# Score bar #}
+    <div class="score-bar-container">
+      <div class="score-bar-bg">
+        <div class="score-bar-fill" style="width: {{ result.final_score }}%;"></div>
+      </div>
+      <div class="score-bar-label">
+        <span>0</span>
+        <span>Final Score: {{ result.final_score }} / 100</span>
+        <span>100</span>
+      </div>
+    </div>
+
+    {# Legend #}
+    <div class="score-legend">
+      <h3>How the score works</h3>
+      <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
+        Five daily-life factors are scored (0-10 each) and normalized to 100.
+        Bonus points (up to +15) for parking, outdoor space, and extra bedrooms.
+        Health and safety concerns are flagged separately and do not affect the score.
+      </p>
+      <div class="legend-row">
+        <span class="cat">Parks &amp; Green Space</span>
+        <span class="pts">0-10 pts</span>
+      </div>
+      <div class="legend-row">
+        <span class="cat">Coffee &amp; Social Spots</span>
+        <span class="pts">0-10 pts</span>
+      </div>
+      <div class="legend-row">
+        <span class="cat">Daily Essentials</span>
+        <span class="pts">0-10 pts</span>
+      </div>
+      <div class="legend-row">
+        <span class="cat">Fitness &amp; Recreation</span>
+        <span class="pts">0-10 pts</span>
+      </div>
+      <div class="legend-row">
+        <span class="cat">Getting Around</span>
+        <span class="pts">0-10 pts</span>
+      </div>
+      <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px;">
+        <span class="cat">Subtotal (normalized to 100)</span>
+        <span class="pts">0-100</span>
+      </div>
+      <div class="legend-row">
+        <span class="cat">Bonus (parking, outdoor, 3+ BR)</span>
+        <span class="pts">up to +15</span>
+      </div>
+      <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px; font-weight: 600;">
+        <span class="cat">Final Score (capped at 100)</span>
+        <span class="pts">{{ result.final_score }}</span>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  {# ── SHARE + EXPORT BAR (index only — snapshot has it at top) ── #}
+  {% if not is_snapshot and snapshot_id %}
+  <div class="share-bar">
+    <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      <span id="shareBtnText">Copy share link</span>
+    </button>
+    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn" style="text-decoration: none; background: #334155;">JSON</a>
+    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn" style="text-decoration: none; background: #334155;">CSV</a>
+  </div>
+  {% endif %}
+
+  {# ── CTA BANNER (snapshot only) ─────────────────────────────── #}
+  {% if is_snapshot %}
+  <div class="snapshot-cta">
+    <h3>Evaluate your own address</h3>
+    <p>See how any U.S. address scores for walkability, green space, transit, and daily life.</p>
+    <a href="/">Try NestCheck</a>
+  </div>
+  {% endif %}
+
+  {# ── DISCLAIMER + DATA SOURCES ─────────────────────────────── #}
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> NestCheck is a decision-support tool, not professional real estate, health, or legal advice.
+    Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
+    <br><br>
+    <strong>Data sources:</strong> Google Maps Platform (Places, Distance Matrix, Geocoding), OpenStreetMap (road classification and green space polygons via Overpass API).
+    Walk Score data shown when API key is configured.
+  </div>
+
+</div>
