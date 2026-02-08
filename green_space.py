@@ -24,6 +24,7 @@ import math
 import time
 import hashlib
 import json
+import threading
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 import requests
@@ -197,6 +198,7 @@ class GreenEscapeEvaluation:
 # =============================================================================
 
 _cache: Dict[str, Any] = {}
+_cache_lock = threading.Lock()
 
 
 def _cache_key(prefix: str, *args) -> str:
@@ -206,14 +208,16 @@ def _cache_key(prefix: str, *args) -> str:
 
 
 def _cached_get(key: str):
-    entry = _cache.get(key)
-    if entry and (time.time() - entry["ts"]) < 600:  # 10-min TTL
-        return entry["val"]
-    return None
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and (time.time() - entry["ts"]) < 600:  # 10-min TTL
+            return entry["val"]
+        return None
 
 
 def _cached_set(key: str, val: Any):
-    _cache[key] = {"val": val, "ts": time.time()}
+    with _cache_lock:
+        _cache[key] = {"val": val, "ts": time.time()}
 
 
 # =============================================================================

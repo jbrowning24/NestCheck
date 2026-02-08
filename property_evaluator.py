@@ -28,7 +28,8 @@ from enum import Enum
 import requests
 
 logger = logging.getLogger(__name__)
-from nc_trace import get_trace
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from nc_trace import get_trace, set_trace
 from urllib.parse import quote
 from dotenv import load_dotenv
 from urban_access import (
@@ -2645,6 +2646,36 @@ def _retry_once(check_fn: Callable[..., Tier1Check], *args) -> Tier1Check:
     return result
 
 
+def _timed_stage_in_thread(parent_trace, stage_name, fn, *args, **kwargs):
+    """Run _timed_stage in a child thread with trace propagation.
+
+    Used for stages that don't need a GoogleMapsClient (e.g. Walk Score).
+    """
+    set_trace(parent_trace)
+    return _timed_stage(stage_name, fn, *args, **kwargs)
+
+
+def _assign_walk_scores(result: "EvaluationResult", all_scores: Dict[str, Any]):
+    """Unpack the combined Walk Score API response into result fields."""
+    result.walk_scores = {
+        "walk_score": all_scores.get("walk_score"),
+        "walk_description": all_scores.get("walk_description"),
+        "transit_score": all_scores.get("transit_score"),
+        "transit_description": all_scores.get("transit_description"),
+        "bike_score": all_scores.get("bike_score"),
+        "bike_description": all_scores.get("bike_description"),
+    }
+    result.transit_score = {
+        "transit_score": all_scores.get("transit_score"),
+        "transit_rating": all_scores.get("transit_rating"),
+        "transit_summary": all_scores.get("transit_summary"),
+        "nearby_transit_lines": all_scores.get("nearby_transit_lines"),
+    }
+    result.bike_score = all_scores.get("bike_score")
+    result.bike_rating = all_scores.get("bike_rating")
+    result.bike_metadata = all_scores.get("bike_metadata")
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str,
@@ -2652,9 +2683,10 @@ def evaluate_property(
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
-    Each enrichment stage is wrapped in try/except so that a single
-    failing API call (timeout, quota, etc.) degrades gracefully
-    instead of aborting the whole evaluation.
+    Data-collection stages (walk_scores, neighborhood, schools, urban_access,
+    transit_access, green_escape) run concurrently after geocoding.  Each is
+    independent — a single failing stage degrades gracefully without affecting
+    the others.  Tier 1 checks and Tier 2 scoring remain sequential.
 
     on_stage: optional callback(stage_name: str) called at the start of each
     stage, for progress reporting (e.g. async job queue).
@@ -2679,62 +2711,77 @@ def evaluate_property(
         lng=lng
     )
 
-    # --- Optional enrichments (each fails independently) ---
+    # --- Parallel enrichment stages ---
+    # All stages below depend only on lat/lng from geocoding.  Running them
+    # concurrently cuts wall-clock time from sum-of-all to max-of-slowest.
+    # Each thread gets a fresh GoogleMapsClient (requests.Session is not
+    # thread-safe) and the parent TraceContext (list.append is GIL-atomic).
 
-    # Walk Score: single API call returns walk + transit + bike scores
-    try:
-        all_scores = _run_stage(
-            "walk_scores", get_all_walk_scores, listing.address, lat, lng)
-        result.walk_scores = {
-            "walk_score": all_scores.get("walk_score"),
-            "walk_description": all_scores.get("walk_description"),
-            "transit_score": all_scores.get("transit_score"),
-            "transit_description": all_scores.get("transit_description"),
-            "bike_score": all_scores.get("bike_score"),
-            "bike_description": all_scores.get("bike_description"),
-        }
-        result.transit_score = {
-            "transit_score": all_scores.get("transit_score"),
-            "transit_rating": all_scores.get("transit_rating"),
-            "transit_summary": all_scores.get("transit_summary"),
-            "nearby_transit_lines": all_scores.get("nearby_transit_lines"),
-        }
-        result.bike_score = all_scores.get("bike_score")
-        result.bike_rating = all_scores.get("bike_rating")
-        result.bike_metadata = all_scores.get("bike_metadata")
-    except Exception:
-        pass
+    parent_trace = get_trace()
 
-    try:
-        result.neighborhood_snapshot = _run_stage(
-            "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    def _threaded_stage(stage_name, fn, *args, **kwargs):
+        """Run a stage in a child thread with trace propagation and a
+        per-thread GoogleMapsClient."""
+        set_trace(parent_trace)
+        thread_maps = GoogleMapsClient(api_key)
+        # Swap the maps argument (first positional after stage_name)
+        # for stages that receive a GoogleMapsClient.
+        new_args = tuple(
+            thread_maps if a is maps else a for a in args
+        )
+        return _timed_stage(stage_name, fn, *new_args, **kwargs)
 
-    if ENABLE_SCHOOLS:
-        try:
-            result.child_schooling_snapshot = _run_stage(
-                "schools", get_child_and_schooling_snapshot, maps, lat, lng)
-        except Exception:
-            pass
+    if on_stage:
+        on_stage("analyzing")
 
-    try:
-        result.urban_access = _run_stage(
-            "urban_access", get_urban_access_profile, maps, lat, lng)
-    except Exception:
-        pass
+    # Build the futures dict: stage_name -> future
+    futures: Dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        # walk_scores doesn't use maps client — no swap needed
+        futures["walk_scores"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "walk_scores", get_all_walk_scores, listing.address, lat, lng,
+        )
+        futures["neighborhood"] = pool.submit(
+            _threaded_stage,
+            "neighborhood", get_neighborhood_snapshot, maps, lat, lng,
+        )
+        if ENABLE_SCHOOLS:
+            futures["schools"] = pool.submit(
+                _threaded_stage,
+                "schools", get_child_and_schooling_snapshot, maps, lat, lng,
+            )
+        futures["urban_access"] = pool.submit(
+            _threaded_stage,
+            "urban_access", get_urban_access_profile, maps, lat, lng,
+        )
+        futures["transit_access"] = pool.submit(
+            _threaded_stage,
+            "transit_access", evaluate_transit_access, maps, lat, lng,
+        )
+        futures["green_escape"] = pool.submit(
+            _threaded_stage,
+            "green_escape", evaluate_green_escape, maps, lat, lng,
+        )
 
-    try:
-        result.transit_access = _run_stage(
-            "transit_access", evaluate_transit_access, maps, lat, lng)
-    except Exception:
-        pass
-
-    try:
-        result.green_escape_evaluation = _run_stage(
-            "green_escape", evaluate_green_escape, maps, lat, lng)
-    except Exception:
-        pass
+        # Collect results — each stage fails independently
+        for stage_name, future in futures.items():
+            try:
+                stage_result = future.result()
+                if stage_name == "walk_scores":
+                    _assign_walk_scores(result, stage_result)
+                elif stage_name == "neighborhood":
+                    result.neighborhood_snapshot = stage_result
+                elif stage_name == "schools":
+                    result.child_schooling_snapshot = stage_result
+                elif stage_name == "urban_access":
+                    result.urban_access = stage_result
+                elif stage_name == "transit_access":
+                    result.transit_access = stage_result
+                elif stage_name == "green_escape":
+                    result.green_escape_evaluation = stage_result
+            except Exception:
+                pass  # Graceful degradation — same as the sequential path
 
     # ===================
     # TIER 1 CHECKS

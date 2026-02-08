@@ -15,6 +15,7 @@ Configuration (env vars):
 
 import os
 import hashlib
+import threading
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -93,6 +94,7 @@ class UrbanAccessEngine:
     # Key: md5(origin_str + "|" + dest_str + "|" + mode)
     # Value: travel time in minutes (int) or None
     _cache: Dict[str, Optional[int]] = {}
+    _cache_lock: threading.Lock = threading.Lock()
 
     def __init__(self, maps, lat: float, lng: float):
         self.maps = maps
@@ -122,7 +124,8 @@ class UrbanAccessEngine:
     @classmethod
     def clear_cache(cls):
         """Clear the directions / geocode cache (useful in tests)."""
-        cls._cache.clear()
+        with cls._cache_lock:
+            cls._cache.clear()
 
     def _cache_key(self, origin: str, dest: str, mode: str) -> str:
         raw = f"{origin}|{dest}|{mode}"
@@ -131,10 +134,12 @@ class UrbanAccessEngine:
     def _geocode_cached(self, address: str) -> Tuple[float, float]:
         """Geocode with caching."""
         key = self._cache_key("geocode", address, "")
-        if key in self._cache:
-            return self._cache[key]
+        with self._cache_lock:
+            if key in self._cache:
+                return self._cache[key]
         result = self.maps.geocode(address)
-        self._cache[key] = result
+        with self._cache_lock:
+            self._cache[key] = result
         return result
 
     def _travel_time(
@@ -152,8 +157,9 @@ class UrbanAccessEngine:
         dest_str = f"{dest[0]:.6f},{dest[1]:.6f}"
         key = self._cache_key(origin_str, dest_str, mode)
 
-        if key in self._cache:
-            return self._cache[key]
+        with self._cache_lock:
+            if key in self._cache:
+                return self._cache[key]
 
         try:
             if mode == "transit":
@@ -168,7 +174,8 @@ class UrbanAccessEngine:
         except Exception:
             result = None
 
-        self._cache[key] = result
+        with self._cache_lock:
+            self._cache[key] = result
         return result
 
     def _best_travel(
