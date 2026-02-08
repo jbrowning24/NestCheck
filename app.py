@@ -130,18 +130,18 @@ def _after_request(response):
 def generate_structured_summary(presented_checks: list) -> str:
     """Generate a structured summary sentence from presented checks.
 
-    Replaces 'Does not meet baseline requirements' with an informational
-    count of issues, unknowns, trade-offs, and listing gaps.
+    Only counts SAFETY-category checks. LIFESTYLE checks (listing details)
+    are excluded from the summary since they are no longer displayed.
 
     Examples:
         "1 confirmed concern · 1 item we couldn't verify"
         "All safety checks passed"
-        "2 confirmed concerns · 1 listing trade-off · 3 listing details not provided"
+        "2 confirmed concerns"
     """
-    confirmed = [c for c in presented_checks if c["result_type"] == "CONFIRMED_ISSUE"]
-    verification = [c for c in presented_checks if c["result_type"] == "VERIFICATION_NEEDED"]
-    tradeoffs = [c for c in presented_checks if c["result_type"] == "NOTED_TRADEOFF"]
-    listing_gaps = [c for c in presented_checks if c["result_type"] == "LISTING_GAP"]
+    safety = [c for c in presented_checks if c.get("category") == "SAFETY"]
+
+    confirmed = [c for c in safety if c["result_type"] == "CONFIRMED_ISSUE"]
+    verification = [c for c in safety if c["result_type"] == "VERIFICATION_NEEDED"]
 
     parts = []
     if confirmed:
@@ -150,12 +150,6 @@ def generate_structured_summary(presented_checks: list) -> str:
     if verification:
         n = len(verification)
         parts.append(f"{n} item{'s' if n != 1 else ''} we couldn't verify")
-    if tradeoffs:
-        n = len(tradeoffs)
-        parts.append(f"{n} listing trade-off{'s' if n != 1 else ''}")
-    if listing_gaps:
-        n = len(listing_gaps)
-        parts.append(f"{n} listing detail{'s' if n != 1 else ''} not provided")
 
     if not parts:
         return "All safety checks passed"
