@@ -886,29 +886,6 @@ tier3_bonus: {{ result.tier3_bonus }}</pre>
         {% endif %}
       {% endfor %}
 
-      {# Listing details subsection #}
-      {% set lifestyle_checks = [] %}
-      {% for pc in result.presented_checks %}
-        {% if pc.category == "LIFESTYLE" %}
-          {% if lifestyle_checks.append(pc) %}{% endif %}
-        {% endif %}
-      {% endfor %}
-      {% if lifestyle_checks %}
-      <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Listing Details</div>
-        {% for pc in lifestyle_checks %}
-          <div class="check-row">
-            <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'NOTED_TRADEOFF' %}check-unknown{% else %}check-unknown{% endif %}">
-              {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "NOTED_TRADEOFF" %}&#8252;{% else %}?{% endif %}
-            </div>
-            <div class="check-text">
-              <div class="check-label">{{ pc.display_name }}</div>
-              <div class="check-detail">{{ pc.headline }}</div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-      {% endif %}
     {% elif result.tier1_checks %}
       {# Fallback for old snapshots #}
       {% for check in result.tier1_checks %}
@@ -932,7 +909,7 @@ tier3_bonus: {{ result.tier3_bonus }}</pre>
   {% if result.presented_checks is defined %}
     {% set needs_verification = [] %}
     {% for pc in result.presented_checks %}
-      {% if pc.result_type in ["VERIFICATION_NEEDED", "LISTING_GAP"] %}
+      {% if pc.result_type in ["VERIFICATION_NEEDED", "LISTING_GAP"] and pc.category != "LIFESTYLE" %}
         {% if needs_verification.append(pc) %}{% endif %}
       {% endif %}
     {% endfor %}

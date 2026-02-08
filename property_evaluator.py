@@ -664,7 +664,13 @@ def _walking_times_batch(
 
 
 class OverpassClient:
-    """Client for OpenStreetMap Overpass API - for road data"""
+    """Client for OpenStreetMap Overpass API - for road data.
+
+    Uses a two-level cache:
+      1. SQLite overpass_cache table (7-day TTL) — persistent across evals
+      2. HTTP fallback when cache misses
+    Cache failures never break an evaluation.
+    """
 
     DEFAULT_TIMEOUT = 25
 
@@ -690,7 +696,11 @@ class OverpassClient:
         return data
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
-        """Get roads within radius of a point"""
+        """Get roads within radius of a point.
+
+        Checks SQLite persistent cache before making an HTTP request.
+        Stores successful responses in the cache. Failures are not cached.
+        """
         query = f"""
         [out:json][timeout:25];
         (
@@ -700,8 +710,33 @@ class OverpassClient:
         >;
         out skel qt;
         """
+
+        # Check SQLite persistent cache
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_roads(data)
+        except Exception:
+            logger.warning("Overpass SQLite cache read failed in get_nearby_roads, falling through to HTTP", exc_info=True)
+
         data = self._traced_post("get_nearby_roads", self.base_url, {"data": query})
-        
+
+        # Store successful response in cache
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning("Overpass SQLite cache write failed in get_nearby_roads", exc_info=True)
+
+        return self._parse_roads(data)
+
+    @staticmethod
+    def _parse_roads(data: dict) -> List[Dict]:
+        """Extract road info from Overpass response data."""
         roads = []
         for element in data.get("elements", []):
             if element["type"] == "way" and "tags" in element:
@@ -711,7 +746,6 @@ class OverpassClient:
                     "highway_type": element["tags"].get("highway", ""),
                     "lanes": element["tags"].get("lanes", ""),
                 })
-        
         return roads
 
 

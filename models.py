@@ -10,8 +10,10 @@ import os
 import json
 import uuid
 import time
+import hashlib
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +75,13 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_jobs_status ON evaluation_jobs(status);
         CREATE INDEX IF NOT EXISTS idx_jobs_created ON evaluation_jobs(created_at);
+
+        -- Overpass API response cache (second-level, persists across evals)
+        CREATE TABLE IF NOT EXISTS overpass_cache (
+            cache_key   TEXT PRIMARY KEY,
+            response_json TEXT NOT NULL,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     """)
     # Migrate existing evaluation_jobs table (add new columns if missing).
     cols = {row["name"] for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()}
@@ -365,3 +374,71 @@ def requeue_stale_running_jobs(max_age_seconds=300):
     conn.commit()
     conn.close()
     return count
+
+
+# ---------------------------------------------------------------------------
+# Overpass API response cache (second-level persistent cache)
+# ---------------------------------------------------------------------------
+
+_OVERPASS_CACHE_TTL_DAYS = 7
+
+
+def overpass_cache_key(query_string: str) -> str:
+    """Generate a deterministic cache key from an Overpass query string."""
+    return hashlib.sha256(query_string.encode()).hexdigest()
+
+
+def get_overpass_cache(cache_key: str) -> Optional[str]:
+    """Look up a cached Overpass response by key.
+
+    Returns the raw JSON string if found and younger than TTL, else None.
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        row = conn.execute(
+            """SELECT response_json, created_at FROM overpass_cache
+               WHERE cache_key = ?""",
+            (cache_key,),
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        # Check TTL — created_at is stored as an ISO timestamp string
+        created_str = row["created_at"]
+        if created_str:
+            try:
+                created = datetime.fromisoformat(created_str)
+                # Handle naive timestamps by assuming UTC
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                age = datetime.now(timezone.utc) - created
+                if age > timedelta(days=_OVERPASS_CACHE_TTL_DAYS):
+                    return None  # Expired
+            except (ValueError, TypeError):
+                pass  # If we can't parse the timestamp, return the data anyway
+
+        return row["response_json"]
+    except Exception:
+        logger.warning("Overpass cache lookup failed", exc_info=True)
+        return None
+
+
+def set_overpass_cache(cache_key: str, response_json: str) -> None:
+    """Store an Overpass response in the persistent cache.
+
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        conn.execute(
+            """INSERT OR REPLACE INTO overpass_cache (cache_key, response_json, created_at)
+               VALUES (?, ?, ?)""",
+            (cache_key, response_json, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        logger.warning("Overpass cache write failed", exc_info=True)

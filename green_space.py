@@ -431,11 +431,28 @@ def _overpass_query(query: str) -> Optional[Dict]:
 
     Returns the parsed JSON response, or ``None`` if the request failed.
     Successful responses (even empty ones) are cached; failures are not.
+
+    Uses a two-level cache:
+      1. In-memory dict (10-minute TTL) — fast, per-process
+      2. SQLite overpass_cache table (7-day TTL) — persistent across evals
     """
-    cache_key = _cache_key("overpass", query)
-    cached = _cached_get(cache_key)
+    # Level 1: in-memory cache
+    mem_cache_key = _cache_key("overpass", query)
+    cached = _cached_get(mem_cache_key)
     if cached is not None:
         return cached
+
+    # Level 2: SQLite persistent cache
+    from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+    db_cache_key = overpass_cache_key(query)
+    try:
+        db_cached_json = get_overpass_cache(db_cache_key)
+        if db_cached_json is not None:
+            data = json.loads(db_cached_json)
+            _cached_set(mem_cache_key, data)  # Promote to L1
+            return data
+    except Exception:
+        logger.warning("Overpass SQLite cache read failed, falling through to HTTP", exc_info=True)
 
     url = "https://overpass-api.de/api/interpreter"
     session = requests.Session()
@@ -457,7 +474,13 @@ def _overpass_query(query: str) -> Optional[Dict]:
         logger.warning("Overpass query failed", exc_info=True)
         return None
 
-    _cached_set(cache_key, data)
+    # Store in both caches on success
+    _cached_set(mem_cache_key, data)
+    try:
+        set_overpass_cache(db_cache_key, json.dumps(data))
+    except Exception:
+        logger.warning("Overpass SQLite cache write failed", exc_info=True)
+
     return data
 
 
