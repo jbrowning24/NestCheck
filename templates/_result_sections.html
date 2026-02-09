@@ -56,7 +56,7 @@
           <div class="hub-name">{{ pt.name }}</div>
           <div class="hub-detail">
             {{ pt.mode }}
-            {% if pt.frequency_class %} &middot; {{ pt.frequency_class }} frequency{% endif %}
+            {% if pt.frequency_class %} &middot; {{ pt.frequency_class }}{% endif %}
             {% if pt.parking_available %} &middot; parking available{% endif %}
           </div>
         </div>
@@ -82,48 +82,6 @@
       </div>
     {% endif %}
 
-    {# Primary Hub Commute #}
-    {% if result.urban_access and result.urban_access.engine %}
-      {% set engine = result.urban_access.engine %}
-
-      {% if engine.primary_hub_commute %}
-        {% set phc = engine.primary_hub_commute %}
-        <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Hub Commute</div>
-        <div class="hub-row">
-          <div class="hub-info">
-            <div class="hub-name">{{ phc.hub_name }}</div>
-            <div class="hub-detail">
-              via {{ phc.mode }}
-              {% if phc.fallback %} (transit unavailable, driving estimate){% endif %}
-            </div>
-          </div>
-          <div class="hub-right">
-            <span class="hub-time">{{ phc.time_min }} min</span>
-            <span class="badge badge-{{ phc.verdict|lower }}">{{ phc.verdict }}</span>
-          </div>
-        </div>
-      {% endif %}
-
-      {# Reachability hubs #}
-      {% if engine.reachability_hubs %}
-        <div style="margin-top: 12px; font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Reachability</div>
-        {% for hub in engine.reachability_hubs %}
-          <div class="hub-row">
-            <div class="hub-info">
-              <div class="hub-name">{{ hub.hub_name }}</div>
-              <div class="hub-detail">
-                {{ hub.category }} &middot; via {{ hub.best_mode }}
-                {% if hub.fallback %} (fallback){% endif %}
-              </div>
-            </div>
-            <div class="hub-right">
-              <span class="hub-time">{{ hub.total_time_min }} min</span>
-              <span class="badge badge-{{ hub.verdict|lower }}">{{ hub.verdict }}</span>
-            </div>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endif %}
 
     {# Walk / Transit / Bike Scores #}
     {% if result.walk_scores %}

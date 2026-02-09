@@ -91,10 +91,6 @@ The app will be available at `http://localhost:5001`.
 | `SECRET_KEY` | No | Flask session secret (auto-generated in production) |
 | `PORT` | No | Port to bind (default: 5001) |
 | `FLASK_DEBUG` | No | Set to "1" for debug mode |
-| `PRIMARY_HUB_ADDRESS` | No | Urban access primary hub (default: Grand Central Terminal) |
-| `AIRPORT_HUBS` | No | JSON list of airport hubs |
-| `DOWNTOWN_HUB` | No | Downtown hub address |
-| `HOSPITAL_HUB` | No | Hospital hub address |
 
 ## Deploy to Render
 

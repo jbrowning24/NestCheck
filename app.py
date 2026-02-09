@@ -14,7 +14,6 @@ from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, present_checks
 )
-from urban_access import urban_access_result_to_dict
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -274,15 +273,9 @@ def _serialize_urban_access(urban_access):
             "route_summary": mh.route_summary,
         }
 
-    # Engine result (primary hub commute + reachability hubs)
-    engine = None
-    if urban_access.engine_result:
-        engine = urban_access_result_to_dict(urban_access.engine_result)
-
     return {
         "primary_transit": primary_transit,
         "major_hub": major_hub,
-        "engine": engine,
     }
 
 
