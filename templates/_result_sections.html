@@ -265,25 +265,39 @@
     {% endif %}
 
     {% if result.presented_checks is defined %}
-      {# SAFETY checks only — LIFESTYLE checks removed #}
       {% for pc in result.presented_checks %}
         {% if pc.category == "SAFETY" %}
-        <div class="check-row">
-          <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% else %}check-unknown{% endif %}">
-            {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% else %}?{% endif %}
-          </div>
-          <div class="check-text">
-            <div class="check-label">{{ pc.display_name }}</div>
-            <div class="check-detail">{{ pc.headline }}</div>
-            {% if pc.explanation and pc.result_type != "CLEAR" %}
-              <div class="check-detail" style="color: #555; margin-top: 4px; font-size: 0.85em;">{{ pc.explanation }}</div>
-            {% endif %}
-          </div>
-        </div>
+
+          {# ── New proximity-band rendering ── #}
+          {% if pc.proximity_band is defined and pc.proximity_band %}
+            {% set band_class = "proximity-" + pc.proximity_band | lower %}
+            <div class="proximity-item {{ band_class }}">
+              <div class="proximity-name">{{ pc.headline }}</div>
+              {% if pc.result_type != "CLEAR" and pc.explanation %}
+                <div class="proximity-detail">{{ pc.explanation }}</div>
+              {% endif %}
+            </div>
+
+          {# ── Backward compat: old snapshots with presented_checks but no proximity_band ── #}
+          {% else %}
+            <div class="check-row">
+              <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% else %}check-unknown{% endif %}">
+                {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% else %}?{% endif %}
+              </div>
+              <div class="check-text">
+                <div class="check-label">{{ pc.display_name }}</div>
+                <div class="check-detail">{{ pc.headline }}</div>
+                {% if pc.explanation and pc.result_type != "CLEAR" %}
+                  <div class="check-detail" style="color: #555; margin-top: 4px; font-size: 0.85em;">{{ pc.explanation }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
         {% endif %}
       {% endfor %}
     {% else %}
-      {# Fallback for old snapshots without presented_checks #}
+      {# Fallback for very old snapshots without presented_checks #}
       {% if result.tier1_checks is defined %}
         {% for check in result.tier1_checks %}
           <div class="check-row">

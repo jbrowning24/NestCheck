@@ -104,6 +104,7 @@ class Tier1Check:
     details: str
     value: Optional[Any] = None
     required: bool = True
+    distance_ft: Optional[float] = None
 
 
 @dataclass
@@ -158,9 +159,7 @@ CHECK_DISPLAY_NAMES = {
 }
 
 CHECK_EXPLANATIONS = {
-    "Gas station": "Gas stations within 500 feet are associated with elevated benzene exposure, a known carcinogen. This is especially relevant for families with young children.",
-    "Highway": "Highways within 500 feet significantly increase particulate matter (PM2.5) and ambient noise. Long-term exposure is linked to respiratory issues.",
-    "High-volume road": "High-traffic roads increase ambient noise and reduce air quality. Impact varies with distance, physical barriers, and traffic patterns.",
+    # Safety entries removed — now generated dynamically by _proximity_explanation()
     "W/D in unit": "In-unit laundry is a strong quality-of-life factor for families, reducing time spent on a recurring chore.",
     "Central air": "Central air conditioning affects comfort and indoor air quality, particularly during summer months.",
     "Size": "Square footage helps assess whether the space meets your household's needs.",
@@ -168,19 +167,22 @@ CHECK_EXPLANATIONS = {
     "Cost": "Monthly cost is needed to assess affordability relative to your budget.",
 }
 
-_ACTION_HINTS = {
-    ("Gas station", "PASS"): None,
-    ("Gas station", "FAIL"): "Search for gas stations near this address on Google Maps to confirm distance and count.",
-    ("Highway", "PASS"): None,
-    ("Highway", "FAIL"): "Check Google Maps satellite view to assess highway proximity, barriers, and sound walls.",
-    ("Highway", "UNKNOWN"): "We couldn't verify this automatically. Check Google Maps satellite view for nearby highways.",
-    ("High-volume road", "PASS"): None,
-    ("High-volume road", "FAIL"): "Visit during rush hour (7-9 AM, 5-7 PM) to assess actual noise and traffic levels.",
-    ("High-volume road", "UNKNOWN"): "We couldn't verify this automatically. Visit during rush hour to assess traffic levels.",
+_ACTION_HINTS: Dict[Tuple[str, str], Optional[str]] = {
+    # Safety entries removed — proximity explanations are self-contained.
+    # Lifestyle entries can be added here as needed.
 }
 
 SAFETY_CHECKS = {"Gas station", "Highway", "High-volume road"}
 LISTING_CHECKS = {"W/D in unit", "Central air", "Size", "Bedrooms", "Cost"}
+
+# Distance thresholds (in feet) for proximity-band presentation.
+# "very_close" = strongly emphasised, "notable" = moderate emphasis.
+# Values beyond "notable" (or PASS results) are treated as NEUTRAL.
+PROXIMITY_THRESHOLDS = {
+    "Gas station":      {"very_close": 300, "notable": 500},
+    "Highway":          {"very_close": 300, "notable": 500},
+    "High-volume road": {"very_close": 300, "notable": 500},
+}
 
 
 def _classify_check(check: Tier1Check) -> Tuple[str, str]:
@@ -212,24 +214,120 @@ def _classify_check(check: Tier1Check) -> Tuple[str, str]:
         return ("LISTING_GAP", "NONE")
 
 
-def _generate_headline(check: Tier1Check) -> str:
-    """Generate a user-facing one-line headline."""
+def _proximity_band(check: Tier1Check) -> str:
+    """Assign a visual-emphasis band for proximity-based checks.
+
+    Returns one of: "VERY_CLOSE", "NOTABLE", "NEUTRAL".
+    Non-proximity checks (lifestyle) always return "NEUTRAL".
+    """
+    thresholds = PROXIMITY_THRESHOLDS.get(check.name)
+    if thresholds is None:
+        return "NEUTRAL"
+
+    if check.result == CheckResult.PASS:
+        return "NEUTRAL"
+
+    if check.result == CheckResult.UNKNOWN:
+        return "NOTABLE"
+
+    # FAIL — use distance_ft when available, conservative default otherwise
+    if check.distance_ft is not None:
+        if check.distance_ft < thresholds["very_close"]:
+            return "VERY_CLOSE"
+        elif check.distance_ft < thresholds["notable"]:
+            return "NOTABLE"
+        return "NEUTRAL"
+
+    # No distance available (highway / high-volume road radius query) — Decision 2
+    return "VERY_CLOSE"
+
+
+def _proximity_explanation(check: Tier1Check) -> str:
+    """Generate a factual, distance-aware explanation for a proximity check.
+
+    Used only for SAFETY checks. Lifestyle checks continue to use
+    the static CHECK_EXPLANATIONS dict.
+    """
+    display = CHECK_DISPLAY_NAMES.get(check.name, check.name)
+
+    # UNKNOWN — generic verification prompt
+    if check.result == CheckResult.UNKNOWN:
+        return (
+            f"We could not automatically verify {display.lower()}. "
+            "Check Google Maps satellite view to confirm."
+        )
+
+    # PASS — no explanation needed (template hides it for CLEAR items)
+    if check.result == CheckResult.PASS:
+        return ""
+
+    # FAIL — distance-aware factual text
+    if check.name == "Gas station":
+        dist = int(check.distance_ft) if check.distance_ft is not None else None
+        if dist is not None:
+            return (
+                f"A gas station was detected {dist:,} ft from this address. "
+                "Gas stations within 500 ft are associated with elevated benzene "
+                "exposure, a known carcinogen."
+            )
+        return (
+            "A gas station was detected nearby. Gas stations within 500 ft are "
+            "associated with elevated benzene exposure, a known carcinogen."
+        )
+
+    if check.name == "Highway":
+        roads = check.details.replace("TOO CLOSE to: ", "")
+        return (
+            f"{roads} detected within the search area. "
+            "Highways within 500 ft significantly increase particulate matter "
+            "(PM2.5) and ambient noise."
+        )
+
+    if check.name == "High-volume road":
+        roads = check.details.replace("TOO CLOSE to: ", "")
+        return (
+            f"{roads} detected within the search area. "
+            "High-traffic roads increase ambient noise and reduce air quality."
+        )
+
+    return ""
+
+
+def _generate_headline(check: Tier1Check, proximity_band: Optional[str] = None) -> str:
+    """Generate a user-facing one-line headline.
+
+    Safety checks use factual distance framing when *proximity_band* is
+    provided.  Lifestyle checks are unchanged.
+    """
+    display = CHECK_DISPLAY_NAMES.get(check.name, check.name)
+
+    # ── Safety checks: factual proximity headlines ──
+    if proximity_band is not None and check.name in SAFETY_CHECKS:
+        if check.result == CheckResult.PASS:
+            return f"{display} — Clear"
+
+        if check.result == CheckResult.UNKNOWN:
+            return f"{display} — Unverified"
+
+        # FAIL
+        if check.distance_ft is not None:
+            return f"{display} — {int(check.distance_ft):,} ft"
+        return f"{display} — Nearby"
+
+    # ── Lifestyle / fallback (existing behaviour) ──
     if check.result == CheckResult.PASS:
         return check.details
 
     if check.result == CheckResult.FAIL:
         if check.required:
-            # Safety concern — rewrite aggressive "TOO CLOSE" phrasing
             if check.name == "High-volume road":
                 roads = check.details.replace("TOO CLOSE to: ", "")
                 return f"High-traffic roads nearby: {roads}"
             return check.details.replace("TOO CLOSE to: ", "Nearby: ")
         else:
-            # Non-required FAIL = NOTED_TRADEOFF — use details as-is,
-            # they already describe the known negative clearly.
             return check.details
 
-    # UNKNOWN — distinguish API error from missing listing data
+    # UNKNOWN
     if check.name in SAFETY_CHECKS:
         return "Could not be verified automatically"
     else:
@@ -247,13 +345,20 @@ def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
         result_type, severity = _classify_check(check)
         raw_result_str = check.result.value if hasattr(check.result, 'value') else str(check.result)
         category = "SAFETY" if check.name in SAFETY_CHECKS else "LIFESTYLE"
+        band = _proximity_band(check) if category == "SAFETY" else None
 
-        action_key = (check.name, raw_result_str)
-        user_action = _ACTION_HINTS.get(action_key)
-        if user_action is None and result_type == "LISTING_GAP":
-            user_action = "Check the listing or contact the landlord/agent."
-        elif user_action is None and result_type == "NOTED_TRADEOFF":
-            user_action = "This is a known trade-off based on listing data. Decide if it's acceptable for your needs."
+        # Safety checks: dynamic explanation; lifestyle: static dict + action hints
+        if category == "SAFETY":
+            explanation = _proximity_explanation(check) if band else ""
+            user_action = None  # explanations are now self-contained
+        else:
+            explanation = CHECK_EXPLANATIONS.get(check.name, "")
+            action_key = (check.name, raw_result_str)
+            user_action = _ACTION_HINTS.get(action_key)
+            if user_action is None and result_type == "LISTING_GAP":
+                user_action = "Check the listing or contact the landlord/agent."
+            elif user_action is None and result_type == "NOTED_TRADEOFF":
+                user_action = "This is a known trade-off based on listing data. Decide if it's acceptable for your needs."
 
         presented.append({
             "check_id": check.name.lower().replace(" ", "_").replace("/", ""),
@@ -261,9 +366,10 @@ def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
             "result_type": result_type,
             "severity": severity,
             "category": category,
+            "proximity_band": band,
             "blocks_scoring": (check.required and check.result == CheckResult.FAIL),
-            "headline": _generate_headline(check),
-            "explanation": CHECK_EXPLANATIONS.get(check.name, ""),
+            "headline": _generate_headline(check, proximity_band=band),
+            "explanation": explanation,
             "user_action": user_action,
             "raw_result": raw_result_str,
             "raw_details": check.details,
@@ -899,14 +1005,16 @@ def check_gas_stations(
                 name="Gas station",
                 result=CheckResult.PASS,
                 details=f"Nearest: {closest_name} ({min_distance:,} ft)",
-                value=min_distance
+                value=min_distance,
+                distance_ft=min_distance,
             )
         else:
             return Tier1Check(
                 name="Gas station",
                 result=CheckResult.FAIL,
                 details=f"TOO CLOSE: {closest_name} ({min_distance:,} ft < {GAS_STATION_MIN_DISTANCE_FT} ft)",
-                value=min_distance
+                value=min_distance,
+                distance_ft=min_distance,
             )
     except Exception as e:
         return Tier1Check(
