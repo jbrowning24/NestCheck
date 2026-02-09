@@ -650,6 +650,67 @@
       max-height: 0;
     }
 
+    /* --- NEIGHBORHOOD CARDS --- */
+    .neighborhood-category {
+      margin-bottom: 20px;
+    }
+    .neighborhood-category:last-child { margin-bottom: 0; }
+    .category-label {
+      font-size: 0.82em;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 10px;
+    }
+    .place-cards {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .place-card {
+      flex: 0 0 auto;
+      width: 160px;
+      background: #f8f9fb;
+      border: 1px solid #eef0f4;
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .place-card .place-name {
+      font-weight: 600;
+      font-size: 0.88em;
+      color: #1a1a2e;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .place-card .place-meta {
+      font-size: 0.8em;
+      color: #777;
+      margin-top: 2px;
+    }
+    .place-card .place-rating {
+      color: #d97706;
+      font-weight: 600;
+    }
+    .place-card .place-reviews {
+      color: #999;
+      margin-left: 2px;
+    }
+    .place-card .place-time {
+      font-size: 0.82em;
+      font-weight: 600;
+      color: #0f3460;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
     /* --- RESPONSIVE --- */
     @media (max-width: 640px) {
       .hero h1 { font-size: 2em; }
@@ -660,6 +721,8 @@
       .score-circle { width: 100px; height: 100px; }
       .score-circle .number { font-size: 2em; }
       .subscore-grid { grid-template-columns: 1fr 1fr; }
+      .place-cards { gap: 8px; }
+      .place-card { width: 140px; padding: 12px; }
     }
 
     /* --- PRINT-FRIENDLY / SHARE-READY --- */

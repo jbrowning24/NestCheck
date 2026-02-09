@@ -353,6 +353,9 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
+    # Neighborhood places — already plain dicts, pass through as-is
+    output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
     # Presentation layer for the new results UI
     output["presented_checks"] = present_checks(result.tier1_checks)
     output["show_score"] = True

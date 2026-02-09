@@ -30,10 +30,58 @@
     {# Map will be rendered here in Phase 3 #}
   </div>
 
-  {# ── 3. YOUR NEIGHBORHOOD (placeholder — Phase 4) ──────────── #}
-  <div id="your-neighborhood" class="report-section" style="display: none;">
-    {# Neighborhood detail cards will be rendered here in Phase 4 #}
+  {# ── 3. YOUR NEIGHBORHOOD ──────────────────────────────────── #}
+  {% if result.neighborhood_places is defined and result.neighborhood_places %}
+  <div id="your-neighborhood" class="report-section">
+    {% if is_snapshot %}
+    <div class="collapsible-toggle" onclick="toggleSection(this)">
+      <h2>Your Neighborhood</h2>
+      <span class="collapse-icon">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+    {% else %}
+    <h2>Your Neighborhood</h2>
+    {% endif %}
+
+    {% set categories = [
+      ("coffee", "☕", "Coffee & Social Spots"),
+      ("grocery", "🛒", "Grocery & Essentials"),
+      ("fitness", "💪", "Fitness & Recreation"),
+      ("parks", "🌳", "Parks & Green Space"),
+    ] %}
+
+    {% for key, icon, label in categories %}
+      {% set places = result.neighborhood_places[key] | default([]) %}
+      {% if places %}
+      <div class="neighborhood-category">
+        <div class="category-label">{{ icon }} {{ label }}</div>
+        <div class="place-cards">
+          {% for place in places %}
+          <div class="place-card">
+            <div class="place-name">{{ place.name }}</div>
+            <div class="place-meta">
+              {% if place.rating %}
+                <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+              {% endif %}
+              {% if place.review_count %}
+                <span class="place-reviews">({{ place.review_count }})</span>
+              {% endif %}
+            </div>
+            <div class="place-time">{{ place.walk_time_min }} min walk</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+
+    {% if is_snapshot %}</div>{% endif %}
   </div>
+  {% else %}
+  <div id="your-neighborhood" class="report-section" style="display: none;">
+    {# Fallback for old snapshots without neighborhood_places #}
+  </div>
+  {% endif %}
 
   {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
   <div class="report-section">
