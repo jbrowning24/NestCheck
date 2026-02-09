@@ -584,6 +584,9 @@ class EvaluationResult:
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
 
+    # Server-rendered neighborhood map (base64 PNG)
+    neighborhood_map_b64: Optional[str] = None
+
 
 # =============================================================================
 # API CLIENTS
@@ -3146,6 +3149,25 @@ def evaluate_property(
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
+
+    # ===================
+    # MAP GENERATION — after all data is ready
+    # ===================
+    try:
+        from map_generator import generate_neighborhood_map
+        _transit = result.urban_access.primary_transit if result.urban_access else None
+        result.neighborhood_map_b64 = _timed_stage(
+            "map_generation",
+            generate_neighborhood_map,
+            property_lat=lat,
+            property_lng=lng,
+            neighborhood_places=result.neighborhood_places,
+            transit_lat=_transit.lat if _transit else None,
+            transit_lng=_transit.lng if _transit else None,
+        )
+    except Exception:
+        logger.warning("Map generation failed; continuing without map", exc_info=True)
+        result.neighborhood_map_b64 = None
 
     elapsed_total = time.time() - eval_start
     logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",

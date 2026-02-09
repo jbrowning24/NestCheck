@@ -10,25 +10,57 @@
   {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
   <div class="verdict-card{% if not show_score %} score-failed{% endif %}">
     <div class="verdict-address">{{ result.address }}</div>
+
     {% if show_score %}
-    <div class="score-circle">
-      <div class="number">{{ result.final_score }}</div>
-      <div class="label">/ 100</div>
+    <div class="score-header">
+      <div class="score-number">{{ result.final_score }}</div>
+      <div class="score-details">
+        {% if result.score_band is defined and result.score_band %}
+          <div class="score-band">{{ result.score_band }}</div>
+        {% else %}
+          <div class="score-band">{{ result.verdict }}</div>
+        {% endif %}
+        <div class="score-scale">out of 100</div>
+      </div>
     </div>
     {% endif %}
-    <div class="verdict-text">{{ result.verdict }}</div>
-    {% if show_score %}
-    <div class="final-score-text">Final Score: {{ result.final_score }} / 100</div>
-    {% endif %}
-    {% if show_score and result.percentile_label %}
-      <div class="percentile-label">{{ result.percentile_label }}</div>
+
+    {% if result.dimension_summaries is defined and result.dimension_summaries %}
+    <div class="dimension-list">
+      {% for dim in result.dimension_summaries %}
+      <div class="dimension-row">
+        <div class="dimension-name">{{ dim.name }}</div>
+        <div class="dimension-summary">{{ dim.summary }}</div>
+        <div class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</div>
+      </div>
+      {% endfor %}
+    </div>
     {% endif %}
   </div>
 
-  {# ── 2. NEIGHBORHOOD MAP (placeholder — Phase 3) ───────────── #}
-  <div id="neighborhood-map" class="report-section" style="display: none;">
-    {# Map will be rendered here in Phase 3 #}
+  {# ── 2. NEIGHBORHOOD MAP ───────────────────────────────────── #}
+  {% if result.neighborhood_map is defined and result.neighborhood_map %}
+  <div id="neighborhood-map" class="report-section"
+       style="text-align: center; padding: 0; overflow: hidden;
+              border-radius: 8px;">
+    <img src="data:image/png;base64,{{ result.neighborhood_map }}"
+         alt="Neighborhood map showing nearby amenities"
+         style="width: 100%; height: auto; display: block;"
+         loading="lazy">
+    <div style="font-size: 0.75em; color: #94a3b8; padding: 8px;
+                text-align: right;">
+      Map data &copy; OpenStreetMap contributors
+    </div>
   </div>
+  {% else %}
+  <div id="neighborhood-map" class="report-section"
+       style="background: #f8f9fa; min-height: 120px;
+              display: flex; align-items: center;
+              justify-content: center; color: #94a3b8;
+              border-radius: 8px; font-size: 0.9em;">
+    Map not available for this evaluation
+  </div>
+  {% endif %}
 
   {# ── 3. YOUR NEIGHBORHOOD ──────────────────────────────────── #}
   {% if result.neighborhood_places is defined and result.neighborhood_places %}
@@ -324,101 +356,33 @@
 
   {# ── 7. HOW WE SCORE ──────────────────────────────────────── #}
   <div class="report-section">
-    {% if is_snapshot %}
     <div class="collapsible-toggle" onclick="toggleSection(this)">
       <h2>How We Score</h2>
       <span class="collapse-icon">&#9654;</span>
     </div>
     <div class="collapsible-body collapsed">
-    {% else %}
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
-      <h2>How We Score</h2>
-      <span class="collapse-icon">&#9654;</span>
-    </div>
-    <div class="collapsible-body collapsed">
-    {% endif %}
 
-    {% for score in result.tier2_scores|default([]) %}
-      <div class="score-row">
-        <div class="score-info">
-          <div class="score-name">{{ score.name }}</div>
-          <div class="score-detail">{{ score.details }}</div>
-        </div>
-        <div class="score-pts">{{ score.points }} / {{ score.max }}</div>
-      </div>
-    {% endfor %}
+    <p class="scoring-explanation">
+      NestCheck evaluates five daily-life factors, each scored 0–10.
+      The scores are combined and normalized to a 100-point scale.
+      Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
+    </p>
 
-    {% if result.tier3_bonuses is defined and result.tier3_bonuses %}
-      <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #f0f2f5;">
-        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Bonus Features</div>
-        {% for bonus in result.tier3_bonuses %}
-          <div class="score-row">
-            <div class="score-info">
-              <div class="score-name">{{ bonus.name }}</div>
-              <div class="score-detail">{{ bonus.details }}</div>
-            </div>
-            <div class="score-pts">+{{ bonus.points }}</div>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {# Score bar #}
-    <div class="score-bar-container">
-      <div class="score-bar-bg">
-        <div class="score-bar-fill" style="width: {{ result.final_score }}%;"></div>
-      </div>
-      <div class="score-bar-label">
-        <span>0</span>
-        <span>Final Score: {{ result.final_score }} / 100</span>
-        <span>100</span>
-      </div>
+    <div class="band-table">
+      <div class="band-row"><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
+      <div class="band-row"><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
+      <div class="band-row"><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
+      <div class="band-row"><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
+      <div class="band-row"><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
     </div>
 
-    {# Legend #}
-    <div class="score-legend">
-      <h3>How the score works</h3>
-      <p style="font-size: 0.85em; color: #666; margin-bottom: 10px;">
-        Five daily-life factors are scored (0-10 each) and normalized to 100.
-        Bonus points (up to +15) for parking, outdoor space, and extra bedrooms.
-        Health and safety concerns are flagged separately and do not affect the score.
-      </p>
-      <div class="legend-row">
-        <span class="cat">Parks &amp; Green Space</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Coffee &amp; Social Spots</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Daily Essentials</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Fitness &amp; Recreation</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Getting Around</span>
-        <span class="pts">0-10 pts</span>
-      </div>
-      <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px;">
-        <span class="cat">Subtotal (normalized to 100)</span>
-        <span class="pts">0-100</span>
-      </div>
-      <div class="legend-row">
-        <span class="cat">Bonus (parking, outdoor, 3+ BR)</span>
-        <span class="pts">up to +15</span>
-      </div>
-      <div class="legend-row" style="border-top: 1px solid #e0e0e0; margin-top: 6px; padding-top: 6px; font-weight: 600;">
-        <span class="cat">Final Score (capped at 100)</span>
-        <span class="pts">{{ result.final_score }}</span>
-      </div>
-    </div>
+    <p class="scoring-note">
+      Proximity factors (gas stations, highways, high-traffic roads)
+      are reported separately and do not affect the score.
+    </p>
 
-    </div>
-  </div>
+    </div>{# .collapsible-body #}
+  </div>{# .report-section #}
 
   {# ── SHARE + EXPORT BAR (index only — snapshot has it at top) ── #}
   {% if not is_snapshot and snapshot_id %}

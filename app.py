@@ -156,34 +156,145 @@ def generate_structured_summary(presented_checks: list) -> str:
     return " · ".join(parts)
 
 
+SCORE_BANDS = [
+    (85, "Exceptional Daily Fit"),
+    (70, "Strong Daily Fit"),
+    (55, "Moderate — Some Trade-offs"),
+    (40, "Limited — Car Likely Needed"),
+    (0, "Significant Gaps"),
+]
+
+
+def get_score_band(score: int) -> str:
+    """Return the band name for a given score."""
+    for threshold, band in SCORE_BANDS:
+        if score >= threshold:
+            return band
+    return SCORE_BANDS[-1][1]
+
+
 def generate_verdict(result_dict):
     """Generate a one-line verdict based on the evaluation result."""
     score = result_dict.get("final_score", 0)
-    passed = result_dict.get("passed_tier1", False)
-
-    # Score-based verdict always shown
-    if score >= 85:
-        verdict = "Exceptional daily-life match"
-    elif score >= 70:
-        verdict = "Strong daily-life match"
-    elif score >= 55:
-        verdict = "Solid foundation with trade-offs"
-    elif score >= 40:
-        verdict = "Compromised walkability — car likely needed"
-    else:
-        verdict = "Significant daily-life gaps"
+    band = get_score_band(score)
 
     # Append proximity concern suffix when tier1 checks failed
-    if not passed:
+    if not result_dict.get("passed_tier1", False):
         presented = result_dict.get("presented_checks", [])
         has_confirmed = any(
             pc.get("result_type") == "CONFIRMED_ISSUE"
             for pc in presented
         )
         if has_confirmed:
-            verdict += " — has proximity concerns"
+            band += " — has proximity concerns"
 
-    return verdict
+    return band
+
+
+def generate_dimension_summaries(result_dict: dict) -> list:
+    """Generate plain-English summaries for each scoring dimension.
+
+    Reads from the serialized result dict so it works for both new
+    evaluations and old snapshots (with graceful fallbacks).
+    """
+    # Build a lookup: tier2 dimension name → {points, max}
+    tier2 = {
+        s["name"]: {"points": s["points"], "max": s["max"]}
+        for s in result_dict.get("tier2_scores", [])
+    }
+
+    neighborhood = result_dict.get("neighborhood_places") or {}
+    green = result_dict.get("green_escape") or {}
+    urban = result_dict.get("urban_access") or {}
+    transit = result_dict.get("transit_access") or {}
+
+    summaries = []
+
+    # ── Parks & Green Space ──────────────────────────────────────
+    best_park = green.get("best_park")
+    if best_park and best_park.get("name"):
+        park_summary = f"{best_park['name']} — {best_park.get('walk_time_min', '?')} min walk"
+    else:
+        park_summary = "No parks found within walking distance"
+    t2 = tier2.get("Parks & Green Space", {})
+    summaries.append({
+        "name": "Parks & Green Space",
+        "summary": park_summary,
+        "score": t2.get("points", 0),
+        "max_score": t2.get("max", 10),
+    })
+
+    # ── Coffee & Social Spots ────────────────────────────────────
+    coffee_places = neighborhood.get("coffee") or []
+    walkable_coffee = [p for p in coffee_places if (p.get("walk_time_min") or 99) <= 20]
+    if walkable_coffee:
+        nearest = min(p.get("walk_time_min", 99) for p in walkable_coffee)
+        coffee_summary = f"{len(walkable_coffee)} options within walking distance · nearest {nearest} min"
+    else:
+        coffee_summary = "No cafés or social spots found nearby"
+    t2 = tier2.get("Coffee & Social Spots", {})
+    summaries.append({
+        "name": "Coffee & Social Spots",
+        "summary": coffee_summary,
+        "score": t2.get("points", 0),
+        "max_score": t2.get("max", 10),
+    })
+
+    # ── Daily Essentials ─────────────────────────────────────────
+    grocery_places = neighborhood.get("grocery") or []
+    walkable_grocery = [p for p in grocery_places if (p.get("walk_time_min") or 99) <= 20]
+    if walkable_grocery:
+        nearest = min(p.get("walk_time_min", 99) for p in walkable_grocery)
+        grocery_summary = f"{len(walkable_grocery)} stores within walking distance · nearest {nearest} min"
+    else:
+        grocery_summary = "No grocery stores found nearby"
+    t2 = tier2.get("Daily Essentials", {})
+    summaries.append({
+        "name": "Daily Essentials",
+        "summary": grocery_summary,
+        "score": t2.get("points", 0),
+        "max_score": t2.get("max", 10),
+    })
+
+    # ── Fitness & Recreation ─────────────────────────────────────
+    fitness_places = neighborhood.get("fitness") or []
+    walkable_fitness = [p for p in fitness_places if (p.get("walk_time_min") or 99) <= 20]
+    if walkable_fitness:
+        nearest = min(p.get("walk_time_min", 99) for p in walkable_fitness)
+        fitness_summary = f"{len(walkable_fitness)} options within walking distance · nearest {nearest} min"
+    else:
+        fitness_summary = "No fitness options found nearby"
+    t2 = tier2.get("Fitness & Recreation", {})
+    summaries.append({
+        "name": "Fitness & Recreation",
+        "summary": fitness_summary,
+        "score": t2.get("points", 0),
+        "max_score": t2.get("max", 10),
+    })
+
+    # ── Getting Around ───────────────────────────────────────────
+    primary = urban.get("primary_transit")
+    if primary and primary.get("name"):
+        freq = primary.get("frequency_class") or ""
+        transit_summary = f"{primary['name']} — {primary.get('walk_time_min', '?')} min walk"
+        if freq:
+            transit_summary += f" · {freq} service"
+    elif transit.get("primary_stop"):
+        freq = transit.get("frequency_bucket") or ""
+        transit_summary = f"{transit['primary_stop']} — {transit.get('walk_minutes', '?')} min walk"
+        if freq:
+            transit_summary += f" · {freq} frequency"
+    else:
+        transit_summary = "No public transit found nearby"
+    t2 = tier2.get("Getting Around", {})
+    summaries.append({
+        "name": "Getting Around",
+        "summary": transit_summary,
+        "score": t2.get("points", 0),
+        "max_score": t2.get("max", 10),
+    })
+
+    return summaries
 
 
 # ---------------------------------------------------------------------------
@@ -349,12 +460,13 @@ def result_to_dict(result):
         ],
         "tier3_bonus_reasons": result.tier3_bonus_reasons,
         "final_score": result.final_score,
-        "percentile_top": result.percentile_top,
-        "percentile_label": result.percentile_label,
     }
 
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
+    # Base64-encoded neighborhood map PNG
+    output["neighborhood_map"] = result.neighborhood_map_b64
 
     # Presentation layer for the new results UI
     output["presented_checks"] = present_checks(result.tier1_checks)
@@ -364,6 +476,8 @@ def result_to_dict(result):
     )
 
     output["verdict"] = generate_verdict(output)
+    output["score_band"] = get_score_band(result.final_score)
+    output["dimension_summaries"] = generate_dimension_summaries(output)
     return output
 
 
@@ -509,10 +623,17 @@ def view_snapshot(snapshot_id):
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
+    # Backfill Phase 5 fields for old snapshots
+    result = snapshot["result"]
+    if "score_band" not in result:
+        result["score_band"] = get_score_band(result.get("final_score", 0))
+    if "dimension_summaries" not in result:
+        result["dimension_summaries"] = generate_dimension_summaries(result)
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
-        result=snapshot["result"],
+        result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
     )
