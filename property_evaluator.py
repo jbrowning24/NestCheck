@@ -174,9 +174,9 @@ LISTING_CHECKS = {"W/D in unit", "Central air", "Size", "Bedrooms", "Cost"}
 # "very_close" = strongly emphasised, "notable" = moderate emphasis.
 # Values beyond "notable" (or PASS results) are treated as NEUTRAL.
 PROXIMITY_THRESHOLDS = {
-    "Gas station":      {"very_close": 300, "notable": 500},
-    "Highway":          {"very_close": 300, "notable": 500},
-    "High-volume road": {"very_close": 300, "notable": 500},
+    "Gas station":      {"very_close": 200, "notable": 500},
+    "Highway":          {"very_close": 500, "notable": 1000},
+    "High-volume road": {"very_close": 200, "notable": 500},
 }
 
 
@@ -237,53 +237,127 @@ def _proximity_band(check: Tier1Check) -> str:
     return "VERY_CLOSE"
 
 
-def _proximity_explanation(check: Tier1Check) -> str:
-    """Generate a factual, distance-aware explanation for a proximity check.
+def _proximity_explanation(check: Tier1Check, band: str) -> str:
+    """Generate a factual, band-aware explanation for a proximity check.
 
-    Used only for SAFETY checks. Lifestyle checks continue to use
+    Used only for SAFETY checks.  *band* must be one of
+    "VERY_CLOSE", "NOTABLE", "NEUTRAL", or "UNKNOWN" (when
+    check.result is UNKNOWN).  Lifestyle checks continue to use
     the static CHECK_EXPLANATIONS dict.
     """
     display = CHECK_DISPLAY_NAMES.get(check.name, check.name)
+    dist = int(check.distance_ft) if check.distance_ft is not None else None
 
-    # UNKNOWN — generic verification prompt
+    # ── UNKNOWN — generic verification prompt ──
     if check.result == CheckResult.UNKNOWN:
         return (
-            f"We could not automatically verify {display.lower()}. "
-            "Check Google Maps satellite view to confirm."
+            f"We could not automatically verify {display.lower()} proximity. "
+            "Check Google Maps satellite view to assess this yourself."
         )
 
-    # PASS — no explanation needed (template hides it for CLEAR items)
-    if check.result == CheckResult.PASS:
-        return ""
-
-    # FAIL — distance-aware factual text
+    # ── Gas station ──
     if check.name == "Gas station":
-        dist = int(check.distance_ft) if check.distance_ft is not None else None
+        if band == "VERY_CLOSE":
+            if dist is not None:
+                return (
+                    f"This address is {dist:,} ft from a gas station. "
+                    "At this distance, fuel odor may be noticeable and "
+                    "studies have measured elevated benzene levels."
+                )
+            return (
+                "A gas station is very close to this address. "
+                "At this distance, fuel odor may be noticeable and "
+                "studies have measured elevated benzene levels."
+            )
+        if band == "NOTABLE":
+            if dist is not None:
+                return (
+                    f"A gas station is {dist:,} ft from this address. "
+                    "At this distance, air quality impact is typically minimal "
+                    "but may be detectable in certain wind conditions."
+                )
+            return (
+                "A gas station is near this address. "
+                "At this distance, air quality impact is typically minimal "
+                "but may be detectable in certain wind conditions."
+            )
+        # NEUTRAL / PASS
         if dist is not None:
             return (
-                f"A gas station was detected {dist:,} ft from this address. "
-                "Gas stations within 500 ft are associated with elevated benzene "
-                "exposure, a known carcinogen."
+                f"Nearest gas station is {dist:,} ft away "
+                "\u2014 outside the typical impact zone."
             )
-        return (
-            "A gas station was detected nearby. Gas stations within 500 ft are "
-            "associated with elevated benzene exposure, a known carcinogen."
-        )
+        return ""
 
+    # ── Highway ──
     if check.name == "Highway":
         roads = check.details.replace("TOO CLOSE to: ", "")
-        return (
-            f"{roads} detected within the search area. "
-            "Highways within 500 ft significantly increase particulate matter "
-            "(PM2.5) and ambient noise."
-        )
+        if band == "VERY_CLOSE":
+            if dist is not None:
+                return (
+                    f"A highway is {dist:,} ft from this address. "
+                    "At this distance, road noise and particulate matter "
+                    "(PM2.5) levels are typically elevated."
+                )
+            return (
+                f"{roads} detected near this address. "
+                "At this distance, road noise and particulate matter "
+                "(PM2.5) levels are typically elevated."
+            )
+        if band == "NOTABLE":
+            if dist is not None:
+                return (
+                    f"A highway is {dist:,} ft from this address. "
+                    "Some road noise may be audible, especially during "
+                    "peak traffic hours."
+                )
+            return (
+                f"{roads} detected within the search area. "
+                "Some road noise may be audible, especially during "
+                "peak traffic hours."
+            )
+        # NEUTRAL / PASS
+        if dist is not None:
+            return (
+                f"Nearest highway is {dist:,} ft away "
+                "\u2014 outside the typical noise and air quality impact zone."
+            )
+        return ""
 
+    # ── High-volume road ──
     if check.name == "High-volume road":
         roads = check.details.replace("TOO CLOSE to: ", "")
-        return (
-            f"{roads} detected within the search area. "
-            "High-traffic roads increase ambient noise and reduce air quality."
-        )
+        if band == "VERY_CLOSE":
+            if dist is not None:
+                return (
+                    f"A high-traffic road is {dist:,} ft from this address. "
+                    "At this distance, road noise and reduced air quality "
+                    "are typically noticeable."
+                )
+            return (
+                f"{roads} detected near this address. "
+                "At this distance, road noise and reduced air quality "
+                "are typically noticeable."
+            )
+        if band == "NOTABLE":
+            if dist is not None:
+                return (
+                    f"A high-traffic road is {dist:,} ft from this address. "
+                    "Some road noise may be audible, especially during "
+                    "peak traffic hours."
+                )
+            return (
+                f"{roads} detected within the search area. "
+                "Some road noise may be audible, especially during "
+                "peak traffic hours."
+            )
+        # NEUTRAL / PASS
+        if dist is not None:
+            return (
+                f"Nearest high-traffic road is {dist:,} ft away "
+                "\u2014 outside the typical noise and air quality impact zone."
+            )
+        return ""
 
     return ""
 
@@ -344,7 +418,7 @@ def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
 
         # Safety checks: dynamic explanation; lifestyle: static dict + action hints
         if category == "SAFETY":
-            explanation = _proximity_explanation(check) if band else ""
+            explanation = _proximity_explanation(check, band=band) if band else ""
             user_action = None  # explanations are now self-contained
         else:
             explanation = CHECK_EXPLANATIONS.get(check.name, "")

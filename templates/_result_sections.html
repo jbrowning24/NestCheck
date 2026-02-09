@@ -231,7 +231,7 @@
             {% set band_class = "proximity-" + pc.proximity_band | lower %}
             <div class="proximity-item {{ band_class }}">
               <div class="proximity-name">{{ pc.headline }}</div>
-              {% if pc.result_type != "CLEAR" and pc.explanation %}
+              {% if pc.explanation and (pc.proximity_band != 'NEUTRAL' or pc.result_type != 'CLEAR') %}
                 <div class="proximity-detail">{{ pc.explanation }}</div>
               {% endif %}
             </div>
