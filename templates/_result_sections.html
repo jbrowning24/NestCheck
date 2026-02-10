@@ -164,7 +164,11 @@
 
 
     {# Walk / Transit / Bike Scores #}
-    {% if result.walk_scores %}
+    {% set has_walk_data = result.walk_scores and (
+        result.walk_scores.walk_score is not none or
+        result.walk_scores.transit_score is not none or
+        result.walk_scores.bike_score is not none) %}
+    {% if has_walk_data %}
       <div class="walkscore-row">
         {% if result.walk_scores.walk_score is not none %}
           <div class="walkscore-pill">
@@ -196,8 +200,8 @@
       </div>
     {% endif %}
 
-    {% if not result.urban_access and not result.transit_access %}
-      <p class="section-empty">Urban access data not available for this address.</p>
+    {% if not result.urban_access and not result.transit_access and not has_walk_data %}
+      <p class="section-empty">No transit options found near this address.</p>
     {% endif %}
 
     {% if is_snapshot %}</div>{% endif %}
