@@ -90,7 +90,17 @@
         <div class="place-cards">
           {% for place in places %}
           <div class="place-card">
-            <div class="place-name">{{ place.name }}</div>
+            <div class="place-name">
+              {% if place.place_id %}
+                <a href="https://www.google.com/maps/place/?q=place_id:{{ place.place_id }}"
+                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+              {% elif place.lat and place.lng %}
+                <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+              {% else %}
+                {{ place.name }}
+              {% endif %}
+            </div>
             <div class="place-meta">
               {% if place.rating %}
                 <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
@@ -136,7 +146,7 @@
           <div class="hub-name">{{ pt.name }}</div>
           <div class="hub-detail">
             {{ pt.mode }}
-            {% if pt.frequency_class %} &middot; {{ pt.frequency_class }}{% endif %}
+            {% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}
             {% if pt.parking_available %} &middot; parking available{% endif %}
           </div>
         </div>
@@ -145,19 +155,6 @@
           {% if pt.drive_time_min %}
             <span style="font-size: 0.82em; color: #888;">/ {{ pt.drive_time_min }} min drive</span>
           {% endif %}
-        </div>
-      </div>
-    {% endif %}
-
-    {# Transit frequency (smart approximation) #}
-    {% if result.transit_access and result.transit_access.primary_stop %}
-      <div class="hub-row">
-        <div class="hub-info">
-          <div class="hub-name">Transit Frequency</div>
-          <div class="hub-detail">
-            {{ result.transit_access.frequency_bucket }} service
-            &middot; Score: {{ result.transit_access.score_0_10 }}/10
-          </div>
         </div>
       </div>
     {% endif %}

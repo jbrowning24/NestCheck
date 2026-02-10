@@ -259,17 +259,16 @@ def generate_dimension_summaries(result_dict: dict) -> list:
     })
 
     # ── Getting Around ───────────────────────────────────────────
+    freq = result_dict.get("frequency_label") or ""
     primary = urban.get("primary_transit")
     if primary and primary.get("name"):
-        freq = primary.get("frequency_class") or ""
         transit_summary = f"{primary['name']} — {primary.get('walk_time_min', '?')} min walk"
         if freq:
-            transit_summary += f" · {freq} service"
+            transit_summary += f" · {freq}"
     elif transit.get("primary_stop"):
-        freq = transit.get("frequency_bucket") or ""
         transit_summary = f"{transit['primary_stop']} — {transit.get('walk_minutes', '?')} min walk"
         if freq:
-            transit_summary += f" · {freq} frequency"
+            transit_summary += f" · {freq}"
     else:
         transit_summary = "No public transit found nearby"
     t2 = tier2.get("Getting Around", {})
@@ -357,7 +356,6 @@ def _serialize_urban_access(urban_access):
             "walk_time_min": pt.walk_time_min,
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,
-            "frequency_class": pt.frequency_class,
         }
 
     major_hub = None
@@ -420,6 +418,18 @@ def result_to_dict(result):
             "score_0_10": result.transit_access.score_0_10,
             "reasons": result.transit_access.reasons,
         } if result.transit_access else None,
+        # Unified frequency label — prefer smart heuristic bucket,
+        # fall back to review-count frequency_class.
+        "frequency_label": (
+            f"{result.transit_access.frequency_bucket} frequency"
+            if result.transit_access and result.transit_access.frequency_bucket
+            else (
+                result.urban_access.primary_transit.frequency_class
+                if result.urban_access and result.urban_access.primary_transit
+                   and result.urban_access.primary_transit.frequency_class
+                else ""
+            )
+        ),
         "green_escape": _serialize_green_escape(result.green_escape_evaluation),
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
