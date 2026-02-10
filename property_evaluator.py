@@ -581,8 +581,6 @@ class EvaluationResult:
 
     # Keep these from main
     final_score: int = 0
-    percentile_top: int = 0
-    percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
     # Neighborhood places surfaced from scoring (Phase 3)
@@ -2888,25 +2886,6 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
-def estimate_percentile(score: int) -> Tuple[int, str]:
-    """Estimate percentile bucket from a normalized 0-100 score."""
-    buckets = [
-        (90, 5),
-        (85, 10),
-        (80, 20),
-        (75, 30),
-        (70, 40),
-        (65, 50),
-        (60, 60),
-        (55, 70),
-        (50, 80),
-        (0, 90),
-    ]
-    for threshold, top_percent in buckets:
-        if score >= threshold:
-            return top_percent, f"≈ top {top_percent}% nationally for families"
-    return 90, "≈ top 90% nationally for families"
-
 
 # =============================================================================
 # MAIN EVALUATION
@@ -3228,7 +3207,6 @@ def evaluate_property(
         result.tier2_normalized = 0
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
-    result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
 
     # ===================
     # MAP GENERATION — after all data is ready
@@ -3303,7 +3281,8 @@ def format_result(result: EvaluationResult) -> str:
     
     # Final
     lines.append(f"\n{'=' * 70}")
-    lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({result.percentile_label})")
+    from app import get_score_band
+    lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({get_score_band(result.final_score)})")
     lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
     
@@ -3402,6 +3381,7 @@ def main():
     
     # Output
     if args.json:
+        from app import get_score_band
         # Convert to dict for JSON output
         output = {
             "address": result.listing.address,
@@ -3503,8 +3483,7 @@ def main():
             ],
             "tier3_bonus_reasons": result.tier3_bonus_reasons,
             "final_score": result.final_score,
-            "percentile_top": result.percentile_top,
-            "percentile_label": result.percentile_label,
+            "score_band": get_score_band(result.final_score),
         }
         print(json.dumps(output, indent=2))
     else:
