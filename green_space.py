@@ -132,6 +132,43 @@ NATURE_OSM_TAGS = {
     "waterway": ["river", "stream", "canal"],
 }
 
+# Human-readable display names for OSM nature tags (keyed by "key=value")
+OSM_TAG_DISPLAY_NAMES = {
+    "leisure=park": "Park",
+    "leisure=nature_reserve": "Nature Reserve",
+    "leisure=garden": "Garden",
+    "landuse=forest": "Forest",
+    "landuse=meadow": "Meadow",
+    "landuse=grass": "Grassland",
+    "landuse=nature_reserve": "Nature Reserve",
+    "landuse=conservation": "Conservation Area",
+    "natural=wood": "Woodland",
+    "natural=wetland": "Wetland",
+    "natural=water": "Water",
+    "natural=scrub": "Scrubland",
+    "natural=heath": "Heathland",
+    "natural=grassland": "Grassland",
+    "natural=tree_row": "Tree Row",
+    "waterway=river": "River",
+    "waterway=stream": "Stream",
+    "waterway=canal": "Canal",
+    "boundary=national_park": "National Park",
+}
+
+
+def _display_tag(tag: str) -> str:
+    """Return a human-readable label for an OSM tag string like 'natural=wood'.
+
+    Looks up ``OSM_TAG_DISPLAY_NAMES`` first; falls back to title-casing the
+    value portion (everything after '=').
+    """
+    label = OSM_TAG_DISPLAY_NAMES.get(tag)
+    if label:
+        return label
+    # Fallback: title-case the value portion
+    _, _, value = tag.partition("=")
+    return value.replace("_", " ").title() if value else tag
+
 
 # =============================================================================
 # DATA CLASSES
@@ -975,13 +1012,13 @@ def _score_nature_feel(osm_data: Dict[str, Any], name: str, types: List[str]) ->
         )]
         if len(forest_water) >= 2:
             score += 1.5
-            parts.append(f"strong nature indicators: {', '.join(forest_water[:3])}")
+            parts.append(f"strong nature indicators: {', '.join(_display_tag(t) for t in forest_water[:3])}")
         elif forest_water:
             score += 1.0
-            parts.append(f"nature indicator: {forest_water[0]}")
+            parts.append(f"nature indicator: {_display_tag(forest_water[0])}")
         else:
             score += 0.5
-            parts.append(f"green tags: {', '.join(nature_tags[:2])}")
+            parts.append(f"green tags: {', '.join(_display_tag(t) for t in nature_tags[:2])}")
 
     # Name-based nature feel
     name_lower = name.lower()
