@@ -232,7 +232,7 @@
             </div>
           </div>
           <div style="text-align: right;">
-            <div class="place-time">{{ park.walk_time_min }} min walk</div>
+            <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ park.drive_time_min }} min drive{% else %}{{ park.walk_time_min }} min walk{% endif %}</div>
             <div style="font-size: 0.82em; color: #666; margin-top: 2px;">
               Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
             </div>
@@ -285,7 +285,7 @@
                 &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
               </div>
             </div>
-            <div class="place-time">{{ space.walk_time_min }} min walk</div>
+            <div class="place-time">{% if space.drive_time_min and space.walk_time_min > 30 %}{{ space.drive_time_min }} min drive{% else %}{{ space.walk_time_min }} min walk{% endif %}</div>
           </div>
         {% endfor %}
       </div>

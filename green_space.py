@@ -65,6 +65,10 @@ MIN_RESULTS_BEFORE_EXPAND = 3
 # How many spaces to return in the nearby list
 NEARBY_LIST_SIZE = 8
 
+# Drive-time threshold: parks beyond WALK_TIME_MARGINAL walk AND this
+# many minutes driving are dropped from the nearby list (too remote).
+DRIVE_TIME_MAX = 20
+
 # Cap how many places we fetch walk times for (by straight-line distance).
 # Reduces Distance Matrix API calls; 50 places = 2 batched requests of 25.
 MAX_PLACES_FOR_WALK_TIMES = 50
@@ -210,6 +214,9 @@ class GreenSpaceResult:
     # PASS / BORDERLINE / FAIL
     criteria_status: str = "FAIL"
     criteria_reasons: List[str] = field(default_factory=list)
+
+    # Drive time (populated for parks beyond walking distance)
+    drive_time_min: Optional[int] = None
 
     # OSM enrichment metadata
     osm_enriched: bool = False
@@ -1269,6 +1276,39 @@ def evaluate_green_escape(
     # Step 5: Build nearby list (top N, excluding best if present)
     best_id = evaluation.best_daily_park.place_id if evaluation.best_daily_park else None
     nearby = [s for s in scored if s.place_id != best_id][:NEARBY_LIST_SIZE]
+
+    # Step 5b: Fetch drive times for parks beyond walking distance.
+    # Collect all candidate parks (best + nearby) that exceed WALK_TIME_MARGINAL.
+    all_candidates = list(nearby)
+    if evaluation.best_daily_park and evaluation.best_daily_park.walk_time_min > WALK_TIME_MARGINAL:
+        all_candidates.append(evaluation.best_daily_park)
+    far_parks = [s for s in all_candidates if s.walk_time_min > WALK_TIME_MARGINAL]
+
+    drive_times_fetched = False
+    if far_parks and hasattr(maps_client, "driving_times_batch"):
+        origin = (lat, lng)
+        destinations = [(s.lat, s.lng) for s in far_parks]
+        try:
+            drive_times = maps_client.driving_times_batch(origin, destinations)
+            if len(drive_times) != len(far_parks):
+                drive_times = [9999] * len(far_parks)
+            else:
+                drive_times_fetched = True
+        except Exception:
+            drive_times = [9999] * len(far_parks)
+        for park, dt in zip(far_parks, drive_times):
+            park.drive_time_min = dt if dt != 9999 else None
+
+    # Filter out nearby parks that are beyond walking AND driving thresholds,
+    # but only when drive times were reliably fetched. When the drive-time
+    # lookup fails or is unavailable, fall back to showing far parks with
+    # their walk times rather than hiding them entirely.
+    if drive_times_fetched:
+        nearby = [
+            s for s in nearby
+            if s.walk_time_min <= WALK_TIME_MARGINAL
+            or (s.drive_time_min is not None and s.drive_time_min <= DRIVE_TIME_MAX)
+        ]
     evaluation.nearby_green_spaces = nearby
 
     # Step 6: Overall green escape score
@@ -1293,6 +1333,7 @@ def green_escape_to_dict(evaluation: GreenEscapeEvaluation) -> Dict[str, Any]:
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
+            "drive_time_min": s.drive_time_min,
             "types": s.types,
             "types_display": s.types_display,
             "daily_walk_value": s.daily_walk_value,
@@ -1342,6 +1383,7 @@ def green_escape_to_legacy_format(evaluation: GreenEscapeEvaluation) -> Dict[str
             "rating": best.rating,
             "user_ratings_total": best.user_ratings_total,
             "walk_time_min": best.walk_time_min,
+            "drive_time_min": best.drive_time_min,
             "types": best.types,
             "types_display": best.types_display,
         } if best else None,
@@ -1356,6 +1398,7 @@ def green_escape_to_legacy_format(evaluation: GreenEscapeEvaluation) -> Dict[str
                 "rating": s.rating,
                 "user_ratings_total": s.user_ratings_total,
                 "walk_time_min": s.walk_time_min,
+                "drive_time_min": s.drive_time_min,
                 "types": s.types,
                 "types_display": s.types_display,
             }

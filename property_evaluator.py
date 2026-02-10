@@ -46,6 +46,10 @@ load_dotenv()
 # Feature flags
 ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "false").lower() == "true"
 
+# Sentinel for a failed shared Overpass fetch — check functions detect this
+# and return UNKNOWN immediately instead of retrying a known-down endpoint.
+_OVERPASS_FAILED = object()
+
 # Health & Safety Thresholds (in feet)
 GAS_STATION_MIN_DISTANCE_FT = 500
 HIGHWAY_MIN_DISTANCE_FT = 500
@@ -251,7 +255,7 @@ def _proximity_explanation(check: Tier1Check, band: str) -> str:
     # ── UNKNOWN — generic verification prompt ──
     if check.result == CheckResult.UNKNOWN:
         return (
-            f"We could not automatically verify {display.lower()} proximity. "
+            f"We could not automatically verify {check.name.lower()} proximity. "
             "Check Google Maps satellite view to assess this yourself."
         )
 
@@ -750,6 +754,40 @@ class GoogleMapsClient:
                     results.append(elem["duration"]["value"] // 60)
         return results
 
+    def driving_times_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+    ) -> List[int]:
+        """
+        Get driving times in minutes from one origin to many destinations.
+        Batches into requests of up to 25 destinations per call (API limit).
+        Returns one value per destination; use 9999 for unreachable.
+        """
+        if not destinations:
+            return []
+        results: List[int] = []
+        for i in range(0, len(destinations), self.DISTANCE_MATRIX_MAX_DESTINATIONS):
+            chunk = destinations[i : i + self.DISTANCE_MATRIX_MAX_DESTINATIONS]
+            dest_param = "|".join(f"{d[0]},{d[1]}" for d in chunk)
+            url = f"{self.base_url}/distancematrix/json"
+            params = {
+                "origins": f"{origin[0]},{origin[1]}",
+                "destinations": dest_param,
+                "mode": "driving",
+                "key": self.api_key,
+            }
+            data = self._traced_get("driving_times_batch", url, params)
+            if data["status"] != "OK":
+                raise ValueError(f"Distance Matrix API failed: {data['status']}")
+            row = data["rows"][0]
+            for j, elem in enumerate(row["elements"]):
+                if elem["status"] != "OK":
+                    results.append(9999)
+                else:
+                    results.append(elem["duration"]["value"] // 60)
+        return results
+
     def driving_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Get driving time in minutes between two points"""
         url = f"{self.base_url}/distancematrix/json"
@@ -865,7 +903,7 @@ class OverpassClient:
         t0 = time.time()
         response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
         elapsed_ms = int((time.time() - t0) * 1000)
-        data = response.json()
+        # Record trace before raise_for_status so failed calls are visible
         trace = get_trace()
         if trace:
             trace.record_api_call(
@@ -874,6 +912,8 @@ class OverpassClient:
                 elapsed_ms=elapsed_ms,
                 status_code=response.status_code,
             )
+        response.raise_for_status()
+        data = response.json()
         return data
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
@@ -1106,6 +1146,12 @@ def check_highways(
     roads_data: Optional[List[Dict]] = None,
 ) -> Tier1Check:
     """Check distance to highways and major parkways"""
+    if roads_data is _OVERPASS_FAILED:
+        return Tier1Check(
+            name="Highway",
+            result=CheckResult.UNKNOWN,
+            details="Overpass API unavailable",
+        )
     try:
         # Use Overpass to find major roads nearby
         roads = roads_data if roads_data is not None else overpass.get_nearby_roads(lat, lng, radius_meters=200)
@@ -1148,6 +1194,12 @@ def check_high_volume_roads(
     roads_data: Optional[List[Dict]] = None,
 ) -> Tier1Check:
     """Check distance to high-volume roads (4+ lanes or primary/secondary classification)"""
+    if roads_data is _OVERPASS_FAILED:
+        return Tier1Check(
+            name="High-volume road",
+            result=CheckResult.UNKNOWN,
+            details="Overpass API unavailable",
+        )
     try:
         roads = roads_data if roads_data is not None else overpass.get_nearby_roads(lat, lng, radius_meters=200)
 
@@ -3047,13 +3099,25 @@ def evaluate_property(
     # Location-based checks (single retry on UNKNOWN — likely transient API error)
     result.tier1_checks.append(_retry_once(check_gas_stations, maps, lat, lng))
 
-    # Fetch Overpass road data once, reuse for both highway and high-volume checks
+    # Fetch Overpass road data once, reuse for both highway and high-volume checks.
+    # Single retry on transient failure before giving up with sentinel.
     try:
         _roads_data = overpass.get_nearby_roads(lat, lng, radius_meters=200)
     except Exception:
-        _roads_data = None
-    result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng, _roads_data))
-    result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng, _roads_data))
+        time.sleep(1)
+        try:
+            _roads_data = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+        except Exception:
+            _roads_data = _OVERPASS_FAILED
+
+    # When the shared fetch already failed, skip _retry_once — retrying
+    # won't help and just adds latency against a down endpoint.
+    if _roads_data is _OVERPASS_FAILED:
+        result.tier1_checks.append(check_highways(maps, overpass, lat, lng, _roads_data))
+        result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng, _roads_data))
+    else:
+        result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng, _roads_data))
+        result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng, _roads_data))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))

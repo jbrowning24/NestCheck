@@ -22,6 +22,8 @@ from green_space import (
     green_escape_to_dict,
     GreenEscapeEvaluation,
     GreenSpaceResult,
+    WALK_TIME_MARGINAL,
+    DRIVE_TIME_MAX,
     _cache,
 )
 
@@ -38,7 +40,7 @@ def _make_place(name, place_id, types, rating=4.0, reviews=100, lat=40.99, lng=-
     }
 
 
-def _mock_maps_client(places_by_type=None, text_results=None, walk_times=None):
+def _mock_maps_client(places_by_type=None, text_results=None, walk_times=None, drive_times=None):
     """Create a mock GoogleMapsClient."""
     client = MagicMock()
 
@@ -59,10 +61,16 @@ def _mock_maps_client(places_by_type=None, text_results=None, walk_times=None):
     def walking_times_batch(origin, destinations):
         return [walk_times.get((round(d[0], 4), round(d[1], 4)), 15) for d in destinations]
 
+    drive_times = drive_times or {}
+
+    def driving_times_batch(origin, destinations):
+        return [drive_times.get((round(d[0], 4), round(d[1], 4)), 10) for d in destinations]
+
     client.places_nearby = MagicMock(side_effect=places_nearby)
     client.text_search = MagicMock(side_effect=text_search)
     client.walking_time = MagicMock(side_effect=walking_time)
     client.walking_times_batch = MagicMock(side_effect=walking_times_batch)
+    client.driving_times_batch = MagicMock(side_effect=driving_times_batch)
     return client
 
 
@@ -365,6 +373,170 @@ class TestBatchWalkTimeBehavior(unittest.TestCase):
         # Length mismatch → all treated as 9999 → all filtered out.
         self.assertEqual(len(results), 0,
                          "Batch length mismatch should exclude all places")
+
+
+class TestDriveTimeBehavior(unittest.TestCase):
+    """Tests for drive-time enrichment on far parks."""
+
+    def test_far_parks_get_drive_time(self):
+        """Parks beyond WALK_TIME_MARGINAL should have drive_time_min populated."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Close Park", "cp", ["park"], 4.5, 200, lat=40.995, lng=-73.785),
+                _make_place("Far Park", "fp", ["park"], 4.3, 150, lat=41.05, lng=-73.85),
+            ],
+        }
+        walk_times = {
+            (40.995, -73.785): 10,   # within walking distance
+            (41.05, -73.85): 45,     # beyond WALK_TIME_MARGINAL
+        }
+        drive_times = {
+            (41.05, -73.85): 12,     # reachable by car
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times=walk_times,
+            drive_times=drive_times,
+        )
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        # Far Park should appear in nearby list with drive_time_min set
+        all_parks = list(evaluation.nearby_green_spaces)
+        if evaluation.best_daily_park:
+            all_parks.append(evaluation.best_daily_park)
+
+        far = [p for p in all_parks if p.name == "Far Park"]
+        self.assertEqual(len(far), 1, "Far Park should be in results")
+        self.assertEqual(far[0].drive_time_min, 12)
+
+        close = [p for p in all_parks if p.name == "Close Park"]
+        self.assertEqual(len(close), 1)
+        self.assertIsNone(close[0].drive_time_min, "Close park should have no drive_time_min")
+
+    def test_far_parks_beyond_drive_threshold_filtered(self):
+        """Parks beyond walk AND drive thresholds are removed from nearby list."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Close Park", "cp", ["park"], 4.5, 200, lat=40.995, lng=-73.785),
+                _make_place("Remote Park", "rp", ["park"], 4.0, 80, lat=41.08, lng=-73.90),
+            ],
+        }
+        walk_times = {
+            (40.995, -73.785): 10,
+            (41.08, -73.9): 60,      # very far walk
+        }
+        drive_times = {
+            (41.08, -73.9): 25,      # also beyond DRIVE_TIME_MAX (20)
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times=walk_times,
+            drive_times=drive_times,
+        )
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        nearby_names = [s.name for s in evaluation.nearby_green_spaces]
+        self.assertNotIn("Remote Park", nearby_names,
+                         "Parks beyond walk + drive thresholds should be filtered out")
+
+    def test_far_park_within_drive_threshold_kept(self):
+        """A park beyond walk distance but within drive threshold stays in nearby."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Close Park", "cp", ["park"], 4.5, 200, lat=40.995, lng=-73.785),
+                _make_place("Driveable Park", "dp", ["park"], 4.2, 120, lat=41.04, lng=-73.84),
+            ],
+        }
+        walk_times = {
+            (40.995, -73.785): 10,
+            (41.04, -73.84): 40,     # beyond walking
+        }
+        drive_times = {
+            (41.04, -73.84): 15,     # within DRIVE_TIME_MAX
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times=walk_times,
+            drive_times=drive_times,
+        )
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        nearby_names = [s.name for s in evaluation.nearby_green_spaces]
+        all_names = nearby_names + ([evaluation.best_daily_park.name] if evaluation.best_daily_park else [])
+        self.assertIn("Driveable Park", all_names,
+                      "Park within drive threshold should remain in results")
+
+    def test_far_parks_retained_when_drive_times_unavailable(self):
+        """When driving_times_batch is missing, far parks should stay with walk times."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Close Park", "cp", ["park"], 4.5, 200, lat=40.995, lng=-73.785),
+                _make_place("Far Park", "fp", ["park"], 4.3, 150, lat=41.05, lng=-73.85),
+            ],
+        }
+        walk_times = {
+            (40.995, -73.785): 10,
+            (41.05, -73.85): 45,     # beyond WALK_TIME_MARGINAL
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times=walk_times,
+        )
+        # Remove driving_times_batch to simulate a client without the method
+        del client.driving_times_batch
+
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        all_parks = list(evaluation.nearby_green_spaces)
+        if evaluation.best_daily_park:
+            all_parks.append(evaluation.best_daily_park)
+
+        far = [p for p in all_parks if p.name == "Far Park"]
+        self.assertEqual(len(far), 1,
+                         "Far park should be retained when drive times unavailable")
+        self.assertIsNone(far[0].drive_time_min,
+                          "drive_time_min should be None when not fetched")
+        self.assertEqual(far[0].walk_time_min, 45)
+
+    def test_far_parks_retained_when_drive_times_batch_fails(self):
+        """When driving_times_batch raises, far parks should stay with walk times."""
+        _cache.clear()
+
+        places = {
+            "park": [
+                _make_place("Close Park", "cp", ["park"], 4.5, 200, lat=40.995, lng=-73.785),
+                _make_place("Far Park", "fp2", ["park"], 4.3, 150, lat=41.05, lng=-73.85),
+            ],
+        }
+        walk_times = {
+            (40.995, -73.785): 10,
+            (41.05, -73.85): 45,
+        }
+        client = _mock_maps_client(
+            places_by_type=places,
+            walk_times=walk_times,
+        )
+        # Make driving_times_batch raise an exception
+        client.driving_times_batch = MagicMock(side_effect=Exception("API error"))
+
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+
+        all_parks = list(evaluation.nearby_green_spaces)
+        if evaluation.best_daily_park:
+            all_parks.append(evaluation.best_daily_park)
+
+        far = [p for p in all_parks if p.name == "Far Park"]
+        self.assertEqual(len(far), 1,
+                         "Far park should be retained when drive time API fails")
+        self.assertIsNone(far[0].drive_time_min)
 
 
 if __name__ == "__main__":
