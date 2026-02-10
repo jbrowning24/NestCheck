@@ -1342,6 +1342,7 @@ def get_neighborhood_snapshot(
             places = maps.places_nearby(lat, lng, primary_type, radius_meters=3000)
             if secondary_type:
                 places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
+                places = _dedupe_by_place_id(places)
 
             # Stash raw Places API results for Tier 2 reuse
             snapshot.raw_places[category] = list(places)
@@ -2079,6 +2080,18 @@ def _score_from_thresholds(value: int, thresholds: List[Tuple[int, int]]) -> int
     return 0
 
 
+def _dedupe_by_place_id(places: List[Dict]) -> List[Dict]:
+    """Remove duplicate places by place_id, preserving first occurrence."""
+    seen: set = set()
+    unique: List[Dict] = []
+    for p in places:
+        pid = p.get("place_id")
+        if pid and pid not in seen:
+            seen.add(pid)
+            unique.append(p)
+    return unique
+
+
 def evaluate_transit_access(
     maps: GoogleMapsClient,
     lat: float,
@@ -2283,6 +2296,7 @@ def score_third_place_access(
             all_places = []
             all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
             all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
+            all_places = _dedupe_by_place_id(all_places)
 
         if not all_places:
             return (Tier2Score(
@@ -2557,6 +2571,7 @@ def score_provisioning_access(
             all_stores = []
             all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
             all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
+            all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
             return (Tier2Score(
@@ -2690,6 +2705,7 @@ def score_fitness_access(
         # so we search with keyword instead
         yoga = maps.places_nearby(lat, lng, "gym", radius_meters=2500, keyword="yoga")
         fitness_places.extend(yoga)
+        fitness_places = _dedupe_by_place_id(fitness_places)
 
         if not fitness_places:
             return (Tier2Score(
