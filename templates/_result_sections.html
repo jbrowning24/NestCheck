@@ -277,7 +277,17 @@
             <div>
               <div class="place-name" style="font-weight: 500;">
                 {{ space.name }}
-                <span class="badge {% if space.criteria_status == 'PASS' %}badge-pass{% elif space.criteria_status == 'BORDERLINE' %}badge-borderline{% else %}badge-fail{% endif %}" style="margin-left: 6px;">{{ space.criteria_status }}</span>
+                {# Distance-based label: ≤10 min Very Close, 11-20 Walkable, 21-30 Moderate, >30 Drive Only #}
+                {% if space.walk_time_min <= 10 %}
+                  {% set dist_label, dist_badge = "Very Close", "badge-pass" %}
+                {% elif space.walk_time_min <= 20 %}
+                  {% set dist_label, dist_badge = "Walkable", "badge-pass" %}
+                {% elif space.walk_time_min <= 30 %}
+                  {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
+                {% else %}
+                  {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
+                {% endif %}
+                <span class="badge {{ dist_badge }}" style="margin-left: 6px;">{{ dist_label }}</span>
               </div>
               <div class="place-meta">
                 {% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}
