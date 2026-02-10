@@ -2886,6 +2886,23 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
     return reasons
 
 
+# Band thresholds also rendered in templates/_result_sections.html "How We Score"
+SCORE_BANDS = [
+    (85, "Exceptional Daily Fit"),
+    (70, "Strong Daily Fit"),
+    (55, "Moderate — Some Trade-offs"),
+    (40, "Limited — Car Likely Needed"),
+    (0, "Significant Gaps"),
+]
+
+
+def get_score_band(score: int) -> str:
+    """Return the band name for a given score."""
+    for threshold, band in SCORE_BANDS:
+        if score >= threshold:
+            return band
+    return SCORE_BANDS[-1][1]
+
 
 # =============================================================================
 # MAIN EVALUATION
@@ -3281,7 +3298,6 @@ def format_result(result: EvaluationResult) -> str:
     
     # Final
     lines.append(f"\n{'=' * 70}")
-    from app import get_score_band
     lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({get_score_band(result.final_score)})")
     lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
@@ -3381,7 +3397,6 @@ def main():
     
     # Output
     if args.json:
-        from app import get_score_band
         # Convert to dict for JSON output
         output = {
             "address": result.listing.address,

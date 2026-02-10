@@ -12,7 +12,8 @@ from flask import (
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
-    PropertyListing, evaluate_property, CheckResult, present_checks
+    PropertyListing, evaluate_property, CheckResult, present_checks,
+    SCORE_BANDS, get_score_band,
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -156,22 +157,6 @@ def generate_structured_summary(presented_checks: list) -> str:
     return " · ".join(parts)
 
 
-# Band thresholds also rendered in templates/_result_sections.html "How We Score"
-SCORE_BANDS = [
-    (85, "Exceptional Daily Fit"),
-    (70, "Strong Daily Fit"),
-    (55, "Moderate — Some Trade-offs"),
-    (40, "Limited — Car Likely Needed"),
-    (0, "Significant Gaps"),
-]
-
-
-def get_score_band(score: int) -> str:
-    """Return the band name for a given score."""
-    for threshold, band in SCORE_BANDS:
-        if score >= threshold:
-            return band
-    return SCORE_BANDS[-1][1]
 
 
 def generate_verdict(result_dict):
