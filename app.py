@@ -156,6 +156,7 @@ def generate_structured_summary(presented_checks: list) -> str:
     return " · ".join(parts)
 
 
+# Band thresholds also rendered in templates/_result_sections.html "How We Score"
 SCORE_BANDS = [
     (85, "Exceptional Daily Fit"),
     (70, "Strong Daily Fit"),
@@ -211,7 +212,7 @@ def generate_dimension_summaries(result_dict: dict) -> list:
     summaries = []
 
     # ── Parks & Green Space ──────────────────────────────────────
-    best_park = green.get("best_park")
+    best_park = green.get("best_daily_park")
     if best_park and best_park.get("name"):
         park_summary = f"{best_park['name']} — {best_park.get('walk_time_min', '?')} min walk"
     else:
