@@ -2431,6 +2431,7 @@ def score_third_place_access(
                 "walk_time_min": wt,
                 "lat": p["geometry"]["location"]["lat"],
                 "lng": p["geometry"]["location"]["lng"],
+                "place_id": p.get("place_id"),
             }
             for _sc, wt, p in scored_places[:5]
         ]
@@ -2706,6 +2707,7 @@ def score_provisioning_access(
                 "walk_time_min": wt,
                 "lat": s["geometry"]["location"]["lat"],
                 "lng": s["geometry"]["location"]["lng"],
+                "place_id": s.get("place_id"),
             }
             for _sc, wt, s in scored_stores[:5]
         ]
@@ -2816,6 +2818,7 @@ def score_fitness_access(
                 "walk_time_min": wt,
                 "lat": f["geometry"]["location"]["lat"],
                 "lng": f["geometry"]["location"]["lng"],
+                "place_id": f.get("place_id"),
             }
             for _sc, wt, f in scored_facilities[:5]
         ]
@@ -3172,6 +3175,7 @@ def evaluate_property(
                 "walk_time_min": gs.walk_time_min,
                 "lat": gs.lat,
                 "lng": gs.lng,
+                "place_id": gs.place_id,
             })
 
     result.neighborhood_places = {
