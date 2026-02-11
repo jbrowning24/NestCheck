@@ -2435,6 +2435,8 @@ def score_third_place_access(
             }
             for _sc, wt, p in scored_places[:5]
         ]
+        # Sort cards by distance for display (closest first)
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
         # Format details
         name = best_place.get("name", "Third place")
@@ -2566,15 +2568,16 @@ def score_transit_access(
                 if major_hub and hub_time and hub_time > 0:
                     hub_note = f"{major_hub.name} — {hub_time} min"
 
-                stop_detail = f"{transit_access.primary_stop}"
+                details = f"Bus stop: {transit_access.primary_stop}"
                 if transit_access.walk_minutes is not None:
-                    stop_detail += f" — {transit_access.walk_minutes} min walk"
+                    details += f" — {transit_access.walk_minutes} min walk"
+                details += f" | Service: {freq_label} | Hub: {hub_note}"
 
                 return Tier2Score(
                     name="Getting Around",
                     points=total,
                     max_points=10,
-                    details=f"{stop_detail} | Service: {freq_label} | Hub: {hub_note}",
+                    details=details,
                 )
 
             return Tier2Score(
@@ -2757,6 +2760,8 @@ def score_provisioning_access(
             }
             for _sc, wt, s in scored_stores[:5]
         ]
+        # Sort cards by distance for display (closest first)
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
         # Format details
         name = best_store.get("name", "Provisioning store")
@@ -2868,6 +2873,8 @@ def score_fitness_access(
             }
             for _sc, wt, f in scored_facilities[:5]
         ]
+        # Sort cards by distance for display (closest first)
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
         return (Tier2Score(
             name="Fitness & Recreation",
@@ -3223,6 +3230,8 @@ def evaluate_property(
                 "lng": gs.lng,
                 "place_id": gs.place_id,
             })
+        # Sort cards by distance for display (closest first)
+        _park_places.sort(key=lambda p: p.get("walk_time_min") or p.get("drive_time_min") or 9999)
 
     result.neighborhood_places = {
         "coffee": _coffee_places,
