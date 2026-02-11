@@ -137,7 +137,7 @@
     <h2>Getting Around</h2>
     {% endif %}
 
-    {# Primary Transit Node #}
+    {# Primary Transit Node — rail stations, or bus stop fallback #}
     {% if result.urban_access and result.urban_access.primary_transit %}
       {% set pt = result.urban_access.primary_transit %}
       <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
@@ -154,6 +154,22 @@
           <span class="hub-time">{{ pt.walk_time_min }} min walk</span>
           {% if pt.drive_time_min %}
             <span style="font-size: 0.82em; color: #888;">/ {{ pt.drive_time_min }} min drive</span>
+          {% endif %}
+        </div>
+      </div>
+    {% elif result.transit_access and result.transit_access.primary_stop %}
+      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
+      <div class="hub-row">
+        <div class="hub-info">
+          <div class="hub-name">{{ result.transit_access.primary_stop }}</div>
+          <div class="hub-detail">
+            {{ result.transit_access.mode or 'Bus' }}
+            {% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}
+          </div>
+        </div>
+        <div class="hub-right">
+          {% if result.transit_access.walk_minutes is not none %}
+            <span class="hub-time">{{ result.transit_access.walk_minutes }} min walk</span>
           {% endif %}
         </div>
       </div>

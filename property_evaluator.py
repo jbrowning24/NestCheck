@@ -2498,12 +2498,15 @@ def score_transit_access(
     primary_transit: Optional[PrimaryTransitOption] = None,
     major_hub: Optional[MajorHubAccess] = None,
 ) -> Tier2Score:
-    """Score urban access via rail transit (0-10 points).
+    """Score urban access via transit (0-10 points).
 
     When pre-computed primary_transit and major_hub are supplied, they are
     reused instead of re-fetching from the API.  When a pre-computed
     TransitAccessResult is supplied its score is used directly for the
     frequency component.
+
+    If no rail station is found (primary_transit is None), falls back to
+    bus/transit data from transit_access with a reduced ceiling (max 7/10).
     """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
@@ -2531,11 +2534,54 @@ def score_transit_access(
         if primary_transit is None:
             primary_transit = find_primary_transit(maps, lat, lng)
         if not primary_transit:
+            # Fall back to bus/transit data from evaluate_transit_access.
+            # Bus-only areas score on a reduced scale (max 7/10) since bus
+            # service is less reliable than rail for daily commuting.
+            if transit_access and transit_access.primary_stop:
+                bus_walk_pts = 0
+                if transit_access.walk_minutes is not None:
+                    if transit_access.walk_minutes <= 5:
+                        bus_walk_pts = 3
+                    elif transit_access.walk_minutes <= 10:
+                        bus_walk_pts = 2
+                    elif transit_access.walk_minutes <= 15:
+                        bus_walk_pts = 1
+
+                bus_freq_pts = {
+                    "High": 2, "Medium": 1,
+                }.get(transit_access.frequency_bucket, 0)
+
+                hub_time = major_hub.travel_time_min if major_hub else None
+                bus_hub_pts = 0
+                if hub_time and hub_time > 0:
+                    if hub_time <= 30:
+                        bus_hub_pts = 2
+                    elif hub_time <= 60:
+                        bus_hub_pts = 1
+
+                total = min(7, bus_walk_pts + bus_freq_pts + bus_hub_pts)
+
+                freq_label = f"{transit_access.frequency_bucket} frequency"
+                hub_note = "Hub travel time unavailable"
+                if major_hub and hub_time and hub_time > 0:
+                    hub_note = f"{major_hub.name} — {hub_time} min"
+
+                stop_detail = f"{transit_access.primary_stop}"
+                if transit_access.walk_minutes is not None:
+                    stop_detail += f" — {transit_access.walk_minutes} min walk"
+
+                return Tier2Score(
+                    name="Getting Around",
+                    points=total,
+                    max_points=10,
+                    details=f"{stop_detail} | Service: {freq_label} | Hub: {hub_note}",
+                )
+
             return Tier2Score(
                 name="Getting Around",
                 points=0,
                 max_points=10,
-                details="No rail transit stations found within reach"
+                details="No transit stations found within reach",
             )
 
         if major_hub is None:
