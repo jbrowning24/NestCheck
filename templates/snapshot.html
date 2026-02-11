@@ -502,29 +502,6 @@
       background: #fff;
     }
 
-    /* --- BUILDER DEBUG --- */
-    .builder-debug {
-      max-width: 800px;
-      margin: 16px auto;
-      padding: 12px 20px;
-      background: #1a1a2e;
-      color: #a5f3a5;
-      border-radius: 8px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.78em;
-      line-height: 1.5;
-    }
-    .builder-debug summary {
-      cursor: pointer;
-      font-weight: 700;
-      color: #fbbf24;
-    }
-    .builder-debug pre {
-      margin-top: 8px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
     /* --- NEIGHBORHOOD CARDS --- */
     .neighborhood-category {
       margin-bottom: 20px;
@@ -611,7 +588,7 @@
 
     /* --- PRINT --- */
     @media print {
-      nav, .share-bar, .snapshot-cta, .builder-debug, footer { display: none; }
+      nav, .share-bar, .snapshot-cta, footer { display: none; }
       body { background: #fff; }
       .report { margin: 0 auto; }
       .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
@@ -644,24 +621,6 @@
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn" style="text-decoration: none; background: #334155;">CSV</a>
   </div>
 </div>
-
-{% if is_builder %}
-<!-- BUILDER DEBUG (only visible in builder mode) -->
-<details class="builder-debug">
-  <summary>Builder Debug — Snapshot {{ snapshot_id }}</summary>
-  <pre>snapshot_id: {{ snapshot_id }}
-address_input: {{ snapshot.address_input }}
-address_norm: {{ snapshot.address_norm }}
-created_at: {{ snapshot.created_at }}
-view_count: {{ snapshot.view_count }}
-final_score: {{ result.final_score }}
-passed_tier1: {{ result.passed_tier1 }}
-coordinates: {{ result.coordinates }}
-tier2_raw: {{ result.tier2_score }}/{{ result.tier2_max }}
-tier2_normalized: {{ result.tier2_normalized }}
-tier3_bonus: {{ result.tier3_bonus }}</pre>
-</details>
-{% endif %}
 
 {% set is_snapshot = true %}
 {% include '_result_sections.html' %}

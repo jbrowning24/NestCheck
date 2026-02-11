@@ -4,6 +4,8 @@
 {# is_builder (optional).                                             #}
 {# ================================================================== #}
 
+{% macro fmt_time(minutes, mode) %}{% set m = minutes | int %}{% if m >= 60 %}{{ m // 60 }} hr {{ m % 60 }} min {{ mode }}{% else %}{{ m }} min {{ mode }}{% endif %}{% endmacro %}
+
 <div class="report">
 
   {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
@@ -65,15 +67,7 @@
   {# ── 3. YOUR NEIGHBORHOOD ──────────────────────────────────── #}
   {% if result.neighborhood_places is defined and result.neighborhood_places %}
   <div id="your-neighborhood" class="report-section">
-    {% if is_snapshot %}
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
-      <h2>Your Neighborhood</h2>
-      <span class="collapse-icon">&#9660;</span>
-    </div>
-    <div class="collapsible-body">
-    {% else %}
     <h2>Your Neighborhood</h2>
-    {% endif %}
 
     {% set categories = [
       ("coffee", "☕", "Coffee & Social Spots"),
@@ -109,7 +103,7 @@
                 <span class="place-reviews">({{ place.review_count }})</span>
               {% endif %}
             </div>
-            <div class="place-time">{{ place.walk_time_min }} min walk</div>
+            <div class="place-time">{{ fmt_time(place.walk_time_min, "walk") }}</div>
           </div>
           {% endfor %}
         </div>
@@ -117,7 +111,6 @@
       {% endif %}
     {% endfor %}
 
-    {% if is_snapshot %}</div>{% endif %}
   </div>
   {% else %}
   <div id="your-neighborhood" class="report-section" style="display: none;">
@@ -127,15 +120,7 @@
 
   {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
   <div class="report-section">
-    {% if is_snapshot %}
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
-      <h2>Getting Around</h2>
-      <span class="collapse-icon">&#9660;</span>
-    </div>
-    <div class="collapsible-body">
-    {% else %}
     <h2>Getting Around</h2>
-    {% endif %}
 
     {# Primary Transit Node — rail stations, or bus stop fallback #}
     {% if result.urban_access and result.urban_access.primary_transit %}
@@ -151,9 +136,9 @@
           </div>
         </div>
         <div class="hub-right">
-          <span class="hub-time">{{ pt.walk_time_min }} min walk</span>
+          <span class="hub-time">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
           {% if pt.drive_time_min %}
-            <span style="font-size: 0.82em; color: #888;">/ {{ pt.drive_time_min }} min drive</span>
+            <span style="font-size: 0.82em; color: #888;">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
           {% endif %}
         </div>
       </div>
@@ -169,7 +154,7 @@
         </div>
         <div class="hub-right">
           {% if result.transit_access.walk_minutes is not none %}
-            <span class="hub-time">{{ result.transit_access.walk_minutes }} min walk</span>
+            <span class="hub-time">{{ fmt_time(result.transit_access.walk_minutes, "walk") }}</span>
           {% endif %}
         </div>
       </div>
@@ -217,20 +202,11 @@
       <p class="section-empty">No transit options found near this address.</p>
     {% endif %}
 
-    {% if is_snapshot %}</div>{% endif %}
   </div>
 
   {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
   <div class="report-section">
-    {% if is_snapshot %}
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
-      <h2>Parks &amp; Green Space</h2>
-      <span class="collapse-icon">&#9660;</span>
-    </div>
-    <div class="collapsible-body">
-    {% else %}
     <h2>Parks &amp; Green Space</h2>
-    {% endif %}
 
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
@@ -245,7 +221,7 @@
             </div>
           </div>
           <div style="text-align: right;">
-            <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ park.drive_time_min }} min drive{% else %}{{ park.walk_time_min }} min walk{% endif %}</div>
+            <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
             <div style="font-size: 0.82em; color: #666; margin-top: 2px;">
               Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
             </div>
@@ -308,26 +284,17 @@
                 &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
               </div>
             </div>
-            <div class="place-time">{% if space.drive_time_min and space.walk_time_min > 30 %}{{ space.drive_time_min }} min drive{% else %}{{ space.walk_time_min }} min walk{% endif %}</div>
+            <div class="place-time">{% if space.drive_time_min and space.walk_time_min > 30 %}{{ fmt_time(space.drive_time_min, "drive") }}{% else %}{{ fmt_time(space.walk_time_min, "walk") }}{% endif %}</div>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
-    {% if is_snapshot %}</div>{% endif %}
   </div>
 
   {# ── 6. PROXIMITY & ENVIRONMENT ────────────────────────────── #}
   <div class="report-section">
-    {% if is_snapshot %}
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
-      <h2>Proximity &amp; Environment</h2>
-      <span class="collapse-icon">&#9660;</span>
-    </div>
-    <div class="collapsible-body">
-    {% else %}
     <h2>Proximity &amp; Environment</h2>
-    {% endif %}
 
     {% if result.presented_checks is defined %}
       {% for pc in result.presented_checks %}
@@ -378,7 +345,6 @@
       {% endif %}
     {% endif %}
 
-    {% if is_snapshot %}</div>{% endif %}
   </div>
 
   {# ── 7. HOW WE SCORE ──────────────────────────────────────── #}

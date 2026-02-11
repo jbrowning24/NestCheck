@@ -591,29 +591,6 @@
     .share-btn:hover { background: #16213e; }
     .share-btn.copied { background: #065f46; }
 
-    /* --- BUILDER DEBUG --- */
-    .builder-debug {
-      max-width: 800px;
-      margin: 0 auto 16px;
-      padding: 12px 20px;
-      background: #1a1a2e;
-      color: #a5f3a5;
-      border-radius: 8px;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.78em;
-      line-height: 1.5;
-    }
-    .builder-debug summary {
-      cursor: pointer;
-      font-weight: 700;
-      color: #fbbf24;
-    }
-    .builder-debug pre {
-      margin-top: 8px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-
     /* --- COLLAPSIBLE SECTIONS --- */
     .collapsible-toggle {
       display: flex;
@@ -724,7 +701,7 @@
 
     /* --- PRINT-FRIENDLY / SHARE-READY --- */
     @media print {
-      nav, .search-section, .share-bar, .builder-debug, .loading-overlay, footer { display: none; }
+      nav, .search-section, .share-bar, .loading-overlay, footer { display: none; }
       body { background: #fff; }
       .report { margin: 0 auto; }
       .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
@@ -770,7 +747,7 @@
       {% endif %}
     </div>
     {% if is_builder and error_detail %}
-    <details class="builder-debug" style="max-width: 640px; margin: 0 auto 16px;">
+    <details style="max-width: 640px; margin: 0 auto 16px;">
       <summary>Builder diagnostic</summary>
       <pre>{{ error_detail | tojson(indent=2) }}</pre>
     </details>
@@ -823,24 +800,6 @@
     </div>
   </form>
 </div>
-
-{% if is_builder and result %}
-<!-- BUILDER DEBUG (only visible in builder mode) -->
-<details class="builder-debug">
-  <summary>Builder Debug{% if snapshot_id %} — Snapshot {{ snapshot_id }}{% endif %}</summary>
-  <pre>{% if snapshot_id %}snapshot_id: {{ snapshot_id }}
-snapshot_url: /s/{{ snapshot_id }}
-{% endif %}address: {{ result.address }}
-final_score: {{ result.final_score }}
-passed_tier1: {{ result.passed_tier1 }}
-coordinates: {{ result.coordinates }}
-tier2_raw: {{ result.tier2_score }}/{{ result.tier2_max }}
-tier2_normalized: {{ result.tier2_normalized }}
-tier3_bonus: {{ result.tier3_bonus }}
-walk_scores: {{ result.walk_scores }}
-transit_access: {{ result.transit_access }}</pre>
-</details>
-{% endif %}
 
 {% set is_snapshot = false %}
 {% include '_result_sections.html' %}
