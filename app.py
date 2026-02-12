@@ -283,6 +283,366 @@ def generate_dimension_summaries(result_dict: dict) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Insight generation — plain-English takeaways per report section
+# ---------------------------------------------------------------------------
+
+def _tier2_lookup(result_dict: dict) -> dict:
+    """Build a tier2 dimension name -> {points, max} lookup."""
+    return {
+        s["name"]: {"points": s["points"], "max": s["max"]}
+        for s in result_dict.get("tier2_scores", [])
+    }
+
+
+def _nearest_walk_time(places: list) -> int | None:
+    """Return the shortest walk_time_min from a list of place dicts, or None."""
+    times = [p.get("walk_time_min") for p in places if p.get("walk_time_min") is not None]
+    return min(times) if times else None
+
+
+def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
+    """Generate a plain-English insight for the Your Neighborhood section.
+
+    Synthesizes across coffee, grocery, and fitness (not parks).
+    """
+    if not neighborhood:
+        return None
+
+    # Gather per-dimension data
+    dims = {
+        "coffee": {
+            "label": "café and social spot",
+            "label_plural": "cafés and social spots",
+            "places": neighborhood.get("coffee") or [],
+            "score": tier2.get("Coffee & Social Spots", {}).get("points", 0),
+        },
+        "grocery": {
+            "label": "grocery",
+            "label_plural": "grocery stores",
+            "places": neighborhood.get("grocery") or [],
+            "score": tier2.get("Daily Essentials", {}).get("points", 0),
+        },
+        "fitness": {
+            "label": "gym or fitness",
+            "label_plural": "gyms and fitness options",
+            "places": neighborhood.get("fitness") or [],
+            "score": tier2.get("Fitness & Recreation", {}).get("points", 0),
+        },
+    }
+
+    # Classify each dimension
+    strong = []   # score >= 7
+    middling = [] # 4-6
+    weak = []     # < 4
+
+    for key, d in dims.items():
+        d["nearest_time"] = _nearest_walk_time(d["places"])
+        d["nearest_name"] = d["places"][0]["name"] if d["places"] else None
+        d["key"] = key
+        if d["score"] >= 7:
+            strong.append(d)
+        elif d["score"] >= 4:
+            middling.append(d)
+        else:
+            weak.append(d)
+
+    # Sort strong by score desc so we lead with the best
+    strong.sort(key=lambda d: -d["score"])
+
+    # All strong
+    if len(strong) == 3:
+        lead = strong[0]
+        others = [d["label_plural"] for d in strong[1:]]
+        also_clause = " and ".join(others)
+        return (
+            f"You have solid options for everyday errands on foot — "
+            f"{lead['nearest_name']} is {lead['nearest_time']} min away, "
+            f"with {also_clause} also within walking distance."
+        )
+
+    # All weak
+    if len(weak) == 3:
+        # Distinguish "nothing found" from "found but far"
+        has_any = any(d["places"] for d in weak)
+        if not has_any:
+            return (
+                "We didn't find grocery stores, cafés, or fitness options "
+                "within reach of this address."
+            )
+        return (
+            "Everyday errands would likely mean driving — grocery, coffee, "
+            "and fitness options are all a fair distance from this address."
+        )
+
+    # Mixed: at least one strong and at least one weak
+    if strong and weak:
+        lead = strong[0]
+        worst = weak[0]
+        # Lead with strength
+        parts = [
+            f"{lead['nearest_name']} is just {lead['nearest_time']} min on foot"
+        ]
+        if len(strong) > 1:
+            other = strong[1]
+            parts[0] += f", and {other['label']} options are also close by"
+
+        # Hedge on weakness
+        if not worst["places"]:
+            weakness = f"we didn't find any {worst['label_plural']} nearby"
+        else:
+            weakness = (
+                f"the nearest {worst['label']} option is "
+                f"{worst['nearest_time']} minutes away"
+            )
+
+        return f"{parts[0]}. On the other hand, {weakness}."
+
+    # One standout, rest middling (no weak)
+    if strong and not weak:
+        lead = strong[0]
+        other_labels = [d["label_plural"] for d in middling]
+        other_clause = " and ".join(other_labels)
+        return (
+            f"The {lead['label']} scene is a bright spot here, with "
+            f"{lead['nearest_name']} {lead['nearest_time']} min on foot. "
+            f"{other_clause.capitalize()} are reasonable but not as close."
+        )
+
+    # No strong, mix of middling and weak
+    if not strong and weak:
+        ok = middling[0] if middling else None
+        worst = weak[0]
+        if ok:
+            if not worst["places"]:
+                weakness = f"we didn't find any {worst['label_plural']} nearby"
+            else:
+                weakness = (
+                    f"{worst['label']} options are more of a trek at "
+                    f"{worst['nearest_time']} minutes"
+                )
+            return (
+                f"{ok['nearest_name']} is {ok['nearest_time']} min away for "
+                f"{ok['label_plural']}, but {weakness}."
+            )
+        return None
+
+    # All middling — nothing exceptional, nothing terrible
+    if len(middling) == 3:
+        return (
+            "You have some options for daily errands within reach, though "
+            "none are especially close. A short walk or bike ride covers "
+            "the basics."
+        )
+
+    return None
+
+
+def _insight_getting_around(
+    urban: dict | None,
+    transit: dict | None,
+    walk_scores: dict | None,
+    freq_label: str,
+    tier2: dict,
+) -> str | None:
+    """Generate a plain-English insight for the Getting Around section."""
+    # If we have no transit data at all, return None rather than guessing.
+    # This avoids false "transit is limited" on old snapshots that simply
+    # didn't store transit fields.
+    has_data = (
+        urban is not None
+        or transit is not None
+    )
+    if not has_data:
+        return None
+
+    score = tier2.get("Getting Around", {}).get("points", 0)
+    primary = (urban or {}).get("primary_transit")
+    hub = (urban or {}).get("major_hub")
+    ws = walk_scores or {}
+
+    parts = []
+
+    # Rail station path
+    if primary and primary.get("name"):
+        station = primary["name"]
+        walk_min = primary.get("walk_time_min", "?")
+
+        if score >= 7:
+            part = f"{station} is {walk_min} minutes on foot"
+            if freq_label:
+                part += f" with {freq_label.lower()}"
+            parts.append(part)
+            if hub and hub.get("travel_time_min"):
+                parts.append(
+                    f"You have a direct line into {hub['name']} — "
+                    f"about {hub['travel_time_min']} minutes door to door"
+                )
+        elif score >= 4:
+            part = f"{station} is {walk_min} minutes on foot"
+            if freq_label:
+                part += f", but service runs at {freq_label.lower()}"
+            parts.append(part)
+            parts.append(
+                "For regular commuting, factor in wait times or have a "
+                "backup option"
+            )
+        else:
+            parts.append(
+                f"The nearest transit option is {station}, "
+                f"{walk_min} minutes on foot"
+            )
+            if freq_label:
+                parts[-1] += f" with {freq_label.lower()}"
+            parts.append(
+                "Getting around would likely mean driving for most trips"
+            )
+
+    # Bus-only fallback
+    elif transit and transit.get("primary_stop"):
+        stop = transit["primary_stop"]
+        walk_min = transit.get("walk_minutes")
+        freq_bucket = transit.get("frequency_bucket", "")
+
+        part = f"The nearest transit is the {stop} bus stop"
+        if walk_min is not None:
+            part += f", {walk_min} minutes on foot"
+        if freq_bucket:
+            part += f" with {freq_bucket.lower()} frequency service"
+        parts.append(part)
+
+        if score < 4:
+            parts.append(
+                "Bus service alone is unlikely to cover daily commuting "
+                "needs — plan on driving or rideshare for most trips"
+            )
+
+    # No transit at all
+    else:
+        parts.append(
+            "Transit options are limited here. Getting around would "
+            "likely mean driving or rideshare for most trips"
+        )
+
+    # Bike note
+    if ws.get("bike_score") is not None and ws["bike_score"] >= 70:
+        parts.append(
+            "Biking is a practical option — the area scores well for "
+            "bike infrastructure"
+        )
+
+    # Walk Score description
+    if ws.get("walk_description"):
+        desc = ws["walk_description"]
+        # Only add if it provides real info (not "Car-Dependent" when
+        # we already said driving is needed)
+        if score >= 4:
+            parts.append(f"The area is rated \"{desc}\" for walkability")
+
+    if not parts:
+        return None
+
+    return ". ".join(parts) + "."
+
+
+def _insight_parks(green_escape: dict | None, tier2: dict) -> str | None:
+    """Generate a plain-English insight for the Parks & Green Space section."""
+    if not green_escape:
+        return None
+
+    score = tier2.get("Parks & Green Space", {}).get("points", 0)
+    best = green_escape.get("best_daily_park")
+    nearby = green_escape.get("nearby_green_spaces") or []
+
+    if not best or not best.get("name"):
+        return "No parks or green spaces were found within walking distance of this address."
+
+    name = best["name"]
+    walk_min = best.get("walk_time_min")
+
+    # Build nature feature fragments from OSM data
+    nature_bits = []
+    if best.get("osm_enriched"):
+        if best.get("osm_area_sqm"):
+            acres = best["osm_area_sqm"] / 4047
+            if acres >= 5:
+                nature_bits.append(f"roughly {acres:.0f} acres")
+        if best.get("osm_has_trail"):
+            nature_bits.append("trails")
+        elif best.get("osm_path_count") and best["osm_path_count"] >= 3:
+            nature_bits.append(f"{best['osm_path_count']} paths")
+
+    nature_phrase = ""
+    if nature_bits:
+        nature_phrase = f" — {', '.join(nature_bits)}"
+
+    nearby_note = ""
+    if len(nearby) >= 2:
+        nearby_note = f" {len(nearby)} other green spaces nearby give you options too."
+    elif len(nearby) == 1:
+        nearby_note = " There's another green space nearby as well."
+
+    # Strong: close and high-scoring
+    if score >= 7 and walk_min is not None and walk_min <= 15:
+        return (
+            f"{name} is {walk_min} minutes on foot{nature_phrase}. "
+            f"It's the kind of park where you can go for a run, bring "
+            f"kids to play, or walk the dog.{nearby_note}"
+        )
+
+    # Good park but far — only for parks that didn't score high
+    if score < 7 and walk_min is not None and walk_min > 20:
+        return (
+            f"{name} is well-rated and offers real green space"
+            f"{nature_phrase}, but at {walk_min} minutes on foot it's "
+            f"more of a weekend destination than a daily stop."
+            f"{nearby_note}"
+        )
+
+    # Moderate: decent park at moderate distance
+    if score >= 4:
+        time_desc = f"{walk_min} minutes on foot" if walk_min else "a moderate walk"
+        return (
+            f"{name} is {time_desc}{nature_phrase}. "
+            f"Close enough for regular visits, especially on weekends."
+            f"{nearby_note}"
+        )
+
+    # Weak: park exists but scored low
+    time_clause = f" at {walk_min} minutes" if walk_min is not None else " nearby"
+    return (
+        f"Green space is limited near this address. The closest option "
+        f"is {name}{time_clause} — more of a small park than "
+        f"a place for a long walk or active outdoor time."
+    )
+
+
+def generate_insights(result_dict: dict) -> dict:
+    """Generate plain-English insights for report sections.
+
+    Reads from the serialized result dict so it works for both new
+    evaluations and old snapshots (with graceful fallbacks).
+
+    Returns a dict with keys: your_neighborhood, getting_around, parks.
+    Each value is a string or None.
+    """
+    tier2 = _tier2_lookup(result_dict)
+    neighborhood = result_dict.get("neighborhood_places") or {}
+    urban = result_dict.get("urban_access")
+    transit = result_dict.get("transit_access")
+    walk_scores = result_dict.get("walk_scores")
+    freq_label = result_dict.get("frequency_label") or ""
+    green_escape = result_dict.get("green_escape")
+
+    return {
+        "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
+        "getting_around": _insight_getting_around(
+            urban, transit, walk_scores, freq_label, tier2,
+        ),
+        "parks": _insight_parks(green_escape, tier2),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
 
@@ -474,6 +834,7 @@ def result_to_dict(result):
     output["verdict"] = generate_verdict(output)
     output["score_band"] = get_score_band(result.final_score)
     output["dimension_summaries"] = generate_dimension_summaries(output)
+    output["insights"] = generate_insights(output)
     return output
 
 
@@ -625,6 +986,8 @@ def view_snapshot(snapshot_id):
         result["score_band"] = get_score_band(result.get("final_score", 0))
     if "dimension_summaries" not in result:
         result["dimension_summaries"] = generate_dimension_summaries(result)
+    if "insights" not in result:
+        result["insights"] = generate_insights(result)
 
     return render_template(
         "snapshot.html",

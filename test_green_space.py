@@ -234,6 +234,17 @@ class TestScoringModel(unittest.TestCase):
         score, _ = _score_quality(None, 0)
         self.assertEqual(score, 0.0)
 
+    def test_quality_capped_for_low_reviews(self):
+        """Low-review places get capped rating component (unreliable ratings)."""
+        # 4.5★ with 3 reviews: rating would be 1.2 but capped to 0.6
+        score_low, _ = _score_quality(4.5, 3)
+        self.assertLessEqual(score_low, 0.6)
+
+        # 4.5★ with 25 reviews: full rating component
+        score_ok, _ = _score_quality(4.5, 25)
+        self.assertGreater(score_ok, 1.0)
+        self.assertGreater(score_ok, score_low)
+
     def test_size_loop_fallback_proxy(self):
         """When no OSM data, uses review count as proxy."""
         score, reason, is_estimate = _score_size_loop({}, 4.5, 500, "Big State Park")
@@ -300,6 +311,31 @@ class TestGreenEscapeToDict(unittest.TestCase):
         self.assertIsNotNone(d["best_daily_park"])
         self.assertEqual(d["best_daily_park"]["name"], "Great Park")
         self.assertGreater(d["green_escape_score_0_10"], 0)
+
+    def test_best_park_prefers_high_reviews_when_scores_equal(self):
+        """When two parks have equal daily_walk_value, higher-review wins."""
+        _cache.clear()
+        # Both score ~5.1: 8 min walk (3.0) + size 1.0 + quality 0.6 + nature 0.5
+        # Obscure: 4.5★/5 reviews → quality 0.6 (capped)
+        # Established: 3.0★/10 reviews → quality 0.6
+        obscure = _make_place(
+            "Obscure Trail Park", "p1", ["park"], 4.5, 5,
+            lat=40.99, lng=-73.78,
+        )
+        established = _make_place(
+            "Established Trail Park", "p2", ["park"], 3.0, 10,
+            lat=40.991, lng=-73.781,
+        )
+        places = {"park": [obscure, established]}
+        walk_times = {(40.99, -73.78): 8, (40.991, -73.781): 8}
+        client = _mock_maps_client(places_by_type=places, walk_times=walk_times)
+        evaluation = evaluate_green_escape(client, 40.99, -73.78, enable_osm=False)
+        self.assertIsNotNone(evaluation.best_daily_park)
+        self.assertEqual(
+            evaluation.best_daily_park.name,
+            "Established Trail Park",
+            "Higher-review park should win when scores are equal",
+        )
 
 
 class TestBatchWalkTimeBehavior(unittest.TestCase):

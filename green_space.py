@@ -47,6 +47,8 @@ QUALITY_HIGH_RATING = 4.3
 QUALITY_MID_RATING = 3.8
 QUALITY_HIGH_REVIEWS = 200
 QUALITY_MID_REVIEWS = 50
+# Below this, rating is treated as unreliable — cap rating component in quality score
+QUALITY_MIN_REVIEWS_RELIABLE = 20
 
 # Size proxy thresholds (square meters from Overpass polygon area)
 SIZE_LARGE_SQM = 40_000       # ~10 acres
@@ -979,16 +981,22 @@ def _score_quality(rating: Optional[float], reviews: int) -> Tuple[float, str]:
 
     # Rating component (0–1.2)
     if rating >= QUALITY_HIGH_RATING:
-        score += 1.2
+        rating_component = 1.2
         parts.append(f"{rating:.1f}★ — highly rated")
     elif rating >= QUALITY_MID_RATING:
-        score += 0.8
+        rating_component = 0.8
         parts.append(f"{rating:.1f}★ — well rated")
     elif rating >= 3.5:
-        score += 0.4
+        rating_component = 0.4
         parts.append(f"{rating:.1f}★ — average rating")
     else:
+        rating_component = 0.0
         parts.append(f"{rating:.1f}★ — below average")
+
+    # Cap rating component when very few reviews (unreliable)
+    if reviews < QUALITY_MIN_REVIEWS_RELIABLE:
+        rating_component = min(0.6, rating_component)
+    score += rating_component
 
     # Review volume component (0–0.8)
     if reviews >= QUALITY_HIGH_REVIEWS:
@@ -1252,8 +1260,8 @@ def evaluate_green_escape(
         result = score_green_space(place, lat, lng, osm_data)
         scored.append(result)
 
-    # Step 3: Sort by daily walk value (descending)
-    scored.sort(key=lambda r: (-r.daily_walk_value, r.walk_time_min))
+    # Step 3: Sort by daily walk value (descending), then review count, then walk time
+    scored.sort(key=lambda r: (-r.daily_walk_value, -r.user_ratings_total, r.walk_time_min))
 
     # Step 4: Select best daily park
     passing = [s for s in scored if s.criteria_status == "PASS"]

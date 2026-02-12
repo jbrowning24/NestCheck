@@ -69,6 +69,10 @@
   <div id="your-neighborhood" class="report-section">
     <h2>Your Neighborhood</h2>
 
+    {% if result.insights is defined and result.insights and result.insights.your_neighborhood %}
+      <p class="section-insight">{{ result.insights.your_neighborhood }}</p>
+    {% endif %}
+
     {% set categories = [
       ("coffee", "☕", "Coffee & Social Spots"),
       ("grocery", "🛒", "Grocery & Essentials"),
@@ -121,6 +125,10 @@
   {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
   <div class="report-section">
     <h2>Getting Around</h2>
+
+    {% if result.insights is defined and result.insights and result.insights.getting_around %}
+      <p class="section-insight">{{ result.insights.getting_around }}</p>
+    {% endif %}
 
     {# Primary Transit Node — rail stations, or bus stop fallback #}
     {% if result.urban_access and result.urban_access.primary_transit %}
@@ -207,6 +215,10 @@
   {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
   <div class="report-section">
     <h2>Parks &amp; Green Space</h2>
+
+    {% if result.insights is defined and result.insights and result.insights.parks %}
+      <p class="section-insight">{{ result.insights.parks }}</p>
+    {% endif %}
 
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
