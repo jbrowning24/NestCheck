@@ -66,6 +66,26 @@
       margin-right: auto;
     }
 
+    /* --- WHY BLOCK --- */
+    .why-block {
+      max-width: 600px;
+      margin: 0 auto 32px;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .why-block p {
+      font-size: 1.02em;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .why-block p:last-child {
+      margin-bottom: 0;
+    }
+    .why-block strong {
+      color: #333;
+    }
+
     /* --- FORM --- */
     .search-section {
       max-width: 640px;
@@ -111,6 +131,16 @@
     .search-box button:disabled {
       background: #8899aa;
       cursor: not-allowed;
+    }
+
+    /* --- WHO IT'S FOR --- */
+    .who-its-for {
+      max-width: 700px;
+      margin: 0 auto 16px;
+      padding: 0 24px;
+      text-align: center;
+      font-size: 0.95em;
+      color: #666;
     }
 
     /* --- FEATURES (landing) --- */
@@ -737,6 +767,11 @@
   <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — instant results, shareable link.</p>
 </div>
 
+<div class="why-block">
+  <p><strong>Listings show rooms and photos.</strong> They don't tell you if you can walk to a good park, how far the highway is, or whether there's a decent grocery nearby.</p>
+  <p>NestCheck evaluates daily-life quality at any U.S. address — walkability, green space, transit, schools, and safety — so you know before you visit or sign.</p>
+</div>
+
 <div class="search-section">
   {% if error %}
     <div class="error-banner">
@@ -760,6 +795,8 @@
     </div>
   </form>
 </div>
+
+<p class="who-its-for">For families, renters, and homebuyers choosing where to live.</p>
 
 <div class="features">
   <div class="feature-card">
@@ -807,7 +844,7 @@
 
 <!-- FOOTER -->
 <footer>
-  NestCheck &middot; Decision support for families optimizing daily life.
+  NestCheck &middot; Livability evaluation for families and remote workers choosing where to live.
 </footer>
 
 <script>
