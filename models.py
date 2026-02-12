@@ -97,6 +97,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_payments_session ON payments(stripe_session_id);
         CREATE INDEX IF NOT EXISTS idx_payments_visitor ON payments(visitor_id);
         CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+        CREATE INDEX IF NOT EXISTS idx_payments_job ON payments(job_id);
     """)
     # Migrate existing evaluation_jobs table (add new columns if missing).
     cols = {row["name"] for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()}
@@ -502,13 +503,24 @@ def get_payment_by_id(payment_id: str) -> Optional[dict]:
     return dict(row) if row else None
 
 
-def update_payment_status(payment_id: str, status: str) -> bool:
-    """Update the status of a payment row. Returns True if a row was updated."""
+def update_payment_status(payment_id: str, status: str, expected_status: Optional[str] = None) -> bool:
+    """Update the status of a payment row. Returns True if a row was updated.
+
+    When expected_status is provided, the update is atomic: it only succeeds
+    if the current status matches, preventing TOCTOU races (e.g. webhook
+    overwriting a status that changed between the read and the write).
+    """
     conn = _get_db()
-    cur = conn.execute(
-        "UPDATE payments SET status = ? WHERE id = ?",
-        (status, payment_id),
-    )
+    if expected_status is not None:
+        cur = conn.execute(
+            "UPDATE payments SET status = ? WHERE id = ? AND status = ?",
+            (status, payment_id, expected_status),
+        )
+    else:
+        cur = conn.execute(
+            "UPDATE payments SET status = ? WHERE id = ?",
+            (status, payment_id),
+        )
     changed = cur.rowcount
     conn.commit()
     conn.close()

@@ -43,14 +43,20 @@ def _reissue_payment_if_needed(job_id: str) -> None:
 
     Transitions the linked payment from 'redeemed' to 'failed_reissued'
     so the user can retry without paying again.
+
+    Swallows all exceptions — losing a reissue is recoverable (manual DB
+    fix), but an unhandled exception here would kill the worker thread.
     """
-    payment = get_payment_by_job_id(job_id)
-    if payment and payment["status"] == "redeemed":
-        update_payment_status(payment["id"], "failed_reissued")
-        logger.info(
-            "[worker] Reissued credit for failed evaluation: payment %s, job %s",
-            payment["id"], job_id,
-        )
+    try:
+        payment = get_payment_by_job_id(job_id)
+        if payment and payment["status"] == "redeemed":
+            update_payment_status(payment["id"], "failed_reissued")
+            logger.info(
+                "[worker] Reissued credit for failed evaluation: payment %s, job %s",
+                payment["id"], job_id,
+            )
+    except Exception:
+        logger.exception("[worker] Failed to reissue payment credit for job %s", job_id)
 
 
 def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None) -> None:

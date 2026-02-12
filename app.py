@@ -1359,8 +1359,12 @@ def stripe_webhook():
         stripe_session_id = session["id"]
         payment = get_payment_by_session(stripe_session_id)
         if payment and payment["status"] == "pending":
-            update_payment_status(payment["id"], "paid")
-            logger.info("Payment confirmed via webhook: %s", payment["id"])
+            # Atomic: only transitions pending -> paid. If POST / already
+            # verified and redeemed this payment, the WHERE guard prevents
+            # overwriting 'redeemed' back to 'paid' (TOCTOU race).
+            updated = update_payment_status(payment["id"], "paid", expected_status="pending")
+            if updated:
+                logger.info("Payment confirmed via webhook: %s", payment["id"])
 
     # Always return 200 to acknowledge receipt — even for event types we don't handle
     return "", 200
