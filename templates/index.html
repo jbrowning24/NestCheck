@@ -778,7 +778,7 @@
   <p>NestCheck evaluates daily-life quality at any U.S. address — walkability, green space, transit, schools, and safety — so you know before you visit or sign.</p>
 </div>
 
-<div class="search-section">
+<div class="search-section" id="evaluate">
   {% if error %}
     <div class="error-banner">
       <strong>Could not evaluate address</strong>
@@ -796,7 +796,7 @@
   {% endif %}
   <form method="POST" id="evalForm">
     <div class="search-box">
-      <input type="text" name="address" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+      <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
       <button type="submit" id="evalBtn">Evaluate</button>
     </div>
   </form>
@@ -854,6 +854,8 @@
 </footer>
 
 <script>
+  const REQUIRE_PAYMENT = {{ 'true' if require_payment else 'false' }};
+
   (function() {
     var POLL_INTERVAL_MS = 2000;
 
@@ -936,15 +938,16 @@
       poll();
     }
 
-    document.getElementById('evalForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      var form = e.target;
+    // ---------------------------------------------------------------
+    // submitEvaluation — POST to / with address (+ optional payment_token)
+    // Used by both free and paid paths.
+    // ---------------------------------------------------------------
+    function submitEvaluation(address, paymentToken) {
+      var form = document.getElementById('evalForm');
       var btn = document.getElementById('evalBtn');
       var overlay = document.getElementById('loadingOverlay');
       var loadingText = overlay.querySelector('.loading-text');
       var loadingSub = overlay.querySelector('.loading-sub');
-      var address = form.querySelector('input[name="address"]').value.trim();
-      if (!address) return;
 
       btn.disabled = true;
       btn.textContent = 'Evaluating...';
@@ -952,7 +955,12 @@
       loadingText.textContent = 'Evaluating this address...';
       loadingSub.textContent = 'Submitting...';
 
-      var body = new FormData(form);
+      var body = new FormData();
+      body.append('address', address);
+      if (paymentToken) {
+        body.append('payment_token', paymentToken);
+      }
+
       fetch('/', {
         method: 'POST',
         body: body,
@@ -972,10 +980,79 @@
         .catch(function(err) {
           showError('Network error. Please try again. (' + err.message + ')', overlay, btn, form);
         });
+    }
+
+    // ---------------------------------------------------------------
+    // Form submit handler — branches on REQUIRE_PAYMENT
+    // ---------------------------------------------------------------
+    document.getElementById('evalForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var form = e.target;
+      var address = form.querySelector('input[name="address"]').value.trim();
+      if (!address) return;
+
+      if (REQUIRE_PAYMENT) {
+        // Paid path: create Stripe Checkout session, then redirect
+        var btn = document.getElementById('evalBtn');
+        var overlay = document.getElementById('loadingOverlay');
+        var loadingSub = overlay.querySelector('.loading-sub');
+        btn.disabled = true;
+        btn.textContent = 'Redirecting to checkout...';
+        overlay.classList.add('active');
+        overlay.querySelector('.loading-text').textContent = 'Preparing checkout...';
+        loadingSub.textContent = 'Please wait...';
+
+        var checkoutBody = new FormData();
+        checkoutBody.append('address', address);
+
+        fetch('/checkout/create', {
+          method: 'POST',
+          body: checkoutBody,
+          headers: { 'Accept': 'application/json' }
+        })
+          .then(function(resp) { return resp.json(); })
+          .then(function(data) {
+            if (data.error) {
+              showError(data.error, overlay, btn, form);
+            } else if (data.checkout_url) {
+              window.location.href = data.checkout_url;
+            } else {
+              showError('Unexpected response from server.', overlay, btn, form);
+            }
+          })
+          .catch(function(err) {
+            showError('Could not start checkout. Please try again. (' + err.message + ')', overlay, btn, form);
+          });
+      } else {
+        // Free path: submit evaluation directly
+        submitEvaluation(address, null);
+      }
     });
 
     var evalBtn = document.getElementById('evalBtn');
     if (evalBtn) evalBtn.dataset.originalText = evalBtn.textContent;
+
+    // ---------------------------------------------------------------
+    // Auto-submit on return from Stripe checkout
+    // ---------------------------------------------------------------
+    var urlParams = new URLSearchParams(window.location.search);
+    var paymentToken = urlParams.get('payment_token');
+    var returnAddress = urlParams.get('address');
+
+    if (paymentToken && returnAddress) {
+      // Clean the URL (remove params without reload)
+      window.history.replaceState({}, '', '/');
+      // Pre-fill the address field
+      // Note: URLSearchParams.get() already percent-decodes the value,
+      // so no additional decodeURIComponent() is needed (and would break
+      // addresses containing a literal '%' character).
+      var addressInput = document.getElementById('address-input');
+      if (addressInput) {
+        addressInput.value = returnAddress;
+      }
+      // Auto-submit with the payment token
+      submitEvaluation(returnAddress, paymentToken);
+    }
 
     // If we landed with ?job_id= (e.g. non-JS form POST redirect), start polling
     var initialJobId = '{{ job_id or "" }}';

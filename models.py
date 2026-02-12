@@ -82,6 +82,21 @@ def init_db():
             response_json TEXT NOT NULL,
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        -- Stripe payment records (one-time evaluation credits)
+        CREATE TABLE IF NOT EXISTS payments (
+            id                TEXT PRIMARY KEY,
+            stripe_session_id TEXT UNIQUE,
+            visitor_id        TEXT,
+            address           TEXT NOT NULL,
+            status            TEXT NOT NULL DEFAULT 'pending',
+            created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            redeemed_at       TIMESTAMP,
+            job_id            TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_payments_session ON payments(stripe_session_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_visitor ON payments(visitor_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
     """)
     # Migrate existing evaluation_jobs table (add new columns if missing).
     cols = {row["name"] for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()}
@@ -442,3 +457,102 @@ def set_overpass_cache(cache_key: str, response_json: str) -> None:
         conn.close()
     except Exception:
         logger.warning("Overpass cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Payments (Stripe one-time evaluation credits)
+# ---------------------------------------------------------------------------
+
+def create_payment(payment_id: str, stripe_session_id: str, visitor_id: str, address: str) -> None:
+    """Insert a new payment row with status 'pending'.
+
+    Called when a Stripe Checkout session is created, before the user pays.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """INSERT INTO payments
+           (id, stripe_session_id, visitor_id, address, status, created_at)
+           VALUES (?, ?, ?, ?, 'pending', ?)""",
+        (payment_id, stripe_session_id, visitor_id, address, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_payment_by_session(stripe_session_id: str) -> Optional[dict]:
+    """Look up a payment by Stripe Checkout session ID. Returns dict or None."""
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM payments WHERE stripe_session_id = ?",
+        (stripe_session_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_payment_by_id(payment_id: str) -> Optional[dict]:
+    """Look up a payment by its internal ID (the payment token). Returns dict or None."""
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM payments WHERE id = ?",
+        (payment_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def update_payment_status(payment_id: str, status: str) -> bool:
+    """Update the status of a payment row. Returns True if a row was updated."""
+    conn = _get_db()
+    cur = conn.execute(
+        "UPDATE payments SET status = ? WHERE id = ?",
+        (status, payment_id),
+    )
+    changed = cur.rowcount
+    conn.commit()
+    conn.close()
+    return changed > 0
+
+
+def redeem_payment(payment_id: str, job_id: Optional[str] = None) -> bool:
+    """Atomically redeem a payment credit (status paid -> redeemed).
+
+    Sets redeemed_at to now and optionally links to a job_id.
+    Returns True if the UPDATE affected exactly one row (status was 'paid'
+    or 'failed_reissued'), False otherwise.  Uses cursor.rowcount — not
+    conn.total_changes — so concurrent double-redeem attempts are rejected.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    cur = conn.execute(
+        """UPDATE payments
+           SET status = 'redeemed', redeemed_at = ?, job_id = ?
+           WHERE id = ? AND status IN ('paid', 'failed_reissued')""",
+        (now, job_id, payment_id),
+    )
+    changed = cur.rowcount
+    conn.commit()
+    conn.close()
+    return changed > 0
+
+
+def update_payment_job_id(payment_id: str, job_id: str) -> None:
+    """Link a payment to the evaluation job it funded."""
+    conn = _get_db()
+    conn.execute(
+        "UPDATE payments SET job_id = ? WHERE id = ?",
+        (job_id, payment_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_payment_by_job_id(job_id: str) -> Optional[dict]:
+    """Look up a payment by the evaluation job it funded. Returns dict or None."""
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM payments WHERE job_id = ?", (job_id,),
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None

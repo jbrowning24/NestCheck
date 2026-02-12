@@ -3,8 +3,10 @@ import io
 import csv
 import logging
 import uuid
+import secrets
 import traceback
 from functools import wraps
+from urllib.parse import quote as _stdlib_quote
 from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response
@@ -20,7 +22,30 @@ from models import (
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     create_job, get_job,
+    create_payment, get_payment_by_session, get_payment_by_id,
+    update_payment_status, redeem_payment, update_payment_job_id,
 )
+
+def _quote_param(s: str) -> str:
+    """URL-encode a string for use as a query parameter value.
+
+    Uses safe='' so everything is encoded — including / and # which the
+    stdlib default leaves alone.  This prevents addresses like
+    "123 Main St #4B" from breaking the round-trip through Stripe's
+    success redirect URL.
+    """
+    return _stdlib_quote(s, safe="")
+
+
+# ---------------------------------------------------------------------------
+# Stripe (optional — app starts without it for local dev without payments)
+# ---------------------------------------------------------------------------
+try:
+    import stripe
+    STRIPE_AVAILABLE = True
+except ImportError:
+    stripe = None  # type: ignore[assignment]
+    STRIPE_AVAILABLE = False
 
 load_dotenv()
 
@@ -60,6 +85,15 @@ FEATURE_CONFIG = {
     # TODO [PACK_LOGIC]: Add keys like "pdf_export", "saved_dashboard",
     # "comparison_mode" here when packs ship.
 }
+
+# ---------------------------------------------------------------------------
+# Stripe / payment config
+# ---------------------------------------------------------------------------
+REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
+if STRIPE_AVAILABLE:
+    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "")
 
 # ---------------------------------------------------------------------------
 # Builder mode
@@ -884,6 +918,7 @@ def index():
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
+                require_payment=REQUIRE_PAYMENT,
             )
 
         config_ok, missing_keys = _check_service_config()
@@ -918,6 +953,7 @@ def index():
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
+                require_payment=REQUIRE_PAYMENT,
             )
 
         # TODO [PACK_LOGIC]: Check evaluation limits here.
@@ -927,9 +963,129 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
+        # ---------------------------------------------------------------
+        # Payment gate — only enforced when REQUIRE_PAYMENT=true
+        # ---------------------------------------------------------------
+        payment = None  # set if a valid payment is redeemed
+        if REQUIRE_PAYMENT and not g.is_builder:
+            payment_token = request.form.get("payment_token", "").strip()
+            if not payment_token:
+                if _wants_json():
+                    return jsonify({
+                        "error": "Payment required",
+                        "requires_payment": True,
+                        "request_id": request_id,
+                    }), 402
+                error = "Payment is required before running an evaluation."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+
+            payment = get_payment_by_id(payment_token)
+            if not payment or payment["status"] not in ("paid", "pending", "failed_reissued"):
+                if _wants_json():
+                    return jsonify({
+                        "error": "Invalid or expired payment",
+                        "requires_payment": True,
+                        "request_id": request_id,
+                    }), 402
+                error = "Invalid or expired payment token."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+
+            # If status is still 'pending', verify with Stripe directly
+            # (success redirect can arrive before the webhook)
+            if payment["status"] == "pending" and STRIPE_AVAILABLE:
+                try:
+                    session = stripe.checkout.Session.retrieve(
+                        payment["stripe_session_id"]
+                    )
+                    if session.payment_status == "paid":
+                        update_payment_status(payment["id"], "paid")
+                    else:
+                        if _wants_json():
+                            return jsonify({
+                                "error": "Payment not completed",
+                                "requires_payment": True,
+                                "request_id": request_id,
+                            }), 402
+                        error = "Payment has not been completed yet."
+                        return render_template(
+                            "index.html", result=result, error=error,
+                            error_detail=error_detail,
+                            address=address, snapshot_id=snapshot_id,
+                            is_builder=g.is_builder, request_id=request_id,
+                            require_payment=REQUIRE_PAYMENT,
+                        )
+                except Exception as e:
+                    logger.error(
+                        "[%s] Stripe session verify failed: %s",
+                        request_id, e,
+                    )
+                    if _wants_json():
+                        return jsonify({
+                            "error": "Could not verify payment",
+                            "requires_payment": True,
+                            "request_id": request_id,
+                        }), 402
+                    error = "Could not verify payment status. Please try again."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail,
+                        address=address, snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                        require_payment=REQUIRE_PAYMENT,
+                    )
+            elif payment["status"] == "pending":
+                if _wants_json():
+                    return jsonify({
+                        "error": "Payment not completed",
+                        "requires_payment": True,
+                        "request_id": request_id,
+                    }), 402
+                error = "Payment has not been completed yet."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+
+            # Redeem the credit (paid -> redeemed, atomic)
+            if not redeem_payment(payment["id"], job_id=None):
+                if _wants_json():
+                    return jsonify({
+                        "error": "Payment already used",
+                        "requires_payment": True,
+                        "request_id": request_id,
+                    }), 402
+                error = "This payment has already been used for an evaluation."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+
         # Async queue: create job and return immediately. Worker picks up and runs evaluation.
         job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id)
         logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
+
+        # Link payment to job if this was a paid evaluation
+        if payment is not None:
+            update_payment_job_id(payment["id"], job_id)
+
         if _wants_json():
             return jsonify({"job_id": job_id})
         # Non-JS form POST: redirect to index with job_id so the page can poll
@@ -944,6 +1100,7 @@ def index():
         address=address, snapshot_id=snapshot_id,
         job_id=job_id,
         is_builder=g.is_builder, request_id=request_id,
+        require_payment=REQUIRE_PAYMENT,
     )
 
 
@@ -1119,7 +1276,94 @@ def builder_dashboard():
 
 @app.route("/pricing")
 def pricing():
-    return render_template("pricing.html")
+    return render_template("pricing.html", require_payment=REQUIRE_PAYMENT)
+
+
+# ---------------------------------------------------------------------------
+# Stripe Checkout — create a checkout session for a single evaluation
+# ---------------------------------------------------------------------------
+
+@app.route("/checkout/create", methods=["POST"])
+def create_checkout():
+    """Create a Stripe Checkout session for a $29 evaluation.
+
+    Expects form data with 'address'. Returns JSON with 'checkout_url'.
+    The payment_id is embedded in the success_url so the frontend can
+    pass it back to POST / after payment completes.
+    """
+    if not REQUIRE_PAYMENT or not STRIPE_AVAILABLE:
+        return jsonify({"error": "Payments not enabled"}), 400
+
+    address = request.form.get("address", "").strip()
+    if not address:
+        return jsonify({"error": "Address required"}), 400
+
+    visitor_id = getattr(g, "visitor_id", "unknown")
+    payment_id = secrets.token_hex(8)
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price": STRIPE_PRICE_ID,
+                "quantity": 1,
+            }],
+            mode="payment",
+            success_url=(
+                url_for("index", _external=True)
+                + f"?payment_token={payment_id}&address={_quote_param(address)}"
+            ),
+            cancel_url=url_for("index", _external=True),
+            client_reference_id=payment_id,
+            metadata={"address": address, "visitor_id": visitor_id},
+        )
+    except Exception as e:
+        logger.error("Stripe checkout creation failed: %s", e)
+        return jsonify({"error": "Payment system error"}), 500
+
+    create_payment(payment_id, session.id, visitor_id, address)
+    log_event(
+        "checkout_created",
+        visitor_id=visitor_id,
+        metadata={"payment_id": payment_id, "address": address},
+    )
+    return jsonify({"checkout_url": session.url})
+
+
+# ---------------------------------------------------------------------------
+# Stripe Webhook — server-to-server payment confirmation
+# ---------------------------------------------------------------------------
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Receive Stripe webhook events (e.g. checkout.session.completed).
+
+    This endpoint is called by Stripe's servers, NOT the user's browser.
+    It must NOT require the nc_vid cookie or any visitor identification.
+    Always returns 200 to acknowledge receipt, except on verification failure.
+    """
+    if not STRIPE_AVAILABLE:
+        return "", 400
+
+    payload = request.get_data()
+    sig_header = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
+    except (ValueError, stripe.error.SignatureVerificationError) as e:
+        logger.warning("Stripe webhook verification failed: %s", e)
+        return "", 400
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        stripe_session_id = session["id"]
+        payment = get_payment_by_session(stripe_session_id)
+        if payment and payment["status"] == "pending":
+            update_payment_status(payment["id"], "paid")
+            logger.info("Payment confirmed via webhook: %s", payment["id"])
+
+    # Always return 200 to acknowledge receipt — even for event types we don't handle
+    return "", 200
 
 
 @app.route("/healthz")

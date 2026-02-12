@@ -177,7 +177,7 @@
       <li>JSON &amp; CSV data export</li>
       <li>Print-ready layout</li>
     </ul>
-    <a href="/" class="price-btn">Evaluate an Address</a>
+    <a href="/#evaluate" class="price-btn">Evaluate an Address</a>
     <div class="cta-flow">
       <strong>How it works:</strong> Evaluate &rarr; Review results &rarr; Share or export
     </div>
@@ -194,8 +194,11 @@
   </div>
 
   <p class="note">
+    {% if not require_payment %}
     Evaluations are currently free during our preview period. Pricing will apply once payment integration is live.
-    <br>Questions? Reach out on GitHub.
+    <br>
+    {% endif %}
+    Questions? Reach out on GitHub.
   </p>
 </div>
 

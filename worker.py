@@ -24,6 +24,8 @@ from models import (
     log_event,
     check_return_visit,
     requeue_stale_running_jobs,
+    get_payment_by_job_id,
+    update_payment_status,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,21 @@ _stop_event = threading.Event()
 _worker_thread = None
 
 
+def _reissue_payment_if_needed(job_id: str) -> None:
+    """If a failed job had a paid evaluation credit, reissue it.
+
+    Transitions the linked payment from 'redeemed' to 'failed_reissued'
+    so the user can retry without paying again.
+    """
+    payment = get_payment_by_job_id(job_id)
+    if payment and payment["status"] == "redeemed":
+        update_payment_status(payment["id"], "failed_reissued")
+        logger.info(
+            "[worker] Reissued credit for failed evaluation: payment %s, job %s",
+            payment["id"], job_id,
+        )
+
+
 def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None) -> None:
     """
     Run a single evaluation job: evaluate, save snapshot, complete or fail.
@@ -44,6 +61,7 @@ def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str 
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
         fail_job(job_id, "GOOGLE_MAPS_API_KEY not configured")
+        _reissue_payment_if_needed(job_id)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,
@@ -94,6 +112,7 @@ def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str 
     except Exception as e:
         logger.exception("[worker] Job %s failed: %s", job_id, e)
         fail_job(job_id, str(e))
+        _reissue_payment_if_needed(job_id)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,
@@ -125,6 +144,7 @@ def _worker_loop() -> None:
             except Exception as e:
                 logger.exception("[worker] Unhandled error in job %s", job_id)
                 fail_job(job_id, str(e))
+                _reissue_payment_if_needed(job_id)
         else:
             _stop_event.wait(timeout=POLL_INTERVAL)
     logger.info("[worker] Evaluation worker thread stopped")
