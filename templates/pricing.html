@@ -2,6 +2,15 @@
 
 {% block title %}NestCheck — Pricing{% endblock %}
 
+{% block meta_description %}<meta name="description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ self.title() }}">
+<meta property="og:description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+{% endblock %}
+
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
 {% endblock %}
@@ -15,10 +24,10 @@
 
 <div class="pricing-page">
   <h1>Simple pricing.</h1>
-  <p class="sub">$29 per evaluation. Built for families optimizing daily life.</p>
+  <p class="sub">$9 per evaluation. Built for families optimizing daily life.</p>
 
   <div class="price-card">
-    <div class="price-tag">$29 <span class="per">per evaluation</span></div>
+    <div class="price-tag">$9 <span class="per">per evaluation</span></div>
     <p class="price-desc">Full NestCheck livability evaluation for any U.S. address.</p>
     <ul class="price-features">
       <li>Health &amp; safety screening (highways, gas stations, roads)</li>

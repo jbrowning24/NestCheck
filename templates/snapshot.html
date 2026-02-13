@@ -7,12 +7,15 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/snapshot.css') }}">
 {% endblock %}
 
-{% block head_extra %}
-  <!-- Open Graph for link previews -->
+{% block meta_description %}
+  <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation for {{ result.address }}">
+{% endblock %}
+
+{% block og_tags %}
   <meta property="og:title" content="NestCheck — {{ result.address }}">
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
   <meta property="og:type" content="article">
-  <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation snapshot">
+  <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
 
 {% block nav_links %}

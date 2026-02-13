@@ -2,6 +2,15 @@
 
 {% block title %}NestCheck — Privacy Policy{% endblock %}
 
+{% block meta_description %}<meta name="description" content="NestCheck privacy policy — how we collect, use, and protect your data when you evaluate addresses.">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ self.title() }}">
+<meta property="og:description" content="NestCheck privacy policy — how we collect, use, and protect your data when you evaluate addresses.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+{% endblock %}
+
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/legal.css') }}">
 {% endblock %}

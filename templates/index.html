@@ -7,11 +7,24 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
-{% block head_extra %}
+{% block meta_description %}
+  {% if result %}
+  <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation for {{ result.address }}">
+  {% else %}
+  <meta name="description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, schools, and safety. Know before you move.">
+  {% endif %}
+{% endblock %}
+
+{% block og_tags %}
   {% if result %}
   <meta property="og:title" content="NestCheck — {{ result.address }}">
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
+  {% else %}
+  <meta property="og:title" content="NestCheck — Know Before You Move">
+  <meta property="og:description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, schools, and safety.">
   {% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ request.host_url }}">
 {% endblock %}
 
 {% block nav_links %}

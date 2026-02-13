@@ -1359,14 +1359,15 @@ def terms():
 
 
 # ---------------------------------------------------------------------------
-# Stripe Checkout — create a checkout session for a single evaluation
+# Stripe Checkout — create a checkout session for one evaluation
 # ---------------------------------------------------------------------------
 
 @app.route("/checkout/create", methods=["POST"])
 @limiter.limit("5/minute")
 def create_checkout():
-    """Create a Stripe Checkout session for a $29 evaluation.
+    """Create a Stripe Checkout session for one evaluation.
 
+    Price is defined by STRIPE_PRICE_ID in Stripe dashboard.
     Expects form data with 'address'. Returns JSON with 'checkout_url'.
     The payment_id is embedded in the success_url so the frontend can
     pass it back to POST / after payment completes.
@@ -1450,6 +1451,52 @@ def stripe_webhook():
 
     # Always return 200 to acknowledge receipt — even for event types we don't handle
     return "", 200
+
+
+@app.route("/robots.txt")
+@limiter.exempt
+def robots_txt():
+    """Serve robots.txt with crawler rules and sitemap location."""
+    sitemap_url = request.host_url.rstrip("/") + "/sitemap.xml"
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "\n"
+        "Disallow: /checkout/\n"
+        "Disallow: /webhook/\n"
+        "Disallow: /job/\n"
+        "Disallow: /api/\n"
+        "Disallow: /debug/\n"
+        "Disallow: /builder/\n"
+        "Disallow: /healthz\n"
+        "\n"
+        f"Sitemap: {sitemap_url}\n"
+    )
+    return Response(body, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+@limiter.exempt
+def sitemap_xml():
+    """Generate sitemap.xml with static pages.
+
+    Snapshots are intentionally excluded — they are share-by-link only
+    and including them would make evaluated addresses publicly discoverable.
+    """
+    base = request.host_url.rstrip("/")
+
+    static_pages = ["/", "/pricing", "/privacy", "/terms"]
+    urls = []
+    for path in static_pages:
+        urls.append(f"  <url><loc>{base}{path}</loc></url>")
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls) + "\n"
+        '</urlset>\n'
+    )
+    return Response(xml, mimetype="application/xml")
 
 
 @app.route("/healthz")
