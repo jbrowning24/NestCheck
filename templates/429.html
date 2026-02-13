@@ -1,0 +1,15 @@
+{% extends "_base.html" %}
+
+{% block title %}NestCheck — Too Many Requests{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/404.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>429</h1>
+  <p>You've submitted too many requests. Please wait a few minutes and try again.</p>
+  <a href="/">Back to NestCheck</a>
+</div>
+{% endblock %}

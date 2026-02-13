@@ -12,6 +12,9 @@ from flask import (
     make_response, abort, jsonify, g, Response
 )
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
@@ -53,6 +56,11 @@ load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 
+# Proxy fix — Railway (and most PaaS) run behind a reverse proxy that sets
+# X-Forwarded-For.  ProxyFix rewrites request.remote_addr to the real
+# client IP so both Flask-Limiter and logging see the correct address.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
+
 # CSRF protection — validates X-CSRFToken header on all POST requests.
 # Token is rendered into a <meta> tag in templates; JS reads it and sends
 # as a header on every fetch() call.
@@ -60,6 +68,23 @@ csrf = CSRFProtect(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Rate limiting — protects cost-sensitive endpoints from abuse.
+# In-memory storage is per-process (with 2 gunicorn workers the effective
+# limit is ~2x nominal).  Upgrade to Redis if precision is needed later.
+# ---------------------------------------------------------------------------
+RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT_DEFAULT", "60/minute")
+RATE_LIMIT_EVAL = os.environ.get("RATE_LIMIT_EVAL", "10/hour")
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[RATE_LIMIT_DEFAULT],
+    storage_uri="memory://",
+    request_filter=lambda: _is_builder(request),
+)
+logging.getLogger("flask-limiter").setLevel(logging.WARNING)
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -930,6 +955,7 @@ def _wants_json():
 
 
 @app.route("/", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_EVAL, methods=["POST"])
 def index():
     result = None
     error = None
@@ -1141,6 +1167,7 @@ def index():
 
 
 @app.route("/job/<job_id>")
+@limiter.exempt
 def job_status(job_id):
     """
     Polling endpoint for async evaluation. Returns JSON:
@@ -1274,6 +1301,7 @@ def export_snapshot_csv(snapshot_id):
 
 
 @app.route("/api/event", methods=["POST"])
+@limiter.limit("30/minute")
 def track_event():
     """Lightweight client-side event tracking endpoint."""
     data = request.get_json(silent=True) or {}
@@ -1330,6 +1358,7 @@ def terms():
 # ---------------------------------------------------------------------------
 
 @app.route("/checkout/create", methods=["POST"])
+@limiter.limit("5/minute")
 def create_checkout():
     """Create a Stripe Checkout session for a $29 evaluation.
 
@@ -1381,6 +1410,7 @@ def create_checkout():
 # ---------------------------------------------------------------------------
 
 @app.route("/webhook/stripe", methods=["POST"])
+@limiter.exempt
 @csrf.exempt  # Server-to-server; Stripe signs payloads with its own webhook secret.
 def stripe_webhook():
     """Receive Stripe webhook events (e.g. checkout.session.completed).
@@ -1418,6 +1448,7 @@ def stripe_webhook():
 
 
 @app.route("/healthz")
+@limiter.exempt
 def healthz():
     """Lightweight health-check endpoint for monitoring."""
     config_ok, missing = _check_service_config()
@@ -1449,6 +1480,7 @@ def debug_trace(snapshot_id):
 
 
 @app.route("/debug/eval", methods=["POST"])
+@limiter.exempt
 def debug_eval():
     """Run an evaluation and return full trace data. Builder-only.
 
@@ -1496,6 +1528,15 @@ def debug_eval():
 # ---------------------------------------------------------------------------
 # Error handlers
 # ---------------------------------------------------------------------------
+
+@app.errorhandler(429)
+def rate_limit_exceeded(e):
+    if _wants_json():
+        return jsonify({
+            "error": "Too many requests. Please wait and try again.",
+        }), 429
+    return render_template("429.html"), 429
+
 
 @app.errorhandler(404)
 def not_found(e):
