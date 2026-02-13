@@ -146,8 +146,9 @@ def _set_request_context():
 @app.after_request
 def _after_request(response):
     """Set cookies after request if needed."""
-    # Set visitor ID cookie (1 year)
-    if getattr(g, "set_visitor_cookie", False):
+    # Set visitor ID cookie (1 year) — only if user has accepted cookies
+    has_consent = request.cookies.get("nc_cookie_consent") == "1"
+    if getattr(g, "set_visitor_cookie", False) and has_consent:
         response.set_cookie(
             "nc_vid", g.visitor_id,
             max_age=365 * 24 * 3600, httponly=True, samesite="Lax"
@@ -1312,6 +1313,16 @@ def builder_dashboard():
 @app.route("/pricing")
 def pricing():
     return render_template("pricing.html", require_payment=REQUIRE_PAYMENT)
+
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
 
 
 # ---------------------------------------------------------------------------

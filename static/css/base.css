@@ -125,6 +125,17 @@ footer {
   color: var(--color-text-disabled);
   background: var(--color-surface);
 }
+.footer-links {
+  margin-top: 8px;
+}
+.footer-links a {
+  color: var(--color-text-disabled);
+  text-decoration: none;
+}
+.footer-links a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
 
 /* --- Badge Utilities --- */
 .badge {

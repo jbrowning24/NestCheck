@@ -1,0 +1,93 @@
+{% extends "_base.html" %}
+
+{% block title %}NestCheck — Terms of Service{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/legal.css') }}">
+{% endblock %}
+
+{% block nav_links %}
+  <a href="/" class="nav-link">Home</a>
+  <a href="/pricing" class="nav-link">Pricing</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="legal-page">
+  <h1>Terms of Service</h1>
+  <p class="last-updated">Last updated: February 13, 2025</p>
+
+  <p>These Terms of Service (&ldquo;Terms&rdquo;) govern your use of the NestCheck website and evaluation reports. By using NestCheck, you agree to these Terms.</p>
+
+  <h2>The Service</h2>
+
+  <p>NestCheck generates neighborhood evaluation reports for residential addresses. Reports analyze walkability, transit access, nearby amenities, green space, and other livability factors using data from third-party sources including Google Maps, OpenStreetMap, and Walk Score.</p>
+
+  <h2>Report Accuracy Disclaimer</h2>
+
+  <p>NestCheck reports are for informational purposes only and should not be the sole basis for housing or relocation decisions.</p>
+
+  <p>Reports reflect data available from third-party sources at the time of generation. We do not guarantee the accuracy, completeness, or currency of any information in a report. Third-party data sources may contain errors, omissions, or outdated information.</p>
+
+  <p>Scores and ratings are algorithmically generated based on available data and represent our interpretation of neighborhood livability. They are not certified assessments and may not reflect your personal priorities or experience.</p>
+
+  <p>Specifically, NestCheck does not provide and should not be relied upon for:</p>
+  <ul>
+    <li>Real estate valuations or investment advice</li>
+    <li>School quality assessments</li>
+    <li>Crime or safety analysis</li>
+    <li>Environmental hazard assessments</li>
+    <li>Legal compliance determinations</li>
+  </ul>
+
+  <p>We recommend verifying important information through direct observation and consultation with qualified professionals before making housing decisions.</p>
+
+  <h2>Purchases and Refunds</h2>
+
+  <p>Evaluation reports are purchased individually or in bundles at the prices displayed at the time of purchase. Prices may change without notice, but price changes do not affect previously completed purchases.</p>
+
+  <p>Because evaluation reports require immediate consumption of third-party API resources to generate, refunds are not available once a report has been successfully generated.</p>
+
+  <p>If a report fails to generate due to a technical error on our end, you are entitled to a full refund or a replacement evaluation at no additional cost. Contact <a href="mailto:jab2493@columbia.edu">jab2493@columbia.edu</a> with your snapshot URL to request a refund or replacement.</p>
+
+  <h2>Acceptable Use</h2>
+
+  <p>You agree not to:</p>
+  <ul>
+    <li>Submit addresses for any unlawful purpose</li>
+    <li>Attempt to reverse-engineer or extract the underlying data or algorithms</li>
+    <li>Resell or redistribute evaluation reports commercially</li>
+    <li>Use automated tools to submit bulk evaluation requests without prior authorization</li>
+    <li>Interfere with the operation of the service</li>
+  </ul>
+
+  <h2>Intellectual Property</h2>
+
+  <p>The NestCheck name, scoring methodology, report format, and website content are the property of NestCheck. Evaluation reports are licensed to the purchaser for personal, non-commercial use.</p>
+
+  <p>Third-party data displayed in reports (including Google Maps data, OpenStreetMap data, and Walk Score data) is subject to the respective terms of those providers.</p>
+
+  <h2>Limitation of Liability</h2>
+
+  <p>To the maximum extent permitted by law, NestCheck shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the service or reliance on evaluation reports.</p>
+
+  <p>Our total liability for any claim arising from the service shall not exceed the amount you paid for the specific evaluation report at issue.</p>
+
+  <h2>Availability</h2>
+
+  <p>We do not guarantee uninterrupted or error-free operation of the service. We may modify, suspend, or discontinue the service at any time without notice.</p>
+
+  <h2>Changes to These Terms</h2>
+
+  <p>We may update these Terms from time to time. Continued use of the service after changes are posted constitutes acceptance of the revised Terms.</p>
+
+  <h2>Governing Law</h2>
+
+  <p>These Terms are governed by the laws of the State of New York, without regard to conflict of law principles.</p>
+
+  <h2>Contact</h2>
+
+  <p>For questions about these Terms, contact us at <a href="mailto:jab2493@columbia.edu">jab2493@columbia.edu</a>.</p>
+</div>
+
+{% endblock %}
