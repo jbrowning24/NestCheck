@@ -117,6 +117,14 @@ GARBAGE_NAME_KEYWORDS = [
     "holiday inn", "comfort inn", "hampton inn", "la quinta",
     "auto ", "tire ", "jiffy lube", "valvoline", "autozone",
     "o'reilly", "advance auto", "pep boys",
+    # Sports facilities / corporate properties that Google incorrectly types as park.
+    # Note: these are substring matches — a park named "Athletic Park" will be filtered,
+    # but the parent park (e.g., "Central Park") surfaces separately via its own place_id.
+    "soccer", "football", "baseball", "softball", "batting cage",
+    "athletic", "tennis court", "basketball court", "little league",
+    "rugby", "lacrosse", "cricket",
+    "con ed", "utility", "corporate", "headquarters",
+    "office park", "industrial",
 ]
 
 # Name keywords that positively indicate a green space
@@ -124,7 +132,7 @@ GREEN_NAME_KEYWORDS = [
     "park", "trail", "preserve", "nature", "garden", "arboretum",
     "botanical", "river", "creek", "lake", "reservoir", "beach",
     "forest", "woods", "wetland", "marsh", "greenway", "walk",
-    "hike", "canyon", "falls", "waterfall", "meadow", "field",
+    "hike", "canyon", "falls", "waterfall", "meadow",
     "conservation", "sanctuary", "wilderness", "grove", "ravine",
     "pond", "brook", "spring", "bluff", "ridge", "summit",
     "overlook", "scenic", "riverwalk", "boardwalk",
@@ -272,17 +280,17 @@ def _cached_set(key: str, val: Any):
 
 def _is_garbage(name: str, types: List[str]) -> bool:
     """Return True if the place is clearly NOT a green space."""
+    types = types or []
     name_lower = name.lower()
 
-    # Check excluded types
-    if any(t in EXCLUDED_TYPES for t in types):
-        # Exception: if also typed as "park", keep it
-        if "park" not in types and "national_park" not in types:
-            return True
-
-    # Check garbage name keywords
+    # Check garbage name keywords FIRST — always applies, even when typed as "park"
     for kw in GARBAGE_NAME_KEYWORDS:
         if kw in name_lower:
+            return True
+
+    # Check excluded types (park-type exemption: store+park can still be a real park)
+    if any(t in EXCLUDED_TYPES for t in types):
+        if "park" not in types and "national_park" not in types:
             return True
 
     return False
@@ -290,6 +298,7 @@ def _is_garbage(name: str, types: List[str]) -> bool:
 
 def _is_green_space(name: str, types: List[str]) -> bool:
     """Return True if the place is plausibly a green space."""
+    types = types or []
     # Has an explicit green type
     green_types = {"park", "national_park", "campground"}
     if any(t in green_types for t in types):
@@ -391,8 +400,10 @@ def find_green_spaces(
         types = place.get("types", [])
 
         if _is_garbage(name, types):
+            logger.debug("Filtered (garbage): %s [types=%s]", name, types)
             continue
         if not _is_green_space(name, types):
+            logger.debug("Filtered (not green): %s [types=%s]", name, types)
             continue
 
         filtered.append(place)

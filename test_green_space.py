@@ -115,6 +115,30 @@ class TestGarbageFilter(unittest.TestCase):
         self.assertIn("Riverside Park", names)
         self.assertNotIn("Sam's Club", names)
 
+    def test_con_ed_soccer_is_garbage_even_with_park_type(self):
+        """NES-52: Sports/corporate facilities typed as 'park' are filtered by name."""
+        self.assertTrue(_is_garbage("Con Ed FIAO Soccer", ["park", "point_of_interest"]))
+
+    def test_sports_facility_is_garbage(self):
+        """Sports facilities are garbage even when Google types them as park."""
+        self.assertTrue(_is_garbage("Little League Baseball Field", ["park"]))
+        self.assertTrue(_is_garbage("Corporate Athletic Complex", ["park"]))
+
+    def test_field_removed_from_green_keywords(self):
+        """'field' removed from GREEN_NAME_KEYWORDS — Fairfield/Springfield no longer match."""
+        self.assertFalse(_is_green_space("Fairfield", ["establishment", "point_of_interest"]))
+
+    def test_athletic_park_filtered_by_design(self):
+        """Intentional: 'Athletic Park' is filtered — parent park surfaces via its own place_id."""
+        self.assertTrue(_is_garbage("Athletic Park", ["park"]))
+
+    def test_none_types_does_not_crash(self):
+        """Guard: Google Places can return null types."""
+        self.assertFalse(_is_garbage("Central Park", None))
+        # "Central Park" still matches via name keyword — just verify no crash
+        _is_green_space("Central Park", None)
+        self.assertFalse(_is_green_space("Unknown Place", None))
+
 
 class TestTrailKeywordInclusion(unittest.TestCase):
     """Test 2: A trail/greenway entity is included even without strict 'park' type."""
