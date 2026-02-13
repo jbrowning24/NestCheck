@@ -82,9 +82,14 @@ limiter = Limiter(
     app=app,
     default_limits=[RATE_LIMIT_DEFAULT],
     storage_uri="memory://",
-    request_filter=lambda: _is_builder(request),
 )
 logging.getLogger("flask-limiter").setLevel(logging.WARNING)
+
+
+@limiter.request_filter
+def _builder_bypass():
+    """Exempt builder-mode requests from all rate limits."""
+    return _is_builder(request)
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
