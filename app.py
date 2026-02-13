@@ -1,4 +1,5 @@
 import os
+import sys
 import io
 import csv
 import logging
@@ -55,6 +56,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
+if (not app.config['SECRET_KEY'] or app.config['SECRET_KEY'] == 'nestcheck-dev-key') and os.environ.get('FLASK_DEBUG') != '1':
+    print("FATAL: SECRET_KEY is not set. Refusing to start with insecure default.", file=sys.stderr)
+    print("Set SECRET_KEY in your environment or .env file.", file=sys.stderr)
+    sys.exit(1)
 
 # Proxy fix — Railway (and most PaaS) run behind a reverse proxy that sets
 # X-Forwarded-For.  ProxyFix rewrites request.remote_addr to the real
