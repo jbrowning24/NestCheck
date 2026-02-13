@@ -65,6 +65,7 @@
   /* Accent */
   --color-amber: #d97706;
   --color-amber-border: #f59e0b;
+  --color-builder-accent: #fbbf24;
 
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -113,6 +114,7 @@ nav a.nav-link {
   margin-left: 20px;
 }
 nav a.nav-link:hover { color: var(--color-primary); }
+nav a.nav-link--builder { color: var(--color-builder-accent); }
 
 /* --- Footer --- */
 footer {

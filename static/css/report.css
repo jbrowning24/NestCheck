@@ -175,7 +175,7 @@
   border-radius: var(--radius-md);
   margin-bottom: 8px;
 }
-.proximity-neutral { background: #f8f9fa; border-left: 3px solid var(--color-border-muted); }
+.proximity-neutral { background: var(--color-surface-subtle); border-left: 3px solid var(--color-border-muted); }
 .proximity-notable { background: var(--color-warning-surface); border-left: 3px solid var(--color-amber-border); }
 .proximity-very_close { background: var(--color-danger-bg); border-left: 3px solid var(--color-danger); }
 .proximity-name {
@@ -469,7 +469,7 @@
   text-align: right;
 }
 .map-placeholder {
-  background: #f8f9fa;
+  background: var(--color-surface-subtle);
   min-height: 120px;
   display: flex;
   align-items: center;
