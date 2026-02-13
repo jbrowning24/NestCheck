@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NestCheck{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  {% block extra_css %}{% endblock %}
+  {% block head_extra %}{% endblock %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+
+<nav>
+  {% block nav_content %}
+    <a href="/" class="logo">Nest<span>Check</span></a>
+    <div>
+      {% block nav_links %}{% endblock %}
+    </div>
+  {% endblock %}
+</nav>
+
+{% block content %}{% endblock %}
+
+{% block footer %}
+<footer>
+  NestCheck &middot; Decision support for families optimizing daily life.
+</footer>
+{% endblock %}
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

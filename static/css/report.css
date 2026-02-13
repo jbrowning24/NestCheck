@@ -1,0 +1,543 @@
+/* ================================================================
+   report.css — Shared result/report styles
+   Used by index.html (result view) and snapshot.html.
+   Loaded after base.css.
+   ================================================================ */
+
+/* --- Report Container --- */
+.report {
+  max-width: 800px;
+  margin: 30px auto 60px;
+  padding: 0 24px;
+}
+
+/* --- Verdict Header --- */
+.verdict-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border-muted);
+}
+.verdict-address {
+  font-size: 0.9em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 16px;
+}
+.score-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.score-number {
+  font-size: 3em;
+  font-weight: 700;
+  color: var(--color-text-strong);
+  line-height: 1;
+}
+.score-band {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--color-text-heading);
+}
+.score-scale {
+  font-size: 0.85em;
+  color: var(--color-text-faintest);
+}
+.dimension-list {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: 16px;
+}
+.dimension-row {
+  display: flex;
+  align-items: baseline;
+  padding: 6px 0;
+  gap: 12px;
+}
+.dimension-name {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-size: 0.9em;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.dimension-summary {
+  color: var(--color-text-dim);
+  font-size: 0.9em;
+  flex: 1;
+}
+.dimension-score {
+  font-weight: 600;
+  color: var(--color-text-heading);
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+/* --- Report Section --- */
+.report-section {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card);
+}
+.report-section h2 {
+  font-size: 1.15em;
+  color: var(--color-primary-dark);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-bg);
+}
+.section-empty {
+  color: var(--color-text-faint);
+  font-style: italic;
+  font-size: 0.92em;
+}
+
+/* --- Collapsible Sections --- */
+.collapsible-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.collapsible-toggle h2 { cursor: pointer; flex: 1; }
+.collapse-icon {
+  font-size: 0.85em;
+  color: var(--color-text-faint);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.collapsible-body {
+  max-height: 2000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.collapsible-body.collapsed {
+  max-height: 0;
+}
+
+/* --- Place Items --- */
+.place-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.place-item:last-child { border-bottom: none; }
+.place-name { font-weight: 600; color: var(--color-text); }
+.place-meta { font-size: 0.88em; color: var(--color-text-lighter); margin-top: 2px; }
+.place-time {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--color-primary);
+  white-space: nowrap;
+  padding-left: 16px;
+}
+
+/* --- Check Items --- */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.check-row:last-child { border-bottom: none; }
+.check-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-right: 12px;
+  margin-top: 1px;
+}
+.check-pass { background: var(--color-pass-bg); color: var(--color-pass-text); }
+.check-fail { background: var(--color-fail-bg); color: var(--color-fail-text); }
+.check-unknown { background: var(--color-warning-bg); color: var(--color-warning-text); }
+.check-text { flex: 1; }
+.check-label { font-weight: 600; font-size: 0.95em; color: var(--color-text); }
+.check-detail { font-size: 0.88em; color: var(--color-text-light); }
+
+/* --- Proximity Band Items --- */
+.proximity-item {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+.proximity-neutral { background: #f8f9fa; border-left: 3px solid var(--color-border-muted); }
+.proximity-notable { background: var(--color-warning-surface); border-left: 3px solid var(--color-amber-border); }
+.proximity-very_close { background: var(--color-danger-bg); border-left: 3px solid var(--color-danger); }
+.proximity-name {
+  font-weight: 600;
+  font-size: 0.95em;
+  color: var(--color-text-strong);
+}
+.proximity-detail {
+  color: var(--color-text-dim);
+  font-size: 0.9em;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* --- Scoring Explanation / How We Score --- */
+.scoring-explanation {
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.section-insight {
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.band-table {
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.band-row {
+  display: flex;
+  gap: 16px;
+  padding: 5px 0;
+  font-size: 0.88em;
+}
+.band-range {
+  font-weight: 600;
+  color: var(--color-primary);
+  min-width: 60px;
+}
+.band-label {
+  color: var(--color-text-muted);
+}
+.scoring-note {
+  font-size: 0.85em;
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+/* --- Missing Info --- */
+.missing-section {
+  background: var(--color-warning-surface);
+  border: 1px solid var(--color-warning-border);
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+.missing-section h2 {
+  color: var(--color-warning-text);
+  border-bottom-color: var(--color-warning-border);
+}
+.missing-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 0;
+  gap: 10px;
+}
+.missing-bullet {
+  color: var(--color-amber);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.missing-text { font-size: 0.92em; color: #78350f; }
+
+/* --- Park Subscores --- */
+.subscore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.subscore-card {
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+.subscore-label {
+  font-size: 0.78em;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.subscore-label .est { color: var(--color-amber); }
+.subscore-value {
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  font-size: 1em;
+}
+.subscore-reason {
+  font-size: 0.78em;
+  color: var(--color-text-faint);
+  margin-top: 2px;
+}
+
+/* --- Hub Row (Transit) --- */
+.hub-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.hub-row:last-child { border-bottom: none; }
+.hub-info { flex: 1; }
+.hub-name { font-weight: 600; font-size: 0.95em; color: var(--color-text); }
+.hub-detail { font-size: 0.85em; color: var(--color-text-lighter); margin-top: 2px; }
+.hub-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 16px;
+}
+.hub-time { font-weight: 600; color: var(--color-primary); font-size: 0.95em; white-space: nowrap; }
+
+/* --- Walk Score Pills --- */
+.walkscore-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
+}
+.walkscore-pill {
+  flex: 1;
+  min-width: 100px;
+  background: var(--color-surface-subtle);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.walkscore-pill .ws-label {
+  font-size: 0.72em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.walkscore-pill .ws-value {
+  font-size: 1.5em;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+.walkscore-pill .ws-desc {
+  font-size: 0.78em;
+  color: var(--color-text-light);
+}
+
+/* --- Neighborhood Cards --- */
+.neighborhood-category {
+  margin-bottom: 20px;
+}
+.neighborhood-category:last-child { margin-bottom: 0; }
+.category-label {
+  font-size: 0.82em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+}
+.place-cards {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.place-card {
+  flex: 0 0 auto;
+  width: 160px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-card);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.place-card .place-name {
+  font-weight: 600;
+  font-size: 0.88em;
+  color: var(--color-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-name a {
+  color: inherit;
+  text-decoration: none;
+}
+.place-name a:hover {
+  text-decoration: underline;
+}
+.place-card .place-meta {
+  font-size: 0.8em;
+  color: var(--color-text-lighter);
+  margin-top: 2px;
+}
+.place-card .place-rating {
+  color: var(--color-amber);
+  font-weight: 600;
+}
+.place-card .place-reviews {
+  color: var(--color-text-disabled);
+  margin-left: 2px;
+}
+.place-card .place-time {
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+/* --- Share Bar (structural — page-specific overrides in index.css / snapshot.css) --- */
+.share-bar {
+  max-width: 800px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.88em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.share-btn:hover { background: var(--color-primary-dark); }
+.share-btn.copied { background: var(--color-pass-text); }
+
+/* --- Disclaimer --- */
+.disclaimer {
+  max-width: 800px;
+  margin: 0 auto 40px;
+  padding: 20px 24px;
+  font-size: 0.82em;
+  color: var(--color-text-disabled);
+  line-height: 1.6;
+}
+.disclaimer strong { color: var(--color-text-lighter); }
+
+/* --- Section Label (small uppercase muted label above a sub-section) --- */
+.section-label {
+  font-size: 0.82em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+/* --- Layout-hack extraction classes (used in _result_sections.html) --- */
+.map-container {
+  text-align: center;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+.map-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.map-attribution {
+  font-size: 0.75em;
+  color: var(--color-text-faintest);
+  padding: 8px;
+  text-align: right;
+}
+.map-placeholder {
+  background: #f8f9fa;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faintest);
+  border-radius: var(--radius-md);
+  font-size: 0.9em;
+}
+.hidden { display: none; }
+.text-faint-sm {
+  font-size: 0.82em;
+  color: var(--color-text-faint);
+}
+.park-highlight { margin-bottom: 16px; }
+.place-item--no-border { border-bottom: none; padding-bottom: 4px; }
+.text-right { text-align: right; }
+.park-daily-value {
+  font-size: 0.82em;
+  color: var(--color-text-light);
+  margin-top: 2px;
+}
+.osm-note {
+  margin-top: 8px;
+  font-size: 0.78em;
+  color: var(--color-text-faint);
+}
+.subsection-divider {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+.place-name--light { font-weight: 500; }
+.badge--inline { margin-left: 6px; }
+.check-explanation {
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  font-size: 0.85em;
+}
+.share-btn--secondary {
+  text-decoration: none;
+  background: var(--color-text-heading);
+}
+.share-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* --- Responsive (shared between index and snapshot) --- */
+@media (max-width: 640px) {
+  .verdict-card { padding: 20px 16px; }
+  .report-section { padding: 20px; }
+  .dimension-row { flex-wrap: wrap; }
+  .dimension-name { min-width: 100%; }
+  .dimension-summary { min-width: 0; }
+  .subscore-grid { grid-template-columns: 1fr 1fr; }
+  .place-cards { gap: 8px; }
+  .place-card { width: 140px; padding: 12px; }
+  /* Bug fix: hub-row stacking was missing from index.html */
+  .hub-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .hub-right { padding-left: 0; }
+}
+
+/* --- Print (shared) --- */
+@media print {
+  nav, .share-bar, footer { display: none; }
+  body { background: var(--color-surface); }
+  .report { margin: 0 auto; }
+  .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  .verdict-card { box-shadow: none; border: 1px solid #ddd; }
+}

@@ -11,6 +11,7 @@ from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response
 )
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
@@ -51,6 +52,11 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
+
+# CSRF protection — validates X-CSRFToken header on all POST requests.
+# Token is rendered into a <meta> tag in templates; JS reads it and sends
+# as a header on every fetch() call.
+csrf = CSRFProtect(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1364,6 +1370,7 @@ def create_checkout():
 # ---------------------------------------------------------------------------
 
 @app.route("/webhook/stripe", methods=["POST"])
+@csrf.exempt  # Server-to-server; Stripe signs payloads with its own webhook secret.
 def stripe_webhook():
     """Receive Stripe webhook events (e.g. checkout.session.completed).
 

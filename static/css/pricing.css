@@ -1,0 +1,111 @@
+/* ================================================================
+   pricing.css — Pricing page styles
+   Loaded by pricing.html after base.css.
+   ================================================================ */
+
+.pricing-page {
+  max-width: 700px;
+  margin: 60px auto;
+  padding: 0 24px;
+  text-align: center;
+}
+.pricing-page h1 {
+  font-size: 2.2em;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin-bottom: 12px;
+}
+.pricing-page .sub {
+  color: var(--color-text-light);
+  font-size: 1.05em;
+  margin-bottom: 40px;
+}
+
+.price-card {
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 40px;
+  box-shadow: var(--shadow-elevated);
+  border: 2px solid var(--color-primary);
+  margin-bottom: 32px;
+}
+.price-tag {
+  font-size: 3em;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+.price-tag .per {
+  font-size: 0.35em;
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+.price-desc {
+  color: var(--color-text-muted);
+  margin: 12px 0 24px;
+  font-size: 1em;
+}
+.price-features {
+  list-style: none;
+  text-align: left;
+  max-width: 380px;
+  margin: 0 auto 28px;
+}
+.price-features li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 0.95em;
+  color: #444;
+}
+.price-features li::before {
+  content: "\2713";
+  color: var(--color-primary);
+  font-weight: 700;
+  margin-right: 10px;
+}
+.price-btn {
+  display: inline-block;
+  padding: 16px 40px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border-radius: 10px;
+  font-size: 1.05em;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.price-btn:hover { background: var(--color-primary-dark); }
+
+.cta-flow {
+  margin-top: 20px;
+  font-size: 0.88em;
+  color: var(--color-text-faint);
+}
+.cta-flow strong { color: var(--color-text-muted); }
+
+.coming-soon {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border);
+}
+.coming-soon h3 {
+  font-size: 1.05em;
+  color: var(--color-primary-dark);
+  margin-bottom: 8px;
+}
+.coming-soon p {
+  color: var(--color-text-lighter);
+  font-size: 0.92em;
+}
+
+.note {
+  font-size: 0.85em;
+  color: var(--color-text-disabled);
+  margin-top: 30px;
+}
+
+/* Pricing page needs extra spacing above footer */
+footer {
+  margin-top: 60px;
+}

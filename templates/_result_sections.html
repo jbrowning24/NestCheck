@@ -42,24 +42,17 @@
 
   {# ── 2. NEIGHBORHOOD MAP ───────────────────────────────────── #}
   {% if result.neighborhood_map is defined and result.neighborhood_map %}
-  <div id="neighborhood-map" class="report-section"
-       style="text-align: center; padding: 0; overflow: hidden;
-              border-radius: 8px;">
+  <div id="neighborhood-map" class="report-section map-container">
     <img src="data:image/png;base64,{{ result.neighborhood_map }}"
          alt="Neighborhood map showing nearby amenities"
-         style="width: 100%; height: auto; display: block;"
+         class="map-image"
          loading="lazy">
-    <div style="font-size: 0.75em; color: #94a3b8; padding: 8px;
-                text-align: right;">
+    <div class="map-attribution">
       Map data &copy; OpenStreetMap contributors
     </div>
   </div>
   {% else %}
-  <div id="neighborhood-map" class="report-section"
-       style="background: #f8f9fa; min-height: 120px;
-              display: flex; align-items: center;
-              justify-content: center; color: #94a3b8;
-              border-radius: 8px; font-size: 0.9em;">
+  <div id="neighborhood-map" class="report-section map-placeholder">
     Map not available for this evaluation
   </div>
   {% endif %}
@@ -117,7 +110,7 @@
 
   </div>
   {% else %}
-  <div id="your-neighborhood" class="report-section" style="display: none;">
+  <div id="your-neighborhood" class="report-section hidden">
     {# Fallback for old snapshots without neighborhood_places #}
   </div>
   {% endif %}
@@ -133,7 +126,7 @@
     {# Primary Transit Node — rail stations, or bus stop fallback #}
     {% if result.urban_access and result.urban_access.primary_transit %}
       {% set pt = result.urban_access.primary_transit %}
-      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
+      <div class="section-label">Nearest Transit</div>
       <div class="hub-row">
         <div class="hub-info">
           <div class="hub-name">{{ pt.name }}</div>
@@ -146,12 +139,12 @@
         <div class="hub-right">
           <span class="hub-time">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
           {% if pt.drive_time_min %}
-            <span style="font-size: 0.82em; color: #888;">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
+            <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
           {% endif %}
         </div>
       </div>
     {% elif result.transit_access and result.transit_access.primary_stop %}
-      <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Nearest Transit</div>
+      <div class="section-label">Nearest Transit</div>
       <div class="hub-row">
         <div class="hub-info">
           <div class="hub-name">{{ result.transit_access.primary_stop }}</div>
@@ -222,8 +215,8 @@
 
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
-      <div style="margin-bottom: 16px;">
-        <div class="place-item" style="border-bottom: none; padding-bottom: 4px;">
+      <div class="park-highlight">
+        <div class="place-item place-item--no-border">
           <div>
             <div class="place-name">{{ park.name }}</div>
             <div class="place-meta">
@@ -232,9 +225,9 @@
               {% if park.types_display %} &middot; {{ park.types_display }}{% endif %}
             </div>
           </div>
-          <div style="text-align: right;">
+          <div class="text-right">
             <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
-            <div style="font-size: 0.82em; color: #666; margin-top: 2px;">
+            <div class="park-daily-value">
               Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
             </div>
           </div>
@@ -257,7 +250,7 @@
 
         {# OSM data note #}
         {% if park.osm_enriched %}
-          <div style="margin-top: 8px; font-size: 0.78em; color: #888;">
+          <div class="osm-note">
             OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
             {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
             {% if park.osm_has_trail %} &middot; trail detected{% endif %}
@@ -271,12 +264,12 @@
 
     {# Other nearby green spaces #}
     {% if result.green_escape and result.green_escape.nearby_green_spaces %}
-      <div style="margin-top: 8px; padding-top: 12px; border-top: 1px solid #f0f0f0;">
-        <div style="font-size: 0.82em; color: #888; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px;">Other nearby green spaces</div>
+      <div class="subsection-divider">
+        <div class="section-label">Other nearby green spaces</div>
         {% for space in result.green_escape.nearby_green_spaces[:5] %}
           <div class="place-item">
             <div>
-              <div class="place-name" style="font-weight: 500;">
+              <div class="place-name place-name--light">
                 {{ space.name }}
                 {# Distance-based label: ≤10 min Very Close, 11-20 Walkable, 21-30 Moderate, >30 Drive Only #}
                 {% if space.walk_time_min <= 10 %}
@@ -288,7 +281,7 @@
                 {% else %}
                   {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
                 {% endif %}
-                <span class="badge {{ dist_badge }}" style="margin-left: 6px;">{{ dist_label }}</span>
+                <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>
               </div>
               <div class="place-meta">
                 {% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}
@@ -332,7 +325,7 @@
                 <div class="check-label">{{ pc.display_name }}</div>
                 <div class="check-detail">{{ pc.headline }}</div>
                 {% if pc.explanation and pc.result_type != "CLEAR" %}
-                  <div class="check-detail" style="color: #555; margin-top: 4px; font-size: 0.85em;">{{ pc.explanation }}</div>
+                  <div class="check-detail check-explanation">{{ pc.explanation }}</div>
                 {% endif %}
               </div>
             </div>
@@ -397,8 +390,8 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span id="shareBtnText">Copy share link</span>
     </button>
-    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn" style="text-decoration: none; background: #334155;">JSON</a>
-    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn" style="text-decoration: none; background: #334155;">CSV</a>
+    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
+    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
   </div>
   {% endif %}
 

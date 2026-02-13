@@ -1,163 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NestCheck — Pricing</title>
-  <style>
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
-      color: #1a1a2e;
-      background: #f0f2f5;
-    }
-    nav {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    nav .logo {
-      font-size: 1.35em;
-      font-weight: 700;
-      color: #16213e;
-      text-decoration: none;
-    }
-    nav .logo span { color: #0f3460; }
-    nav a.nav-link {
-      color: #555;
-      text-decoration: none;
-      font-size: 0.95em;
-      font-weight: 500;
-      margin-left: 20px;
-    }
-    nav a.nav-link:hover { color: #0f3460; }
+{% extends "_base.html" %}
 
-    .pricing-page {
-      max-width: 700px;
-      margin: 60px auto;
-      padding: 0 24px;
-      text-align: center;
-    }
-    .pricing-page h1 {
-      font-size: 2.2em;
-      font-weight: 800;
-      color: #16213e;
-      margin-bottom: 12px;
-    }
-    .pricing-page .sub {
-      color: #666;
-      font-size: 1.05em;
-      margin-bottom: 40px;
-    }
+{% block title %}NestCheck — Pricing{% endblock %}
 
-    .price-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 40px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-      border: 2px solid #0f3460;
-      margin-bottom: 32px;
-    }
-    .price-tag {
-      font-size: 3em;
-      font-weight: 800;
-      color: #0f3460;
-    }
-    .price-tag .per {
-      font-size: 0.35em;
-      font-weight: 500;
-      color: #888;
-    }
-    .price-desc {
-      color: #555;
-      margin: 12px 0 24px;
-      font-size: 1em;
-    }
-    .price-features {
-      list-style: none;
-      text-align: left;
-      max-width: 380px;
-      margin: 0 auto 28px;
-    }
-    .price-features li {
-      padding: 8px 0;
-      border-bottom: 1px solid #f0f0f0;
-      font-size: 0.95em;
-      color: #444;
-    }
-    .price-features li::before {
-      content: "\2713";
-      color: #0f3460;
-      font-weight: 700;
-      margin-right: 10px;
-    }
-    .price-btn {
-      display: inline-block;
-      padding: 16px 40px;
-      background: #0f3460;
-      color: #fff;
-      border-radius: 10px;
-      font-size: 1.05em;
-      font-weight: 700;
-      text-decoration: none;
-      transition: background 0.2s;
-    }
-    .price-btn:hover { background: #16213e; }
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+{% endblock %}
 
-    .cta-flow {
-      margin-top: 20px;
-      font-size: 0.88em;
-      color: #888;
-    }
-    .cta-flow strong { color: #555; }
+{% block nav_links %}
+  <a href="/" class="nav-link">Home</a>
+  <a href="/pricing" class="nav-link">Pricing</a>
+{% endblock %}
 
-    .coming-soon {
-      background: #fff;
-      border-radius: 12px;
-      padding: 28px;
-      margin-bottom: 24px;
-      border: 1px solid #e0e0e0;
-    }
-    .coming-soon h3 {
-      font-size: 1.05em;
-      color: #16213e;
-      margin-bottom: 8px;
-    }
-    .coming-soon p {
-      color: #777;
-      font-size: 0.92em;
-    }
-
-    .note {
-      font-size: 0.85em;
-      color: #999;
-      margin-top: 30px;
-    }
-
-    footer {
-      border-top: 1px solid #e0e0e0;
-      padding: 24px;
-      text-align: center;
-      font-size: 0.85em;
-      color: #999;
-      background: #fff;
-      margin-top: 60px;
-    }
-  </style>
-</head>
-<body>
-
-<nav>
-  <a href="/" class="logo">Nest<span>Check</span></a>
-  <div>
-    <a href="/" class="nav-link">Home</a>
-    <a href="/pricing" class="nav-link">Pricing</a>
-  </div>
-</nav>
+{% block content %}
 
 <div class="pricing-page">
   <h1>Simple pricing.</h1>
@@ -202,9 +56,4 @@
   </p>
 </div>
 
-<footer>
-  NestCheck &middot; Decision support for families optimizing daily life.
-</footer>
-
-</body>
-</html>
+{% endblock %}
