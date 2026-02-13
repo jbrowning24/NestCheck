@@ -64,6 +64,23 @@ def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str 
     Run a single evaluation job: evaluate, save snapshot, complete or fail.
     Updates current_stage in the DB as evaluation progresses.
     """
+    # Push Sentry scope with job context so breadcrumbs/errors have tags
+    if os.environ.get("SENTRY_DSN"):
+        try:
+            import sentry_sdk
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("job_id", job_id)
+                scope.set_tag("request_id", request_id or "")
+                scope.set_tag("address", (address or "")[:200])
+                _run_job_impl(job_id, address, visitor_id, request_id)
+            return
+        except Exception:
+            raise  # Re-raise so _worker_loop can handle and capture
+    _run_job_impl(job_id, address, visitor_id, request_id)
+
+
+def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id: str = None) -> None:
+    """Inner job execution (called with or without Sentry scope)."""
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
         fail_job(job_id, "GOOGLE_MAPS_API_KEY not configured")
@@ -149,6 +166,16 @@ def _worker_loop() -> None:
                 _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id)
             except Exception as e:
                 logger.exception("[worker] Unhandled error in job %s", job_id)
+                if os.environ.get("SENTRY_DSN"):
+                    try:
+                        import sentry_sdk
+                        with sentry_sdk.push_scope() as scope:
+                            scope.set_tag("job_id", job_id)
+                            scope.set_tag("request_id", request_id or "")
+                            scope.set_tag("address", (address or "")[:200])
+                            sentry_sdk.capture_exception(e)
+                    except Exception:
+                        pass
                 fail_job(job_id, str(e))
                 _reissue_payment_if_needed(job_id)
         else:

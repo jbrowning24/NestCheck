@@ -54,6 +54,57 @@ except ImportError:
 
 load_dotenv()
 
+# ---------------------------------------------------------------------------
+# Sentry error tracking — gated on SENTRY_DSN; silent when unset (local dev)
+# ---------------------------------------------------------------------------
+_sentry_dsn = os.environ.get("SENTRY_DSN")
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    import requests.exceptions
+
+    def _sentry_before_send(event, hint):
+        """Demote expected failures to breadcrumbs; only unexpected errors become Sentry events."""
+        exc_info = hint.get("exc_info")
+        if exc_info:
+            exc_type, exc_value, _ = exc_info
+            msg = str(exc_value) if exc_value else ""
+            # Geocoding failed for bad address (ZERO_RESULTS, etc.)
+            if exc_type is ValueError and "Geocoding failed" in msg:
+                sentry_sdk.add_breadcrumb(
+                    category="geocoding",
+                    message=msg,
+                    level="warning",
+                )
+                return None
+            # Overpass timeouts / request failures
+            if exc_type is not None and issubclass(exc_type, requests.exceptions.RequestException):
+                sentry_sdk.add_breadcrumb(
+                    category="overpass",
+                    message=msg,
+                    level="warning",
+                )
+                return None
+            # Rate limit 429 from non-requests HTTP clients (requests 429s
+            # already caught above as RequestException subclass)
+            if hasattr(exc_value, "response") and getattr(exc_value.response, "status_code", None) == 429:
+                sentry_sdk.add_breadcrumb(
+                    category="rate_limit",
+                    message=msg or "HTTP 429",
+                    level="warning",
+                )
+                return None
+        return event
+
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.0,
+        release=os.environ.get("RENDER_GIT_COMMIT"),
+        environment=os.environ.get("RENDER_ENVIRONMENT", "production"),
+        before_send=_sentry_before_send,
+    )
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 if (not app.config['SECRET_KEY'] or app.config['SECRET_KEY'] == 'nestcheck-dev-key') and os.environ.get('FLASK_DEBUG') != '1':

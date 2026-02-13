@@ -89,6 +89,7 @@ The app will be available at `http://localhost:5001`.
 | `GOOGLE_MAPS_API_KEY` | Yes | Google Maps Platform API key |
 | `WALKSCORE_API_KEY` | No | Walk Score API key (for walk/transit/bike scores) |
 | `SECRET_KEY` | Yes (production) | Flask session secret. Required for production; local dev falls back to default when `FLASK_DEBUG=1` |
+| `SENTRY_DSN` | No | Sentry DSN for error tracking. When unset, no errors are reported (silent in local dev) |
 | `PORT` | No | Port to bind (default: 5001) |
 | `FLASK_DEBUG` | No | Set to "1" for debug mode |
 
