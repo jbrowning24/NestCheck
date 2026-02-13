@@ -334,10 +334,24 @@ def _nearest_walk_time(places: list) -> int | None:
     return min(times) if times else None
 
 
+def _join_labels(items: list[str], conjunction: str = "and") -> str:
+    """Join a list of strings with commas and a final conjunction.
+
+    Examples:
+        ["cafés"]                         → "cafés"
+        ["cafés", "grocery stores"]       → "cafés and grocery stores"
+        ["cafés", "grocery stores", "gyms"] → "cafés, grocery stores, and gyms"
+    """
+    if len(items) <= 2:
+        return f" {conjunction} ".join(items)
+    return f", ".join(items[:-1]) + f", {conjunction} " + items[-1]
+
+
 def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
     """Generate a plain-English insight for the Your Neighborhood section.
 
-    Synthesizes across coffee, grocery, and fitness (not parks).
+    Synthesizes across all four neighborhood categories: coffee, grocery,
+    fitness, and parks.
     """
     if not neighborhood:
         return None
@@ -362,6 +376,12 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
             "places": neighborhood.get("fitness") or [],
             "score": tier2.get("Fitness & Recreation", {}).get("points", 0),
         },
+        "parks": {
+            "label": "parks",
+            "label_plural": "parks and green spaces",
+            "places": neighborhood.get("parks") or [],
+            "score": tier2.get("Parks & Green Space", {}).get("points", 0),
+        },
     }
 
     # Classify each dimension
@@ -384,10 +404,9 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
     strong.sort(key=lambda d: -d["score"])
 
     # All strong
-    if len(strong) == 3:
+    if len(strong) == len(dims):
         lead = strong[0]
-        others = [d["label_plural"] for d in strong[1:]]
-        also_clause = " and ".join(others)
+        also_clause = _join_labels([d["label_plural"] for d in strong[1:]])
         return (
             f"You have solid options for everyday errands on foot — "
             f"{lead['nearest_name']} is {lead['nearest_time']} min away, "
@@ -395,23 +414,29 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
         )
 
     # All weak
-    if len(weak) == 3:
+    if len(weak) == len(dims):
         # Distinguish "nothing found" from "found but far"
         has_any = any(d["places"] for d in weak)
+        all_labels = _join_labels([d["label_plural"] for d in weak], "or")
         if not has_any:
             return (
-                "We didn't find grocery stores, cafés, or fitness options "
-                "within reach of this address."
+                f"We didn't find {all_labels} "
+                f"within reach of this address."
             )
+        all_labels_and = _join_labels([d["label_plural"] for d in weak])
         return (
-            "Everyday errands would likely mean driving — grocery, coffee, "
-            "and fitness options are all a fair distance from this address."
+            f"Everyday errands would likely mean driving — "
+            f"{all_labels_and} are all a fair distance from this address."
         )
 
     # Mixed: at least one strong and at least one weak
     if strong and weak:
         lead = strong[0]
-        worst = weak[0]
+        # Defensive: exclude lead from weak in case classification changes
+        other_weak = [d for d in weak if d is not lead]
+        worst = other_weak[0] if other_weak else None
+        if not worst:
+            return None
         # Lead with strength
         parts = [
             f"{lead['nearest_name']} is just {lead['nearest_time']} min on foot"
@@ -431,11 +456,12 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
 
         return f"{parts[0]}. On the other hand, {weakness}."
 
-    # One standout, rest middling (no weak)
+    # Strong dims with rest middling (no weak)
     if strong and not weak:
         lead = strong[0]
-        other_labels = [d["label_plural"] for d in middling]
-        other_clause = " and ".join(other_labels)
+        # Exclude lead; include any remaining strong dims + all middling
+        rest = list(strong[1:]) + list(middling)
+        other_clause = _join_labels([d["label_plural"] for d in rest])
         return (
             f"The {lead['label']} scene is a bright spot here, with "
             f"{lead['nearest_name']} {lead['nearest_time']} min on foot. "
@@ -445,8 +471,10 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
     # No strong, mix of middling and weak
     if not strong and weak:
         ok = middling[0] if middling else None
-        worst = weak[0]
-        if ok:
+        # Defensive: exclude ok from weak in case classification changes
+        other_weak = [d for d in weak if d is not ok]
+        worst = other_weak[0] if other_weak else None
+        if ok and worst:
             if not worst["places"]:
                 weakness = f"we didn't find any {worst['label_plural']} nearby"
             else:
@@ -461,11 +489,12 @@ def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
         return None
 
     # All middling — nothing exceptional, nothing terrible
-    if len(middling) == 3:
+    if len(middling) == len(dims):
+        all_labels = _join_labels([d["label_plural"] for d in middling])
         return (
-            "You have some options for daily errands within reach, though "
-            "none are especially close. A short walk or bike ride covers "
-            "the basics."
+            f"You have options for {all_labels} within reach, though "
+            f"none are especially close. A short walk or bike ride covers "
+            f"the basics."
         )
 
     return None
