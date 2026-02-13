@@ -108,6 +108,10 @@ EXCLUDED_TYPES = {
     "veterinary_care",
 }
 
+# Places that are categorically not green spaces, even if Google co-types them as "park".
+# Unlike EXCLUDED_TYPES, these are NOT exempted by park/nature types.
+NON_GREEN_TYPES = {"cemetery", "funeral_home", "golf_course", "gym"}
+
 # Name keywords that indicate a non-green-space (garbage filter)
 GARBAGE_NAME_KEYWORDS = [
     "sam's club", "walmart", "costco", "target", "home depot",
@@ -287,6 +291,10 @@ def _is_garbage(name: str, types: List[str]) -> bool:
     for kw in GARBAGE_NAME_KEYWORDS:
         if kw in name_lower:
             return True
+
+    # Categorically non-green types — no park exemption
+    if any(t in NON_GREEN_TYPES for t in types):
+        return True
 
     # Check excluded types (park-type exemption: store+park can still be a real park)
     if any(t in EXCLUDED_TYPES for t in types):
