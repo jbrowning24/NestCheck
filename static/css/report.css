@@ -519,6 +519,22 @@
 }
 
 /* --- Responsive (shared between index and snapshot) --- */
+
+/* Large tablet / small desktop */
+@media (max-width: 1024px) {
+  .verdict-card { padding: 24px 20px; }
+  .report-section { padding: 22px 24px; }
+}
+
+/* Small tablet */
+@media (max-width: 768px) {
+  .subscore-grid { grid-template-columns: repeat(3, 1fr); }
+  .dimension-row { gap: 8px; }
+  .dimension-name { min-width: 140px; }
+  .place-card { width: 150px; padding: 12px; }
+}
+
+/* Phone */
 @media (max-width: 640px) {
   .verdict-card { padding: 20px 16px; }
   .report-section { padding: 20px; }

@@ -59,6 +59,14 @@
 .snapshot-cta a:hover { background: var(--color-primary-dark); }
 
 /* --- Responsive (snapshot-only) --- */
+
+/* Small tablet — tighten share bar before it stacks at 640px */
+@media (max-width: 768px) {
+  .share-bar { gap: 8px; }
+  .share-btn { padding: 8px 12px; font-size: 0.84em; }
+}
+
+/* Phone */
 @media (max-width: 640px) {
   .share-bar { flex-direction: column; align-items: stretch; }
   .share-btn { justify-content: center; }
