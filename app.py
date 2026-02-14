@@ -972,6 +972,7 @@ def result_to_dict(result):
         ],
         "tier3_bonus_reasons": result.tier3_bonus_reasons,
         "final_score": result.final_score,
+        "model_version": getattr(result, "model_version", ""),
     }
 
     # Neighborhood places — already plain dicts, pass through as-is

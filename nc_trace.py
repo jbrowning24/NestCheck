@@ -71,6 +71,7 @@ class TraceContext:
     request_start: float = field(default_factory=time.time)
     stages: List[StageRecord] = field(default_factory=list)
     api_calls: List[APICallRecord] = field(default_factory=list)
+    model_version: str = ""
     _current_stage: str = ""
 
     # ------------------------------------------------------------------
@@ -171,7 +172,7 @@ class TraceContext:
         else:
             outcome = "success"
 
-        return {
+        result = {
             "trace_id": self.trace_id,
             "total_elapsed_ms": total_elapsed,
             "total_api_calls": len(self.api_calls),
@@ -180,6 +181,9 @@ class TraceContext:
             "stages_errored": len(errored),
             "final_outcome": outcome,
         }
+        if self.model_version:
+            result["model_version"] = self.model_version
+        return result
 
     def log_summary(self):
         """Emit a single structured summary log line."""
