@@ -59,7 +59,7 @@
   padding: 8px;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-elevated);
-  border: 2px solid #e8e8e8;
+  border: 2px solid var(--color-border);
   transition: border-color 0.2s;
 }
 .search-box:focus-within {
@@ -89,7 +89,7 @@
 }
 .search-box button:hover { background: var(--color-primary-dark); }
 .search-box button:disabled {
-  background: #8899aa;
+  background: var(--color-disabled-bg);
   cursor: not-allowed;
 }
 
@@ -115,7 +115,7 @@
 .feature-card {
   background: var(--color-surface);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border-card);
 }
 .feature-card h3 {
@@ -134,7 +134,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-overlay-bg);
   z-index: 1000;
   justify-content: center;
   align-items: center;
@@ -169,7 +169,7 @@
   padding: 16px 20px;
   background: var(--color-danger-bg);
   border: 1px solid var(--color-danger-border);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   color: var(--color-danger-text);
   font-size: 0.95em;
   line-height: 1.5;
@@ -182,7 +182,21 @@
 .error-banner .error-msg {
   display: block;
   font-size: 0.92em;
-  color: #7f1d1d;
+  color: var(--color-danger-text-dark);
+}
+.error-banner .error-ref {
+  margin-top: 6px;
+  font-size: 0.82em;
+  color: var(--color-danger-text);
+}
+.error-diagnostic {
+  max-width: 640px;
+  margin: 0 auto 16px;
+}
+
+/* --- Search Form (result-page variant) --- */
+.search-section--result {
+  margin-top: 24px;
 }
 
 /* --- Share Bar (index variant) --- */

@@ -41,10 +41,10 @@
 {% block scripts %}{% endblock %}
 
 <!-- Cookie Consent Banner -->
-<div id="cookie-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:var(--color-primary-dark); color:#e0e0e0; padding:14px 24px; font-size:14px; z-index:9999; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; box-shadow:0 -2px 8px rgba(0,0,0,0.3);">
+<div id="cookie-banner" class="cookie-banner">
     <span>We use a single cookie to track your evaluation requests. No advertising or third-party tracking.</span>
-    <a href="/privacy#cookies" style="color:#93c5fd; text-decoration:underline; white-space:nowrap;">Learn More</a>
-    <button onclick="acceptCookies()" style="background:#ffffff; color:#16213e; border:none; padding:6px 18px; border-radius:4px; cursor:pointer; font-weight:600; white-space:nowrap;">Accept</button>
+    <a href="/privacy#cookies">Learn More</a>
+    <button onclick="acceptCookies()">Accept</button>
 </div>
 <script>
 function acceptCookies() {

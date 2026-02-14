@@ -62,11 +62,11 @@
       <strong>Could not evaluate address</strong>
       {{ error }}
       {% if request_id %}
-        <div style="margin-top: 6px; font-size: 0.82em; color: #b91c1c;">ref: {{ request_id }}</div>
+        <div class="error-ref">ref: {{ request_id }}</div>
       {% endif %}
     </div>
     {% if is_builder and error_detail %}
-    <details style="max-width: 640px; margin: 0 auto 16px;">
+    <details class="error-diagnostic">
       <summary>Builder diagnostic</summary>
       <pre>{{ error_detail | tojson(indent=2) }}</pre>
     </details>
@@ -113,7 +113,7 @@
 {# ============================================================ #}
 {#                        EVALUATION RESULT                      #}
 {# ============================================================ #}
-<div class="search-section" style="margin-top: 24px;">
+<div class="search-section search-section--result">
   <form method="POST" id="evalForm">
     <div class="search-box">
       <input type="text" name="address" placeholder="Enter any U.S. address..." value="{{ address }}" required>

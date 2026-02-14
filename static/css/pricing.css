@@ -23,7 +23,7 @@
 
 .price-card {
   background: var(--color-surface);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 40px;
   box-shadow: var(--shadow-elevated);
   border: 2px solid var(--color-primary);
@@ -54,7 +54,7 @@
   padding: 8px 0;
   border-bottom: 1px solid var(--color-border-light);
   font-size: 0.95em;
-  color: #444;
+  color: var(--color-text-muted);
 }
 .price-features li::before {
   content: "\2713";
@@ -67,7 +67,7 @@
   padding: 16px 40px;
   background: var(--color-primary);
   color: var(--color-surface);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   font-size: 1.05em;
   font-weight: 700;
   text-decoration: none;

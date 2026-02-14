@@ -55,17 +55,25 @@
   --color-warning-text: #92400e;
   --color-warning-border: #fde68a;
   --color-warning-surface: #fffbeb;
+  --color-warning-text-dark: #78350f;
 
   /* Status: Danger / Error */
   --color-danger: #ef4444;
   --color-danger-bg: #fef2f2;
   --color-danger-border: #fca5a5;
   --color-danger-text: #991b1b;
+  --color-danger-text-dark: #7f1d1d;
 
   /* Accent */
   --color-amber: #d97706;
   --color-amber-border: #f59e0b;
   --color-builder-accent: #fbbf24;
+
+  /* Interactive States */
+  --color-disabled-bg: #8899aa;
+
+  /* Overlay */
+  --color-overlay-bg: rgba(255, 255, 255, 0.92);
 
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -135,6 +143,40 @@ footer {
 .footer-links a:hover {
   color: var(--color-primary);
   text-decoration: underline;
+}
+
+/* --- Cookie Banner --- */
+.cookie-banner {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-primary-dark);
+  color: #e0e0e0;                       /* light gray on dark bg — no token (inverted context) */
+  padding: 14px 24px;
+  font-size: 14px;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+.cookie-banner a {
+  color: #93c5fd;                      /* light blue — inverted context, no matching token */
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.cookie-banner button {
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  border: none;
+  padding: 6px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* --- Badge Utilities --- */
