@@ -1,0 +1,189 @@
+/* ================================================================
+   tokens.css — Design tokens (colors, spacing, typography, radii,
+   shadows, transitions).  Single source of truth for the visual
+   language.  Loaded first by _base.html; all other CSS references
+   these custom properties via var().
+   ================================================================ */
+
+:root {
+
+  /* ---- Colors ------------------------------------------------- */
+
+  /* Brand */
+  --color-primary: #0f3460;
+  --color-primary-dark: #16213e;
+
+  /* Backgrounds */
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8f9fb;
+
+  /* Text — ordered dark to light */
+  --color-text: #1a1a2e;
+  --color-text-strong: #1e293b;
+  --color-text-dark: #333333;
+  --color-text-heading: #334155;
+  --color-text-secondary: #475569;
+  --color-text-muted: #555555;
+  --color-text-dim: #64748b;
+  --color-text-light: #666666;
+  --color-text-lighter: #777777;
+  --color-text-faint: #888888;
+  --color-text-faintest: #94a3b8;
+  --color-text-disabled: #999999;
+
+  /* Borders — ordered dark to light */
+  --color-border: #e0e0e0;
+  --color-border-muted: #e2e8f0;
+  --color-border-card: #eef0f4;
+  --color-border-light: #f5f5f5;
+
+  /* Status: Pass / Good */
+  --color-pass-bg: #d1fae5;
+  --color-pass-text: #065f46;
+
+  /* Status: Fail / Bad */
+  --color-fail-bg: #fee2e2;
+  --color-fail-text: #991b1b;
+
+  /* Status: Borderline */
+  --color-borderline-bg: #fff3e0;
+  --color-borderline-text: #e65100;
+
+  /* Status: OK / Middling */
+  --color-ok-bg: #fff3cd;
+  --color-ok-text: #856404;
+
+  /* Status: Warning */
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
+  --color-warning-border: #fde68a;
+  --color-warning-surface: #fffbeb;
+  --color-warning-text-dark: #78350f;
+
+  /* Status: Danger / Error */
+  --color-danger: #ef4444;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fca5a5;
+  --color-danger-text: #991b1b;
+  --color-danger-text-dark: #7f1d1d;
+
+  /* Accent */
+  --color-amber: #d97706;
+  --color-amber-border: #f59e0b;
+  --color-builder-accent: #fbbf24;
+
+  /* Interactive States */
+  --color-disabled-bg: #8899aa;
+
+  /* Overlay */
+  --color-overlay-bg: rgba(255, 255, 255, 0.92);
+
+  /* ---- Spacing ------------------------------------------------ */
+  /* Named by px equivalent.  Covers every value currently in use
+     across the CSS files.  Adopt gradually — existing hardcoded
+     values continue to work until migrated.                       */
+
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-30: 30px;
+  --space-32: 32px;
+  --space-36: 36px;
+  --space-40: 40px;
+  --space-60: 60px;
+
+  /* ---- Typography --------------------------------------------- */
+
+  /* Font family */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  /* Font sizes — display (large headings, hero, score numbers)
+     Tier spans 2–3 rem.  Responsive hero variants step down per
+     breakpoint; other display sizes are viewport-independent.     */
+  --font-size-3xl: 3rem;       /* score-number, price-tag, 404 h1       */
+  --font-size-2xl: 2.6rem;     /* hero h1 (desktop)                     */
+  --font-size-2xl-2: 2.3rem;   /* hero h1 (tablet ≤1024px)              */
+  --font-size-xl: 2.2rem;      /* pricing h1, legal h1                  */
+  --font-size-xl-2: 2rem;      /* hero h1 (mobile ≤640px)               */
+
+  /* Font sizes — heading (section titles, nav logo, subheadings)
+     Tier spans 1–1.5 rem.                                         */
+  --font-size-lg-2: 1.5rem;    /* walkscore value                       */
+  --font-size-lg: 1.35rem;     /* nav logo                              */
+  --font-size-md-3: 1.15rem;   /* section h2, hero tagline              */
+  --font-size-md-2: 1.1rem;    /* snapshot-cta h3, legal h3, 404 body   */
+  --font-size-md: 1.05rem;     /* loading text, price button            */
+  --font-size-md-sm: 1.02rem;  /* why-block body text                   */
+
+  /* Font sizes — body (base text, nav links, card content)
+     Tier spans 0.88–1 rem.                                        */
+  --font-size-base: 1rem;      /* body text default                     */
+  --font-size-body-2: 0.95rem; /* nav link, feature h3, check label     */
+  --font-size-body-3: 0.92rem; /* error banner, snapshot-cta link       */
+  --font-size-body-4: 0.9rem;  /* verdict address, dimension text       */
+  --font-size-body-5: 0.88rem; /* feature-card p, place-meta, band row  */
+
+  /* Font sizes — small (captions, labels, fine print)
+     Tier spans 0.72–0.85 rem.                                     */
+  --font-size-sm: 0.85rem;     /* footer, collapse icon, scoring note   */
+  --font-size-sm-2: 0.82rem;   /* category label, disclaimer, park text */
+  --font-size-sm-3: 0.8rem;    /* badge, place-card meta                */
+  --font-size-xs: 0.78rem;     /* subscore label/reason, osm note       */
+  --font-size-xs-2: 0.75rem;   /* check icon, map attribution           */
+  --font-size-xs-3: 0.72rem;   /* walkscore pill label                  */
+
+  /* Font sizes — pixel-locked (prevent iOS auto-zoom on focus)    */
+  --font-size-input: 16px;     /* search input (iOS requires ≥16px)     */
+  --font-size-button: 15px;    /* search button                         */
+  --font-size-cookie: 14px;    /* cookie banner text                    */
+
+  /* Font weights */
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Line heights */
+  --line-height-none: 1;
+  --line-height-tight: 1.3;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --line-height-loose: 1.7;
+
+  /* Letter spacing */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-wide: 0.03em;
+  --letter-spacing-wider: 0.04em;
+
+  /* ---- Border Radius ------------------------------------------ */
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* ---- Shadows ------------------------------------------------ */
+
+  --shadow-card: 0 1px 6px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* ---- Transitions -------------------------------------------- */
+
+  --transition-fast: 0.2s ease;
+
+  /* ---- Breakpoints (reference only) --------------------------- */
+  /* CSS custom properties cannot be used in @media queries.
+     Documented here so the canonical values live with the tokens.
+     Mobile:  max-width: 640px   — phones
+     Tablet:  max-width: 768px   — small tablets, iPad portrait
+     Desktop: max-width: 1024px  — large tablets, small desktops  */
+}
