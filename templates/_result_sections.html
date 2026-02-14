@@ -14,14 +14,26 @@
     <div class="verdict-address">{{ result.address }}</div>
 
     {% if show_score %}
+    {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
+    {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      <div class="score-number">{{ result.final_score }}</div>
+      <div class="score-ring-container {{ band_class }}">
+        {% set pct = result.final_score / 100 %}
+        {% set circ = 251.33 %}
+        <svg class="score-ring" viewBox="0 0 100 100">
+          <circle class="score-ring-track" cx="50" cy="50" r="40"
+                  fill="none" stroke-width="8" />
+          <circle class="score-ring-fill" cx="50" cy="50" r="40"
+                  fill="none" stroke-width="8"
+                  stroke-dasharray="{{ circ }}"
+                  stroke-dashoffset="{{ circ * (1 - pct) }}"
+                  stroke-linecap="round"
+                  transform="rotate(-90 50 50)" />
+        </svg>
+        <div class="score-ring-value">{{ result.final_score }}</div>
+      </div>
       <div class="score-details">
-        {% if result.score_band is defined and result.score_band %}
-          <div class="score-band">{{ result.score_band }}</div>
-        {% else %}
-          <div class="score-band">{{ result.verdict }}</div>
-        {% endif %}
+        <div class="score-band {{ band_class }}">{{ band_label }}</div>
         <div class="score-scale">out of 100</div>
       </div>
     </div>
@@ -33,7 +45,12 @@
       <div class="dimension-row">
         <div class="dimension-name">{{ dim.name }}</div>
         <div class="dimension-summary">{{ dim.summary }}</div>
-        <div class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</div>
+        <div class="dimension-indicator">
+          <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
+          <div class="dimension-bar">
+            <div class="dimension-bar-fill" style="width: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -366,13 +383,13 @@
       Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
     </p>
 
-    {# Band thresholds must match SCORE_BANDS in app.py #}
+    {# Band thresholds must match SCORING_MODEL.score_bands in scoring_config.py #}
     <div class="band-table">
-      <div class="band-row"><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
-      <div class="band-row"><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
-      <div class="band-row"><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
-      <div class="band-row"><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
-      <div class="band-row"><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
+      <div class="band-row"><span class="band-dot band-exceptional"></span><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
+      <div class="band-row"><span class="band-dot band-strong"></span><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
+      <div class="band-row"><span class="band-dot band-moderate"></span><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
+      <div class="band-row"><span class="band-dot band-limited"></span><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
+      <div class="band-row"><span class="band-dot band-poor"></span><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
     </div>
 
     <p class="scoring-note">

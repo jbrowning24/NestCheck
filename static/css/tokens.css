@@ -68,6 +68,18 @@
   --color-danger-text: #991b1b;
   --color-danger-text-dark: #7f1d1d;
 
+  /* Score bands (AQI-inspired) */
+  --band-exceptional:       #059669;
+  --band-exceptional-light: #d1fae5;
+  --band-strong:            #16a34a;
+  --band-strong-light:      #dcfce7;
+  --band-moderate:          #eab308;
+  --band-moderate-light:    #fef9c3;
+  --band-limited:           #f97316;
+  --band-limited-light:     #ffedd5;
+  --band-poor:              #ef4444;
+  --band-poor-light:        #fee2e2;
+
   /* Accent */
   --color-amber: #d97706;
   --color-amber-border: #f59e0b;

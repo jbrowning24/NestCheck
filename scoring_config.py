@@ -66,6 +66,7 @@ class ScoreBand:
     """Maps a minimum score threshold to a human-readable band label."""
     threshold: int
     label: str
+    css_class: str = ""
 
 
 @dataclass
@@ -253,10 +254,10 @@ SCORING_MODEL = ScoringModel(
     ),
 
     score_bands=(
-        ScoreBand(85, "Exceptional Daily Fit"),
-        ScoreBand(70, "Strong Daily Fit"),
-        ScoreBand(55, "Moderate — Some Trade-offs"),
-        ScoreBand(40, "Limited — Car Likely Needed"),
-        ScoreBand(0, "Significant Gaps"),
+        ScoreBand(85, "Exceptional Daily Fit", "band-exceptional"),
+        ScoreBand(70, "Strong Daily Fit", "band-strong"),
+        ScoreBand(55, "Moderate — Some Trade-offs", "band-moderate"),
+        ScoreBand(40, "Limited — Car Likely Needed", "band-limited"),
+        ScoreBand(0, "Significant Gaps", "band-poor"),
     ),
 )

@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, present_checks,
-    SCORE_BANDS, get_score_band,
+    get_score_band,
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -289,7 +289,8 @@ def generate_structured_summary(presented_checks: list) -> str:
 def generate_verdict(result_dict):
     """Generate a one-line verdict based on the evaluation result."""
     score = result_dict.get("final_score", 0)
-    band = get_score_band(score)
+    band_info = get_score_band(score)
+    verdict = band_info["label"]
 
     # Append proximity concern suffix when tier1 checks failed
     if not result_dict.get("passed_tier1", False):
@@ -299,9 +300,9 @@ def generate_verdict(result_dict):
             for pc in presented
         )
         if has_confirmed:
-            band += " — has proximity concerns"
+            verdict += " — has proximity concerns"
 
-    return band
+    return verdict
 
 
 def generate_dimension_summaries(result_dict: dict) -> list:
@@ -1264,7 +1265,7 @@ def view_snapshot(snapshot_id):
 
     # Backfill Phase 5 fields for old snapshots
     result = snapshot["result"]
-    if "score_band" not in result:
+    if "score_band" not in result or isinstance(result["score_band"], str):
         result["score_band"] = get_score_band(result.get("final_score", 0))
     if "dimension_summaries" not in result:
         result["dimension_summaries"] = generate_dimension_summaries(result)

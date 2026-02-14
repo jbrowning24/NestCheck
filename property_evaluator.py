@@ -2945,18 +2945,22 @@ def calculate_bonus_reasons(listing: PropertyListing) -> List[str]:
 
 # Band thresholds also rendered in templates/_result_sections.html "How We Score"
 # Sourced from scoring_config; kept as a module-level list for backwards compat
-# with app.py imports.
+# with test imports.
 SCORE_BANDS = [
     (band.threshold, band.label) for band in SCORING_MODEL.score_bands
 ]
 
 
-def get_score_band(score: int) -> str:
-    """Return the band name for a given score."""
-    for threshold, band in SCORE_BANDS:
-        if score >= threshold:
-            return band
-    return SCORE_BANDS[-1][1]
+def get_score_band(score: int) -> dict:
+    """Return band info dict for a given score.
+
+    Returns {"label": str, "css_class": str}.
+    """
+    for band in SCORING_MODEL.score_bands:
+        if score >= band.threshold:
+            return {"label": band.label, "css_class": band.css_class}
+    fallback = SCORING_MODEL.score_bands[-1]
+    return {"label": fallback.label, "css_class": fallback.css_class}
 
 
 # =============================================================================
@@ -3359,7 +3363,7 @@ def format_result(result: EvaluationResult) -> str:
     
     # Final
     lines.append(f"\n{'=' * 70}")
-    lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({get_score_band(result.final_score)})")
+    lines.append(f"LIVABILITY SCORE: {result.final_score}/100 ({get_score_band(result.final_score)['label']})")
     lines.append(f"Tier 3 Bonus: +{result.tier3_total} pts (capped at 100)")
     lines.append("=" * 70)
     
@@ -3559,7 +3563,7 @@ def main():
             ],
             "tier3_bonus_reasons": result.tier3_bonus_reasons,
             "final_score": result.final_score,
-            "score_band": get_score_band(result.final_score),
+            "score_band": get_score_band(result.final_score)["label"],
             "model_version": result.model_version,
         }
         print(json.dumps(output, indent=2))

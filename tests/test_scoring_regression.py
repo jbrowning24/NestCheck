@@ -238,15 +238,17 @@ class TestScoreBands:
         (0, "Significant Gaps"),
     ])
     def test_score_band(self, score, expected_band):
-        assert get_score_band(score) == expected_band
+        result = get_score_band(score)
+        assert result["label"] == expected_band
 
     def test_bands_are_contiguous(self):
         """Every integer score 0-100 should map to some band."""
         for score in range(0, 101):
             band = get_score_band(score)
-            assert band in [b.label for b in SCORING_MODEL.score_bands], (
+            assert band["label"] in [b.label for b in SCORING_MODEL.score_bands], (
                 f"Score {score} returned unknown band: {band}"
             )
+            assert "css_class" in band, f"Score {score} missing css_class"
 
     def test_bands_match_config(self):
         """SCORE_BANDS module-level list matches SCORING_MODEL."""
