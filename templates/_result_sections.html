@@ -228,7 +228,7 @@
           <div class="text-right">
             <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
             <div class="park-daily-value">
-              Daily Value: <strong style="color: {% if park.daily_walk_value >= 7 %}#065f46{% elif park.daily_walk_value >= 5 %}#856404{% else %}#991b1b{% endif %};">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
+              Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
             </div>
           </div>
         </div>

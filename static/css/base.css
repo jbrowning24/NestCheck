@@ -151,3 +151,15 @@ footer {
 .badge-great { background: var(--color-pass-bg); color: var(--color-pass-text); }
 .badge-ok { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .badge-painful { background: var(--color-fail-bg); color: var(--color-fail-text); }
+
+/* --- Score Utilities --- */
+/* Text-only color classes for score-driven values (good/moderate/poor). */
+.score-good { color: var(--color-pass-text); }
+.score-moderate { color: var(--color-ok-text); }
+.score-poor { color: var(--color-fail-text); }
+
+/* Applied to .verdict-card when the score gate fails (no numeric score shown). */
+.score-failed {
+  background: var(--color-fail-bg);
+  border-color: var(--color-danger-border);
+}
