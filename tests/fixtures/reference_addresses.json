@@ -1,0 +1,811 @@
+{
+  "meta": {
+    "schema_version": "1.0",
+    "description": "NestCheck reference address suite — ground truth for scoring regression tests",
+    "created": "2026-02-13",
+    "usage": "NES-89+ regression harness asserts actual scores fall within expected_range per dimension",
+    "dimensions": {
+      "parks":   { "label": "Parks & Green Space",   "max_points": 10, "scoring": "Continuous 0-10 (rounded daily_walk_value); nearest qualifying park >= 5 acres, >= 4.0 stars, >= 50 reviews" },
+      "coffee":  { "label": "Coffee & Social Spots", "max_points": 10, "scoring": "Discrete: 10 (<=15 min), 7 (<=20 min), 4 (<=30 min), 2 (>30 min), 0 (none)" },
+      "grocery": { "label": "Daily Essentials",      "max_points": 10, "scoring": "Discrete: 10 (<=15 min), 7 (<=20 min), 4 (<=30 min), 2 (>30 min), 0 (none)" },
+      "fitness": { "label": "Fitness & Recreation",  "max_points": 10, "scoring": "Discrete: 10 (>=4.2 stars + <=15 min), 6 (>=4.0 stars + <=20 min), 3 (<=30 min), 0 (else)" },
+      "transit": { "label": "Getting Around",        "max_points": 10, "scoring": "Composite: walk_to_stop (0-4) + frequency (0-3) + hub_travel (0-3), capped at 10" }
+    },
+    "tiers": {
+      "great": "Clearly excels — top of scoring range",
+      "good":  "Above average — solid, reliable access",
+      "okay":  "Functional but with notable trade-offs",
+      "poor":  "Below average — significant gaps",
+      "none":  "No meaningful access"
+    },
+    "score_bands": {
+      "Exceptional Daily Fit":        [85, 100],
+      "Strong Daily Fit":             [70, 84],
+      "Moderate — Some Trade-offs":   [55, 69],
+      "Limited — Car Likely Needed":  [40, 54],
+      "Significant Gaps":             [0, 39]
+    }
+  },
+  "addresses": [
+
+    {
+      "id": "ref-001",
+      "address": "345 7th Avenue, Brooklyn, NY 11215",
+      "city": "Brooklyn",
+      "metro": "NYC",
+      "source": "Consensus top-tier walkable neighborhood; Prospect Park anchor",
+      "category": "exceptional_urban",
+      "dimensions": {
+        "parks":   { "tier": "great", "expected_range": [8, 10], "notes": "Prospect Park (585 acres, 4.8 stars) is a 3-5 min walk" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Dozens of cafes on 5th and 7th Ave corridors; multiple within 10 min" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Key Food, Union Market, and others within 10-15 min walk" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple well-rated gyms in the neighborhood" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "F/G at 7th Ave, R at 4th Ave-9th St, B/Q nearby; Manhattan hub <30 min" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential area; nearest station well beyond 500ft" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways in residential Park Slope" },
+        "high_volume_roads":     { "expected": "pass", "notes": "7th Ave is a local street, not classified as primary/secondary arterial" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Exceptional Daily Fit",
+      "overall_vibe": 5,
+      "notes": "Gold standard. If this doesn't score 85+, the model is miscalibrated.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-002",
+      "address": "30-78 Steinway Street, Astoria, NY 11103",
+      "city": "Astoria",
+      "metro": "NYC",
+      "source": "Highly walkable Queens neighborhood; diverse food scene and strong transit",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [4, 8], "notes": "Astoria Park (60+ acres) exists but 15-20 min walk from Steinway; smaller parks closer" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Many cafes on Steinway St and Broadway corridors" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Trade Fair, Key Food, and specialty grocers on commercial streets" },
+        "fitness": { "tier": "good",  "expected_range": [6, 10], "notes": "Several gyms in the area" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "N/W at Steinway St station; M/R at 36th St. Frequent service to Manhattan" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Commercial corridor but gas stations not immediately adjacent" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways in central Astoria" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Steinway is a commercial street but likely classified tertiary in OSM" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests that outer-borough neighborhoods score appropriately. Parks is the swing dimension — Astoria Park is large but not a quick walk from Steinway.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-003",
+      "address": "1060 Park Avenue, New York, NY 10128",
+      "city": "Manhattan",
+      "metro": "NYC",
+      "source": "Classic Upper East Side; high-end residential with Central Park access",
+      "category": "exceptional_urban",
+      "dimensions": {
+        "parks":   { "tier": "great", "expected_range": [8, 10], "notes": "Central Park (843 acres, 4.8 stars) is 2-3 blocks west via cross streets" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Abundant cafes on Lexington, Madison, and nearby avenues" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Whole Foods, Trader Joe's, Eli's, and specialty grocers all walkable" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple gyms including Equinox, YMCA, and boutique fitness" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "6 train at 86th St, Q at 86th/2nd Ave; very frequent; Midtown hub <15 min" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential UES; gas stations rare in this area" },
+        "highway_proximity":     { "expected": "pass", "notes": "FDR Drive is 3+ blocks east; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Park Ave is residential here; not classified as a high-volume arterial" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Exceptional Daily Fit",
+      "overall_vibe": 5,
+      "notes": "Different flavor of exceptional — quieter and more residential than Park Slope but equally accessible. Tests that the model doesn't penalize low-key neighborhoods that have everything nearby.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-004",
+      "address": "97 River Street, Hoboken, NJ 07030",
+      "city": "Hoboken",
+      "metro": "NYC",
+      "source": "Very walkable NJ city; grid street pattern, PATH train to Manhattan",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [4, 8], "notes": "Pier A Park, Elysian Park, Stevens Park — several small parks but none flagship-sized; may not meet 5-acre threshold" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Excellent cafe culture on Washington St and surrounding blocks" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "ShopRite, Trader Joe's, Kings within walking distance" },
+        "fitness": { "tier": "good",  "expected_range": [6, 10], "notes": "Several gyms throughout compact city" },
+        "transit": { "tier": "good",  "expected_range": [4, 8],  "notes": "PATH at Hoboken Terminal (~12-15 min walk from River St); NJ Transit buses closer. Walk to PATH is the limiting factor — walk_to_stop scores 3 at 12-15 min. Floor of 4 accounts for bus-only scenario; ceiling accounts for PATH frequency + hub proximity." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Waterfront area; no gas stations nearby" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways in Hoboken proper" },
+        "high_volume_roads":     { "expected": "pass", "notes": "River St is a local road" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests cross-state evaluation (NJ address using NYC transit). Parks qualification is the wildcard — Hoboken parks are charming but small. Transit score depends on PATH walk distance from northern Hoboken.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-005",
+      "address": "149 Main Street, Tarrytown, NY 10591",
+      "city": "Tarrytown",
+      "metro": "NYC (Westchester)",
+      "source": "Small Hudson Valley village; walkable Main St but limited depth beyond it",
+      "category": "moderate_village",
+      "dimensions": {
+        "parks":   { "tier": "okay", "expected_range": [3, 7], "notes": "Pierson Park on waterfront, Patriots Park nearby; no large flagship park" },
+        "coffee":  { "tier": "okay", "expected_range": [4, 7], "notes": "Coffee Labs, Muddy Water Cafe on Main St; limited but walkable" },
+        "grocery": { "tier": "okay", "expected_range": [2, 7], "notes": "Some options near village center; larger stores may require driving" },
+        "fitness": { "tier": "poor", "expected_range": [0, 3], "notes": "Very limited gym options in the village proper" },
+        "transit": { "tier": "okay", "expected_range": [3, 6], "notes": "Metro-North Hudson Line at Tarrytown station; commuter frequency, not rapid transit" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations on Route 9, likely >500ft from Main St" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-87/I-287 interchange is ~0.5 mi east" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Main St is a village road; Route 9 is nearby but not immediately adjacent" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 3,
+      "notes": "Core Westchester use case. Tests the scorer's ability to distinguish 'some walkability' from 'truly walkable.' Midpoint of ranges is ~42% (Limited); could reach Moderate (60%) if coffee, grocery, and parks all hit range ceilings. Fitness and transit are the weak links. Charming village but a car is helpful beyond Main St.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-006",
+      "address": "20 South Broadway, Yonkers, NY 10701",
+      "city": "Yonkers",
+      "metro": "NYC (Westchester)",
+      "source": "Downtown Yonkers near Getty Square; some commercial activity but struggling area",
+      "category": "limited_urban",
+      "dimensions": {
+        "parks":   { "tier": "poor", "expected_range": [0, 4], "notes": "Limited park options in immediate downtown area" },
+        "coffee":  { "tier": "okay", "expected_range": [2, 7], "notes": "Some cafes and delis in Getty Square area; not a strong cafe scene" },
+        "grocery": { "tier": "okay", "expected_range": [2, 7], "notes": "Some grocery/bodega options in downtown Yonkers" },
+        "fitness": { "tier": "poor", "expected_range": [0, 3], "notes": "Very limited gym options in immediate area" },
+        "transit": { "tier": "okay", "expected_range": [4, 7], "notes": "Bee-Line bus routes; Metro-North (Yonkers station) nearby but walk may be 15+ min" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Downtown commercial area; gas stations present but likely >500ft from this address" },
+        "highway_proximity":     { "expected": "pass", "notes": "Saw Mill River Parkway is nearby but should clear 200m from South Broadway" },
+        "high_volume_roads":     { "expected": "pass", "notes": "South Broadway is a city street; may be classified secondary in OSM — needs validation" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 2,
+      "notes": "Tests a struggling urban area that has some transit and walkable retail but lacks depth. South Broadway OSM classification is uncertain — if classified as secondary, could trigger high_volume_roads.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-007",
+      "address": "235 Mamaroneck Avenue, White Plains, NY 10601",
+      "city": "White Plains",
+      "metro": "NYC (Westchester)",
+      "source": "Suburban downtown; some walkability around commercial core",
+      "category": "moderate_suburban",
+      "dimensions": {
+        "parks":   { "tier": "okay", "expected_range": [3, 7], "notes": "Battle Hill Park, Tibbits Park in downtown area; no large flagship" },
+        "coffee":  { "tier": "okay", "expected_range": [4, 7], "notes": "Several cafes in downtown White Plains commercial district" },
+        "grocery": { "tier": "okay", "expected_range": [4, 7], "notes": "H Mart, some grocery options in downtown area" },
+        "fitness": { "tier": "okay", "expected_range": [3, 6], "notes": "Some gym options in commercial center" },
+        "transit": { "tier": "okay", "expected_range": [4, 7], "notes": "Metro-North at White Plains station; Bee-Line bus hub; commuter frequency" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Downtown commercial; gas stations on periphery" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-287 is nearby but should clear 200m from Mamaroneck Ave" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Mamaroneck Ave is a city street, not a classified arterial" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Moderate — Some Trade-offs",
+      "overall_vibe": 3,
+      "notes": "Prototypical suburban downtown. Has a walkable core but nothing exceptional. Tests the middle of the scoring range — everything is 'okay' but nothing stands out.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-008",
+      "address": "501 Exterior Street, Bronx, NY 10451",
+      "city": "Bronx",
+      "metro": "NYC",
+      "source": "Highway-adjacent address next to Major Deegan Expressway (I-87); tests Tier 1 safety gate",
+      "category": "tier1_fail_highway",
+      "dimensions": {
+        "parks":   { "tier": "okay", "expected_range": [3, 7], "notes": "Macombs Dam Park adjacent to Yankee Stadium" },
+        "coffee":  { "tier": "poor", "expected_range": [0, 4], "notes": "Limited cafe options in immediate area" },
+        "grocery": { "tier": "poor", "expected_range": [0, 4], "notes": "Limited walkable grocery; bodegas but not full-service stores" },
+        "fitness": { "tier": "poor", "expected_range": [0, 3], "notes": "Limited gym options nearby" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "161st St-Yankee Stadium station (B/D/4 trains); very frequent service" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas station in immediate proximity" },
+        "highway_proximity":     { "expected": "fail", "notes": "Major Deegan Expressway (I-87) runs directly adjacent, ~100-200ft" },
+        "high_volume_roads":     { "expected": "fail", "notes": "Exterior St itself parallels the expressway; likely classified as high-volume" }
+      },
+      "expected_tier1_pass": false,
+      "expected_band": "Significant Gaps",
+      "overall_vibe": 2,
+      "notes": "Primary Tier 1 highway test. Transit is excellent but most other dimensions are weak. Raw score lands ~30-40% (transit alone can't carry). Note: Tier 1 failure is a presentation flag — score is still calculated, so harness can assert BOTH tier1_pass=false AND score-in-band.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-009",
+      "address": "655 East Tremont Avenue, Bronx, NY 10457",
+      "city": "Bronx",
+      "metro": "NYC",
+      "source": "Commercial corridor with gas stations interspersed among residential; tests Tier 1 gas station gate",
+      "category": "tier1_fail_gas_station",
+      "dimensions": {
+        "parks":   { "tier": "okay", "expected_range": [4, 7], "notes": "Crotona Park (127 acres) is within 10-15 min walk to the south" },
+        "coffee":  { "tier": "poor", "expected_range": [0, 4], "notes": "Limited cafe scene on Tremont Ave; delis and bodegas dominate" },
+        "grocery": { "tier": "okay", "expected_range": [4, 7], "notes": "Some grocery options along Tremont commercial strip" },
+        "fitness": { "tier": "poor", "expected_range": [0, 3], "notes": "Limited gym options in immediate area" },
+        "transit": { "tier": "good",  "expected_range": [5, 8], "notes": "B/D at Tremont Ave station; Bx40/Bx42 buses on Tremont" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "fail", "notes": "Gas stations on Tremont Ave commercial strip likely within 500ft. Needs validation — exact station locations determine pass/fail." },
+        "highway_proximity":     { "expected": "pass", "notes": "Cross Bronx Expressway is several blocks north; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Tremont Ave is busy but likely classified as tertiary/secondary in OSM; needs validation" }
+      },
+      "expected_tier1_pass": false,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 2,
+      "notes": "Tests gas station proximity gate. Tremont Ave has gas stations along its commercial stretch. This is the LEAST certain Tier 1 fail in the dataset — exact gas station distances need validation. If nearest station is >500ft, reclassify as a pass and move to a confirmed gas-station-adjacent address.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-010",
+      "address": "1505 Broadway, Seattle, WA 98122",
+      "city": "Seattle",
+      "metro": "Seattle",
+      "source": "Consensus walkable urban neighborhood; Seattle's densest residential area",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [4, 9], "notes": "Cal Anderson Park (~7.5 acres, well-rated) ~5 min walk; Volunteer Park ~12 min. Cal Anderson is right at qualifying threshold." },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Coffee culture epicenter; Stumptown, indie roasters all over Broadway" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "QFC on Broadway, Trader Joe's within walking distance" },
+        "fitness": { "tier": "good",  "expected_range": [6, 10], "notes": "Several gyms along Broadway corridor" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "Capitol Hill Link light rail ~5 min walk; frequent Metro buses on Broadway" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential/commercial mix; no gas stations in immediate proximity" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-5 is ~0.5 mi west; should clear 200m threshold" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Broadway is busy but not classified primary/secondary in OSM" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Parks is the swing dimension. Cal Anderson at ~7.5 acres borders on the 5-acre qualification threshold. If it doesn't qualify, Volunteer Park at ~12 min drops parks to okay range. Neither park is Prospect Park caliber.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-011",
+      "address": "600 N 36th Street, Seattle, WA 98103",
+      "city": "Seattle",
+      "metro": "Seattle",
+      "source": "Quirky walkable neighborhood; strong local commercial core around Fremont center",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [4, 8], "notes": "Gas Works Park (20 acres, well-rated) ~10-12 min walk east; smaller green spaces closer" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Good cafe scene in Fremont center; multiple options within 5-10 min" },
+        "grocery": { "tier": "good",  "expected_range": [7, 10], "notes": "PCC Community Markets in Fremont; other options on nearby arterials" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6],  "notes": "Some gym options but not as dense as Capitol Hill" },
+        "transit": { "tier": "good",  "expected_range": [5, 8],  "notes": "Frequent buses on Aurora Ave and Fremont Ave; no light rail (nearest future station at Ballard)" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations in Fremont center" },
+        "highway_proximity":     { "expected": "pass", "notes": "Aurora Ave (SR-99) is close but the highway section runs underground here" },
+        "high_volume_roads":     { "expected": "pass", "notes": "N 36th St is a neighborhood street" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests a neighborhood that's walkable but not transit-rich. Fremont has a strong local core but lacks rail. Fitness is the weakest dimension. Score depends heavily on whether Gas Works Park qualifies (20 acres, should meet threshold).",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-012",
+      "address": "5500 24th Avenue NW, Seattle, WA 98107",
+      "city": "Seattle",
+      "metro": "Seattle",
+      "source": "Residential Ballard; walkable commercial core nearby but this address tests the residential fringe",
+      "category": "moderate_urban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Golden Gardens (88 acres) exists but 20+ min walk west/downhill. Smaller parks closer. Qualification uncertain." },
+        "coffee":  { "tier": "okay",  "expected_range": [4, 7], "notes": "Ballard Ave and Market St cafes are a 10-15 min walk south; nothing immediate" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Ballard Market, Fred Meyer ~10-15 min walk; Safeway further" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gyms in Ballard commercial core, 10-15 min walk" },
+        "transit": { "tier": "okay",  "expected_range": [4, 7], "notes": "RapidRide D line on 15th Ave NW; local buses. No rail yet." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential street; no gas stations nearby" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways in Ballard" },
+        "high_volume_roads":     { "expected": "pass", "notes": "24th Ave NW is a residential street" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Moderate — Some Trade-offs",
+      "overall_vibe": 3,
+      "notes": "Tests the residential fringe of a walkable neighborhood. Everything is 10-15 min walk rather than 5 min. Demonstrates how the same neighborhood can score differently depending on exact address placement.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-013",
+      "address": "4500 University Way NE, Seattle, WA 98105",
+      "city": "Seattle",
+      "metro": "Seattle",
+      "source": "University District near UW campus; high foot traffic, student-oriented commercial strip",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [5, 9], "notes": "Ravenna Park (58 acres, well-rated) within 10-15 min walk north; UW campus open space nearby" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Dense cafe strip on University Way ('The Ave'); many options within 5 min" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "QFC, Safeway, and Asian grocery stores nearby" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6],  "notes": "Some public gyms; UW facilities not accessible to non-students" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "U-District Link light rail station; frequent Metro buses on University Way and 45th" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations on this stretch of University Way" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-5 is ~0.3 mi west but screened by campus buildings; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "University Way is a neighborhood commercial street, not an arterial" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 3,
+      "notes": "Interesting test case: scores well on dimensions but vibe is student-oriented and noisy. Demonstrates that dimensional scoring and 'would you live here' can diverge. I-5 proximity is worth monitoring — if 200m threshold is marginal, this becomes an edge case.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-014",
+      "address": "200 S 3rd Street, Renton, WA 98057",
+      "city": "Renton",
+      "metro": "Seattle",
+      "source": "Suburban city south of Seattle; some downtown walkability but car-oriented overall",
+      "category": "limited_suburban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Gene Coulon Memorial Beach Park on Lake Washington is walkable; pleasant but may not meet acreage/rating thresholds" },
+        "coffee":  { "tier": "poor",  "expected_range": [2, 4], "notes": "Some options in downtown Renton; limited quality cafe scene" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Some stores in downtown Renton area" },
+        "fitness": { "tier": "poor",  "expected_range": [0, 3], "notes": "Limited walkable gym options" },
+        "transit": { "tier": "okay",  "expected_range": [3, 6], "notes": "RapidRide F line connects to light rail; local buses. Frequency is moderate." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Downtown area; gas stations on periphery" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-405 is nearby but several blocks east" },
+        "high_volume_roads":     { "expected": "pass", "notes": "S 3rd St is a city street; Rainier Ave (SR-167) is close — needs validation" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 2,
+      "notes": "Tests the Seattle suburban tier. Has some walkable elements but car is practical for most errands. Rainier Ave proximity is an edge case for high_volume_roads check.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-015",
+      "address": "1500 S McClellan Street, Seattle, WA 98144",
+      "city": "Seattle",
+      "metro": "Seattle",
+      "source": "Diverse neighborhood south of downtown; light rail access but quieter commercial scene",
+      "category": "moderate_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [5, 9], "notes": "Jefferson Park (48 acres, well-rated, great views) within 10 min walk" },
+        "coffee":  { "tier": "okay",  "expected_range": [4, 7], "notes": "Some cafes on Beacon Ave S; less dense than Capitol Hill or Fremont" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Red Apple Market, some small grocers on Beacon Ave" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gym options along Beacon Ave corridor" },
+        "transit": { "tier": "good",  "expected_range": [6, 9], "notes": "Beacon Hill Link light rail station; frequent buses on Beacon Ave" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential area; no gas stations on McClellan" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-5/I-90 interchange is north; should clear 200m from this address" },
+        "high_volume_roads":     { "expected": "pass", "notes": "McClellan is a residential street" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Moderate — Some Trade-offs",
+      "overall_vibe": 3,
+      "notes": "Tests a neighborhood with good bones (light rail, large park) but weaker commercial amenities. Jefferson Park should score well if it qualifies — 48 acres and well-rated. Transit boost from Link station is significant.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-016",
+      "address": "4200 Georgia Avenue NW, Washington, DC 20011",
+      "city": "Washington",
+      "metro": "DC",
+      "source": "Residential DC neighborhood with Metro access; some commercial activity on Georgia Ave",
+      "category": "moderate_urban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Grant Circle park, Raymond Recreation Center nearby; Rock Creek Park further west" },
+        "coffee":  { "tier": "okay",  "expected_range": [4, 7], "notes": "Some cafes on Georgia Ave and Upshur St corridors; growing but not dense" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Yes! Organic Market, some corner stores; larger chains require more walking" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gym options in the neighborhood" },
+        "transit": { "tier": "good",  "expected_range": [5, 8], "notes": "Petworth Metro (Green/Yellow); frequent buses on Georgia Ave" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations exist on Georgia Ave but this block should clear 500ft" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways near Petworth" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Georgia Ave is US-29 and likely classified primary in OSM along its full length (same road as ref-021 which expects fail). If this address triggers high_volume_roads, reclassify as Tier 1 fail. The 4200 block was chosen as a borderline case — the road classification is the same as ref-021 but geocoding may resolve to a side-street position. Needs validation on first harness run." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Moderate — Some Trade-offs",
+      "overall_vibe": 3,
+      "notes": "DC moderate baseline. Georgia Ave OSM classification is a key uncertainty — if classified as primary, this becomes a Tier 1 fail candidate. At 4200 block, the address is set back from the worst of the traffic. Metro access lifts transit above other dimensions.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-017",
+      "address": "1500 Connecticut Avenue NW, Washington, DC 20036",
+      "city": "Washington",
+      "metro": "DC",
+      "source": "Premier walkable DC neighborhood; dense commercial core near Dupont Circle",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [5, 8], "notes": "Rock Creek Park (1,754 acres, 4.8 stars, thousands of reviews) should qualify and is 15-20 min walk west. At that walk time, daily_walk_value lands ~5-7. If Rock Creek does not qualify due to walk time >30 min, expected range drops to [3, 5]." },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Excellent cafe scene on Connecticut Ave and side streets" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Trader Joe's on 14th St, Whole Foods, Safeway all within walking distance" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple gyms in the Dupont/14th St corridor" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "Dupont Circle Metro (Red Line); frequent buses on Connecticut Ave" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations near Dupont Circle core" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways near Dupont Circle" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Connecticut Ave is busy but likely classified as secondary/tertiary in residential section" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 5,
+      "notes": "Could reach Exceptional if Rock Creek Park qualifies and scores well (pushing parks to 7+). Set band as Strong conservatively — parks is the single dimension keeping it from Exceptional. Everything else is top-tier.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-018",
+      "address": "3100 Wilson Boulevard, Arlington, VA 22201",
+      "city": "Arlington",
+      "metro": "DC",
+      "source": "Walkable inner suburb on Orange/Silver Metro line; dense mixed-use corridor",
+      "category": "strong_suburban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Courthouse area parks and playgrounds; no large flagship park within easy walk" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Many cafes on Wilson Blvd and Clarendon Blvd corridors" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Trader Joe's, Whole Foods, Harris Teeter all within walking distance" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple gyms in the Clarendon commercial area" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "Clarendon Metro (Orange/Silver lines); frequent ART and Metrobus" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations in Clarendon commercial core" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-66 runs nearby but underground/depressed through Clarendon; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Wilson Blvd is a busy commercial road — may be classified secondary in OSM. Needs validation." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests walkable inner suburb pattern (as opposed to urban core). Very similar scoring profile to Capitol Hill Seattle but in DC metro. Parks is the weak dimension — Arlington has small pocket parks but nothing flagship-sized.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-019",
+      "address": "3400 14th Street NW, Washington, DC 20010",
+      "city": "Washington",
+      "metro": "DC",
+      "source": "Revitalized DC corridor with strong retail, dining, and Metro access",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [4, 8], "notes": "Meridian Hill Park (12 acres, well-rated, historic) ~10 min walk. Should qualify on size and reviews." },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Dense cafe scene on 14th St NW corridor" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Giant at Columbia Heights Metro; Target with grocery; multiple options" },
+        "fitness": { "tier": "good",  "expected_range": [6, 10], "notes": "Several gyms along 14th St and U St corridors" },
+        "transit": { "tier": "great", "expected_range": [7, 10], "notes": "Columbia Heights Metro (Green/Yellow lines); frequent buses on 14th St" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations in this commercial stretch of 14th St" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways near Columbia Heights" },
+        "high_volume_roads":     { "expected": "pass", "notes": "14th St is a major corridor but residential sections likely classified secondary/tertiary" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests a revitalized urban corridor. Meridian Hill Park is the key parks test — 12 acres should qualify. If it does and walk time is ~10 min, parks scores solidly. 14th St OSM classification worth monitoring.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-020",
+      "address": "7900 Tysons One Place, Tysons, VA 22102",
+      "city": "Tysons",
+      "metro": "DC",
+      "source": "Car-dependent edge city with recent Metro addition; tests whether rail alone fixes walkability",
+      "category": "limited_suburban",
+      "dimensions": {
+        "parks":   { "tier": "poor",  "expected_range": [0, 3], "notes": "No meaningful walkable parks; office park landscaping doesn't count" },
+        "coffee":  { "tier": "poor",  "expected_range": [0, 4], "notes": "Chain cafes in office/mall buildings; not walkable in traditional sense" },
+        "grocery": { "tier": "poor",  "expected_range": [0, 4], "notes": "Whole Foods in Tysons exists but reaching it on foot means crossing wide arterials" },
+        "fitness": { "tier": "poor",  "expected_range": [0, 3], "notes": "Gyms exist but car-oriented access" },
+        "transit": { "tier": "okay",  "expected_range": [4, 7], "notes": "Tysons Corner Metro (Silver Line) is nearby but pedestrian access is through parking infrastructure" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Office park area; gas stations on Route 7/123 but likely >500ft" },
+        "highway_proximity":     { "expected": "pass", "notes": "Route 267 (Dulles Toll Road) is nearby; distance needs validation" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Route 7 and Route 123 are major arterials in Tysons. If within 200m, could fail. Needs validation." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Significant Gaps",
+      "overall_vibe": 2,
+      "notes": "Key test: does adding a Metro station to a car-dependent area improve the score? Answer should be: somewhat (transit lifts), but not enough to overcome the absence of walkable amenities. Midpoint of dimension ranges is ~25% — firmly Significant Gaps. Route 7/123 proximity is a Tier 1 edge case.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-021",
+      "address": "5900 Georgia Avenue NW, Washington, DC 20011",
+      "city": "Washington",
+      "metro": "DC",
+      "source": "Residential address directly on a major DC arterial (US Route 29); tests Tier 1 high-volume road gate",
+      "category": "tier1_fail_high_volume_road",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Fort Stevens Park, Takoma Rec Center nearby; small neighborhood parks" },
+        "coffee":  { "tier": "okay",  "expected_range": [2, 7], "notes": "Some options on Georgia Ave; not a strong cafe corridor at this block" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Some grocery stores along Georgia Ave commercial strip" },
+        "fitness": { "tier": "poor",  "expected_range": [0, 3], "notes": "Limited gym options at this stretch of Georgia Ave" },
+        "transit": { "tier": "good",  "expected_range": [5, 8], "notes": "Frequent Metrobus routes on Georgia Ave; Takoma Metro is 15+ min walk north" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations exist on Georgia Ave but not at every block" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highways near this stretch of Georgia Ave" },
+        "high_volume_roads":     { "expected": "fail", "notes": "Georgia Ave (US-29) is a 4-6 lane divided arterial. Should be classified as primary or secondary in OSM with multiple lanes." }
+      },
+      "expected_tier1_pass": false,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 2,
+      "notes": "Primary test for high_volume_roads gate. Georgia Avenue is one of DC's busiest arterials — wide, high-speed traffic, classified as US Route 29. If Overpass doesn't flag this as high-volume, the road classification logic needs tuning. Midpoint of ranges is ~46% (Limited). Band is secondary to the Tier 1 assertion for this address.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-022",
+      "address": "3100 Independence Parkway, Plano, TX 75075",
+      "city": "Plano",
+      "metro": "Dallas-Fort Worth",
+      "source": "Prototypical car-dependent DFW suburb; wide arterials, strip malls, no meaningful transit",
+      "category": "car_dependent_suburb",
+      "dimensions": {
+        "parks":   { "tier": "poor", "expected_range": [0, 4], "notes": "Parks exist in Plano but not walkable from typical residential streets" },
+        "coffee":  { "tier": "none", "expected_range": [0, 2], "notes": "No walkable cafes; drive-to Starbucks in strip malls" },
+        "grocery": { "tier": "none", "expected_range": [0, 2], "notes": "Drive-to grocery (Kroger, Tom Thumb) on major arterials" },
+        "fitness": { "tier": "none", "expected_range": [0, 3], "notes": "Drive-to gyms in commercial strips. If this scores 3, validate that the matched gym is actually walkable and not across a 6-lane arterial with no sidewalk — known blindspot in walking time scoring." },
+        "transit": { "tier": "none", "expected_range": [0, 2], "notes": "DART bus is sparse at best; no rail. Effectively car-required." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Residential area; gas stations on arterials, not adjacent" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highway immediately adjacent" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Independence Pkwy may be classified primary in OSM — needs validation. If it triggers, this becomes a Tier 1 fail too." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Significant Gaps",
+      "overall_vibe": 1,
+      "notes": "Canary address. If this scores above 39, the model is too generous to car-dependent suburbs. Everything here requires driving. Also tests: Independence Pkwy itself may trigger high_volume_roads — that's a useful edge case to validate.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-023",
+      "address": "1445 4th Street, Santa Monica, CA 90401",
+      "city": "Santa Monica",
+      "metro": "Los Angeles",
+      "source": "Walkable beach city; strong commercial core with LA's best transit connection",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [5, 9], "notes": "Palisades Park along the bluffs, Tongva Park (6 acres). Beach/park access within 10 min walk." },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Many cafes on Montana Ave, Main St, and the Promenade area" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Multiple grocery options walkable in downtown Santa Monica" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple gyms; beach fitness culture adds outdoor options" },
+        "transit": { "tier": "good",  "expected_range": [5, 8],  "notes": "Expo/E Line at Downtown Santa Monica station; Big Blue Bus. Good by LA standards but frequency is lower than NYC/DC Metro." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Downtown commercial area; gas stations on periphery" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-10 terminus is a few blocks south but should clear 200m from 4th St" },
+        "high_volume_roads":     { "expected": "pass", "notes": "4th St is a city street in commercial area" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests LA walkability — rare in the metro but real in Santa Monica. Transit scores well by LA standards but won't match NYC/DC subway frequency. Interesting comparison to Seattle/DC Strong addresses.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-024",
+      "address": "400 N Central Avenue, Glendale, CA 91203",
+      "city": "Glendale",
+      "metro": "Los Angeles",
+      "source": "Suburban LA city with some downtown walkability; car-oriented overall",
+      "category": "limited_suburban",
+      "dimensions": {
+        "parks":   { "tier": "poor",  "expected_range": [0, 4], "notes": "Small city parks nearby; Brand Park is up in the hills, not walkable. No qualifying flagship." },
+        "coffee":  { "tier": "okay",  "expected_range": [4, 7], "notes": "Some cafes in downtown Glendale; Armenian cafe culture adds options" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "Ralphs, ethnic grocery stores in downtown area" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gyms in commercial area" },
+        "transit": { "tier": "poor",  "expected_range": [2, 5], "notes": "Some Metro bus routes; no rail in Glendale. Beeline local buses." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations exist on Central Ave but likely >500ft from this block" },
+        "highway_proximity":     { "expected": "pass", "notes": "SR-134 is nearby; distance needs validation" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Central Ave is a multi-lane road — may be classified primary in OSM. Needs validation." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 2,
+      "notes": "Tests LA suburban city pattern. Has more walkability than pure sprawl (Plano) but still car-dependent for most trips. Central Ave OSM classification is uncertain — could be a Tier 1 edge case.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-025",
+      "address": "1900 Simond Avenue, Austin, TX 78723",
+      "city": "Austin",
+      "metro": "Austin",
+      "source": "Mueller New Urbanist development; designed for walkability in a car-centric city",
+      "category": "moderate_new_urbanist",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [5, 9], "notes": "Mueller Lake Park, Southwest Greenway designed into the development; multiple green spaces within walking distance" },
+        "coffee":  { "tier": "okay",  "expected_range": [4, 7], "notes": "Some cafes in Mueller commercial areas and along Aldrich St; not as dense as established urban cores" },
+        "grocery": { "tier": "okay",  "expected_range": [4, 7], "notes": "H-E-B on Mueller Blvd within walking distance; designed into the development" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gym options in Mueller commercial area" },
+        "transit": { "tier": "poor",  "expected_range": [2, 5], "notes": "Cap Metro bus routes serve Mueller; Austin transit is generally weak. No rail nearby." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Planned development; no gas stations in residential area" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-35 is ~1 mi west; well clear" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Internal Mueller streets are local; Airport Blvd is nearby but not immediately adjacent" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Moderate — Some Trade-offs",
+      "overall_vibe": 3,
+      "notes": "Tests whether New Urbanist design translates to good scores. Parks should score well (designed-in green space). Transit is the drag — even good urban design can't fix a weak transit system. Interesting contrast to older walkable neighborhoods.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-026",
+      "address": "1830 E McKellips Road, Mesa, AZ 85203",
+      "city": "Mesa",
+      "metro": "Phoenix",
+      "source": "Sprawling Phoenix suburb; extreme car dependence and heat-hostile pedestrian environment",
+      "category": "car_dependent_suburb",
+      "dimensions": {
+        "parks":   { "tier": "poor",  "expected_range": [0, 4], "notes": "Riverview Park area exists but walkability is questionable in Phoenix heat and road design" },
+        "coffee":  { "tier": "none",  "expected_range": [0, 2], "notes": "No walkable cafes; chain drive-throughs on arterials" },
+        "grocery": { "tier": "none",  "expected_range": [0, 2], "notes": "Drive-to grocery on major roads" },
+        "fitness": { "tier": "none",  "expected_range": [0, 3], "notes": "Drive-to gyms" },
+        "transit": { "tier": "none",  "expected_range": [0, 2], "notes": "Valley Metro bus with very low frequency; no rail in this part of Mesa" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations on McKellips but residential setback should clear 500ft" },
+        "highway_proximity":     { "expected": "pass", "notes": "No highway immediately adjacent" },
+        "high_volume_roads":     { "expected": "pass", "notes": "McKellips Road is a major arterial — may be classified primary in OSM. Needs validation." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Significant Gaps",
+      "overall_vibe": 1,
+      "notes": "Second canary address alongside Plano. Different Sun Belt pattern (Phoenix vs DFW) — both should score rock-bottom. McKellips Road classification is uncertain; if primary in OSM, this becomes a Tier 1 fail too.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-027",
+      "address": "2700 NE Alberta Street, Portland, OR 97211",
+      "city": "Portland",
+      "metro": "Portland",
+      "source": "Walkable arts district with strong independent business scene",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "good",  "expected_range": [5, 9], "notes": "Alberta Park (16 acres) directly on Alberta St within 5-10 min walk; should qualify on size" },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Excellent indie coffee scene on Alberta St; Portland coffee culture is strong" },
+        "grocery": { "tier": "good",  "expected_range": [4, 7], "notes": "New Seasons, smaller markets within walking distance; not as dense as downtown cores" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Some gym options in the neighborhood; not as dense as major commercial corridors" },
+        "transit": { "tier": "okay",  "expected_range": [4, 7], "notes": "TriMet bus routes on Alberta and MLK; MAX Yellow Line is 10-15 min walk south. Good bus frequency." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "No gas stations in Alberta Arts commercial core" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-5 is ~0.5 mi west; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Alberta St is a neighborhood commercial street; MLK Blvd is nearby but not immediately adjacent" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests Portland walkability pattern — strong indie commercial strips with good parks but more moderate transit than NYC/DC. Alberta Park is the key parks test (16 acres, should qualify). Transit is the limiting dimension.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-028",
+      "address": "6300 East Colfax Avenue, Denver, CO 80220",
+      "city": "Denver",
+      "metro": "Denver",
+      "source": "Major arterial corridor (US Route 40); tests combined high-volume road and potential gas station proximity failure",
+      "category": "tier1_fail_combo",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "City Park (330 acres, major Denver park) is ~15-20 min walk south; if it qualifies, parks could score well despite the address being on Colfax" },
+        "coffee":  { "tier": "poor",  "expected_range": [0, 4], "notes": "Limited quality cafes on this stretch of East Colfax; some diners and fast food" },
+        "grocery": { "tier": "poor",  "expected_range": [2, 4], "notes": "Some small markets on Colfax; major grocery stores require more walking" },
+        "fitness": { "tier": "poor",  "expected_range": [0, 3], "notes": "Limited gym options on this stretch of Colfax" },
+        "transit": { "tier": "okay",  "expected_range": [4, 7], "notes": "RTD Route 15/15L on Colfax (one of Denver's most frequent bus routes); no rail at this location" }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "fail", "notes": "Gas stations are common along Colfax Ave commercial strip. High likelihood of one within 500ft. Needs validation." },
+        "highway_proximity":     { "expected": "pass", "notes": "No highway at this location; I-70 is well north" },
+        "high_volume_roads":     { "expected": "fail", "notes": "Colfax Avenue is US Route 40 — a major multi-lane arterial running across the entire metro. Definitely classified primary in OSM." }
+      },
+      "expected_tier1_pass": false,
+      "expected_band": "Limited — Car Likely Needed",
+      "overall_vibe": 1,
+      "notes": "Tests combined Tier 1 failures. Colfax is the longest commercial street in America and a major arterial — should definitely trigger high_volume_roads. Gas station proximity is likely but needs validation. Interesting that transit scores okay (frequent bus) despite the address being inhospitable for pedestrians.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-029",
+      "address": "1200 Brickell Avenue, Miami, FL 33131",
+      "city": "Miami",
+      "metro": "Miami",
+      "source": "Dense urban core in Miami; walkable high-rise neighborhood with Metrorail",
+      "category": "strong_urban",
+      "dimensions": {
+        "parks":   { "tier": "okay",  "expected_range": [3, 7], "notes": "Brickell Key Park, Alice Wainwright Park — small urban parks. No large flagship within easy walk." },
+        "coffee":  { "tier": "great", "expected_range": [7, 10], "notes": "Many cafes and restaurants throughout Brickell's dense commercial ground floors" },
+        "grocery": { "tier": "great", "expected_range": [7, 10], "notes": "Publix, Whole Foods within Brickell; dense enough for walkable grocery access" },
+        "fitness": { "tier": "great", "expected_range": [6, 10], "notes": "Multiple high-end gyms in Brickell towers and commercial spaces" },
+        "transit": { "tier": "good",  "expected_range": [5, 8],  "notes": "Brickell Metrorail station; free Metromover. Decent frequency but Miami transit overall is limited compared to northeastern cities." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Dense urban area; gas stations pushed to periphery" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-95 is several blocks west; should clear 200m" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Brickell Ave is a major road but in a dense urban context; OSM classification needs validation" }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Strong Daily Fit",
+      "overall_vibe": 4,
+      "notes": "Tests Sun Belt urban walkability — Brickell is Miami's attempt at a walkable urban core. Parks is the weak dimension (no flagship). Interesting comparison to car-dependent Sun Belt addresses — same region, vastly different walkability.",
+      "last_validated": null
+    },
+
+    {
+      "id": "ref-030",
+      "address": "1700 Post Oak Boulevard, Houston, TX 77056",
+      "city": "Houston",
+      "metro": "Houston",
+      "source": "Houston Galleria area; major commercial destination that is still car-dependent despite density",
+      "category": "limited_suburban",
+      "dimensions": {
+        "parks":   { "tier": "poor",  "expected_range": [0, 4], "notes": "Gerald Hines Waterwall Park is small/decorative. No substantial walkable park." },
+        "coffee":  { "tier": "poor",  "expected_range": [0, 4], "notes": "Chain cafes inside Galleria complex; not traditional walkable street-front cafes" },
+        "grocery": { "tier": "poor",  "expected_range": [0, 4], "notes": "Grocery stores exist nearby but crossing Post Oak Blvd on foot is hostile" },
+        "fitness": { "tier": "okay",  "expected_range": [3, 6], "notes": "Gyms in the commercial area; one of the stronger dimensions here" },
+        "transit": { "tier": "poor",  "expected_range": [2, 5], "notes": "METRO bus routes; Post Oak BRT under development. Currently car-dominant." }
+      },
+      "tier1": {
+        "gas_station_proximity": { "expected": "pass", "notes": "Gas stations on arterials but Galleria-area setbacks should clear 500ft" },
+        "highway_proximity":     { "expected": "pass", "notes": "I-610 loop is nearby; distance needs validation from this specific address" },
+        "high_volume_roads":     { "expected": "pass", "notes": "Post Oak Blvd is a major multi-lane boulevard — may be classified primary in OSM. Needs validation." }
+      },
+      "expected_tier1_pass": true,
+      "expected_band": "Significant Gaps",
+      "overall_vibe": 2,
+      "notes": "Tests the 'looks dense but isn't walkable' pattern. Houston Galleria has commercial density but hostile pedestrian infrastructure (wide roads, no sidewalk culture). Midpoint of dimension ranges is ~28% — Significant Gaps despite the commercial density. Post Oak Blvd classification is the Tier 1 edge case. Gym scores slightly better than other dimensions because commercial fitness facilities exist in the area.",
+      "last_validated": null
+    }
+  ]
+}
