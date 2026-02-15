@@ -249,6 +249,18 @@
   margin-top: 4px;
   line-height: 1.5;
 }
+.proximity-icon { margin-right: 6px; font-weight: 700; }
+.proximity-icon-clear { color: var(--color-pass-text); }
+.proximity-icon-issue { color: var(--color-fail-text); }
+.proximity-icon-unverified { color: var(--color-warning-text); }
+.proximity-satellite-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+.proximity-satellite-link:hover { text-decoration: underline; }
 
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {

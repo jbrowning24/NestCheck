@@ -189,6 +189,13 @@ PROXIMITY_THRESHOLDS = {
     "High-volume road": {"very_close": 200, "notable": 500},
 }
 
+# Natural prose labels for synthesis sentences, keyed by check_id.
+_SYNTHESIS_LABELS = {
+    "gas_station": "a gas station",
+    "highway": "a highway",
+    "high-volume_road": "a high-traffic road",
+}
+
 
 def _classify_check(check: Tier1Check) -> Tuple[str, str]:
     """Classify a Tier1Check into (result_type, severity).
@@ -258,11 +265,16 @@ def _proximity_explanation(check: Tier1Check, band: str) -> str:
     display = CHECK_DISPLAY_NAMES.get(check.name, check.name)
     dist = int(check.distance_ft) if check.distance_ft is not None else None
 
-    # ── UNKNOWN — generic verification prompt ──
+    # ── UNKNOWN — honest acknowledgment; satellite link is in the template ──
     if check.result == CheckResult.UNKNOWN:
+        if check.name == "Gas station":
+            return (
+                "Nearby business data was unavailable, so we couldn't verify "
+                "gas station proximity."
+            )
         return (
-            f"We could not automatically verify {check.name.lower()} proximity. "
-            "Check Google Maps satellite view to assess this yourself."
+            f"Automated road data for this area was incomplete, so we couldn't "
+            f"verify {check.name.lower()} proximity."
         )
 
     # ── Gas station ──
@@ -456,6 +468,77 @@ def present_checks(tier1_checks: List[Tier1Check]) -> List[dict]:
         })
     return presented
 
+
+def proximity_synthesis(presented_checks: List[dict]) -> str | None:
+    """Synthesize a section-level insight for the Proximity & Environment section.
+
+    Takes the full presented_checks list, filters to SAFETY category,
+    and returns a plain-English paragraph based on the combination of
+    result types across all safety checks.
+
+    Returns None if no safety checks are present (old snapshots without
+    presented_checks data).
+    """
+    safety = [c for c in presented_checks if c.get("category") == "SAFETY"]
+    if not safety:
+        return None
+
+    clear = [c for c in safety if c["result_type"] == "CLEAR"]
+    confirmed = [c for c in safety if c["result_type"] == "CONFIRMED_ISSUE"]
+    unverified = [c for c in safety if c["result_type"] == "VERIFICATION_NEEDED"]
+
+    def _label(check: dict) -> str:
+        """Return a natural prose label for a check (e.g. 'a highway')."""
+        return _SYNTHESIS_LABELS.get(check["check_id"], check["display_name"].lower())
+
+    def _names(checks: list) -> str:
+        """Join labels in natural English (e.g. 'a highway and a gas station')."""
+        if not checks:
+            return ""
+        names = [_label(c) for c in checks]
+        if len(names) == 1:
+            return names[0]
+        return f"{names[0]} and {names[1]}" if len(names) == 2 else \
+            ", ".join(names[:-1]) + f", and {names[-1]}"
+
+    # ── All clear ──
+    if len(clear) == len(safety):
+        return "No environmental concerns detected near this address."
+
+    # ── No confirmed issues, some unverified ──
+    if not confirmed and unverified:
+        if len(unverified) == 1:
+            return (
+                f"No confirmed concerns. {unverified[0]['display_name']} could not "
+                "be verified automatically — worth a quick check on satellite view."
+            )
+        if len(unverified) == 2:
+            return (
+                f"No confirmed concerns, but {_names(unverified)} could not be "
+                "verified automatically — worth checking on satellite view."
+            )
+        # All three unverified
+        return (
+            "None of the proximity checks could be verified automatically. "
+            "We recommend reviewing satellite imagery for this address."
+        )
+
+    # ── One or more confirmed issues ──
+    concern_names = _names(confirmed)
+    if not unverified:
+        # Confirmed issues only, remaining are clear
+        if len(clear) > 0:
+            return (
+                f"This address is close to {concern_names}. "
+                f"Remaining checks are clear."
+            )
+        return f"This address is close to {concern_names}."
+
+    # Confirmed + unverified mix
+    return (
+        f"This address is close to {concern_names}. "
+        f"{_names(unverified).capitalize()} could not be verified automatically."
+    )
 
 
 @dataclass

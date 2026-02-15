@@ -335,17 +335,37 @@
   <div class="report-section">
     <h2>Proximity &amp; Environment</h2>
 
+    {# Section-level synthesis insight #}
+    {% if result.insights is defined and result.insights and result.insights.proximity %}
+      <p class="section-insight">{{ result.insights.proximity }}</p>
+    {% endif %}
+
     {% if result.presented_checks is defined %}
       {% for pc in result.presented_checks %}
         {% if pc.category == "SAFETY" %}
 
-          {# ── New proximity-band rendering ── #}
+          {# ── Proximity-band rendering with icons ── #}
           {% if pc.proximity_band is defined and pc.proximity_band %}
             {% set band_class = "proximity-" + pc.proximity_band | lower %}
             <div class="proximity-item {{ band_class }}">
-              <div class="proximity-name">{{ pc.headline }}</div>
+              <div class="proximity-name">
+                {% if pc.result_type == "CLEAR" -%}
+                  <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+                {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
+                  <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+                {%- else -%}
+                  <span class="proximity-icon proximity-icon-unverified">?</span>
+                {%- endif %}
+                {{ pc.headline }}
+              </div>
               {% if pc.explanation and (pc.proximity_band != 'NEUTRAL' or pc.result_type != 'CLEAR') %}
                 <div class="proximity-detail">{{ pc.explanation }}</div>
+              {% endif %}
+              {# Satellite link for unverified checks #}
+              {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
+                <a class="proximity-satellite-link"
+                   href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
+                   target="_blank" rel="noopener">View satellite imagery &rarr;</a>
               {% endif %}
             </div>
 

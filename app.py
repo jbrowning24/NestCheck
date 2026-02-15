@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, present_checks,
-    get_score_band,
+    get_score_band, proximity_synthesis,
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -780,8 +780,8 @@ def generate_insights(result_dict: dict) -> dict:
     Reads from the serialized result dict so it works for both new
     evaluations and old snapshots (with graceful fallbacks).
 
-    Returns a dict with keys: your_neighborhood, getting_around, parks.
-    Each value is a string or None.
+    Returns a dict with keys: your_neighborhood, getting_around, parks,
+    proximity.  Each value is a string or None.
     """
     tier2 = _tier2_lookup(result_dict)
     neighborhood = result_dict.get("neighborhood_places") or {}
@@ -790,6 +790,7 @@ def generate_insights(result_dict: dict) -> dict:
     walk_scores = result_dict.get("walk_scores")
     freq_label = result_dict.get("frequency_label") or ""
     green_escape = result_dict.get("green_escape")
+    presented = result_dict.get("presented_checks") or []
 
     return {
         "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
@@ -797,6 +798,7 @@ def generate_insights(result_dict: dict) -> dict:
             urban, transit, walk_scores, freq_label, tier2,
         ),
         "parks": _insight_parks(green_escape, tier2),
+        "proximity": proximity_synthesis(presented),
     }
 
 
