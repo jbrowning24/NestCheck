@@ -985,6 +985,25 @@ def result_to_dict(result):
     # Base64-encoded neighborhood map PNG
     output["neighborhood_map"] = result.neighborhood_map_b64
 
+    # Emergency services — informational, not scored (NES-50).
+    # Three states: None = lookup failed (section hidden), [] = searched
+    # but found nothing ("none found" message), [...] = found stations.
+    # Key absent on old snapshots → section hidden via `is defined` guard.
+    output["emergency_services"] = (
+        [
+            {
+                "name": s.name,
+                "type": s.service_type,
+                "drive_time_min": s.drive_time_min,
+                "lat": s.lat,
+                "lng": s.lng,
+            }
+            for s in result.emergency_services
+        ]
+        if result.emergency_services is not None
+        else None
+    )
+
     # Presentation layer for the new results UI
     output["presented_checks"] = present_checks(result.tier1_checks)
     output["show_score"] = True

@@ -343,9 +343,12 @@
 
   {# ── 5.5 EMERGENCY SERVICES ─────────────────────────────────── #}
   {# Informational only — nearest fire/police stations by drive time.  #}
-  {# Outer `is defined` guard hides the section for old snapshots that #}
-  {# predate NES-50 and lack the key entirely.                         #}
-  {% if result.emergency_services is defined %}
+  {# Three-state guard:                                                #}
+  {#   key absent  → old snapshot, hide section                        #}
+  {#   value=none  → lookup failed, hide section (graceful degradation)#}
+  {#   value=[]    → searched, found nothing, show "none found"        #}
+  {#   value=[..]  → found stations, show cards                        #}
+  {% if result.emergency_services is defined and result.emergency_services is not none %}
   <div class="report-section">
     <h2>Emergency Services</h2>
 

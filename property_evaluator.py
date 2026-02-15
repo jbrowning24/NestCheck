@@ -1197,14 +1197,15 @@ def get_emergency_services(
     overpass: OverpassClient,
     lat: float,
     lng: float,
-) -> List[EmergencyService]:
+) -> Optional[List[EmergencyService]]:
     """Find the nearest fire and police stations and their drive times.
 
     Queries Overpass for stations within 5 km, picks the closest of each
     type by straight-line distance, then fetches driving times via the
     Distance Matrix API.  Returns 0–2 EmergencyService objects.
 
-    Graceful degradation: any failure returns an empty list.
+    Returns [] when no stations are found, None on failure (so the
+    template can distinguish "searched, found nothing" from "lookup failed").
     """
     try:
         raw_stations = overpass.get_nearby_emergency_services(lat, lng)
@@ -1244,7 +1245,7 @@ def get_emergency_services(
         logger.warning(
             "Emergency services lookup failed; continuing without", exc_info=True
         )
-        return []
+        return None  # None = failure (section hidden); [] = searched, found nothing
 
 
 def _coerce_score(value: Any) -> Optional[int]:
