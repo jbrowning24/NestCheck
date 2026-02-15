@@ -9,21 +9,7 @@
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries","places");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);a.src=`https://maps.googleapis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once."):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
-  key: "{{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}",
-  v: "weekly"
-});</script>
-<style>
-  gmp-place-autocomplete { flex: 1; }
-  gmp-place-autocomplete::part(input) {
-    padding: var(--space-14) var(--space-16);
-    border: none;
-    font-size: var(--font-size-input);
-    background: transparent;
-    outline: none;
-    color: var(--color-text);
-  }
-</style>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places"></script>
 {% endif %}
 {% endblock %}
 
@@ -241,9 +227,8 @@
       retryBtn.textContent = 'Try again';
       retryBtn.addEventListener('click', function() {
         banner.remove();
-        var acEl = document.querySelector('gmp-place-autocomplete');
-        if (acEl) { acEl.focus(); }
-        else { var input = document.getElementById('address-input'); if (input) input.focus(); }
+        var input = document.getElementById('address-input');
+        if (input) input.focus();
       });
       banner.appendChild(retryBtn);
 
@@ -355,14 +340,7 @@
     document.getElementById('evalForm').addEventListener('submit', function(e) {
       e.preventDefault();
       var form = e.target;
-      var autocompleteEl = form.querySelector('gmp-place-autocomplete');
-      var address;
-      if (autocompleteEl) {
-        address = (autocompleteEl.value || '').trim();
-        form.querySelector('input[name="address"]').value = address;
-      } else {
-        address = form.querySelector('input[name="address"]').value.trim();
-      }
+      var address = form.querySelector('input[name="address"]').value.trim();
       if (!address) return;
 
       if (REQUIRE_PAYMENT) {
@@ -501,53 +479,33 @@
 
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script>
-  // Google Places Autocomplete — PlaceAutocompleteElement web component
-  (async function() {
-    try {
-      var addressInput = document.getElementById('address-input');
-      if (!addressInput) return;
+  // Google Places Autocomplete — classic Autocomplete widget
+  (function() {
+    var input = document.getElementById('address-input');
+    if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) return;
 
-      await google.maps.importLibrary('places');
+    var autocomplete = new google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'us' },
+      fields: ['place_id', 'formatted_address'],
+      types: ['address']
+    });
 
-      var autocomplete = new google.maps.places.PlaceAutocompleteElement({
-        includedRegionCodes: ['us']
-      });
-
-      // Pre-fill from the hidden input (Stripe return or server-rendered value)
-      if (addressInput.value) {
-        autocomplete.value = addressInput.value;
+    autocomplete.addListener('place_changed', function() {
+      var place = autocomplete.getPlace();
+      var pid = document.getElementById('place-id-input');
+      if (place.place_id && pid) {
+        pid.value = place.place_id;
       }
+      if (place.formatted_address) {
+        input.value = place.formatted_address;
+      }
+    });
 
-      // Insert web component before the hidden text input, then hide it
-      addressInput.parentNode.insertBefore(autocomplete, addressInput);
-      addressInput.style.display = 'none';
-
-      // On place selection: populate place_id + sync address
-      autocomplete.addEventListener('gmp-select', async function(e) {
-        try {
-          var placePrediction = e.placePrediction;
-          var place = placePrediction.toPlace();
-          await place.fetchFields({ fields: ['formattedAddress', 'id'] });
-          var pid = document.getElementById('place-id-input');
-          if (pid) pid.value = place.id || '';
-          if (place.formattedAddress) {
-            autocomplete.value = place.formattedAddress;
-            addressInput.value = place.formattedAddress;
-          }
-        } catch (err) {
-          console.warn('Place details fetch failed:', err.message);
-        }
-      });
-
-      // Clear place_id when user manually edits after selecting
-      autocomplete.addEventListener('input', function() {
-        var pid = document.getElementById('place-id-input');
-        if (pid) pid.value = '';
-      });
-    } catch (err) {
-      // Graceful degradation — fall back to plain text input
-      console.warn('Places autocomplete unavailable:', err.message);
-    }
+    // Clear place_id when user manually edits after selecting
+    input.addEventListener('input', function() {
+      var pid = document.getElementById('place-id-input');
+      if (pid) pid.value = '';
+    });
   })();
 </script>
 {% endif %}
