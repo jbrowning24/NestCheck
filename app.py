@@ -107,6 +107,7 @@ if _sentry_dsn:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
+app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY')
 if (not app.config['SECRET_KEY'] or app.config['SECRET_KEY'] == 'nestcheck-dev-key') and os.environ.get('FLASK_DEBUG') != '1':
     print("FATAL: SECRET_KEY is not set. Refusing to start with insecure default.", file=sys.stderr)
     print("Set SECRET_KEY in your environment or .env file.", file=sys.stderr)
@@ -1204,7 +1205,8 @@ def index():
                 )
 
         # Async queue: create job and return immediately. Worker picks up and runs evaluation.
-        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id)
+        place_id = request.form.get('place_id', '').strip() or None
+        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id, place_id=place_id)
         logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
 
         # Link payment to job if this was a paid evaluation
@@ -1437,8 +1439,16 @@ def create_checkout():
     if not address:
         return jsonify({"error": "Address required"}), 400
 
+    place_id = request.form.get("place_id", "").strip() or None
     visitor_id = getattr(g, "visitor_id", "unknown")
     payment_id = secrets.token_hex(8)
+
+    success_url = (
+        url_for("index", _external=True)
+        + f"?payment_token={payment_id}&address={_quote_param(address)}"
+    )
+    if place_id:
+        success_url += f"&place_id={_quote_param(place_id)}"
 
     try:
         session = stripe.checkout.Session.create(
@@ -1448,10 +1458,7 @@ def create_checkout():
                 "quantity": 1,
             }],
             mode="payment",
-            success_url=(
-                url_for("index", _external=True)
-                + f"?payment_token={payment_id}&address={_quote_param(address)}"
-            ),
+            success_url=success_url,
             cancel_url=url_for("index", _external=True),
             client_reference_id=payment_id,
             metadata={"address": address, "visitor_id": visitor_id},

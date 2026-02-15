@@ -639,13 +639,27 @@ class GoogleMapsClient:
             )
         return data
 
-    def geocode(self, address: str) -> Tuple[float, float]:
-        """Convert address to lat/lng coordinates"""
+    def geocode(self, address: str, place_id: Optional[str] = None) -> Tuple[float, float]:
+        """Convert address to lat/lng coordinates.
+
+        If place_id is provided, attempts geocoding by place_id first (saves
+        one address-based geocode call). Falls back to address-based geocoding
+        if the place_id lookup fails.
+        """
         url = f"{self.base_url}/geocode/json"
-        params = {
-            "address": address,
-            "key": self.api_key
-        }
+
+        if place_id:
+            params = {"place_id": place_id, "key": self.api_key}
+            data = self._traced_get("geocode", url, params)
+            if data["status"] == "OK" and data.get("results"):
+                location = data["results"][0]["geometry"]["location"]
+                return location["lat"], location["lng"]
+            logger.warning(
+                "Geocode by place_id=%s failed (%s), falling back to address",
+                place_id, data.get("status"),
+            )
+
+        params = {"address": address, "key": self.api_key}
         data = self._traced_get("geocode", url, params)
 
         if data["status"] != "OK":
@@ -3037,6 +3051,7 @@ def evaluate_property(
     listing: PropertyListing,
     api_key: str,
     on_stage: Optional[Callable[[str], None]] = None,
+    place_id: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
@@ -3060,7 +3075,7 @@ def evaluate_property(
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run.  Let this propagate on failure.
-    lat, lng = _run_stage("geocode", maps.geocode, listing.address)
+    lat, lng = _run_stage("geocode", maps.geocode, listing.address, place_id=place_id)
 
     result = EvaluationResult(
         listing=listing,

@@ -100,11 +100,15 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_payments_job ON payments(job_id);
     """)
     # Migrate existing evaluation_jobs table (add new columns if missing).
+    # Uses try/except per column to handle the race where multiple gunicorn
+    # workers run init_db() concurrently on first deploy with a new column.
     cols = {row["name"] for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()}
-    if "visitor_id" not in cols:
-        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN visitor_id TEXT")
-    if "request_id" not in cols:
-        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN request_id TEXT")
+    for col in ("visitor_id", "request_id", "place_id"):
+        if col not in cols:
+            try:
+                conn.execute(f"ALTER TABLE evaluation_jobs ADD COLUMN {col} TEXT")
+            except sqlite3.OperationalError:
+                pass  # Another process already added it
     conn.commit()
     conn.close()
 
@@ -268,19 +272,20 @@ def get_recent_snapshots(limit=20):
 # Evaluation job queue (async evaluation)
 # ---------------------------------------------------------------------------
 
-def create_job(address, visitor_id=None, request_id=None):
+def create_job(address, visitor_id=None, request_id=None, place_id=None):
     """
     Enqueue an evaluation job. Returns job_id.
     address: raw address string from the user.
+    place_id: optional Google Places place_id for direct geocoding.
     """
     job_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
     conn.execute(
         """INSERT INTO evaluation_jobs
-           (job_id, address, visitor_id, request_id, status, created_at)
-           VALUES (?, ?, ?, ?, 'queued', ?)""",
-        (job_id, address, visitor_id, request_id, now),
+           (job_id, address, visitor_id, request_id, place_id, status, created_at)
+           VALUES (?, ?, ?, ?, ?, 'queued', ?)""",
+        (job_id, address, visitor_id, request_id, place_id, now),
     )
     conn.commit()
     conn.close()

@@ -7,6 +7,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
+{% block head_extra %}
+{% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async" async defer></script>
+{% endif %}
+{% endblock %}
+
 {% block meta_description %}
   {% if result %}
   <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation for {{ result.address }}">
@@ -79,6 +85,7 @@
       {% endif %}
     {% endif %}
     <form method="POST" id="evalForm">
+      <input type="hidden" name="place_id" id="place-id-input" value="">
       <div class="search-box">
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
         <button type="submit" id="evalBtn">Evaluate</button>
@@ -301,6 +308,10 @@
       if (paymentToken) {
         body.append('payment_token', paymentToken);
       }
+      var placeIdInput = document.getElementById('place-id-input');
+      if (placeIdInput && placeIdInput.value) {
+        body.append('place_id', placeIdInput.value);
+      }
 
       fetch('/', {
         method: 'POST',
@@ -346,6 +357,10 @@
 
         var checkoutBody = new FormData();
         checkoutBody.append('address', address);
+        var placeIdForCheckout = document.getElementById('place-id-input');
+        if (placeIdForCheckout && placeIdForCheckout.value) {
+          checkoutBody.append('place_id', placeIdForCheckout.value);
+        }
 
         fetch('/checkout/create', {
           method: 'POST',
@@ -385,6 +400,13 @@
     var urlParams = new URLSearchParams(window.location.search);
     var paymentToken = urlParams.get('payment_token');
     var returnAddress = urlParams.get('address');
+    var returnPlaceId = urlParams.get('place_id');
+
+    // Populate place_id from URL if present (survives Stripe round-trip)
+    if (returnPlaceId) {
+      var placeIdField = document.getElementById('place-id-input');
+      if (placeIdField) placeIdField.value = returnPlaceId;
+    }
 
     if (REQUIRE_PAYMENT && paymentToken && returnAddress) {
       // Clean the URL (remove params without reload)
@@ -454,4 +476,41 @@
     }
   }
 </script>
+
+{% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
+<script>
+  // Google Places Autocomplete — attaches to #address-input when Maps JS loads
+  (function() {
+    var tries = 0;
+    function initAutocomplete() {
+      if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+        if (++tries < 50) setTimeout(initAutocomplete, 200);
+        return;
+      }
+      var input = document.getElementById('address-input');
+      if (!input) return;
+
+      var ac = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'us' },
+        fields: ['place_id', 'formatted_address']
+      });
+
+      ac.addListener('place_changed', function() {
+        var place = ac.getPlace();
+        var pid = document.getElementById('place-id-input');
+        if (place.place_id && pid) pid.value = place.place_id;
+        if (place.formatted_address) input.value = place.formatted_address;
+      });
+
+      // Clear place_id when user manually edits address after selecting
+      input.addEventListener('input', function() {
+        var pid = document.getElementById('place-id-input');
+        if (pid) pid.value = '';
+      });
+    }
+    initAutocomplete();
+  })();
+</script>
+{% endif %}
+
 {% endblock %}
