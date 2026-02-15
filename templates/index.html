@@ -11,7 +11,7 @@
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places"></script>
 <style>
-  .gm-err-container, .dismissButton, .gm-err-message, .gm-style-cc {
+  .pac-container > div:not(.pac-item) {
     display: none !important;
   }
 </style>
