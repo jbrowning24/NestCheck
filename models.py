@@ -83,6 +83,15 @@ def init_db():
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
+        -- Weather climate normals cache (NES-32).
+        -- Keyed by rounded lat/lng (~1km); 90-day TTL since climate
+        -- normals are 10-year averages that don't change month to month.
+        CREATE TABLE IF NOT EXISTS weather_cache (
+            cache_key    TEXT PRIMARY KEY,
+            summary_json TEXT NOT NULL,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         -- Stripe payment records (one-time evaluation credits)
         CREATE TABLE IF NOT EXISTS payments (
             id                TEXT PRIMARY KEY,
@@ -463,6 +472,67 @@ def set_overpass_cache(cache_key: str, response_json: str) -> None:
         conn.close()
     except Exception:
         logger.warning("Overpass cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Weather climate normals cache (NES-32)
+# ---------------------------------------------------------------------------
+
+_WEATHER_CACHE_TTL_DAYS = 90
+
+
+def get_weather_cache(cache_key: str) -> Optional[str]:
+    """Look up cached weather summary by rounded-coordinate key.
+
+    Returns the raw JSON string if found and younger than TTL, else None.
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        row = conn.execute(
+            """SELECT summary_json, created_at FROM weather_cache
+               WHERE cache_key = ?""",
+            (cache_key,),
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            return None
+
+        created_str = row["created_at"]
+        if created_str:
+            try:
+                created = datetime.fromisoformat(created_str)
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                age = datetime.now(timezone.utc) - created
+                if age > timedelta(days=_WEATHER_CACHE_TTL_DAYS):
+                    return None  # Expired
+            except (ValueError, TypeError):
+                pass  # If we can't parse the timestamp, return the data anyway
+
+        return row["summary_json"]
+    except Exception:
+        logger.warning("Weather cache lookup failed", exc_info=True)
+        return None
+
+
+def set_weather_cache(cache_key: str, summary_json: str) -> None:
+    """Store a weather summary in the persistent cache.
+
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        conn.execute(
+            """INSERT OR REPLACE INTO weather_cache (cache_key, summary_json, created_at)
+               VALUES (?, ?, ?)""",
+            (cache_key, summary_json, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        logger.warning("Weather cache write failed", exc_info=True)
 
 
 # ---------------------------------------------------------------------------

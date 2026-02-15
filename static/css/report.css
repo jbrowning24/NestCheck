@@ -394,6 +394,14 @@
 }
 .hub-time { font-weight: 600; color: var(--color-primary); font-size: 0.95em; white-space: nowrap; }
 
+/* --- Transit Accessibility (NES-31) --- */
+.accessibility-lines { margin-top: 8px; font-size: 0.82em; }
+.accessibility-attr { line-height: 1.6; }
+.accessibility-label { color: var(--color-text-faint); }
+.accessibility-yes { color: var(--color-text-lighter); }
+.accessibility-no { color: var(--color-danger); }
+.accessibility-unverified { color: var(--color-text-faintest); font-style: italic; }
+
 /* --- Walk Score Pills --- */
 .walkscore-row {
   display: flex;

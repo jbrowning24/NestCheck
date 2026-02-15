@@ -30,6 +30,7 @@ from models import (
     create_payment, get_payment_by_session, get_payment_by_id,
     update_payment_status, redeem_payment, update_payment_job_id,
 )
+from weather import serialize_for_result as _serialize_weather
 
 def _quote_param(s: str) -> str:
     """URL-encode a string for use as a query parameter value.
@@ -601,6 +602,7 @@ def _insight_getting_around(
     walk_scores: dict | None,
     freq_label: str,
     tier2: dict,
+    weather: dict | None = None,
 ) -> str | None:
     """Generate a plain-English insight for the Getting Around section."""
     # If we have no transit data at all, return None rather than guessing.
@@ -696,10 +698,113 @@ def _insight_getting_around(
         if score >= 4:
             parts.append(f"The area is rated \"{desc}\" for walkability")
 
+    # Weather context — append 0-2 sentences when climate materially
+    # affects the walkability/transit story (NES-32).
+    weather_sentence = _weather_context(weather)
+    if weather_sentence:
+        parts.append(weather_sentence)
+
     if not parts:
         return None
 
     return ". ".join(parts) + "."
+
+
+# Month name lookup for weather context sentences
+_MONTH_NAMES = [
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
+
+
+def _snow_months(monthly: list[dict]) -> str:
+    """Identify the contiguous winter months with meaningful snowfall.
+
+    Returns a human-readable range like "December through March".
+    """
+    snow_months = [
+        m["month"] for m in monthly
+        if m.get("avg_snowfall_in", 0) >= 1.0
+    ]
+    if not snow_months:
+        return "winter"
+
+    # Winter-centered sort: July=0 … June=11.  This keeps winter months
+    # (Oct–Mar) contiguous so first/last gives the correct range.
+    ordered = sorted(snow_months, key=lambda m: (m - 7) % 12)
+    return f"{_MONTH_NAMES[ordered[0]]} through {_MONTH_NAMES[ordered[-1]]}"
+
+
+def _hot_months(monthly: list[dict]) -> str:
+    """Identify months where average highs exceed 90 deg F."""
+    hot = [
+        m["month"] for m in monthly
+        if m.get("avg_high_f", 0) >= 90
+    ]
+    if not hot:
+        return "summer"
+    return f"{_MONTH_NAMES[hot[0]]} through {_MONTH_NAMES[hot[-1]]}"
+
+
+def _weather_context(weather: dict | None) -> str | None:
+    """Generate 0-1 weather context sentences for the Getting Around insight.
+
+    Only produces output when climate thresholds are triggered.  Returns
+    None for mild climates.  Combines related triggers (snow + freezing)
+    into a single natural sentence to avoid redundancy.
+    """
+    if not weather:
+        return None
+
+    triggers = weather.get("triggers") or []
+    if not triggers:
+        return None
+
+    monthly = weather.get("monthly") or []
+    sentences = []
+
+    # Snow and freezing often co-occur — combine into one sentence
+    has_snow = "snow" in triggers
+    has_freezing = "freezing" in triggers
+
+    if has_snow and has_freezing:
+        period = _snow_months(monthly)
+        sentences.append(
+            f"This area gets significant snow and freezing temperatures "
+            f"in winter \u2014 expect that commute to feel longer from {period}"
+        )
+    elif has_snow:
+        period = _snow_months(monthly)
+        sentences.append(
+            f"This area gets notable snow in winter \u2014 plan for that "
+            f"walk to feel longer from {period}"
+        )
+    elif has_freezing:
+        sentences.append(
+            "Winters here bring extended freezing temperatures \u2014 "
+            "factor in icy conditions for outdoor commuting"
+        )
+
+    # Extreme heat — independent of snow/cold
+    if "extreme_heat" in triggers:
+        period = _hot_months(monthly)
+        sentences.append(
+            f"Summers are hot \u2014 outdoor walks will be uncomfortable "
+            f"from {period}"
+        )
+
+    # Frequent rain — only if no snow trigger (avoid "it snows AND rains")
+    if "rain" in triggers and not has_snow:
+        sentences.append(
+            "This area sees frequent rain year-round \u2014 keep that in "
+            "mind for daily walks and transit waits"
+        )
+
+    if not sentences:
+        return None
+
+    # Return at most 2 sentences, joined naturally
+    return ". ".join(sentences[:2])
 
 
 def _insight_parks(green_escape: dict | None, tier2: dict) -> str | None:
@@ -791,11 +896,12 @@ def generate_insights(result_dict: dict) -> dict:
     freq_label = result_dict.get("frequency_label") or ""
     green_escape = result_dict.get("green_escape")
     presented = result_dict.get("presented_checks") or []
+    weather = result_dict.get("weather")
 
     return {
         "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
         "getting_around": _insight_getting_around(
-            urban, transit, walk_scores, freq_label, tier2,
+            urban, transit, walk_scores, freq_label, tier2, weather,
         ),
         "parks": _insight_parks(green_escape, tier2),
         "proximity": proximity_synthesis(presented),
@@ -898,6 +1004,8 @@ def _serialize_urban_access(urban_access):
             "walk_time_min": pt.walk_time_min,
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,
+            "wheelchair_accessible_entrance": pt.wheelchair_accessible_entrance,
+            "elevator_available": pt.elevator_available,
         }
 
     major_hub = None
@@ -1027,6 +1135,11 @@ def result_to_dict(result):
         ]
         if result.emergency_services is not None
         else None
+    )
+
+    # Weather climate normals — informational context for insights (NES-32).
+    output["weather"] = _serialize_weather(
+        getattr(result, "weather_summary", None)
     )
 
     # Presentation layer for the new results UI

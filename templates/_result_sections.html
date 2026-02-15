@@ -174,6 +174,31 @@
           {% endif %}
         </div>
       </div>
+
+      {# Accessibility annotations — rail stations only (NES-31) #}
+      <div class="accessibility-lines">
+        <div class="accessibility-attr">
+          <span class="accessibility-label">Step-free entrance:</span>
+          {% if pt.wheelchair_accessible_entrance is true %}
+            <span class="accessibility-val accessibility-yes">Yes</span>
+          {% elif pt.wheelchair_accessible_entrance is false %}
+            <span class="accessibility-val accessibility-no">No</span>
+          {% else %}
+            <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+          {% endif %}
+        </div>
+        <div class="accessibility-attr">
+          <span class="accessibility-label">Elevator:</span>
+          {% if pt.elevator_available is true %}
+            <span class="accessibility-val accessibility-yes">Yes</span>
+          {% elif pt.elevator_available is false %}
+            <span class="accessibility-val accessibility-no">No</span>
+          {% else %}
+            <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+          {% endif %}
+        </div>
+      </div>
+
     {% elif result.transit_access and result.transit_access.primary_stop %}
       <div class="section-label">Nearest Transit</div>
       <div class="hub-row">

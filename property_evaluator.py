@@ -37,6 +37,7 @@ from green_space import (
     evaluate_green_escape,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
+from weather import get_weather_summary, WeatherSummary
 from scoring_config import (
     SCORING_MODEL,
     DimensionConfig,
@@ -597,6 +598,10 @@ class PrimaryTransitOption:
     parking_available: Optional[bool] = None
     user_ratings_total: Optional[int] = None
     frequency_class: Optional[str] = None
+    # Accessibility attributes (NES-31)
+    # True = confirmed accessible, False = confirmed inaccessible, None = unverified
+    wheelchair_accessible_entrance: Optional[bool] = None
+    elevator_available: Optional[bool] = None
 
 
 @dataclass
@@ -700,6 +705,9 @@ class EvaluationResult:
 
     # Nearby emergency services — informational, not scored (NES-50)
     emergency_services: Optional[List[EmergencyService]] = None
+
+    # Weather climate normals — informational, not scored (NES-32)
+    weather_summary: Optional[WeatherSummary] = None
 
 
 # =============================================================================
@@ -1193,6 +1201,65 @@ class OverpassClient:
             })
 
         return stations
+
+    def has_nearby_elevators(self, lat: float, lng: float, radius_meters: int = 150) -> Optional[bool]:
+        """Check for elevator nodes near a transit station (NES-31).
+
+        Queries Overpass for ``node["elevator"="yes"]`` within *radius_meters*
+        of the given point.  Returns True if at least one elevator node is
+        found, None otherwise (unverified — absence of OSM data does not
+        confirm absence of elevators).
+        """
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["elevator"="yes"](around:{radius_meters},{lat},{lng});
+        );
+        out count;
+        """
+
+        # SQLite persistent cache (same pattern as get_nearby_roads)
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_elevator_count(data)
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache read failed in has_nearby_elevators, "
+                "falling through to HTTP", exc_info=True,
+            )
+
+        data = self._traced_post(
+            "has_nearby_elevators", self.base_url, {"data": query}
+        )
+
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache write failed in has_nearby_elevators",
+                exc_info=True,
+            )
+
+        return self._parse_elevator_count(data)
+
+    @staticmethod
+    def _parse_elevator_count(data: dict) -> Optional[bool]:
+        """Extract elevator count from an ``out count`` Overpass response.
+
+        Returns True if elevators found, None if zero or unparseable
+        (unverified — not confirmed absent).
+        """
+        elements = data.get("elements") or []
+        if not elements:
+            return None
+        count = elements[0].get("tags", {}).get("total", 0)
+        return True if int(count) > 0 else None
 
 
 def get_emergency_services(
@@ -2055,9 +2122,20 @@ def get_child_and_schooling_snapshot(
     return snapshot
 
 
-def get_parking_availability(maps: GoogleMapsClient, place_id: Optional[str]) -> Optional[bool]:
+def get_station_details(
+    maps: GoogleMapsClient, place_id: Optional[str]
+) -> Dict[str, Optional[bool]]:
+    """Fetch parking and accessibility attributes for a transit station.
+
+    Single place_details call that extracts:
+      - parking_available: whether the station has parking
+      - wheelchair_accessible_entrance: step-free entrance (NES-31)
+
+    Returns dict with both keys; values are True/False/None (unverified).
+    """
+    empty = {"parking_available": None, "wheelchair_accessible_entrance": None}
     if not place_id:
-        return None
+        return empty
     try:
         details = maps.place_details(
             place_id,
@@ -2066,26 +2144,38 @@ def get_parking_availability(maps: GoogleMapsClient, place_id: Optional[str]) ->
                 "types",
                 "parking_options",
                 "wheelchair_accessible_parking",
+                "wheelchair_accessible_entrance",
             ]
         )
     except Exception:
-        return None
+        return empty
 
+    # --- Parking availability ---
+    parking_available = None
     parking_options = details.get("parking_options", {})
     if isinstance(parking_options, dict):
         for value in parking_options.values():
             if value is True:
-                return True
-        if parking_options:
-            return False
+                parking_available = True
+                break
+        if parking_available is None and parking_options:
+            parking_available = False
 
-    wheelchair_parking = details.get("wheelchair_accessible_parking")
-    if wheelchair_parking is True:
-        return True
-    if wheelchair_parking is False:
-        return False
+    if parking_available is None:
+        wheelchair_parking = details.get("wheelchair_accessible_parking")
+        if wheelchair_parking is True:
+            parking_available = True
+        elif wheelchair_parking is False:
+            parking_available = False
 
-    return None
+    # --- Wheelchair-accessible entrance (NES-31) ---
+    wae = details.get("wheelchair_accessible_entrance")
+    wheelchair_entrance = True if wae is True else (False if wae is False else None)
+
+    return {
+        "parking_available": parking_available,
+        "wheelchair_accessible_entrance": wheelchair_entrance,
+    }
 
 
 def transit_frequency_class(review_count: int) -> str:
@@ -2101,7 +2191,8 @@ def transit_frequency_class(review_count: int) -> str:
 def find_primary_transit(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    overpass: Optional[OverpassClient] = None,
 ) -> Optional[PrimaryTransitOption]:
     """Find the best nearby transit option with preference for rail."""
     search_types = [
@@ -2147,8 +2238,16 @@ def find_primary_transit(
             (place_lat, place_lng)
         )
 
-    parking_available = get_parking_availability(maps, place.get("place_id"))
+    station_info = get_station_details(maps, place.get("place_id"))
     user_ratings_total = place.get("user_ratings_total")
+
+    # Elevator check via Overpass — 150m around the station (NES-31)
+    elevator_available = None
+    if overpass:
+        try:
+            elevator_available = overpass.has_nearby_elevators(place_lat, place_lng)
+        except Exception:
+            logger.warning("Overpass elevator check failed for %s", place.get("name"), exc_info=True)
 
     return PrimaryTransitOption(
         name=place.get("name", "Unknown"),
@@ -2157,13 +2256,15 @@ def find_primary_transit(
         lng=place_lng,
         walk_time_min=walk_time,
         drive_time_min=drive_time if drive_time and drive_time != 9999 else None,
-        parking_available=parking_available,
+        parking_available=station_info["parking_available"],
         user_ratings_total=user_ratings_total,
         frequency_class=(
             transit_frequency_class(user_ratings_total)
             if isinstance(user_ratings_total, int)
             else None
         ),
+        wheelchair_accessible_entrance=station_info["wheelchair_accessible_entrance"],
+        elevator_available=elevator_available,
     )
 
 
@@ -2296,9 +2397,10 @@ def urban_access_route_summary(
 def get_urban_access_profile(
     maps: GoogleMapsClient,
     lat: float,
-    lng: float
+    lng: float,
+    overpass: Optional[OverpassClient] = None,
 ) -> UrbanAccessProfile:
-    primary_transit = find_primary_transit(maps, lat, lng)
+    primary_transit = find_primary_transit(maps, lat, lng, overpass=overpass)
     transit_origin = (primary_transit.lat, primary_transit.lng) if primary_transit else None
     major_hub = determine_major_hub(
         maps,
@@ -3509,7 +3611,7 @@ def evaluate_property(
             )
         futures["urban_access"] = pool.submit(
             _threaded_stage,
-            "urban_access", get_urban_access_profile, maps, lat, lng,
+            "urban_access", get_urban_access_profile, maps, lat, lng, overpass,
         )
         futures["transit_access"] = pool.submit(
             _threaded_stage,
@@ -3530,6 +3632,11 @@ def evaluate_property(
         futures["road_noise"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
             "road_noise", assess_road_noise, lat, lng,
+        )
+        # Weather normals — Open-Meteo API, no maps client needed (NES-32).
+        futures["weather"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "weather", get_weather_summary, lat, lng,
         )
 
         # Collect results — each stage fails independently
@@ -3552,6 +3659,8 @@ def evaluate_property(
                     result.emergency_services = stage_result
                 elif stage_name == "road_noise":
                     result.road_noise_assessment = stage_result
+                elif stage_name == "weather":
+                    result.weather_summary = stage_result
             except Exception:
                 pass  # Graceful degradation — same as the sequential path
 
