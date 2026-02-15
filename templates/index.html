@@ -39,48 +39,53 @@
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>
   <div class="loading-text">Evaluating this address...</div>
-  <div class="loading-sub">Checking parks, transit, schools, safety, and more. This takes 15-45 seconds.</div>
+  <div class="loading-progress">
+    <div class="loading-progress-fill" id="progressFill"></div>
+  </div>
+  <div class="loading-sub">Checking parks, transit, schools, safety, and more.</div>
 </div>
 
 {% if not result %}
 {# ============================================================ #}
 {#                     LANDING PAGE                              #}
 {# ============================================================ #}
-<div class="hero">
-  <h1>Know before you move.</h1>
-  <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — instant results, shareable link.</p>
-</div>
+<div class="landing-hero-band">
 
-<div class="why-block">
-  <p><strong>Listings show rooms and photos.</strong> They don't tell you if you can walk to a good park, how far the highway is, or whether there's a decent grocery nearby.</p>
-  <p>NestCheck evaluates daily-life quality at any U.S. address — walkability, green space, transit, schools, and safety — so you know before you visit or sign.</p>
-</div>
+  <div class="hero">
+    <h1>Know before you move.</h1>
+    <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — instant results, shareable link.</p>
+  </div>
 
-<div class="search-section" id="evaluate">
-  {% if error %}
-    <div class="error-banner">
-      <strong>Could not evaluate address</strong>
-      {{ error }}
-      {% if request_id %}
-        <div class="error-ref">ref: {{ request_id }}</div>
+  <div class="search-section" id="evaluate">
+    {% if error %}
+      <div class="error-banner">
+        <strong>Could not evaluate address</strong>
+        {{ error }}
+        {% if request_id %}
+          <div class="error-ref">ref: {{ request_id }}</div>
+        {% endif %}
+      </div>
+      {% if is_builder and error_detail %}
+      <details class="error-diagnostic">
+        <summary>Builder diagnostic</summary>
+        <pre>{{ error_detail | tojson(indent=2) }}</pre>
+      </details>
       {% endif %}
-    </div>
-    {% if is_builder and error_detail %}
-    <details class="error-diagnostic">
-      <summary>Builder diagnostic</summary>
-      <pre>{{ error_detail | tojson(indent=2) }}</pre>
-    </details>
     {% endif %}
-  {% endif %}
-  <form method="POST" id="evalForm">
-    <div class="search-box">
-      <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
-      <button type="submit" id="evalBtn">Evaluate</button>
-    </div>
-  </form>
-</div>
+    <form method="POST" id="evalForm">
+      <div class="search-box">
+        <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+        <button type="submit" id="evalBtn">Evaluate</button>
+      </div>
+    </form>
+  </div>
 
-<p class="who-its-for">For families, renters, and homebuyers choosing where to live.</p>
+  <div class="why-block">
+    <p><strong>Listings show rooms and photos.</strong> They don't tell you if you can walk to a good park, how far the highway is, or whether there's a decent grocery nearby.</p>
+    <p>NestCheck evaluates daily-life quality at any U.S. address — so you know before you visit or sign. For families, renters, and homebuyers choosing where to live.</p>
+  </div>
+
+</div>{# /.landing-hero-band #}
 
 <div class="features">
   <div class="feature-card">
@@ -149,31 +154,42 @@
   (function() {
     var POLL_INTERVAL_MS = 2000;
 
-    // Stage names from backend -> user-facing progress text
+    // Stage names from backend -> user-facing progress text + approximate percentage
     var STAGE_DISPLAY = {
-      geocode: 'Locating address...',
-      analyzing: 'Analyzing neighborhood, transit, parks...',
-      bike_score: 'Checking bike infrastructure...',
-      neighborhood: 'Analyzing nearby amenities...',
-      schools: 'Finding schools and childcare...',
-      urban_access: 'Calculating commute times...',
-      transit_access: 'Evaluating transit options...',
-      green_spaces: 'Discovering parks and trails...',
-      green_escape: 'Finding your daily green escape...',
-      transit_score: 'Getting transit scores...',
-      walk_scores: 'Getting walkability scores...',
-      tier1_checks: 'Running safety checks...',
-      score_park_access: 'Calculating lifestyle scores...',
-      score_third_place: 'Calculating lifestyle scores...',
-      score_provisioning: 'Calculating lifestyle scores...',
-      score_fitness: 'Calculating lifestyle scores...',
-      score_transit_access: 'Calculating lifestyle scores...',
-      tier3_bonuses: 'Adding bonus points...',
-      saving: 'Saving your results...'
+      geocode:              { text: 'Locating address...',                    pct: 5  },
+      analyzing:            { text: 'Analyzing neighborhood, transit, parks...', pct: 10 },
+      bike_score:           { text: 'Checking bike infrastructure...',        pct: 20 },
+      neighborhood:         { text: 'Analyzing nearby amenities...',          pct: 30 },
+      schools:              { text: 'Finding schools and childcare...',       pct: 40 },
+      urban_access:         { text: 'Calculating commute times...',           pct: 45 },
+      transit_access:       { text: 'Evaluating transit options...',          pct: 50 },
+      green_spaces:         { text: 'Discovering parks and trails...',        pct: 55 },
+      green_escape:         { text: 'Finding your daily green escape...',     pct: 60 },
+      transit_score:        { text: 'Getting transit scores...',              pct: 65 },
+      walk_scores:          { text: 'Getting walkability scores...',          pct: 70 },
+      tier1_checks:         { text: 'Running safety checks...',              pct: 75 },
+      score_park_access:    { text: 'Calculating lifestyle scores...',        pct: 80 },
+      score_third_place:    { text: 'Calculating lifestyle scores...',        pct: 82 },
+      score_provisioning:   { text: 'Calculating lifestyle scores...',        pct: 84 },
+      score_fitness:        { text: 'Calculating lifestyle scores...',        pct: 86 },
+      score_transit_access: { text: 'Calculating lifestyle scores...',        pct: 88 },
+      tier3_bonuses:        { text: 'Adding bonus points...',                 pct: 92 },
+      saving:               { text: 'Saving your results...',                 pct: 97 }
     };
 
     function stageDisplay(stage) {
-      return STAGE_DISPLAY[stage] || 'Working...';
+      var info = STAGE_DISPLAY[stage];
+      return info ? info.text : 'Working...';
+    }
+
+    function stagePercent(stage) {
+      var info = STAGE_DISPLAY[stage];
+      return info ? info.pct : 0;
+    }
+
+    function setProgress(pct) {
+      var fill = document.getElementById('progressFill');
+      if (fill) fill.style.width = pct + '%';
     }
 
     function showError(msg, overlay, btn, form) {
@@ -196,6 +212,7 @@
       overlay.classList.add('active');
       loadingText.textContent = 'Evaluating this address...';
       loadingSub.textContent = 'Starting...';
+      setProgress(2);
 
       function poll() {
         fetch('/job/' + jobId, { headers: { 'Accept': 'application/json' } })
@@ -210,8 +227,10 @@
             if (!data) return;
             if (data.current_stage) {
               loadingSub.textContent = stageDisplay(data.current_stage);
+              setProgress(stagePercent(data.current_stage));
             }
             if (data.status === 'done' && data.snapshot_id) {
+              setProgress(100);
               window.location.href = '/s/' + data.snapshot_id;
               return;
             }
@@ -244,6 +263,7 @@
       overlay.classList.add('active');
       loadingText.textContent = 'Evaluating this address...';
       loadingSub.textContent = 'Submitting...';
+      setProgress(0);
 
       var body = new FormData();
       body.append('address', address);
@@ -291,6 +311,7 @@
         overlay.classList.add('active');
         overlay.querySelector('.loading-text').textContent = 'Preparing checkout...';
         loadingSub.textContent = 'Please wait...';
+        setProgress(0);
 
         var checkoutBody = new FormData();
         checkoutBody.append('address', address);
