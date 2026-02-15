@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NestCheck — Builder Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-family: var(--font-sans);
       background: #0d1117;
       color: #c9d1d9;
       line-height: 1.6;

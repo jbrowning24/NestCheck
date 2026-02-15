@@ -142,9 +142,19 @@
   border-bottom: 2px solid var(--color-bg);
 }
 .section-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
   color: var(--color-text-faint);
-  font-style: italic;
-  font-size: 0.92em;
+  font-size: var(--font-size-body-4);
+  line-height: var(--line-height-normal);
+  padding: var(--space-16) 0;
+}
+.section-empty svg {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-faintest);
 }
 
 /* --- Collapsible Sections --- */
@@ -549,11 +559,17 @@
   background: var(--color-surface-subtle);
   min-height: 120px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-8);
   color: var(--color-text-faintest);
   border-radius: var(--radius-md);
-  font-size: 0.9em;
+  font-size: var(--font-size-body-4);
+}
+.map-placeholder svg {
+  width: 32px;
+  height: 32px;
 }
 .hidden { display: none; }
 .text-faint-sm {

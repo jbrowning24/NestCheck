@@ -1,6 +1,6 @@
 {% extends "_base.html" %}
 
-{% block title %}NestCheck — Too Many Requests{% endblock %}
+{% block title %}NestCheck — Something Went Wrong{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/error-page.css') }}">
@@ -10,12 +10,13 @@
 <div class="error-page">
   <div class="error-icon">
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="32" cy="32" r="24"/>
-      <polyline points="32,16 32,32 42,38"/>
+      <path d="M28.24,6.68 L4.34,50 a4,4,0,0,0,3.46,6 H56.2 a4,4,0,0,0,3.46,-6 L35.76,6.68 a4,4,0,0,0,-7.52,0 Z"/>
+      <line x1="32" y1="24" x2="32" y2="36"/>
+      <circle cx="32" cy="44" r="1.5" fill="currentColor" stroke="none"/>
     </svg>
   </div>
-  <h1>429</h1>
-  <p>You've made too many requests. Please wait a few minutes and try again.</p>
+  <h1>500</h1>
+  <p>Something went wrong on our end. Please try again in a moment.</p>
   <a href="/" class="error-cta">Back to NestCheck</a>
 </div>
 {% endblock %}

@@ -3,13 +3,21 @@
 {% block title %}NestCheck — Not Found{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/404.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/error-page.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="error-page">
+  <div class="error-icon">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="28" cy="28" r="18"/>
+      <line x1="41" y1="41" x2="56" y2="56"/>
+      <line x1="22" y1="24" x2="28" y2="30"/>
+      <line x1="28" y1="24" x2="22" y2="30"/>
+    </svg>
+  </div>
   <h1>404</h1>
-  <p>This page doesn't exist. The snapshot may have been removed or the link is incorrect.</p>
-  <a href="/">Evaluate an address</a>
+  <p>We couldn't find that page. The snapshot may have been removed or the link might be incorrect.</p>
+  <a href="/" class="error-cta">Evaluate an address</a>
 </div>
 {% endblock %}

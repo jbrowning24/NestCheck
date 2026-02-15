@@ -37,12 +37,18 @@
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
+  <div class="loading-brand">
+    <svg class="loading-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 22 L24 8 L40 22 V40 A2 2 0 0 1 38 42 H10 A2 2 0 0 1 8 40 Z"/>
+      <rect x="18" y="28" width="12" height="14" rx="1"/>
+    </svg>
+  </div>
   <div class="loading-text">Evaluating this address...</div>
   <div class="loading-progress">
     <div class="loading-progress-fill" id="progressFill"></div>
   </div>
   <div class="loading-sub">Checking parks, transit, schools, safety, and more.</div>
+  <div class="loading-patience" id="loadingPatience">This usually takes 30–60 seconds.</div>
 </div>
 
 {% if not result %}
@@ -192,20 +198,34 @@
       if (fill) fill.style.width = pct + '%';
     }
 
-    function showError(msg, overlay, btn, form) {
+    function hideOverlay(overlay) {
       overlay.classList.remove('active');
+      var p = document.getElementById('loadingPatience');
+      if (p) p.classList.remove('visible');
+    }
+
+    function showError(msg, overlay, btn, form) {
+      hideOverlay(overlay);
       btn.disabled = false;
       btn.textContent = btn.dataset.originalText || 'Evaluate';
       var existingBanner = document.querySelector('.error-banner');
-      if (existingBanner) {
-        var el = existingBanner.querySelector('.error-msg');
-        if (el) el.textContent = msg;
-      } else {
-        var banner = document.createElement('div');
-        banner.className = 'error-banner';
-        banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
-        form.parentNode.insertBefore(banner, form);
-      }
+      if (existingBanner) existingBanner.remove();
+
+      var banner = document.createElement('div');
+      banner.className = 'error-banner';
+      banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
+
+      var retryBtn = document.createElement('button');
+      retryBtn.className = 'error-retry';
+      retryBtn.textContent = 'Try again';
+      retryBtn.addEventListener('click', function() {
+        banner.remove();
+        var input = document.getElementById('address-input');
+        if (input) input.focus();
+      });
+      banner.appendChild(retryBtn);
+
+      form.parentNode.insertBefore(banner, form);
     }
 
     function startPolling(jobId, overlay, loadingText, loadingSub, btn, form) {
@@ -214,11 +234,19 @@
       loadingSub.textContent = 'Starting...';
       setProgress(2);
 
+      var patienceEl = document.getElementById('loadingPatience');
+      var patienceTimer = setTimeout(function() {
+        if (patienceEl) patienceEl.classList.add('visible');
+      }, 10000);
+
       function poll() {
         fetch('/job/' + jobId, { headers: { 'Accept': 'application/json' } })
           .then(function(r) {
             if (!r.ok) {
-              if (r.status === 404) showError('Job not found.', overlay, btn, form);
+              if (r.status === 404) {
+                clearTimeout(patienceTimer);
+                showError('Job not found.', overlay, btn, form);
+              }
               return null;
             }
             return r.json();
@@ -230,17 +258,20 @@
               setProgress(stagePercent(data.current_stage));
             }
             if (data.status === 'done' && data.snapshot_id) {
+              clearTimeout(patienceTimer);
               setProgress(100);
               window.location.href = '/s/' + data.snapshot_id;
               return;
             }
             if (data.status === 'failed') {
+              clearTimeout(patienceTimer);
               showError(data.error || 'Evaluation failed.', overlay, btn, form);
               return;
             }
             setTimeout(poll, POLL_INTERVAL_MS);
           })
           .catch(function(err) {
+            clearTimeout(patienceTimer);
             showError('Could not check job status. Please try again. (' + err.message + ')', overlay, btn, form);
           });
       }

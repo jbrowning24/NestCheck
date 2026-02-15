@@ -170,15 +170,18 @@
 }
 .loading-overlay.active { display: flex; }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.loading-brand {
+  color: var(--color-primary);
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.loading-mark {
+  width: 56px;
+  height: 56px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(0.95); opacity: 0.6; }
+  50%      { transform: scale(1.05); opacity: 1; }
+}
 
 .loading-text {
   margin-top: var(--space-20);
@@ -210,6 +213,17 @@
   color: var(--color-text-faint);
 }
 
+.loading-patience {
+  margin-top: var(--space-16);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faintest);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.loading-patience.visible {
+  opacity: 1;
+}
+
 /* --- Error Banner -------------------------------------------- */
 .error-banner {
   max-width: 640px;
@@ -237,6 +251,26 @@
   font-size: var(--font-size-sm-2);
   color: var(--color-danger-text);
 }
+.error-retry {
+  display: inline-block;
+  margin-top: var(--space-12);
+  padding: var(--space-8) var(--space-20);
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body-4);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+.error-retry:hover {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
 .error-diagnostic {
   max-width: 640px;
   margin: 0 auto var(--space-16);
