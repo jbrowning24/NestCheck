@@ -446,6 +446,45 @@
       {% endif %}
     {% endif %}
 
+    {# ── Road Noise Estimate card ── #}
+    {# Three-state guard: key absent → old snapshot, hide card.           #}
+    {# value=none → Overpass failed / no roads, hide card.                #}
+    {# value={..} → show card with severity-based styling.                #}
+    {% if result.road_noise is defined and result.road_noise %}
+      {% set rn = result.road_noise %}
+      {% set sev = rn.severity %}
+      {% if sev == "VERY_LOUD" or sev == "LOUD" %}
+        {% set noise_css = "proximity-very_close" %}
+      {% elif sev == "MODERATE" %}
+        {% set noise_css = "proximity-notable" %}
+      {% else %}
+        {% set noise_css = "proximity-neutral" %}
+      {% endif %}
+      <div class="proximity-item {{ noise_css }}">
+        <div class="proximity-name">
+          {% if sev == "QUIET" -%}
+            <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+          {%- elif sev == "MODERATE" -%}
+            <span class="proximity-icon proximity-icon-unverified">!</span>
+          {%- else -%}
+            <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+          {%- endif %}
+          Road Noise Estimate
+        </div>
+        <div class="proximity-detail">{{ rn.severity_label }}</div>
+        <div class="proximity-detail" style="margin-top:2px; font-size:0.85em; opacity:0.85;">
+          Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
+        </div>
+        <div class="collapsible-toggle" onclick="toggleSection(this)" style="margin-top:6px; cursor:pointer;">
+          <span class="collapse-icon" style="font-size:0.82em; opacity:0.7;">&#9654;</span>
+          <span style="font-size:0.82em; opacity:0.7;">About the estimate</span>
+        </div>
+        <div class="collapsible-body collapsed" style="font-size:0.8em; opacity:0.65; margin-top:4px;">
+          {{ rn.methodology_note }}
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   {# ── 7. HOW WE SCORE ──────────────────────────────────────── #}
@@ -457,7 +496,7 @@
     <div class="collapsible-body collapsed">
 
     <p class="scoring-explanation">
-      NestCheck evaluates five daily-life factors, each scored 0–10.
+      NestCheck evaluates six daily-life factors, each scored 0–10.
       The scores are combined and normalized to a 100-point scale.
       Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
     </p>
@@ -472,8 +511,8 @@
     </div>
 
     <p class="scoring-note">
-      Proximity factors (gas stations, highways, high-traffic roads)
-      are reported separately and do not affect the score.
+      Proximity checks for gas stations and highways are safety flags that don't affect your numerical score.
+      Road noise, estimated from nearby road proximity, does contribute to your score &mdash; quieter locations score higher.
     </p>
 
     </div>{# .collapsible-body #}

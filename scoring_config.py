@@ -110,6 +110,7 @@ class ScoringModel:
     coffee: DimensionConfig
     grocery: DimensionConfig
     fitness: DimensionConfig
+    road_noise: DimensionConfig
     tier1: Tier1Thresholds
     tier3: Tier3Bonuses
     score_bands: Tuple[ScoreBand, ...]
@@ -219,9 +220,24 @@ _FITNESS_QUALITY_MULTIPLIERS = (
     QualityMultiplier(min_rating=0.0, multiplier=0.3),
 )
 
+# Road noise: subtractive — higher dBA → lower score.
+# Knots calibrated to FHWA/WHO thresholds:
+#   40 dBA  = quiet residential, perfect score
+#   55 dBA  = WHO nighttime guideline for residential areas
+#   65 dBA  = FHWA Noise Abatement Criteria (Category B, residential)
+#   75 dBA  = EPA prolonged-exposure concern threshold
+#   85 dBA  = near-highway, zero score
+_ROAD_NOISE_KNOTS = (
+    PiecewiseKnot(x=40, y=10),
+    PiecewiseKnot(x=55, y=8),
+    PiecewiseKnot(x=65, y=5),
+    PiecewiseKnot(x=75, y=2),
+    PiecewiseKnot(x=85, y=0),
+)
+
 
 SCORING_MODEL = ScoringModel(
-    version="1.1.0",
+    version="1.2.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
@@ -237,6 +253,11 @@ SCORING_MODEL = ScoringModel(
         knots=_FITNESS_KNOTS,
         floor=0.0,
         quality_multipliers=_FITNESS_QUALITY_MULTIPLIERS,
+    ),
+
+    road_noise=DimensionConfig(
+        knots=_ROAD_NOISE_KNOTS,
+        floor=0.0,
     ),
 
     tier1=Tier1Thresholds(

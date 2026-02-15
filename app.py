@@ -862,6 +862,28 @@ def _serialize_green_escape(evaluation):
     }
 
 
+def _serialize_road_noise(assessment):
+    """Serialize RoadNoiseAssessment to template dict.
+
+    Returns None when assessment is absent (old snapshots / Overpass failure),
+    which the template uses to hide the card.
+    """
+    if not assessment:
+        return None
+    return {
+        "worst_road_name": assessment.worst_road_name,
+        "worst_road_ref": assessment.worst_road_ref,
+        "worst_road_type": assessment.worst_road_type,
+        "worst_road_lanes": assessment.worst_road_lanes,
+        "distance_ft": assessment.distance_ft,
+        "estimated_dba": assessment.estimated_dba,
+        "severity": assessment.severity.value if hasattr(assessment.severity, "value") else assessment.severity,
+        "severity_label": assessment.severity_label,
+        "methodology_note": assessment.methodology_note,
+        "all_roads_assessed": assessment.all_roads_assessed,
+    }
+
+
 def _serialize_urban_access(urban_access):
     """Serialize UrbanAccessProfile to template dict."""
     if not urban_access:
@@ -951,6 +973,9 @@ def result_to_dict(result):
             )
         ),
         "green_escape": _serialize_green_escape(result.green_escape_evaluation),
+        "road_noise": _serialize_road_noise(
+            getattr(result, "road_noise_assessment", None)
+        ),
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
         "tier1_checks": [

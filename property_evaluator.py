@@ -36,8 +36,10 @@ from green_space import (
     GreenEscapeEvaluation,
     evaluate_green_escape,
 )
+from road_noise import assess_road_noise, RoadNoiseAssessment
 from scoring_config import (
     SCORING_MODEL,
+    DimensionConfig,
     DimensionResult,
     apply_piecewise,
     apply_quality_multiplier,
@@ -663,6 +665,7 @@ class EvaluationResult:
     urban_access: Optional[UrbanAccessProfile] = None
     transit_access: Optional[TransitAccessResult] = None
     green_escape_evaluation: Optional[GreenEscapeEvaluation] = None
+    road_noise_assessment: Optional[RoadNoiseAssessment] = None
     transit_score: Optional[Dict[str, Any]] = None
     walk_scores: Dict[str, Optional[Any]] = field(default_factory=dict)
     bike_score: Optional[int] = None
@@ -2921,6 +2924,48 @@ def score_transit_access(
         )
 
 
+def score_road_noise(
+    road_noise_assessment: Optional[RoadNoiseAssessment],
+    config: DimensionConfig,
+) -> Tier2Score:
+    """Score road noise exposure using piecewise dBA-to-score curve (0-10 points).
+
+    Subtractive scoring — higher estimated dBA yields a lower score.
+    Returns a benefit-of-the-doubt score of 7/10 when noise data is
+    unavailable (Overpass failure or no roads found).
+    """
+    if road_noise_assessment is None:
+        return Tier2Score(
+            name="Road Noise",
+            points=7,
+            max_points=10,
+            details="Road noise data unavailable — default score applied",
+        )
+
+    raw = apply_piecewise(config.knots, road_noise_assessment.estimated_dba)
+    score = max(config.floor, raw)
+    points = int(score + 0.5)
+
+    # Build detail line: include road ref (e.g. "US 9") when available
+    road_label = road_noise_assessment.worst_road_name
+    if road_noise_assessment.worst_road_ref:
+        road_label += f" ({road_noise_assessment.worst_road_ref})"
+
+    details = (
+        f"Estimated {road_noise_assessment.estimated_dba:.0f} dBA "
+        f"({road_noise_assessment.severity.value.replace('_', ' ').title()}) "
+        f"from {road_label}, "
+        f"{road_noise_assessment.distance_ft:.0f} ft away"
+    )
+
+    return Tier2Score(
+        name="Road Noise",
+        points=points,
+        max_points=10,
+        details=details,
+    )
+
+
 def score_provisioning_access(
     maps: GoogleMapsClient,
     lat: float,
@@ -3392,7 +3437,7 @@ def evaluate_property(
     """Run full evaluation on a property listing.
 
     Data-collection stages (walk_scores, neighborhood, schools, urban_access,
-    transit_access, green_escape) run concurrently after geocoding.  Each is
+    transit_access, green_escape, road_noise) run concurrently after geocoding.  Each is
     independent — a single failing stage degrades gracefully without affecting
     the others.  Tier 1 checks and Tier 2 scoring remain sequential.
 
@@ -3447,7 +3492,7 @@ def evaluate_property(
 
     # Build the futures dict: stage_name -> future
     futures: Dict[str, Any] = {}
-    with ThreadPoolExecutor(max_workers=7) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         # walk_scores doesn't use maps client — no swap needed
         futures["walk_scores"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
@@ -3481,6 +3526,11 @@ def evaluate_property(
             _threaded_stage,
             "emergency_services", get_emergency_services, maps, overpass, lat, lng,
         )
+        # Road noise — standalone Overpass query, no maps client needed.
+        futures["road_noise"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "road_noise", assess_road_noise, lat, lng,
+        )
 
         # Collect results — each stage fails independently
         for stage_name, future in futures.items():
@@ -3500,6 +3550,8 @@ def evaluate_property(
                     result.green_escape_evaluation = stage_result
                 elif stage_name == "emergency_services":
                     result.emergency_services = stage_result
+                elif stage_name == "road_noise":
+                    result.road_noise_assessment = stage_result
             except Exception:
                 pass  # Graceful degradation — same as the sequential path
 
@@ -3627,6 +3679,14 @@ def evaluate_property(
             transit_access=result.transit_access,
             primary_transit=_cached_primary_transit,
             major_hub=_cached_major_hub,
+        )
+    )
+
+    result.tier2_scores.append(
+        _run_stage(
+            "score_road_noise", score_road_noise,
+            road_noise_assessment=result.road_noise_assessment,
+            config=SCORING_MODEL.road_noise,
         )
     )
 
