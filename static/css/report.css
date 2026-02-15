@@ -502,6 +502,28 @@
   margin-top: auto;
   padding-top: 4px;
 }
+/* Headline card — top place per category with review snippet.
+   Wider than compact cards to accommodate the snippet line. */
+.place-card--headline {
+  width: 240px;
+  border-color: var(--color-primary-light, var(--color-border-muted));
+}
+.place-snippet {
+  font-size: 0.78em;
+  font-style: italic;
+  color: var(--color-text-light);
+  line-height: var(--line-height-tight);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.place-snippet-time {
+  font-style: normal;
+  font-size: 0.9em;
+  color: var(--color-text-disabled);
+  white-space: nowrap;
+}
 
 /* --- Share Bar (structural — page-specific overrides in index.css / snapshot.css) --- */
 .share-bar {
@@ -640,6 +662,7 @@
   .dimension-row { gap: 8px; }
   .dimension-name { min-width: 140px; }
   .place-card { width: 150px; padding: 12px; }
+  .place-card--headline { width: 190px; }
 }
 
 /* Phone */
@@ -656,6 +679,7 @@
   .section-insight { padding: 8px 12px; }
   .place-cards { gap: 8px; }
   .place-card { width: 140px; padding: 12px; }
+  .place-card--headline { width: 180px; }
   /* Bug fix: hub-row stacking was missing from index.html */
   .hub-row { flex-direction: column; align-items: flex-start; gap: 4px; }
   .hub-right { padding-left: 0; }

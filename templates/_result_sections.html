@@ -101,7 +101,9 @@
         <div class="category-label">{{ icon }} {{ label }}</div>
         <div class="place-cards">
           {% for place in places %}
-          <div class="place-card">
+          {# First place with a review snippet gets headline treatment #}
+          {% set is_headline = loop.first and place.review_snippet %}
+          <div class="place-card{% if is_headline %} place-card--headline{% endif %}">
             <div class="place-name">
               {% if place.place_id %}
                 <a href="https://www.google.com/maps/place/?q=place_id:{{ place.place_id }}"
@@ -121,6 +123,14 @@
                 <span class="place-reviews">({{ place.review_count }})</span>
               {% endif %}
             </div>
+            {% if place.review_snippet %}
+            <div class="place-snippet">
+              "{{ place.review_snippet }}"
+              {% if place.review_time %}
+                <span class="place-snippet-time">&mdash; {{ place.review_time }}</span>
+              {% endif %}
+            </div>
+            {% endif %}
             <div class="place-time">{{ fmt_time(place.walk_time_min, "walk") }}</div>
           </div>
           {% endfor %}
@@ -330,6 +340,35 @@
     {% endif %}
 
   </div>
+
+  {# ── 5.5 EMERGENCY SERVICES ─────────────────────────────────── #}
+  {# Informational only — nearest fire/police stations by drive time.  #}
+  {# Outer `is defined` guard hides the section for old snapshots that #}
+  {# predate NES-50 and lack the key entirely.                         #}
+  {% if result.emergency_services is defined %}
+  <div class="report-section">
+    <h2>Emergency Services</h2>
+
+    {% if result.emergency_services %}
+      {% for svc in result.emergency_services %}
+      <div class="hub-row">
+        <div class="hub-info">
+          <div class="hub-name">{{ svc.name }}</div>
+          <div class="hub-detail">
+            {{ "Fire Station" if svc.type == "fire" else "Police Station" }}
+          </div>
+        </div>
+        <div class="hub-right">
+          <span class="hub-time">{{ fmt_time(svc.drive_time_min, "drive") }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="section-empty">No fire or police stations found within 3 miles.</p>
+    {% endif %}
+
+  </div>
+  {% endif %}
 
   {# ── 6. PROXIMITY & ENVIRONMENT ────────────────────────────── #}
   <div class="report-section">

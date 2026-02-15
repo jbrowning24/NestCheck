@@ -612,6 +612,20 @@ class UrbanAccessProfile:
 
 
 @dataclass
+class EmergencyService:
+    """A nearby emergency service station (fire or police).
+
+    Informational only — not scored.  Displayed to give users a sense
+    of emergency-response proximity and infrastructure reliability.
+    """
+    name: str               # Station name (fallback: "Fire Station" / "Police Station")
+    service_type: str        # "fire" or "police"
+    drive_time_min: int      # Driving time from station to property, in minutes
+    lat: float
+    lng: float
+
+
+@dataclass
 class TransitAccessResult:
     """Result of the smart transit frequency approximation."""
     primary_stop: Optional[str] = None
@@ -680,6 +694,9 @@ class EvaluationResult:
 
     # Server-rendered neighborhood map (base64 PNG)
     neighborhood_map_b64: Optional[str] = None
+
+    # Nearby emergency services — informational, not scored (NES-50)
+    emergency_services: Optional[List[EmergencyService]] = None
 
 
 # =============================================================================
@@ -1072,6 +1089,162 @@ class OverpassClient:
                     "lanes": element["tags"].get("lanes", ""),
                 })
         return roads
+
+    def get_nearby_emergency_services(
+        self, lat: float, lng: float, radius_meters: int = 5000
+    ) -> List[Dict]:
+        """Find fire and police stations within *radius_meters* of a point.
+
+        Queries both node and way elements so we catch stations mapped as
+        a point or as a building outline.  ``out center;`` gives us the
+        centroid for ways so we always have usable coordinates.
+
+        Returns a list of dicts with keys: name, type ("fire"/"police"),
+        lat, lng.  Uses the same SQLite cache pattern as get_nearby_roads().
+        """
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["amenity"="fire_station"](around:{radius_meters},{lat},{lng});
+          way["amenity"="fire_station"](around:{radius_meters},{lat},{lng});
+          node["amenity"="police"](around:{radius_meters},{lat},{lng});
+          way["amenity"="police"](around:{radius_meters},{lat},{lng});
+        );
+        out center;
+        """
+
+        # SQLite persistent cache (same pattern as get_nearby_roads)
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_emergency_services(data)
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache read failed in get_nearby_emergency_services, "
+                "falling through to HTTP", exc_info=True,
+            )
+
+        data = self._traced_post(
+            "get_nearby_emergency_services", self.base_url, {"data": query}
+        )
+
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache write failed in get_nearby_emergency_services",
+                exc_info=True,
+            )
+
+        return self._parse_emergency_services(data)
+
+    @staticmethod
+    def _parse_emergency_services(data: dict) -> List[Dict]:
+        """Extract emergency service stations from an Overpass response.
+
+        Handles both node elements (lat/lon on the element itself) and way
+        elements (lat/lon in the ``center`` sub-object added by ``out center``).
+        """
+        _AMENITY_TO_TYPE = {"fire_station": "fire", "police": "police"}
+        _TYPE_FALLBACK_NAMES = {"fire": "Fire Station", "police": "Police Station"}
+
+        stations: List[Dict] = []
+        for element in data.get("elements", []):
+            tags = element.get("tags", {})
+            amenity = tags.get("amenity", "")
+            svc_type = _AMENITY_TO_TYPE.get(amenity)
+            if svc_type is None:
+                continue
+
+            # Coordinates: nodes carry lat/lon directly; ways carry center.
+            if element["type"] == "node":
+                s_lat = element.get("lat")
+                s_lng = element.get("lon")
+            elif "center" in element:
+                s_lat = element["center"].get("lat")
+                s_lng = element["center"].get("lon")
+            else:
+                continue  # way without center data — skip
+
+            if s_lat is None or s_lng is None:
+                continue
+
+            name = tags.get("name") or ""
+            if not name:
+                name = _TYPE_FALLBACK_NAMES[svc_type]
+                logger.debug(
+                    "Unnamed %s station at (%.5f, %.5f) — using fallback name",
+                    svc_type, s_lat, s_lng,
+                )
+
+            stations.append({
+                "name": name,
+                "type": svc_type,
+                "lat": s_lat,
+                "lng": s_lng,
+            })
+
+        return stations
+
+
+def get_emergency_services(
+    maps: GoogleMapsClient,
+    overpass: OverpassClient,
+    lat: float,
+    lng: float,
+) -> List[EmergencyService]:
+    """Find the nearest fire and police stations and their drive times.
+
+    Queries Overpass for stations within 5 km, picks the closest of each
+    type by straight-line distance, then fetches driving times via the
+    Distance Matrix API.  Returns 0–2 EmergencyService objects.
+
+    Graceful degradation: any failure returns an empty list.
+    """
+    try:
+        raw_stations = overpass.get_nearby_emergency_services(lat, lng)
+        if not raw_stations:
+            return []
+
+        # Pick nearest 1 of each type by haversine distance
+        origin = (lat, lng)
+        nearest: Dict[str, Dict] = {}  # type -> station dict
+        nearest_dist: Dict[str, float] = {}
+        for station in raw_stations:
+            stype = station["type"]
+            dist = maps.distance_feet(origin, (station["lat"], station["lng"]))
+            if stype not in nearest or dist < nearest_dist[stype]:
+                nearest[stype] = station
+                nearest_dist[stype] = dist
+
+        selected = list(nearest.values())  # 1-2 stations
+
+        # Batch drive-time lookup (single API call for 1-2 destinations)
+        destinations = [(s["lat"], s["lng"]) for s in selected]
+        drive_times = maps.driving_times_batch(origin, destinations)
+
+        results: List[EmergencyService] = []
+        for station, drive_min in zip(selected, drive_times):
+            results.append(EmergencyService(
+                name=station["name"],
+                service_type=station["type"],
+                drive_time_min=drive_min,
+                lat=station["lat"],
+                lng=station["lng"],
+            ))
+
+        return results
+
+    except Exception:
+        logger.warning(
+            "Emergency services lookup failed; continuing without", exc_info=True
+        )
+        return []
 
 
 def _coerce_score(value: Any) -> Optional[int]:
@@ -3130,6 +3303,85 @@ def _assign_walk_scores(result: "EvaluationResult", all_scores: Dict[str, Any]):
     result.bike_metadata = all_scores.get("bike_metadata")
 
 
+def _truncate_snippet(text: str, max_chars: int = 100) -> str:
+    """Truncate review text to ~max_chars at a word boundary with ellipsis."""
+    if not text or len(text) <= max_chars:
+        return text or ""
+    truncated = text[:max_chars].rsplit(" ", 1)[0]
+    return truncated.rstrip(".,!?;:") + "..."
+
+
+def _fetch_review_snippet(maps: GoogleMapsClient, place_id: str) -> Dict[str, Optional[str]]:
+    """Fetch a curated review snippet for a single place.
+
+    Calls Place Details with the 'reviews' field, filters for reviews
+    rated >= 4 stars, and returns the first qualifying snippet truncated
+    to ~100 characters plus the relative time description.
+
+    Returns dict with 'review_snippet' and 'review_time' keys (both None
+    if no qualifying review is found or the API call fails).
+    """
+    empty = {"review_snippet": None, "review_time": None}
+    try:
+        details = maps.place_details(place_id, fields=["reviews"])
+    except Exception:
+        logger.debug("Review snippet fetch failed for %s", place_id, exc_info=True)
+        return empty
+
+    reviews = details.get("reviews", [])
+    for review in reviews:
+        if review.get("rating", 0) >= 4:
+            snippet = _truncate_snippet(review.get("text", ""))
+            if snippet:
+                return {
+                    "review_snippet": snippet,
+                    "review_time": review.get("relative_time_description"),
+                }
+    return empty
+
+
+def _enrich_headline_places_with_snippets(
+    api_key: str,
+    neighborhood_places: Dict[str, list],
+) -> None:
+    """Fetch review snippets for the top place in each category (in parallel).
+
+    Mutates the first place dict in each category list by attaching
+    'review_snippet' and 'review_time' fields.  Categories with no
+    places or whose top place lacks a place_id are silently skipped.
+    4 parallel calls max (~400ms wall-clock).
+    """
+    # Collect (category, place_dict) pairs for headline places that have a place_id
+    headlines = []
+    for category, places in neighborhood_places.items():
+        if places and places[0].get("place_id"):
+            headlines.append((category, places[0]))
+
+    if not headlines:
+        return
+
+    # Each thread gets its own GoogleMapsClient (requests.Session is not thread-safe)
+    parent_trace = get_trace()
+
+    def _fetch_for_place(place: Dict) -> Dict[str, Optional[str]]:
+        set_trace(parent_trace)
+        thread_maps = GoogleMapsClient(api_key)
+        return _fetch_review_snippet(thread_maps, place["place_id"])
+
+    with ThreadPoolExecutor(max_workers=len(headlines)) as pool:
+        futures = {
+            pool.submit(_fetch_for_place, place): place
+            for _cat, place in headlines
+        }
+        for future in as_completed(futures):
+            place = futures[future]
+            try:
+                snippet_data = future.result()
+                place.update(snippet_data)
+            except Exception:
+                pass  # Graceful degradation — card renders without snippet
+
+
 def evaluate_property(
     listing: PropertyListing,
     api_key: str,
@@ -3194,7 +3446,7 @@ def evaluate_property(
 
     # Build the futures dict: stage_name -> future
     futures: Dict[str, Any] = {}
-    with ThreadPoolExecutor(max_workers=6) as pool:
+    with ThreadPoolExecutor(max_workers=7) as pool:
         # walk_scores doesn't use maps client — no swap needed
         futures["walk_scores"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
@@ -3221,6 +3473,13 @@ def evaluate_property(
             _threaded_stage,
             "green_escape", evaluate_green_escape, maps, lat, lng,
         )
+        # Emergency services — Overpass query + drive time (NES-50).
+        # _threaded_stage auto-swaps `maps` for a per-thread client;
+        # `overpass` passes through unchanged (stateless, thread-safe).
+        futures["emergency_services"] = pool.submit(
+            _threaded_stage,
+            "emergency_services", get_emergency_services, maps, overpass, lat, lng,
+        )
 
         # Collect results — each stage fails independently
         for stage_name, future in futures.items():
@@ -3238,6 +3497,8 @@ def evaluate_property(
                     result.transit_access = stage_result
                 elif stage_name == "green_escape":
                     result.green_escape_evaluation = stage_result
+                elif stage_name == "emergency_services":
+                    result.emergency_services = stage_result
             except Exception:
                 pass  # Graceful degradation — same as the sequential path
 
@@ -3343,6 +3604,14 @@ def evaluate_property(
         "fitness": _fitness_places,
         "parks": _park_places,
     }
+
+    # Enrich headline place per category with a Google review snippet.
+    # 4 parallel Place Details calls (~400ms wall-clock, ~$0.07 total).
+    _run_stage(
+        "review_snippets",
+        _enrich_headline_places_with_snippets, api_key, result.neighborhood_places,
+    )
+
     # score_cost removed — Cost/Affordability no longer part of scoring
     _cached_primary_transit = (
         result.urban_access.primary_transit if result.urban_access else None
