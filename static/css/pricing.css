@@ -30,6 +30,13 @@
   border: 2px solid var(--color-primary);
   margin-bottom: var(--space-32);
 }
+.price-card--free {
+  border-color: var(--color-border);
+  padding: var(--space-24);
+}
+.price-card--free .price-tag {
+  color: var(--color-text);
+}
 .price-tag {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-extrabold);

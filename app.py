@@ -29,6 +29,7 @@ from models import (
     create_job, get_job, cancel_queued_job,
     create_payment, get_payment_by_session, get_payment_by_id,
     update_payment_status, redeem_payment,
+    hash_email, check_free_tier_used, record_free_tier_usage,
 )
 from weather import serialize_for_result as _serialize_weather
 
@@ -101,8 +102,8 @@ if _sentry_dsn:
         dsn=_sentry_dsn,
         integrations=[FlaskIntegration()],
         traces_sample_rate=0.0,
-        release=os.environ.get("RENDER_GIT_COMMIT"),
-        environment=os.environ.get("RENDER_ENVIRONMENT", "production"),
+        release=os.environ.get("RAILWAY_GIT_COMMIT_SHA"),
+        environment=os.environ.get("RAILWAY_ENVIRONMENT", "production"),
         before_send=_sentry_before_send,
     )
 
@@ -1243,7 +1244,7 @@ def index():
                 "hint": (
                     "For local development: copy .env.example to .env and "
                     "add your keys. For production: set these environment "
-                    "variables in your Railway/Render dashboard."
+                    "variables in your Railway dashboard."
                 ),
             }
             log_event("evaluation_error", visitor_id=g.visitor_id,
@@ -1269,10 +1270,66 @@ def index():
         #         return render_template(...)
 
         # ---------------------------------------------------------------
+        # Free tier gate — one free evaluation per email (NES-120)
+        # Checked before the payment gate so eligible users skip Stripe.
+        # ---------------------------------------------------------------
+        email = ""
+        email_h = None       # set if email provided and valid
+        free_tier_used = False  # True when this request is using the free tier
+
+        if REQUIRE_PAYMENT and not g.is_builder:
+            payment_token = request.form.get("payment_token", "").strip()
+            email = request.form.get("email", "").strip()
+
+            if not payment_token and email:
+                # Minimal server-side email format check
+                if "@" not in email or "." not in email.split("@")[-1]:
+                    if _wants_json():
+                        return jsonify({
+                            "error": "Please enter a valid email address.",
+                            "request_id": request_id,
+                        }), 400
+                    error = "Please enter a valid email address."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail,
+                        address=address, snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                        require_payment=REQUIRE_PAYMENT,
+                    )
+
+                # Free tier path: check if this email already claimed
+                email_h = hash_email(email)
+                if check_free_tier_used(email_h):
+                    log_event(
+                        "free_tier_exhausted", visitor_id=g.visitor_id,
+                        metadata={"email_hash": email_h[:12], "address": address},
+                    )
+                    if _wants_json():
+                        return jsonify({
+                            "error": "free_tier_exhausted",
+                            "request_id": request_id,
+                        }), 403
+                    error = "You've already used your free evaluation."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail,
+                        address=address, snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                        require_payment=REQUIRE_PAYMENT,
+                    )
+                free_tier_used = True
+                logger.info(
+                    "[%s] Free tier claim for email_hash=%s",
+                    request_id, email_h[:12],
+                )
+
+        # ---------------------------------------------------------------
         # Payment gate — only enforced when REQUIRE_PAYMENT=true
+        # and the request is NOT using the free tier
         # ---------------------------------------------------------------
         payment = None  # set if a valid payment is redeemed
-        if REQUIRE_PAYMENT and not g.is_builder:
+        if REQUIRE_PAYMENT and not g.is_builder and not free_tier_used:
             payment_token = request.form.get("payment_token", "").strip()
             if not payment_token:
                 if _wants_json():
@@ -1369,8 +1426,34 @@ def index():
         # Async queue: create job first so redeem_payment can link atomically.
         # A job with no payment is harmless; a redeemed payment with no job is a lost credit.
         place_id = request.form.get('place_id', '').strip() or None
-        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id, place_id=place_id)
+        job_id = create_job(
+            address, visitor_id=g.visitor_id, request_id=request_id,
+            place_id=place_id, email_hash=email_h,
+        )
         logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
+
+        # Record free tier usage atomically — if a concurrent request with
+        # the same email won the INSERT race, cancel this job.
+        if free_tier_used:
+            if not record_free_tier_usage(email_h, email, job_id):
+                cancel_queued_job(job_id, "free_tier_race_lost")
+                if _wants_json():
+                    return jsonify({
+                        "error": "free_tier_exhausted",
+                        "request_id": request_id,
+                    }), 403
+                error = "You've already used your free evaluation."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+            log_event(
+                "free_tier_claimed", visitor_id=g.visitor_id,
+                metadata={"email_hash": email_h[:12], "address": address, "job_id": job_id},
+            )
 
         if payment is not None:
             # Redeem the credit (paid -> redeemed) with job_id set atomically

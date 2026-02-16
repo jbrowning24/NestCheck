@@ -1,10 +1,20 @@
-"""Unit tests for _insight_neighborhood() in app.py.
+"""Unit tests for insight generator functions.
 
-Each test targets one classification branch using synthetic neighborhood
-and tier2 dicts — no API calls needed.
+Each test targets one classification branch using synthetic input dicts
+— no API calls or mocking needed.  All insight functions are pure:
+dict in → string (or None) out.
 """
 
-from app import _insight_neighborhood
+from app import (
+    _insight_neighborhood,
+    _insight_getting_around,
+    _insight_parks,
+    _join_labels,
+    _nearest_walk_time,
+    _weather_context,
+    generate_insights,
+)
+from property_evaluator import proximity_synthesis
 
 
 # ---------------------------------------------------------------------------
@@ -255,3 +265,150 @@ class TestEdgeCases:
 
     def test_none_neighborhood_returns_none(self):
         assert _insight_neighborhood(None, {}) is None
+
+
+# ===========================================================================
+# _insight_getting_around()
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Helpers — build synthetic inputs for transit scenarios
+# ---------------------------------------------------------------------------
+
+def _make_urban(station: str, walk_min: int, *, hub: str | None = None,
+                hub_min: int | None = None, freq_class: str = "") -> dict:
+    """Build a minimal urban access dict."""
+    urban = {"primary_transit": {"name": station, "walk_time_min": walk_min}}
+    if freq_class:
+        urban["primary_transit"]["frequency_class"] = freq_class
+    if hub:
+        urban["major_hub"] = {"name": hub, "travel_time_min": hub_min}
+    return urban
+
+
+def _ga_tier2(score: int) -> dict:
+    """Build a tier2 dict for the Getting Around dimension."""
+    return {"Getting Around": {"points": score}}
+
+
+# ---------------------------------------------------------------------------
+# Branch: strong rail (score >= 7)
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundStrongRail:
+    def test_station_and_walk_time(self):
+        urban = _make_urban("Scarsdale", 8, hub="Grand Central", hub_min=35)
+        result = _insight_getting_around(urban, None, None, "peak-hour", _ga_tier2(8))
+        assert "Scarsdale" in result
+        assert "8 minutes" in result
+
+    def test_hub_travel_time(self):
+        urban = _make_urban("Scarsdale", 8, hub="Grand Central", hub_min=35)
+        result = _insight_getting_around(urban, None, None, "peak-hour", _ga_tier2(8))
+        assert "Grand Central" in result
+        assert "35 minutes" in result
+
+    def test_freq_label_included(self):
+        urban = _make_urban("Scarsdale", 8)
+        result = _insight_getting_around(urban, None, None, "Peak-Hour", _ga_tier2(8))
+        assert "peak-hour" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: moderate rail (score 4-6)
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundModerateRail:
+    def test_station_and_service_caveat(self):
+        urban = _make_urban("Brewster", 14)
+        result = _insight_getting_around(urban, None, None, "hourly", _ga_tier2(5))
+        assert "Brewster" in result
+        assert "service runs at" in result.lower()
+
+    def test_backup_option_advice(self):
+        urban = _make_urban("Brewster", 14)
+        result = _insight_getting_around(urban, None, None, "hourly", _ga_tier2(5))
+        assert "backup" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: weak rail (score < 4)
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundWeakRail:
+    def test_nearest_transit_phrasing(self):
+        urban = _make_urban("Wassaic", 25)
+        result = _insight_getting_around(urban, None, None, "limited", _ga_tier2(2))
+        assert "nearest transit" in result.lower()
+        assert "Wassaic" in result
+
+    def test_driving_for_most_trips(self):
+        urban = _make_urban("Wassaic", 25)
+        result = _insight_getting_around(urban, None, None, "", _ga_tier2(2))
+        assert "driving" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: bus-only fallback (no rail)
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundBusOnly:
+    def test_bus_stop_details(self):
+        transit = {"primary_stop": "Rt 9 / Main St", "walk_minutes": 6,
+                   "frequency_bucket": "Moderate"}
+        result = _insight_getting_around(None, transit, None, "", _ga_tier2(5))
+        assert "Rt 9 / Main St" in result
+        assert "6 minutes" in result
+        assert "moderate" in result.lower()
+
+    def test_low_score_driving_advice(self):
+        transit = {"primary_stop": "Rt 9 / Main St", "walk_minutes": 6,
+                   "frequency_bucket": "Infrequent"}
+        result = _insight_getting_around(None, transit, None, "", _ga_tier2(2))
+        assert "driving" in result.lower() or "rideshare" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: no transit at all
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundNoTransit:
+    def test_limited_transit_phrasing(self):
+        """Urban=empty dict (truthy but no primary_transit), transit=None."""
+        result = _insight_getting_around({}, None, None, "", _ga_tier2(1))
+        assert "limited" in result.lower()
+
+    def test_no_data_returns_none(self):
+        """Both urban and transit are None → no data guard returns None."""
+        result = _insight_getting_around(None, None, None, "", _ga_tier2(0))
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Addons: bike score, walk description
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundAddons:
+    def test_bike_note_when_score_high(self):
+        urban = _make_urban("Bronxville", 6)
+        ws = {"bike_score": 75, "walk_description": "Very Walkable"}
+        result = _insight_getting_around(urban, None, ws, "", _ga_tier2(7))
+        assert "bik" in result.lower()
+
+    def test_no_bike_note_when_score_low(self):
+        urban = _make_urban("Bronxville", 6)
+        ws = {"bike_score": 40, "walk_description": "Somewhat Walkable"}
+        result = _insight_getting_around(urban, None, ws, "", _ga_tier2(7))
+        assert "bik" not in result.lower()
+
+    def test_walk_description_included_when_score_ge_4(self):
+        urban = _make_urban("Bronxville", 6)
+        ws = {"walk_description": "Very Walkable"}
+        result = _insight_getting_around(urban, None, ws, "", _ga_tier2(7))
+        assert "Very Walkable" in result
+
+    def test_walk_description_omitted_when_score_lt_4(self):
+        urban = _make_urban("Wassaic", 25)
+        ws = {"walk_description": "Car-Dependent"}
+        result = _insight_getting_around(urban, None, ws, "", _ga_tier2(2))
+        assert "Car-Dependent" not in result

@@ -23,7 +23,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("GOOGLE_MAPS_API_KEY", "fake-key-for-tests")
 
 from app import app  # noqa: E402
-from models import init_db, _get_db  # noqa: E402
+from models import init_db, _get_db, _return_conn  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +38,7 @@ def _fresh_db():
     for table in ("payments", "evaluation_jobs", "events"):
         conn.execute(f"DELETE FROM {table}")
     conn.commit()
-    conn.close()
+    _return_conn(conn)
     yield
 
 

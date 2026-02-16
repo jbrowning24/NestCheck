@@ -26,6 +26,8 @@ from models import (
     requeue_stale_running_jobs,
     get_payment_by_job_id,
     update_payment_status,
+    update_free_tier_snapshot,
+    delete_free_tier_usage,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,7 +61,23 @@ def _reissue_payment_if_needed(job_id: str) -> None:
         logger.exception("[worker] Failed to reissue payment credit for job %s", job_id)
 
 
-def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None) -> None:
+def _reissue_free_tier_if_needed(job_id: str) -> None:
+    """If a failed job used a free tier credit, delete the claim so the user can retry.
+
+    Mirrors _reissue_payment_if_needed for the free tier path.
+    Swallows all exceptions for the same reason.
+    """
+    try:
+        if delete_free_tier_usage(job_id):
+            logger.info(
+                "[worker] Reissued free tier credit for failed evaluation: job %s",
+                job_id,
+            )
+    except Exception:
+        logger.exception("[worker] Failed to reissue free tier credit for job %s", job_id)
+
+
+def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None) -> None:
     """
     Run a single evaluation job: evaluate, save snapshot, complete or fail.
     Updates current_stage in the DB as evaluation progresses.
@@ -72,19 +90,20 @@ def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str 
                 scope.set_tag("job_id", job_id)
                 scope.set_tag("request_id", request_id or "")
                 scope.set_tag("address", (address or "")[:200])
-                _run_job_impl(job_id, address, visitor_id, request_id, place_id)
+                _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash)
             return
         except Exception:
             raise  # Re-raise so _worker_loop can handle and capture
-    _run_job_impl(job_id, address, visitor_id, request_id, place_id)
+    _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash)
 
 
-def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None) -> None:
+def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None) -> None:
     """Inner job execution (called with or without Sentry scope)."""
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
         fail_job(job_id, "GOOGLE_MAPS_API_KEY not configured")
         _reissue_payment_if_needed(job_id)
+        _reissue_free_tier_if_needed(job_id)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,
@@ -122,6 +141,8 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
             result_dict=result,
         )
         complete_job(job_id, snapshot_id)
+        if email_hash:
+            update_free_tier_snapshot(email_hash, snapshot_id)
         is_return = check_return_visit(visitor_id)
         log_event(
             "snapshot_created",
@@ -136,6 +157,7 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         logger.exception("[worker] Job %s failed: %s", job_id, e)
         fail_job(job_id, str(e))
         _reissue_payment_if_needed(job_id)
+        _reissue_free_tier_if_needed(job_id)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,
@@ -162,9 +184,10 @@ def _worker_loop() -> None:
             visitor_id = job.get("visitor_id")
             request_id = job.get("request_id")
             place_id = job.get("place_id")
+            email_hash = job.get("email_hash")
             logger.info("[worker] Claimed job %s: %r", job_id, address)
             try:
-                _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id, place_id=place_id)
+                _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id, place_id=place_id, email_hash=email_hash)
             except Exception as e:
                 logger.exception("[worker] Unhandled error in job %s", job_id)
                 if os.environ.get("SENTRY_DSN"):
@@ -179,6 +202,7 @@ def _worker_loop() -> None:
                         pass
                 fail_job(job_id, str(e))
                 _reissue_payment_if_needed(job_id)
+                _reissue_free_tier_if_needed(job_id)
         else:
             _stop_event.wait(timeout=POLL_INTERVAL)
     logger.info("[worker] Evaluation worker thread stopped")
@@ -193,7 +217,7 @@ def start_worker() -> None:
     if _worker_thread is not None and _worker_thread.is_alive():
         return
     # Ensure DB tables exist in this process before worker thread starts.
-    # Critical for Railway/Render where each deploy starts with empty filesystem.
+    # Critical for Railway where each deploy starts with empty filesystem.
     init_db()
     try:
         swept = requeue_stale_running_jobs(max_age_seconds=300)

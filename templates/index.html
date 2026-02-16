@@ -93,7 +93,13 @@
       <input type="hidden" name="place_id" id="place-id-input" value="">
       <div class="search-box">
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
-        <button type="submit" id="evalBtn">Evaluate</button>
+        {% if require_payment %}
+        <div class="email-gate" id="emailGate">
+          <input type="email" name="email" id="email-input" placeholder="Your email — first report is free" required>
+          <p class="email-disclosure">One free evaluation per email. We'll use it to deliver your report.</p>
+        </div>
+        {% endif %}
+        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
       </div>
     </form>
   </div>
@@ -291,10 +297,10 @@
     }
 
     // ---------------------------------------------------------------
-    // submitEvaluation — POST to / with address (+ optional payment_token)
-    // Used by both free and paid paths.
+    // submitEvaluation — POST to / with address, email, payment_token
+    // Used by free mode, free tier, and paid paths.
     // ---------------------------------------------------------------
-    function submitEvaluation(address, paymentToken) {
+    function submitEvaluation(address, paymentToken, email) {
       var form = document.getElementById('evalForm');
       var btn = document.getElementById('evalBtn');
       var overlay = document.getElementById('loadingOverlay');
@@ -313,6 +319,9 @@
       if (paymentToken) {
         body.append('payment_token', paymentToken);
       }
+      if (email) {
+        body.append('email', email);
+      }
       var placeIdInput = document.getElementById('place-id-input');
       if (placeIdInput && placeIdInput.value) {
         body.append('place_id', placeIdInput.value);
@@ -325,7 +334,10 @@
       })
         .then(function(resp) { return resp.json(); })
         .then(function(data) {
-          if (data.error) {
+          if (data.error === 'free_tier_exhausted') {
+            // Free tier used — offer paid path
+            showFreeTierExhausted(address, overlay, btn, form);
+          } else if (data.error) {
             var traceRef = data.request_id ? ' (ref: ' + data.request_id + ')' : '';
             showError(data.error + traceRef, overlay, btn, form);
           } else if (data.job_id) {
@@ -340,6 +352,81 @@
     }
 
     // ---------------------------------------------------------------
+    // showFreeTierExhausted — email already used, offer paid evaluation
+    // ---------------------------------------------------------------
+    function showFreeTierExhausted(address, overlay, btn, form) {
+      hideOverlay(overlay);
+      btn.disabled = false;
+      btn.textContent = btn.dataset.originalText || 'Evaluate';
+
+      var existingBanner = document.querySelector('.error-banner');
+      if (existingBanner) existingBanner.remove();
+
+      var banner = document.createElement('div');
+      banner.className = 'error-banner';
+      banner.innerHTML =
+        '<strong>Free evaluation already used</strong>' +
+        '<span class="error-msg">You\u2019ve already used your free evaluation for this email.</span>';
+
+      var payBtn = document.createElement('button');
+      payBtn.className = 'error-retry';
+      payBtn.textContent = 'Get another report \u2014 $9';
+      payBtn.addEventListener('click', function() {
+        banner.remove();
+        startCheckout(address);
+      });
+      banner.appendChild(payBtn);
+      form.parentNode.insertBefore(banner, form);
+    }
+
+    // ---------------------------------------------------------------
+    // startCheckout — redirect to Stripe for paid evaluation
+    // ---------------------------------------------------------------
+    function startCheckout(address) {
+      var btn = document.getElementById('evalBtn');
+      var overlay = document.getElementById('loadingOverlay');
+      var loadingSub = overlay.querySelector('.loading-sub');
+      var form = document.getElementById('evalForm');
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to checkout...';
+      overlay.classList.add('active');
+      overlay.querySelector('.loading-text').textContent = 'Preparing checkout...';
+      loadingSub.textContent = 'Please wait...';
+      setProgress(0);
+
+      var checkoutBody = new FormData();
+      checkoutBody.append('address', address);
+      var placeIdForCheckout = document.getElementById('place-id-input');
+      if (placeIdForCheckout && placeIdForCheckout.value) {
+        checkoutBody.append('place_id', placeIdForCheckout.value);
+      }
+
+      fetch('/checkout/create', {
+        method: 'POST',
+        body: checkoutBody,
+        headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
+      })
+        .then(function(resp) {
+          if (!resp.ok && (resp.headers.get('content-type') || '').indexOf('application/json') === -1) {
+            throw new Error('Server error (' + resp.status + ')');
+          }
+          return resp.json();
+        })
+        .then(function(data) {
+          if (data.error) {
+            showError(data.error, overlay, btn, form);
+          } else if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+          } else {
+            showError('Unexpected response from server.', overlay, btn, form);
+          }
+        })
+        .catch(function(err) {
+          showError('Could not start checkout. Please try again. (' + err.message + ')', overlay, btn, form);
+        });
+    }
+
+    // ---------------------------------------------------------------
     // Form submit handler — branches on REQUIRE_PAYMENT
     // ---------------------------------------------------------------
     document.getElementById('evalForm').addEventListener('submit', function(e) {
@@ -349,50 +436,18 @@
       if (!address) return;
 
       if (REQUIRE_PAYMENT) {
-        // Paid path: create Stripe Checkout session, then redirect
-        var btn = document.getElementById('evalBtn');
-        var overlay = document.getElementById('loadingOverlay');
-        var loadingSub = overlay.querySelector('.loading-sub');
-        btn.disabled = true;
-        btn.textContent = 'Redirecting to checkout...';
-        overlay.classList.add('active');
-        overlay.querySelector('.loading-text').textContent = 'Preparing checkout...';
-        loadingSub.textContent = 'Please wait...';
-        setProgress(0);
-
-        var checkoutBody = new FormData();
-        checkoutBody.append('address', address);
-        var placeIdForCheckout = document.getElementById('place-id-input');
-        if (placeIdForCheckout && placeIdForCheckout.value) {
-          checkoutBody.append('place_id', placeIdForCheckout.value);
+        // Free tier path: submit with email for free evaluation
+        var emailInput = document.getElementById('email-input');
+        var email = emailInput ? emailInput.value.trim() : '';
+        if (emailInput && !email) {
+          emailInput.focus();
+          emailInput.reportValidity();
+          return;
         }
-
-        fetch('/checkout/create', {
-          method: 'POST',
-          body: checkoutBody,
-          headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
-        })
-          .then(function(resp) {
-            if (!resp.ok && (resp.headers.get('content-type') || '').indexOf('application/json') === -1) {
-              throw new Error('Server error (' + resp.status + ')');
-            }
-            return resp.json();
-          })
-          .then(function(data) {
-            if (data.error) {
-              showError(data.error, overlay, btn, form);
-            } else if (data.checkout_url) {
-              window.location.href = data.checkout_url;
-            } else {
-              showError('Unexpected response from server.', overlay, btn, form);
-            }
-          })
-          .catch(function(err) {
-            showError('Could not start checkout. Please try again. (' + err.message + ')', overlay, btn, form);
-          });
+        submitEvaluation(address, null, email);
       } else {
-        // Free path: submit evaluation directly
-        submitEvaluation(address, null);
+        // Free mode (REQUIRE_PAYMENT=false): submit evaluation directly
+        submitEvaluation(address, null, null);
       }
     });
 
@@ -424,8 +479,8 @@
       if (addressInput) {
         addressInput.value = returnAddress;
       }
-      // Auto-submit with the payment token
-      submitEvaluation(returnAddress, paymentToken);
+      // Auto-submit with the payment token (paid path — no email needed)
+      submitEvaluation(returnAddress, paymentToken, null);
     }
 
     // If we landed with ?job_id= (e.g. non-JS form POST redirect), start polling

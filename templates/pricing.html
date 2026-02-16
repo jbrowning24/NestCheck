@@ -2,11 +2,11 @@
 
 {% block title %}NestCheck — Pricing{% endblock %}
 
-{% block meta_description %}<meta name="description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">{% endblock %}
+{% block meta_description %}<meta name="description" content="NestCheck pricing — first evaluation free, then $9 each. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">{% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ self.title() }}">
-<meta property="og:description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">
+<meta property="og:description" content="NestCheck pricing — first evaluation free, then $9 each. Get detailed reports on walkability, parks, transit, schools, and safety for any address.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
@@ -24,7 +24,15 @@
 
 <div class="pricing-page">
   <h1>Simple pricing.</h1>
-  <p class="sub">$9 per evaluation. Built for families optimizing daily life.</p>
+  <p class="sub">{% if require_payment %}Your first evaluation is free. Just enter your email.{% else %}$9 per evaluation. Built for families optimizing daily life.{% endif %}</p>
+
+  {% if require_payment %}
+  <div class="price-card price-card--free">
+    <div class="price-tag">Free <span class="per">first evaluation</span></div>
+    <p class="price-desc">Try NestCheck with your first full livability report, on us.</p>
+    <a href="/#evaluate" class="price-btn">Get Your Free Report</a>
+  </div>
+  {% endif %}
 
   <div class="price-card">
     <div class="price-tag">$9 <span class="per">per evaluation</span></div>

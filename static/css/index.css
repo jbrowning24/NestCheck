@@ -100,6 +100,30 @@
   transform: none;
 }
 
+/* --- Email gate (free tier, shown when REQUIRE_PAYMENT) ------ */
+.email-gate {
+  padding: 0 var(--space-16);
+}
+.email-gate input[type="email"] {
+  width: 100%;
+  padding: var(--space-12) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-input);
+  background: transparent;
+  outline: none;
+  color: var(--color-text);
+}
+.email-gate input[type="email"]::placeholder {
+  color: var(--color-text-disabled);
+}
+.email-gate .email-disclosure {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
 /* --- Why Block (callout) ------------------------------------- */
 .why-block {
   max-width: 560px;
