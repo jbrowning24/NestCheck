@@ -81,8 +81,18 @@ def _get_db():
 
 
 def _return_conn(conn) -> None:
-    """Return a connection to the pool (Postgres) or close it (SQLite)."""
+    """Return a connection to the pool (Postgres) or close it (SQLite).
+
+    On Postgres, rollback any uncommitted transaction first so the
+    connection is returned in a clean state.  Without this, a failed
+    query leaves the transaction aborted and the next caller would
+    get 'current transaction is aborted' errors.
+    """
     if _USE_POSTGRES:
+        try:
+            conn.rollback()
+        except Exception:
+            pass  # Connection may already be broken; pool handles cleanup
         _pg_pool.putconn(conn)
     else:
         conn.close()
@@ -103,25 +113,6 @@ def _cursor(conn):
 # ---------------------------------------------------------------------------
 # SQL dialect helpers
 # ---------------------------------------------------------------------------
-
-def _ph(count: int = 1) -> str:
-    """Return parameter placeholders for the active backend.
-
-    _ph(3) → '?, ?, ?' (SQLite) or '%s, %s, %s' (Postgres)
-    """
-    token = "%s" if _USE_POSTGRES else "?"
-    return ", ".join([token] * count)
-
-
-def _p(count: int = 1) -> tuple:
-    """Convenience: return a tuple of placeholder strings for format().
-
-    Usage: "WHERE id = {0} AND status = {1}".format(*_p(2))
-    Not used in this module — prefer _q() for readability.
-    """
-    token = "%s" if _USE_POSTGRES else "?"
-    return tuple([token] * count)
-
 
 def _q(sql: str) -> str:
     """Translate a query from SQLite-style ? placeholders to the active backend.
@@ -222,7 +213,7 @@ _INDEXES_SQL = [
 def init_db():
     """Create tables if they don't exist. Safe to call on every startup.
 
-    On Postgres, uses SERIAL for auto-increment columns.
+    On Postgres, uses SERIAL PRIMARY KEY for auto-increment columns.
     On SQLite, uses INTEGER PRIMARY KEY AUTOINCREMENT.
     Also runs column migration for evaluation_jobs (add columns if missing).
     """
@@ -398,7 +389,7 @@ def check_return_visit(visitor_id, days=7):
                 """SELECT COUNT(*) as cnt FROM events
                    WHERE event_type = 'snapshot_created'
                      AND visitor_id = %s
-                     AND created_at >= (NOW() - INTERVAL '%s days')""",
+                     AND created_at >= (NOW() - %s * INTERVAL '1 day')""",
                 (visitor_id, days),
             )
         else:

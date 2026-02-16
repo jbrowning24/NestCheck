@@ -35,7 +35,7 @@ def _fresh_db():
     """
     init_db()
     conn = _get_db()
-    for table in ("payments", "evaluation_jobs", "events"):
+    for table in ("payments", "evaluation_jobs", "events", "free_tier_usage"):
         conn.execute(f"DELETE FROM {table}")
     conn.commit()
     _return_conn(conn)
