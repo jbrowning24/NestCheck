@@ -19,8 +19,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
-    PropertyListing, evaluate_property, CheckResult, present_checks,
-    get_score_band, proximity_synthesis,
+    PropertyListing, evaluate_property, CheckResult, Tier1Check,
+    present_checks, get_score_band, proximity_synthesis,
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -1452,6 +1452,41 @@ def view_snapshot(snapshot_id):
         result["score_band"] = get_score_band(result.get("final_score", 0))
     if "dimension_summaries" not in result:
         result["dimension_summaries"] = generate_dimension_summaries(result)
+
+    # Backfill presented_checks for old snapshots (NES-80).
+    # Re-derives from raw tier1_checks using the current presentation logic,
+    # ensuring the proximity-band rendering path is always available.
+    # Triggers on two cases:
+    #   1. No presented_checks at all (very old snapshots)
+    #   2. presented_checks exists but items lack proximity_band (mid-era snapshots
+    #      created after present_checks() was added but before proximity_band was)
+    # distance_ft is not stored in snapshots; _proximity_band() handles
+    # None gracefully (PASS→NEUTRAL, UNKNOWN→NOTABLE, FAIL→VERY_CLOSE).
+    _needs_presented = (
+        "presented_checks" not in result
+        or any(
+            "proximity_band" not in pc
+            for pc in (result.get("presented_checks") or [])
+            if pc.get("category") == "SAFETY"
+        )
+    )
+    if _needs_presented and result.get("tier1_checks"):
+        tier1_objs = [
+            Tier1Check(
+                name=c["name"],
+                result=CheckResult(c["result"]),
+                details=c.get("details", ""),
+                required=c.get("required", True),
+            )
+            for c in result["tier1_checks"]
+        ]
+        result["presented_checks"] = present_checks(tier1_objs)
+    if "structured_summary" not in result and result.get("presented_checks"):
+        result["structured_summary"] = generate_structured_summary(
+            result["presented_checks"]
+        )
+
+    # insights depends on presented_checks (for proximity synthesis), so runs after
     if "insights" not in result:
         result["insights"] = generate_insights(result)
 

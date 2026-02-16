@@ -124,6 +124,7 @@
   height: 100%;
   background: var(--color-text-secondary);
   border-radius: 3px;
+  width: var(--fill, 0%);
 }
 
 /* --- Report Section --- */
@@ -182,6 +183,49 @@
   max-height: 0;
 }
 
+/* --- Data Row (unified list item — NES-85) ---
+   Three variants: --place (parks), --hub (transit/services), --dimension (scores).
+   Use the data_row macro in _macros.html to render. */
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+.data-row:last-child { border-bottom: none; }
+.data-row__info { flex: 1; }
+.data-row__name { font-weight: 600; font-size: 0.95em; color: var(--color-text); }
+.data-row__detail { font-size: 0.85em; color: var(--color-text-lighter); margin-top: 2px; }
+.data-row__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 16px;
+}
+.data-row__value { font-weight: 600; color: var(--color-primary); font-size: 0.95em; white-space: nowrap; }
+
+/* Variant: place (parks, green spaces — 12px padding, top-aligned) */
+.data-row--place { padding: 12px 0; border-bottom: 1px solid var(--color-border-light); align-items: flex-start; }
+
+/* Variant: hub (transit, emergency, libraries — center-aligned) */
+.data-row--hub { border-bottom: 1px solid var(--color-border-light); align-items: center; }
+
+/* Variant: dimension (score breakdown — compact, no border) */
+.data-row--dimension { padding: 6px 0; align-items: center; gap: 12px; }
+.data-row--dimension .data-row__name {
+  color: var(--color-text-secondary);
+  font-size: 0.9em;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.data-row--dimension .data-row__detail {
+  color: var(--color-text-dim);
+  font-size: 0.9em;
+  flex: 1;
+}
+
+/* Modifier: suppress bottom border (e.g., park highlight) */
+.data-row--no-border { border-bottom: none; padding-bottom: 4px; }
+
 /* --- Place Items --- */
 .place-item {
   padding: 12px 0;
@@ -200,34 +244,6 @@
   white-space: nowrap;
   padding-left: 16px;
 }
-
-/* --- Check Items --- */
-.check-row {
-  display: flex;
-  align-items: flex-start;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.check-row:last-child { border-bottom: none; }
-.check-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75em;
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-right: 12px;
-  margin-top: 1px;
-}
-.check-pass { background: var(--color-pass-bg); color: var(--color-pass-text); }
-.check-fail { background: var(--color-fail-bg); color: var(--color-fail-text); }
-.check-unknown { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.check-text { flex: 1; }
-.check-label { font-weight: 600; font-size: 0.95em; color: var(--color-text); }
-.check-detail { font-size: 0.88em; color: var(--color-text-light); }
 
 /* --- Proximity Band Items --- */
 .proximity-item {
@@ -261,6 +277,25 @@
   text-decoration: none;
 }
 .proximity-satellite-link:hover { text-decoration: underline; }
+
+/* --- Road Noise Card (sub-elements within .proximity-item) --- */
+.road-noise-detail {
+  margin-top: 2px;
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.road-noise-toggle {
+  margin-top: 6px;
+}
+.road-noise-label {
+  font-size: 0.82em;
+  opacity: 0.7;
+}
+.road-noise-methodology {
+  font-size: 0.8em;
+  opacity: 0.65;
+  margin-top: 4px;
+}
 
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {
@@ -617,6 +652,12 @@
   font-size: 0.82em;
   color: var(--color-text-faint);
 }
+/* Faint summary line below a list (e.g. library count) */
+.section-footnote {
+  font-size: 0.82em;
+  color: var(--color-text-faint);
+  margin-top: 8px;
+}
 .park-highlight { margin-bottom: 16px; }
 .place-item--no-border { border-bottom: none; padding-bottom: 4px; }
 .text-right { text-align: right; }
@@ -637,11 +678,6 @@
 }
 .place-name--light { font-weight: 500; }
 .badge--inline { margin-left: 6px; }
-.check-explanation {
-  color: var(--color-text-muted);
-  margin-top: 4px;
-  font-size: 0.85em;
-}
 .share-btn--secondary {
   text-decoration: none;
   background: var(--color-text-heading);
@@ -668,6 +704,8 @@
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
   .dimension-row { gap: 8px; }
   .dimension-name { min-width: 140px; }
+  .data-row--dimension { gap: 8px; }
+  .data-row--dimension .data-row__name { min-width: 140px; }
   .place-card { width: 150px; padding: 12px; }
   .place-card--headline { width: 190px; }
 }
@@ -688,9 +726,16 @@
   .place-cards { gap: 8px; }
   .place-card { width: 140px; padding: 12px; }
   .place-card--headline { width: 180px; }
-  /* Bug fix: hub-row stacking was missing from index.html */
+  /* Hub/hub-row: stack vertically on phone */
   .hub-row { flex-direction: column; align-items: flex-start; gap: 4px; }
   .hub-right { padding-left: 0; }
+  .data-row--hub { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .data-row--hub .data-row__right { padding-left: 0; }
+  /* Dimension: wrap name to full width on phone */
+  .data-row--dimension { flex-wrap: wrap; }
+  .data-row--dimension .data-row__name { min-width: 100%; }
+  .data-row--dimension .data-row__detail { min-width: 0; }
+  .data-row--dimension .dimension-indicator { min-width: auto; }
 }
 
 /* --- Print (shared) --- */

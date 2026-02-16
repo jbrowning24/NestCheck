@@ -1,0 +1,46 @@
+{# ================================================================== #}
+{# Shared Jinja macros — imported by _result_sections.html.          #}
+{# ================================================================== #}
+
+
+{# Format a duration in minutes as "X min mode" or "X hr Y min mode". #}
+{% macro fmt_time(minutes, mode) %}{% set m = minutes | int %}{% if m >= 60 %}{{ m // 60 }} hr {{ m % 60 }} min {{ mode }}{% else %}{{ m }} min {{ mode }}{% endif %}{% endmacro %}
+
+
+{# ── data_row ──────────────────────────────────────────────────────
+   Unified data row component: label + detail + right-aligned value.
+
+   Args:
+     name:    Primary label (required). Supports safe HTML.
+     detail:  Secondary line below label (optional).
+     value:   Right-side text — typically formatted time (optional).
+     variant: "place" | "hub" | "dimension" — controls spacing/border/align.
+     no_border: If true, suppresses the bottom border (e.g., park highlight).
+
+   For custom right-side content (progress bar, dual times), use {% call %}:
+
+     {% call(slot) data_row(name="Green Space", variant="dimension") %}
+       {% if slot == "right" %}<custom markup>{% endif %}
+     {% endcall %}
+
+   When called without {% call %}, `value` renders as plain .data-row__value.
+   ── #}
+{% macro data_row(name, detail=None, value=None, variant="hub", no_border=false) %}
+<div class="data-row data-row--{{ variant }}{% if no_border %} data-row--no-border{% endif %}">
+  <div class="data-row__info">
+    <div class="data-row__name">{{ name }}</div>
+    {% if detail %}
+      <div class="data-row__detail">{{ detail }}</div>
+    {% endif %}
+  </div>
+  {% if caller %}
+    <div class="data-row__right">
+      {{ caller("right") }}
+    </div>
+  {% elif value %}
+    <div class="data-row__right">
+      <span class="data-row__value">{{ value }}</span>
+    </div>
+  {% endif %}
+</div>
+{% endmacro %}

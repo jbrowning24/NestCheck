@@ -4,7 +4,7 @@
 {# is_builder (optional).                                             #}
 {# ================================================================== #}
 
-{% macro fmt_time(minutes, mode) %}{% set m = minutes | int %}{% if m >= 60 %}{{ m // 60 }} hr {{ m % 60 }} min {{ mode }}{% else %}{{ m }} min {{ mode }}{% endif %}{% endmacro %}
+{% from "_macros.html" import fmt_time, data_row %}
 
 <div class="report">
 
@@ -42,16 +42,16 @@
     {% if result.dimension_summaries is defined and result.dimension_summaries %}
     <div class="dimension-list">
       {% for dim in result.dimension_summaries %}
-      <div class="dimension-row">
-        <div class="dimension-name">{{ dim.name }}</div>
-        <div class="dimension-summary">{{ dim.summary }}</div>
+      {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
+        {% if slot == "right" %}
         <div class="dimension-indicator">
           <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
           <div class="dimension-bar">
-            <div class="dimension-bar-fill" style="width: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
+            <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
           </div>
         </div>
-      </div>
+        {% endif %}
+      {% endcall %}
       {% endfor %}
     </div>
     {% endif %}
@@ -167,22 +167,15 @@
     {% if result.urban_access and result.urban_access.primary_transit %}
       {% set pt = result.urban_access.primary_transit %}
       <div class="section-label">Nearest Transit</div>
-      <div class="hub-row">
-        <div class="hub-info">
-          <div class="hub-name">{{ pt.name }}</div>
-          <div class="hub-detail">
-            {{ pt.mode }}
-            {% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}
-            {% if pt.parking_available %} &middot; parking available{% endif %}
-          </div>
-        </div>
-        <div class="hub-right">
-          <span class="hub-time">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
+      {% set pt_detail %}{{ pt.mode }}{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% if pt.parking_available %} &middot; parking available{% endif %}{% endset %}
+      {% call(slot) data_row(name=pt.name, detail=pt_detail, variant="hub") %}
+        {% if slot == "right" %}
+          <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
           {% if pt.drive_time_min %}
             <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
           {% endif %}
-        </div>
-      </div>
+        {% endif %}
+      {% endcall %}
 
       {# Accessibility annotations — rail stations only (NES-31) #}
       <div class="accessibility-lines">
@@ -210,20 +203,13 @@
 
     {% elif result.transit_access and result.transit_access.primary_stop %}
       <div class="section-label">Nearest Transit</div>
-      <div class="hub-row">
-        <div class="hub-info">
-          <div class="hub-name">{{ result.transit_access.primary_stop }}</div>
-          <div class="hub-detail">
-            🚌 Bus
-            {% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}
-          </div>
-        </div>
-        <div class="hub-right">
-          {% if result.transit_access.walk_minutes is not none %}
-            <span class="hub-time">{{ fmt_time(result.transit_access.walk_minutes, "walk") }}</span>
-          {% endif %}
-        </div>
-      </div>
+      {% set bus_detail %}🚌 Bus{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% endset %}
+      {{ data_row(
+          name=result.transit_access.primary_stop,
+          detail=bus_detail,
+          value=fmt_time(result.transit_access.walk_minutes, "walk") if result.transit_access.walk_minutes is not none else None,
+          variant="hub"
+      ) }}
     {% endif %}
 
 
@@ -388,17 +374,12 @@
 
     {% if result.emergency_services %}
       {% for svc in result.emergency_services %}
-      <div class="hub-row">
-        <div class="hub-info">
-          <div class="hub-name">{{ svc.name }}</div>
-          <div class="hub-detail">
-            {{ "Fire Station" if svc.type == "fire" else "Police Station" }}
-          </div>
-        </div>
-        <div class="hub-right">
-          <span class="hub-time">{{ fmt_time(svc.drive_time_min, "drive") }}</span>
-        </div>
-      </div>
+      {{ data_row(
+          name=svc.name,
+          detail="Fire Station" if svc.type == "fire" else "Police Station",
+          value=fmt_time(svc.drive_time_min, "drive"),
+          variant="hub"
+      ) }}
       {% endfor %}
     {% else %}
       <p class="section-empty">No fire or police stations found within 3 miles.</p>
@@ -428,7 +409,7 @@
       </div>
       {% endfor %}
       {% if result.library_count is defined and result.library_count > 0 %}
-        <p class="text-faint-sm" style="margin-top: 8px;">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
+        <p class="section-footnote">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
       {% endif %}
     {% else %}
       <p class="section-empty">No public libraries found within 1.2 mi.</p>
@@ -446,68 +427,34 @@
       <p class="section-insight">{{ result.insights.proximity }}</p>
     {% endif %}
 
+    {# presented_checks is guaranteed by load-time backfill (NES-80) #}
     {% if result.presented_checks is defined %}
       {% for pc in result.presented_checks %}
         {% if pc.category == "SAFETY" %}
-
-          {# ── Proximity-band rendering with icons ── #}
-          {% if pc.proximity_band is defined and pc.proximity_band %}
-            {% set band_class = "proximity-" + pc.proximity_band | lower %}
-            <div class="proximity-item {{ band_class }}">
-              <div class="proximity-name">
-                {% if pc.result_type == "CLEAR" -%}
-                  <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-                {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
-                  <span class="proximity-icon proximity-icon-issue">&#10007;</span>
-                {%- else -%}
-                  <span class="proximity-icon proximity-icon-unverified">?</span>
-                {%- endif %}
-                {{ pc.headline }}
-              </div>
-              {% if pc.explanation and (pc.proximity_band != 'NEUTRAL' or pc.result_type != 'CLEAR') %}
-                <div class="proximity-detail">{{ pc.explanation }}</div>
-              {% endif %}
-              {# Satellite link for unverified checks #}
-              {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
-                <a class="proximity-satellite-link"
-                   href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
-                   target="_blank" rel="noopener">View satellite imagery &rarr;</a>
-              {% endif %}
+          {% set band_class = "proximity-" + pc.proximity_band | lower %}
+          <div class="proximity-item {{ band_class }}">
+            <div class="proximity-name">
+              {% if pc.result_type == "CLEAR" -%}
+                <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+              {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
+                <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+              {%- else -%}
+                <span class="proximity-icon proximity-icon-unverified">?</span>
+              {%- endif %}
+              {{ pc.headline }}
             </div>
-
-          {# ── Backward compat: old snapshots with presented_checks but no proximity_band ── #}
-          {% else %}
-            <div class="check-row">
-              <div class="check-icon {% if pc.result_type == 'CLEAR' %}check-pass{% elif pc.result_type == 'CONFIRMED_ISSUE' %}check-fail{% else %}check-unknown{% endif %}">
-                {% if pc.result_type == "CLEAR" %}&#10003;{% elif pc.result_type == "CONFIRMED_ISSUE" %}&#10007;{% else %}?{% endif %}
-              </div>
-              <div class="check-text">
-                <div class="check-label">{{ pc.display_name }}</div>
-                <div class="check-detail">{{ pc.headline }}</div>
-                {% if pc.explanation and pc.result_type != "CLEAR" %}
-                  <div class="check-detail check-explanation">{{ pc.explanation }}</div>
-                {% endif %}
-              </div>
-            </div>
-          {% endif %}
-
+            {% if pc.explanation and (pc.proximity_band != 'NEUTRAL' or pc.result_type != 'CLEAR') %}
+              <div class="proximity-detail">{{ pc.explanation }}</div>
+            {% endif %}
+            {# Satellite link for unverified checks #}
+            {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
+              <a class="proximity-satellite-link"
+                 href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
+                 target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+            {% endif %}
+          </div>
         {% endif %}
       {% endfor %}
-    {% else %}
-      {# Fallback for very old snapshots without presented_checks #}
-      {% if result.tier1_checks is defined %}
-        {% for check in result.tier1_checks %}
-          <div class="check-row">
-            <div class="check-icon {% if check.result == 'PASS' %}check-pass{% elif check.result == 'FAIL' %}check-fail{% else %}check-unknown{% endif %}">
-              {% if check.result == "PASS" %}&#10003;{% elif check.result == "FAIL" %}&#10007;{% else %}?{% endif %}
-            </div>
-            <div class="check-text">
-              <div class="check-label">{{ check.name }}</div>
-              <div class="check-detail">{{ check.details }}</div>
-            </div>
-          </div>
-        {% endfor %}
-      {% endif %}
     {% endif %}
 
     {# ── Road Noise Estimate card ── #}
@@ -536,14 +483,14 @@
           Road Noise Estimate
         </div>
         <div class="proximity-detail">{{ rn.severity_label }}</div>
-        <div class="proximity-detail" style="margin-top:2px; font-size:0.85em; opacity:0.85;">
+        <div class="proximity-detail road-noise-detail">
           Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
         </div>
-        <div class="collapsible-toggle" onclick="toggleSection(this)" style="margin-top:6px; cursor:pointer;">
-          <span class="collapse-icon" style="font-size:0.82em; opacity:0.7;">&#9654;</span>
-          <span style="font-size:0.82em; opacity:0.7;">About the estimate</span>
+        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)">
+          <span class="collapse-icon road-noise-label">&#9654;</span>
+          <span class="road-noise-label">About the estimate</span>
         </div>
-        <div class="collapsible-body collapsed" style="font-size:0.8em; opacity:0.65; margin-top:4px;">
+        <div class="collapsible-body collapsed road-noise-methodology">
           {{ rn.methodology_note }}
         </div>
       </div>
