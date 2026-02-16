@@ -412,3 +412,551 @@ class TestGettingAroundAddons:
         ws = {"walk_description": "Car-Dependent"}
         result = _insight_getting_around(urban, None, ws, "", _ga_tier2(2))
         assert "Car-Dependent" not in result
+
+
+# ===========================================================================
+# _insight_parks()
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Helpers — build synthetic green escape inputs
+# ---------------------------------------------------------------------------
+
+def _make_park(name: str, walk_min: int, *, osm_enriched: bool = False,
+               area_sqm: float = 0, has_trail: bool = False,
+               path_count: int = 0) -> dict:
+    """Build a minimal best_daily_park dict."""
+    park = {"name": name, "walk_time_min": walk_min, "osm_enriched": osm_enriched}
+    if osm_enriched:
+        park["osm_area_sqm"] = area_sqm
+        park["osm_has_trail"] = has_trail
+        park["osm_path_count"] = path_count
+    return park
+
+
+def _parks_tier2(score: int) -> dict:
+    """Build a tier2 dict for the Parks & Green Space dimension."""
+    return {"Parks & Green Space": {"points": score}}
+
+
+# ---------------------------------------------------------------------------
+# Branch: strong + close (score >= 7, walk <= 15)
+# ---------------------------------------------------------------------------
+
+class TestParksStrongClose:
+    def test_park_name_and_walk_time(self):
+        ge = {"best_daily_park": _make_park("Saxon Woods", 10), "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "Saxon Woods" in result
+        assert "10 minutes" in result
+
+    def test_activity_phrasing(self):
+        ge = {"best_daily_park": _make_park("Saxon Woods", 10), "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "go for a run" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: high score but not close enough for "strong" (score >= 7, walk > 15)
+# Falls through to moderate branch, NOT strong-close.
+# ---------------------------------------------------------------------------
+
+class TestParksHighScoreFarWalk:
+    def test_falls_to_moderate_branch(self):
+        ge = {"best_daily_park": _make_park("Tibbetts Brook", 18),
+              "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "regular visits" in result.lower()
+        assert "go for a run" not in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: good park but far (score < 7, walk > 20)
+# ---------------------------------------------------------------------------
+
+class TestParksGoodButFar:
+    def test_weekend_destination(self):
+        ge = {"best_daily_park": _make_park("Ward Pound Ridge", 25),
+              "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(5))
+        assert "weekend destination" in result.lower()
+        assert "25 minutes" in result
+
+
+# ---------------------------------------------------------------------------
+# Branch: moderate (score >= 4)
+# ---------------------------------------------------------------------------
+
+class TestParksModerate:
+    def test_regular_visits(self):
+        ge = {"best_daily_park": _make_park("Tibbetts Brook", 14),
+              "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(5))
+        assert "regular visits" in result.lower()
+        assert "Tibbetts Brook" in result
+
+
+# ---------------------------------------------------------------------------
+# Branch: weak (score < 4)
+# ---------------------------------------------------------------------------
+
+class TestParksWeak:
+    def test_limited_green_space(self):
+        ge = {"best_daily_park": _make_park("Small Lot", 18),
+              "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(2))
+        assert "limited" in result.lower()
+        assert "Small Lot" in result
+
+
+# ---------------------------------------------------------------------------
+# Branch: no park found (best_daily_park missing or no name)
+# ---------------------------------------------------------------------------
+
+class TestParksNoPark:
+    def test_no_best_park(self):
+        ge = {"best_daily_park": None, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(0))
+        assert "no parks" in result.lower()
+
+    def test_park_without_name(self):
+        ge = {"best_daily_park": {"name": None}, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(0))
+        assert "no parks" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# OSM enrichment features
+# ---------------------------------------------------------------------------
+
+class TestParksOSMEnrichment:
+    def test_acreage_shown_when_large(self):
+        park = _make_park("Kensico Dam", 12, osm_enriched=True,
+                          area_sqm=80_000)  # ~20 acres
+        ge = {"best_daily_park": park, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "acres" in result.lower()
+
+    def test_acreage_hidden_when_small(self):
+        park = _make_park("Pocket Park", 8, osm_enriched=True,
+                          area_sqm=8_000)  # ~2 acres, below 5-acre threshold
+        ge = {"best_daily_park": park, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "acres" not in result.lower()
+
+    def test_trails_noted(self):
+        park = _make_park("Blue Mt", 10, osm_enriched=True, has_trail=True)
+        ge = {"best_daily_park": park, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "trails" in result.lower()
+
+    def test_paths_noted_when_enough(self):
+        park = _make_park("Bronx River", 10, osm_enriched=True, path_count=4)
+        ge = {"best_daily_park": park, "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "4 paths" in result
+
+
+# ---------------------------------------------------------------------------
+# Nearby green spaces notation
+# ---------------------------------------------------------------------------
+
+class TestParksNearbyNotation:
+    def test_multiple_nearby(self):
+        nearby = [{"name": "A", "walk_time_min": 8},
+                  {"name": "B", "walk_time_min": 12}]
+        ge = {"best_daily_park": _make_park("Main Park", 10),
+              "nearby_green_spaces": nearby}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "2 other green spaces" in result
+
+    def test_one_nearby(self):
+        ge = {"best_daily_park": _make_park("Main Park", 10),
+              "nearby_green_spaces": [{"name": "Side Park", "walk_time_min": 9}]}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "another green space" in result.lower()
+
+    def test_no_nearby(self):
+        ge = {"best_daily_park": _make_park("Main Park", 10),
+              "nearby_green_spaces": []}
+        result = _insight_parks(ge, _parks_tier2(8))
+        assert "other green space" not in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Edge case: None/empty green_escape
+# ---------------------------------------------------------------------------
+
+class TestParksEdgeCases:
+    def test_none_returns_none(self):
+        assert _insight_parks(None, _parks_tier2(0)) is None
+
+    def test_empty_dict_returns_none(self):
+        assert _insight_parks({}, _parks_tier2(0)) is None
+
+
+# ===========================================================================
+# generate_insights() — orchestrator
+# ===========================================================================
+
+class TestGenerateInsights:
+    def test_returns_all_four_keys(self):
+        result = generate_insights({})
+        assert set(result.keys()) == {"your_neighborhood", "getting_around", "parks", "proximity"}
+
+    def test_empty_input_returns_all_none(self):
+        result = generate_insights({})
+        assert all(v is None for v in result.values())
+
+    def test_populated_input_produces_strings(self):
+        """A fully populated result_dict should yield non-None strings."""
+        rd = {
+            "neighborhood_places": {
+                "coffee": [_make_place("Café A", 5)],
+                "grocery": [_make_place("Shop B", 8)],
+                "fitness": [_make_place("Gym C", 10)],
+                "parks": [_make_place("Park D", 7)],
+            },
+            "tier2_scores": [
+                {"name": "Coffee & Social Spots", "points": 8, "max": 10},
+                {"name": "Daily Essentials", "points": 7, "max": 10},
+                {"name": "Fitness & Recreation", "points": 7, "max": 10},
+                {"name": "Parks & Green Space", "points": 8, "max": 10},
+                {"name": "Getting Around", "points": 7, "max": 10},
+            ],
+            "urban_access": {
+                "primary_transit": {"name": "Scarsdale", "walk_time_min": 8},
+                "major_hub": {"name": "Grand Central", "travel_time_min": 35},
+            },
+            "frequency_label": "Peak-Hour",
+            "green_escape": {
+                "best_daily_park": _make_park("Saxon Woods", 10),
+                "nearby_green_spaces": [],
+            },
+            "presented_checks": [
+                {"category": "SAFETY", "result_type": "CLEAR",
+                 "check_id": "highway", "display_name": "Highway"},
+            ],
+        }
+        result = generate_insights(rd)
+        assert isinstance(result["your_neighborhood"], str)
+        assert isinstance(result["getting_around"], str)
+        assert isinstance(result["parks"], str)
+        assert isinstance(result["proximity"], str)
+
+
+# ===========================================================================
+# proximity_synthesis()  (property_evaluator.py)
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Helpers — build synthetic safety check dicts
+# ---------------------------------------------------------------------------
+
+def _make_check(check_id: str, result_type: str, display_name: str = "") -> dict:
+    """Build a minimal presented_check dict for proximity_synthesis."""
+    return {
+        "category": "SAFETY",
+        "result_type": result_type,
+        "check_id": check_id,
+        "display_name": display_name or check_id.replace("_", " ").title(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Branch: all clear
+# ---------------------------------------------------------------------------
+
+class TestProximitySynthesisAllClear:
+    def test_no_concerns(self):
+        checks = [
+            _make_check("highway", "CLEAR"),
+            _make_check("gas_station", "CLEAR"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "no environmental concerns" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: unverified only (no confirmed issues)
+# ---------------------------------------------------------------------------
+
+class TestProximitySynthesisUnverifiedOnly:
+    def test_single_unverified(self):
+        checks = [
+            _make_check("highway", "CLEAR"),
+            _make_check("gas_station", "VERIFICATION_NEEDED", "Gas Station"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "Gas Station" in result
+        assert "could not be verified" in result.lower()
+
+    def test_two_unverified(self):
+        checks = [
+            _make_check("highway", "VERIFICATION_NEEDED"),
+            _make_check("gas_station", "VERIFICATION_NEEDED"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "a highway" in result
+        assert "a gas station" in result
+        assert "could not be verified" in result.lower()
+
+    def test_all_three_unverified(self):
+        checks = [
+            _make_check("highway", "VERIFICATION_NEEDED"),
+            _make_check("gas_station", "VERIFICATION_NEEDED"),
+            _make_check("high-volume_road", "VERIFICATION_NEEDED"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "none of the proximity checks" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: confirmed issues (with and without remaining clears)
+# ---------------------------------------------------------------------------
+
+class TestProximitySynthesisConfirmed:
+    def test_confirmed_with_clears(self):
+        checks = [
+            _make_check("highway", "CONFIRMED_ISSUE"),
+            _make_check("gas_station", "CLEAR"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "close to a highway" in result.lower()
+        assert "remaining checks are clear" in result.lower()
+
+    def test_confirmed_only_no_clears(self):
+        checks = [_make_check("highway", "CONFIRMED_ISSUE")]
+        result = proximity_synthesis(checks)
+        assert "close to a highway" in result.lower()
+        assert "remaining" not in result.lower()
+
+    def test_multiple_confirmed(self):
+        checks = [
+            _make_check("highway", "CONFIRMED_ISSUE"),
+            _make_check("gas_station", "CONFIRMED_ISSUE"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "a highway" in result
+        assert "a gas station" in result
+
+
+# ---------------------------------------------------------------------------
+# Branch: confirmed + unverified mix
+# ---------------------------------------------------------------------------
+
+class TestProximitySynthesisMixed:
+    def test_both_mentioned(self):
+        checks = [
+            _make_check("highway", "CONFIRMED_ISSUE"),
+            _make_check("rail_corridor", "VERIFICATION_NEEDED"),
+        ]
+        result = proximity_synthesis(checks)
+        assert "close to a highway" in result.lower()
+        assert "an active rail line" in result.lower()
+        assert "could not be verified" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Edge case: no safety checks
+# ---------------------------------------------------------------------------
+
+class TestProximitySynthesisEdgeCases:
+    def test_empty_list_returns_none(self):
+        assert proximity_synthesis([]) is None
+
+    def test_non_safety_category_ignored(self):
+        checks = [{"category": "LIFESTYLE", "result_type": "CLEAR",
+                    "check_id": "library", "display_name": "Library"}]
+        assert proximity_synthesis(checks) is None
+
+
+# ===========================================================================
+# _weather_context()
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Helpers — build synthetic weather dicts with trigger flags
+# ---------------------------------------------------------------------------
+
+def _make_weather(triggers: list[str], monthly: list[dict] | None = None) -> dict:
+    """Build a minimal weather dict for _weather_context."""
+    return {"triggers": triggers, "monthly": monthly or []}
+
+
+def _winter_monthly() -> list[dict]:
+    """Monthly data with snow Dec-Mar and freezing temps."""
+    return [
+        {"month": m, "avg_snowfall_in": (4.0 if m in (12, 1, 2, 3) else 0),
+         "avg_high_f": 35 if m in (12, 1, 2) else 60}
+        for m in range(1, 13)
+    ]
+
+
+def _summer_monthly() -> list[dict]:
+    """Monthly data with hot temps Jun-Aug."""
+    return [
+        {"month": m, "avg_high_f": (92 if m in (6, 7, 8) else 70),
+         "avg_snowfall_in": 0}
+        for m in range(1, 13)
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Guards: None / empty
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextGuards:
+    def test_none_returns_none(self):
+        assert _weather_context(None) is None
+
+    def test_empty_dict_returns_none(self):
+        assert _weather_context({}) is None
+
+    def test_no_triggers_returns_none(self):
+        assert _weather_context({"triggers": [], "monthly": []}) is None
+
+
+# ---------------------------------------------------------------------------
+# Snow + freezing combined
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextSnowFreezing:
+    def test_combined_sentence(self):
+        w = _make_weather(["snow", "freezing"], _winter_monthly())
+        result = _weather_context(w)
+        assert "snow" in result.lower()
+        assert "freezing" in result.lower()
+
+    def test_month_range_included(self):
+        w = _make_weather(["snow", "freezing"], _winter_monthly())
+        result = _weather_context(w)
+        # Should contain the winter month range from _snow_months()
+        assert "December" in result
+        assert "March" in result
+
+
+# ---------------------------------------------------------------------------
+# Snow only (no freezing)
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextSnowOnly:
+    def test_notable_snow(self):
+        w = _make_weather(["snow"], _winter_monthly())
+        result = _weather_context(w)
+        assert "notable snow" in result.lower()
+        assert "freezing" not in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Freezing only (no snow)
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextFreezingOnly:
+    def test_freezing_temperatures(self):
+        w = _make_weather(["freezing"])
+        result = _weather_context(w)
+        assert "freezing" in result.lower()
+        assert "snow" not in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Extreme heat
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextExtremeHeat:
+    def test_hot_summers(self):
+        w = _make_weather(["extreme_heat"], _summer_monthly())
+        result = _weather_context(w)
+        assert "hot" in result.lower()
+        assert "June" in result
+        assert "August" in result
+
+
+# ---------------------------------------------------------------------------
+# Rain
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextRain:
+    def test_rain_without_snow(self):
+        w = _make_weather(["rain"])
+        result = _weather_context(w)
+        assert "frequent rain" in result.lower()
+
+    def test_rain_suppressed_when_snow_present(self):
+        """Rain trigger is skipped when snow is also present."""
+        w = _make_weather(["snow", "rain"], _winter_monthly())
+        result = _weather_context(w)
+        assert "rain" not in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Max 2 sentences
+# ---------------------------------------------------------------------------
+
+class TestWeatherContextMaxSentences:
+    def test_capped_at_two_sentences(self):
+        """Snow+freezing (1 sentence) + extreme_heat (1 sentence) = 2 max."""
+        monthly = [
+            {"month": m,
+             "avg_snowfall_in": (4.0 if m in (12, 1, 2, 3) else 0),
+             "avg_high_f": (92 if m in (6, 7, 8) else 35 if m in (12, 1, 2) else 60)}
+            for m in range(1, 13)
+        ]
+        w = _make_weather(["snow", "freezing", "extreme_heat"], monthly)
+        result = _weather_context(w)
+        # Exactly 2 sentences joined by ". " → exactly 1 joiner
+        assert result.count(". ") == 1
+        assert "snow" in result.lower()
+        assert "hot" in result.lower()
+
+
+# ===========================================================================
+# _nearest_walk_time()
+# ===========================================================================
+
+class TestNearestWalkTime:
+    def test_returns_minimum(self):
+        places = [{"walk_time_min": 12}, {"walk_time_min": 5}, {"walk_time_min": 8}]
+        assert _nearest_walk_time(places) == 5
+
+    def test_single_place(self):
+        assert _nearest_walk_time([{"walk_time_min": 7}]) == 7
+
+    def test_empty_list_returns_none(self):
+        assert _nearest_walk_time([]) is None
+
+    def test_skips_none_values(self):
+        places = [{"walk_time_min": None}, {"walk_time_min": 10}]
+        assert _nearest_walk_time(places) == 10
+
+    def test_all_none_returns_none(self):
+        places = [{"walk_time_min": None}, {}]
+        assert _nearest_walk_time(places) is None
+
+
+# ===========================================================================
+# _join_labels()
+# ===========================================================================
+
+class TestJoinLabels:
+    def test_single_item(self):
+        assert _join_labels(["cafés"]) == "cafés"
+
+    def test_two_items(self):
+        assert _join_labels(["cafés", "grocery stores"]) == "cafés and grocery stores"
+
+    def test_three_items_oxford_comma(self):
+        result = _join_labels(["cafés", "grocery stores", "gyms"])
+        assert result == "cafés, grocery stores, and gyms"
+
+    def test_four_items(self):
+        result = _join_labels(["a", "b", "c", "d"])
+        assert result == "a, b, c, and d"
+
+    def test_custom_conjunction(self):
+        assert _join_labels(["cafés", "gyms"], "or") == "cafés or gyms"
+
+    def test_custom_conjunction_three_items(self):
+        result = _join_labels(["cafés", "gyms", "parks"], "or")
+        assert result == "cafés, gyms, or parks"
