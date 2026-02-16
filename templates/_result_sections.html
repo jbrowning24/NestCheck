@@ -57,17 +57,26 @@
     {% endif %}
   </div>
 
-  {# ── 2. NEIGHBORHOOD MAP ───────────────────────────────────── #}
-  {% if result.neighborhood_map is defined and result.neighborhood_map %}
+  {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
+  {% set has_map_data = result.coordinates is defined and result.coordinates
+                        and result.neighborhood_places is defined and result.neighborhood_places %}
+  {% if has_map_data %}
   <div id="neighborhood-map" class="report-section map-container">
-    <img src="data:image/png;base64,{{ result.neighborhood_map }}"
-         alt="Neighborhood map showing nearby amenities"
-         class="map-image"
-         loading="lazy">
-    <div class="map-attribution">
-      Map data &copy; OpenStreetMap contributors
-    </div>
+    <div id="neighborhood-map-leaflet" class="map-leaflet"></div>
   </div>
+  {# Embed map data as JSON for neighborhood-map.js — no extra API calls #}
+  {% set transit = (result.urban_access.primary_transit
+                    if result.urban_access is defined and result.urban_access
+                       and result.urban_access.primary_transit is defined
+                    else none) %}
+  <script id="nc-map-data" type="application/json">
+  {{ {
+    "coordinates": result.coordinates,
+    "neighborhood_places": result.neighborhood_places,
+    "transit": {"name": transit.name, "lat": transit.lat, "lng": transit.lng,
+                "walk_time_min": transit.walk_time_min} if transit and transit.lat is defined else none
+  } | tojson }}
+  </script>
   {% else %}
   <div id="neighborhood-map" class="report-section map-placeholder">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

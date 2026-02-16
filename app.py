@@ -1001,6 +1001,8 @@ def _serialize_urban_access(urban_access):
         primary_transit = {
             "name": pt.name,
             "mode": pt.mode,
+            "lat": pt.lat,
+            "lng": pt.lng,
             "walk_time_min": pt.walk_time_min,
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,

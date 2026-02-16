@@ -579,23 +579,22 @@
   margin-bottom: 8px;
 }
 
-/* --- Layout-hack extraction classes (used in _result_sections.html) --- */
+/* --- Neighborhood map (interactive Leaflet — NES-38) --- */
 .map-container {
-  text-align: center;
   padding: 0;
   overflow: hidden;
   border-radius: var(--radius-md);
 }
-.map-image {
+.map-leaflet {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 400px;
 }
-.map-attribution {
-  font-size: 0.75em;
-  color: var(--color-text-faintest);
-  padding: 8px;
-  text-align: right;
+/* Blend Leaflet's layer control with report design */
+.map-container .leaflet-control-layers {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-body-5);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 .map-placeholder {
   background: var(--color-surface-subtle);
@@ -675,6 +674,7 @@
 
 /* Phone */
 @media (max-width: 640px) {
+  .map-leaflet { height: 300px; }
   .verdict-card { padding: 20px 16px; }
   .score-ring-container { width: 70px; height: 70px; }
   .score-ring-value { font-size: 1.3em; }
