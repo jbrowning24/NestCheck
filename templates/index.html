@@ -22,7 +22,7 @@
   {% if result %}
   <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation for {{ result.address }}">
   {% else %}
-  <meta name="description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, schools, and safety. Know before you move.">
+  <meta name="description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, and safety. Know before you move.">
   {% endif %}
 {% endblock %}
 
@@ -32,7 +32,7 @@
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
   {% else %}
   <meta property="og:title" content="NestCheck — Know Before You Move">
-  <meta property="og:description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, schools, and safety.">
+  <meta property="og:description" content="Enter any address and get a detailed evaluation of walkability, parks, transit, and safety.">
   {% endif %}
   <meta property="og:type" content="website">
   <meta property="og:url" content="{{ request.host_url }}">
@@ -58,7 +58,7 @@
   <div class="loading-progress">
     <div class="loading-progress-fill" id="progressFill"></div>
   </div>
-  <div class="loading-sub">Checking parks, transit, schools, safety, and more.</div>
+  <div class="loading-sub">Checking parks, transit, safety, and more.</div>
   <div class="loading-patience" id="loadingPatience">This usually takes 30–60 seconds.</div>
 </div>
 
@@ -70,7 +70,7 @@
 
   <div class="hero">
     <h1>Know before you move.</h1>
-    <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, schools, and daily-life quality — instant results, shareable link.</p>
+    <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, and daily-life quality — instant results, shareable link.</p>
   </div>
 
   <div class="search-section" id="evaluate">
@@ -121,12 +121,12 @@
     <p>Transit options, commute times, and connectivity to major hubs.</p>
   </div>
   <div class="feature-card">
-    <h3>Family &amp; Schools</h3>
-    <p>Nearby schools, childcare, and family-friendly infrastructure.</p>
+    <h3>🛤️ Proximity &amp; Safety</h3>
+    <p>Distance from highways, gas stations, high-traffic roads, and rail corridors.</p>
   </div>
   <div class="feature-card">
-    <h3>Health &amp; Safety</h3>
-    <p>Distance from highways, gas stations, and high-volume roads.</p>
+    <h3>🛒 Daily Errands</h3>
+    <p>Walking distance to grocery stores, pharmacies, and everyday essentials.</p>
   </div>
   <div class="feature-card">
     <h3>Daily Essentials</h3>
