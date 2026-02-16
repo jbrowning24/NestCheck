@@ -699,6 +699,20 @@ class EmergencyService:
 
 
 @dataclass
+class NearbyLibrary:
+    """A nearby public library (NES-106).
+
+    Informational only — not scored.  Walk time is estimated from
+    haversine distance at ~3 mph, not Google Distance Matrix.
+    """
+    name: str               # Library name (fallback: "Public Library")
+    distance_ft: int        # Straight-line distance in feet
+    est_walk_min: int       # Estimated walk time in minutes (~3 mph)
+    lat: float
+    lng: float
+
+
+@dataclass
 class TransitAccessResult:
     """Result of the smart transit frequency approximation."""
     primary_stop: Optional[str] = None
@@ -771,6 +785,11 @@ class EvaluationResult:
 
     # Nearby emergency services — informational, not scored (NES-50)
     emergency_services: Optional[List[EmergencyService]] = None
+
+    # Nearby libraries — informational, not scored (NES-106)
+    # None = lookup failed; [] = searched, found nothing; [...] = found libraries
+    nearby_libraries: Optional[List[NearbyLibrary]] = None
+    library_count: int = 0  # total within search radius (display may be capped at 3)
 
     # Weather climate normals — informational, not scored (NES-32)
     weather_summary: Optional[WeatherSummary] = None
@@ -1080,6 +1099,9 @@ def _walking_times_batch(
     return [maps.walking_time(origin, d) for d in destinations]
 
 
+LIBRARY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for libraries
+
+
 class OverpassClient:
     """Client for OpenStreetMap Overpass API - for road data.
 
@@ -1374,6 +1396,105 @@ class OverpassClient:
 
         return stations
 
+    # ── Library proximity (NES-106) ─────────────────────────────────
+
+    def get_nearby_libraries(
+        self, lat: float, lng: float, radius_meters: int = LIBRARY_SEARCH_RADIUS_M
+    ) -> List[Dict]:
+        """Find public libraries within *radius_meters* of a point.
+
+        Queries both node and way elements.  Filters out non-public
+        facilities (``access`` in {``private``, ``customers``, ``no``}).
+
+        Returns a list of dicts with keys: name, lat, lng.
+        Uses the same SQLite cache pattern as other Overpass queries.
+        """
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["amenity"="library"](around:{radius_meters},{lat},{lng});
+          way["amenity"="library"](around:{radius_meters},{lat},{lng});
+        );
+        out center;
+        """
+
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_libraries(data)
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache read failed in get_nearby_libraries, "
+                "falling through to HTTP", exc_info=True,
+            )
+
+        data = self._traced_post(
+            "get_nearby_libraries", self.base_url, {"data": query}
+        )
+
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache write failed in get_nearby_libraries",
+                exc_info=True,
+            )
+
+        return self._parse_libraries(data)
+
+    @staticmethod
+    def _parse_libraries(data: dict) -> List[Dict]:
+        """Extract libraries from an Overpass response.
+
+        Handles both node and way elements (ways use ``center`` coords).
+        Filters out non-public facilities and deduplicates by OSM element ID.
+        """
+        _NON_PUBLIC_ACCESS = {"private", "customers", "no"}
+
+        seen_ids: set = set()
+        libraries: List[Dict] = []
+        for element in data.get("elements", []):
+            # Dedupe by OSM element identity (type + id) in case the same
+            # building appears as both a node and a way.
+            eid = (element.get("type"), element.get("id"))
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+
+            tags = element.get("tags", {})
+
+            # Skip explicitly non-public libraries
+            if tags.get("access", "") in _NON_PUBLIC_ACCESS:
+                continue
+
+            # Coordinates: nodes carry lat/lon directly; ways carry center.
+            if element["type"] == "node":
+                s_lat = element.get("lat")
+                s_lng = element.get("lon")
+            elif "center" in element:
+                s_lat = element["center"].get("lat")
+                s_lng = element["center"].get("lon")
+            else:
+                continue  # way without center data — skip
+
+            if s_lat is None or s_lng is None:
+                continue
+
+            name = tags.get("name") or "Public Library"
+
+            libraries.append({
+                "name": name,
+                "lat": s_lat,
+                "lng": s_lng,
+            })
+
+        return libraries
+
     def has_nearby_elevators(self, lat: float, lng: float, radius_meters: int = 150) -> Optional[bool]:
         """Check for elevator nodes near a transit station (NES-31).
 
@@ -1488,6 +1609,71 @@ def get_emergency_services(
             "Emergency services lookup failed; continuing without", exc_info=True
         )
         return None  # None = failure (section hidden); [] = searched, found nothing
+
+
+# ── Library proximity (NES-106) ─────────────────────────────────────
+
+# Walking speed for estimated walk times (no Google API cost).
+_WALK_MPH = 3.0
+_LIBRARY_DISPLAY_CAP = 3
+
+
+def _haversine_feet(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
+    """Haversine distance in feet — standalone, no GoogleMapsClient needed."""
+    R = 20_902_231  # Earth's radius in feet
+    rlat1, rlon1 = math.radians(lat1), math.radians(lng1)
+    rlat2, rlon2 = math.radians(lat2), math.radians(lng2)
+    dlat = rlat2 - rlat1
+    dlon = rlon2 - rlon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    return int(R * c)
+
+
+def get_library_proximity(
+    overpass: "OverpassClient",
+    lat: float,
+    lng: float,
+) -> Optional[Tuple[List[NearbyLibrary], int]]:
+    """Find nearby public libraries via Overpass (zero Google API cost).
+
+    Returns a tuple of (libraries, total_count) where libraries is capped
+    at _LIBRARY_DISPLAY_CAP (3) sorted by distance.  total_count is the
+    full count within the search radius for context display.
+
+    Returns None on failure, ([], 0) when none found.
+    """
+    try:
+        raw = overpass.get_nearby_libraries(lat, lng)
+        if not raw:
+            return ([], 0)
+
+        # Calculate distances and sort by nearest
+        for lib in raw:
+            lib["distance_ft"] = _haversine_feet(lat, lng, lib["lat"], lib["lng"])
+        raw.sort(key=lambda x: x["distance_ft"])
+
+        total_count = len(raw)
+        selected = raw[:_LIBRARY_DISPLAY_CAP]
+
+        results = [
+            NearbyLibrary(
+                name=lib["name"],
+                distance_ft=lib["distance_ft"],
+                est_walk_min=max(1, round(lib["distance_ft"] / 5280 / _WALK_MPH * 60)),
+                lat=lib["lat"],
+                lng=lib["lng"],
+            )
+            for lib in selected
+        ]
+
+        return (results, total_count)
+
+    except Exception:
+        logger.warning(
+            "Library proximity lookup failed; continuing without", exc_info=True
+        )
+        return None  # None = failure (section hidden)
 
 
 def _coerce_score(value: Any) -> Optional[int]:
@@ -3881,6 +4067,11 @@ def evaluate_property(
             _threaded_stage,
             "emergency_services", get_emergency_services, maps, overpass, lat, lng,
         )
+        # Library proximity — Overpass only, zero Google API cost (NES-106).
+        futures["nearby_libraries"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "nearby_libraries", get_library_proximity, overpass, lat, lng,
+        )
         # Road noise — standalone Overpass query, no maps client needed.
         futures["road_noise"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
@@ -3910,6 +4101,13 @@ def evaluate_property(
                     result.green_escape_evaluation = stage_result
                 elif stage_name == "emergency_services":
                     result.emergency_services = stage_result
+                elif stage_name == "nearby_libraries":
+                    if stage_result is not None:
+                        libs, count = stage_result
+                        result.nearby_libraries = libs
+                        result.library_count = count
+                    else:
+                        result.nearby_libraries = None
                 elif stage_name == "road_noise":
                     result.road_noise_assessment = stage_result
                 elif stage_name == "weather":

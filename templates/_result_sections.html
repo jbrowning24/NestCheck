@@ -407,6 +407,36 @@
   </div>
   {% endif %}
 
+  {# ── 5.6 NEARBY LIBRARIES ───────────────────────────────────── #}
+  {# Informational only — nearest public libraries, estimated walk  #}
+  {# times via haversine (~3 mph). Same three-state guard as         #}
+  {# emergency services.                                             #}
+  {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
+  <div class="report-section">
+    <h2>Libraries</h2>
+
+    {% if result.nearby_libraries %}
+      {% for lib in result.nearby_libraries %}
+      <div class="hub-row">
+        <div class="hub-info">
+          <div class="hub-name">{{ lib.name }}</div>
+          <div class="hub-detail">Public Library</div>
+        </div>
+        <div class="hub-right">
+          <span class="hub-time">~{{ lib.est_walk_min }} min walk</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% if result.library_count is defined and result.library_count > 0 %}
+        <p class="text-faint-sm" style="margin-top: 8px;">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
+      {% endif %}
+    {% else %}
+      <p class="section-empty">No public libraries found within 1.2 mi.</p>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
   {# ── 6. PROXIMITY & ENVIRONMENT ────────────────────────────── #}
   <div class="report-section">
     <h2>Proximity &amp; Environment</h2>

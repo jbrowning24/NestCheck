@@ -1139,6 +1139,24 @@ def result_to_dict(result):
         else None
     )
 
+    # Nearby libraries — informational, not scored (NES-106).
+    # Same three-state convention as emergency_services.
+    output["nearby_libraries"] = (
+        [
+            {
+                "name": lib.name,
+                "distance_ft": lib.distance_ft,
+                "est_walk_min": lib.est_walk_min,
+                "lat": lib.lat,
+                "lng": lib.lng,
+            }
+            for lib in result.nearby_libraries
+        ]
+        if result.nearby_libraries is not None
+        else None
+    )
+    output["library_count"] = result.library_count
+
     # Weather climate normals — informational context for insights (NES-32).
     output["weather"] = _serialize_weather(
         getattr(result, "weather_summary", None)
