@@ -275,22 +275,17 @@
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
       <div class="park-highlight">
-        <div class="place-item place-item--no-border">
-          <div>
-            <div class="place-name">{{ park.name }}</div>
-            <div class="place-meta">
-              {% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}
-              {% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}
-              {% if park.types_display %} &middot; {{ park.types_display }}{% endif %}
-            </div>
-          </div>
+        {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
+        {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
+          {% if slot == "right" %}
           <div class="text-right">
-            <div class="place-time">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
+            <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
             <div class="park-daily-value">
               Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
             </div>
           </div>
-        </div>
+          {% endif %}
+        {% endcall %}
 
         {# Subscore breakdown #}
         {% if park.subscores %}
@@ -331,30 +326,24 @@
       <div class="subsection-divider">
         <div class="section-label">Other nearby green spaces</div>
         {% for space in result.green_escape.nearby_green_spaces[:5] %}
-          <div class="place-item">
-            <div>
-              <div class="place-name place-name--light">
-                {{ space.name }}
-                {# Distance-based label: ≤10 min Very Close, 11-20 Walkable, 21-30 Moderate, >30 Drive Only #}
-                {% if space.walk_time_min <= 10 %}
-                  {% set dist_label, dist_badge = "Very Close", "badge-pass" %}
-                {% elif space.walk_time_min <= 20 %}
-                  {% set dist_label, dist_badge = "Walkable", "badge-pass" %}
-                {% elif space.walk_time_min <= 30 %}
-                  {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
-                {% else %}
-                  {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
-                {% endif %}
-                <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>
-              </div>
-              <div class="place-meta">
-                {% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}
-                {% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %}
-                &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10
-              </div>
-            </div>
-            <div class="place-time">{% if space.drive_time_min and space.walk_time_min > 30 %}{{ fmt_time(space.drive_time_min, "drive") }}{% else %}{{ fmt_time(space.walk_time_min, "walk") }}{% endif %}</div>
-          </div>
+          {# Distance-based label: ≤10 min Very Close, 11-20 Walkable, 21-30 Moderate, >30 Drive Only #}
+          {% if space.walk_time_min <= 10 %}
+            {% set dist_label, dist_badge = "Very Close", "badge-pass" %}
+          {% elif space.walk_time_min <= 20 %}
+            {% set dist_label, dist_badge = "Walkable", "badge-pass" %}
+          {% elif space.walk_time_min <= 30 %}
+            {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
+          {% else %}
+            {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
+          {% endif %}
+          {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
+          {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}
+          {{ data_row(
+              name=space_name,
+              detail=space_meta,
+              value=fmt_time(space.drive_time_min, "drive") if space.drive_time_min and space.walk_time_min > 30 else fmt_time(space.walk_time_min, "walk"),
+              variant="place"
+          ) }}
         {% endfor %}
       </div>
     {% endif %}
@@ -398,15 +387,12 @@
 
     {% if result.nearby_libraries %}
       {% for lib in result.nearby_libraries %}
-      <div class="hub-row">
-        <div class="hub-info">
-          <div class="hub-name">{{ lib.name }}</div>
-          <div class="hub-detail">Public Library</div>
-        </div>
-        <div class="hub-right">
-          <span class="hub-time">~{{ lib.est_walk_min }} min walk</span>
-        </div>
-      </div>
+      {{ data_row(
+          name=lib.name,
+          detail="Public Library",
+          value="~" ~ lib.est_walk_min ~ " min walk",
+          variant="hub"
+      ) }}
       {% endfor %}
       {% if result.library_count is defined and result.library_count > 0 %}
         <p class="section-footnote">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>

@@ -29,7 +29,7 @@
 <div class="data-row data-row--{{ variant }}{% if no_border %} data-row--no-border{% endif %}">
   <div class="data-row__info">
     <div class="data-row__name">{{ name }}</div>
-    {% if detail %}
+    {% if detail is not none %}
       <div class="data-row__detail">{{ detail }}</div>
     {% endif %}
   </div>
@@ -37,7 +37,7 @@
     <div class="data-row__right">
       {{ caller("right") }}
     </div>
-  {% elif value %}
+  {% elif value is not none %}
     <div class="data-row__right">
       <span class="data-row__value">{{ value }}</span>
     </div>

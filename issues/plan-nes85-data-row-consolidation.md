@@ -1,6 +1,6 @@
 # NES-85: Consolidate Data List/Row Patterns
 
-**Overall Progress:** `45%`
+**Overall Progress:** `100%`
 
 ## TLDR
 Three patterns (`.place-item`, `.hub-row`, `.dimension-row`) share the same visual shape — label + detail + right-aligned value — but use different HTML structures and CSS. We consolidate them into a single `data_row` Jinja macro in a new `_macros.html` partial, backed by a unified `.data-row` CSS component with semantic modifiers.
@@ -33,24 +33,24 @@ Three patterns (`.place-item`, `.hub-row`, `.dimension-row`) share the same visu
   - [x] 🟩 Replace `.dimension-row` HTML (lines 44-54) with `{% call(slot) data_row(..., variant="dimension") %}`. Caller block renders `.dimension-indicator` with score + bar.
   - [ ] 🟥 **Verify:** Load a report with scores. Compare verdict card at desktop, 768px, 640px — padding, alignment, font sizes, progress bars must match exactly.
 
-- [ ] 🟥 **Step 4: Migrate `.hub-row` → `data_row` macro**
-  - [ ] 🟥 4a — Primary transit rail (lines 170-185): `{% call %}` for walk + optional drive time. Accessibility lines remain as separate markup below.
-  - [ ] 🟥 4b — Bus fallback (lines 213-226): simple `value=` param, no call block needed.
-  - [ ] 🟥 4c — Emergency services loop (lines 390-401): name + type label + drive time.
-  - [ ] 🟥 4d — Libraries loop (lines 419-428): name + "Public Library" + estimated walk time.
+- [x] 🟩 **Step 4: Migrate `.hub-row` → `data_row` macro**
+  - [x] 🟩 4a — Primary transit rail (lines 170-185): `{% call %}` for walk + optional drive time. Accessibility lines remain as separate markup below.
+  - [x] 🟩 4b — Bus fallback (lines 213-226): simple `value=` param, no call block needed.
+  - [x] 🟩 4c — Emergency services loop (lines 390-401): name + type label + drive time.
+  - [x] 🟩 4d — Libraries loop (lines 419-428): name + "Public Library" + estimated walk time.
   - [ ] 🟥 **Verify:** Check transit (name, mode, frequency, walk/drive times), emergency (fire/police + drive times), libraries (names + walk times). Test phone width — rows should stack vertically.
 
-- [ ] 🟥 **Step 5: Migrate `.place-item` → `data_row` macro**
-  - [ ] 🟥 5a — Best daily park highlight (lines 292-307): `{% call %}` for compound right content (travel time + daily value score). Uses `.data-row--no-border` inside `.park-highlight`.
-  - [ ] 🟥 5b — Nearby green spaces loop (lines 348-371): name param accepts safe HTML (contains inline badge). Detail has rating + score. Right side is travel time only.
+- [x] 🟩 **Step 5: Migrate `.place-item` → `data_row` macro**
+  - [x] 🟩 5a — Best daily park highlight (lines 292-307): `{% call %}` for compound right content (travel time + daily value score). Uses `.data-row--no-border` inside `.park-highlight`.
+  - [x] 🟩 5b — Nearby green spaces loop (lines 348-371): name param accepts safe HTML (contains inline badge). Detail has rating + score. Right side is travel time only.
   - [ ] 🟥 **Verify:** Check best park (name, rating, reviews, type, travel time, daily value, subscore grid below). Check nearby spaces (names with distance badges, meta, travel times). All breakpoints.
 
-- [ ] 🟥 **Step 6: Remove old CSS + cleanup**
-  - [ ] 🟥 Remove `.place-item` block: `.place-item`, `:last-child`, `.place-name`, `.place-meta`, `.place-time`, `.place-item--no-border`
-  - [ ] 🟥 Remove `.hub-row` block: `.hub-row`, `:last-child`, `.hub-info`, `.hub-name`, `.hub-detail`, `.hub-right`, `.hub-time`
-  - [ ] 🟥 Remove `.dimension-row` layout classes: `.dimension-row`, `.dimension-name`, `.dimension-summary` (keep `.dimension-indicator`, `.dimension-score`, `.dimension-bar`, `.dimension-bar-fill` — progress bar component, not row layout)
-  - [ ] 🟥 Update responsive breakpoints: replace old class references (`.dimension-row`, `.dimension-name`, `.hub-row`, `.hub-right`, etc.) with `.data-row--dimension` and `.data-row--hub` equivalents
-  - [ ] 🟥 Grep codebase for all removed class names — confirm zero references outside `issues/` docs
+- [x] 🟩 **Step 6: Remove old CSS + cleanup**
+  - [x] 🟩 Remove `.place-item` block: `.place-item`, `:last-child`, `.place-name`, `.place-meta`, `.place-time`, `.place-item--no-border`
+  - [x] 🟩 Remove `.hub-row` block: `.hub-row`, `:last-child`, `.hub-info`, `.hub-name`, `.hub-detail`, `.hub-right`, `.hub-time`
+  - [x] 🟩 Remove `.dimension-row` layout classes: `.dimension-row`, `.dimension-name`, `.dimension-summary` (keep `.dimension-indicator`, `.dimension-score`, `.dimension-bar`, `.dimension-bar-fill` — progress bar component, not row layout)
+  - [x] 🟩 Update responsive breakpoints: replace old class references (`.dimension-row`, `.dimension-name`, `.hub-row`, `.hub-right`, etc.) with `.data-row--dimension` and `.data-row--hub` equivalents
+  - [x] 🟩 Grep codebase for all removed class names — confirm zero references outside `issues/` docs
   - [ ] 🟥 **Verify:** Load multiple reports (parks, transit, emergency services). Full visual comparison at desktop, tablet, phone. No broken styles, no layout shifts.
 
 ## Pattern Inventory (Post-Consolidation)
