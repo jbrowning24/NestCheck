@@ -26,9 +26,9 @@ from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
-    create_job, get_job,
+    create_job, get_job, cancel_queued_job,
     create_payment, get_payment_by_session, get_payment_by_id,
-    update_payment_status, redeem_payment, update_payment_job_id,
+    update_payment_status, redeem_payment,
 )
 from weather import serialize_for_result as _serialize_weather
 
@@ -1348,8 +1348,19 @@ def index():
                     require_payment=REQUIRE_PAYMENT,
                 )
 
-            # Redeem the credit (paid -> redeemed, atomic)
-            if not redeem_payment(payment["id"], job_id=None):
+        # Async queue: create job first so redeem_payment can link atomically.
+        # A job with no payment is harmless; a redeemed payment with no job is a lost credit.
+        place_id = request.form.get('place_id', '').strip() or None
+        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id, place_id=place_id)
+        logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
+
+        if payment is not None:
+            # Redeem the credit (paid -> redeemed) with job_id set atomically
+            if not redeem_payment(payment["id"], job_id=job_id):
+                # Mark orphaned job as failed so the worker won't run a
+                # free evaluation.  Use cancel_queued_job to avoid clobbering
+                # a job the worker may have already claimed.
+                cancel_queued_job(job_id, "payment_already_used")
                 if _wants_json():
                     return jsonify({
                         "error": "Payment already used",
@@ -1364,15 +1375,6 @@ def index():
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
-
-        # Async queue: create job and return immediately. Worker picks up and runs evaluation.
-        place_id = request.form.get('place_id', '').strip() or None
-        job_id = create_job(address, visitor_id=g.visitor_id, request_id=request_id, place_id=place_id)
-        logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
-
-        # Link payment to job if this was a paid evaluation
-        if payment is not None:
-            update_payment_job_id(payment["id"], job_id)
 
         if _wants_json():
             return jsonify({"job_id": job_id})

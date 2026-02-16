@@ -382,6 +382,28 @@ def fail_job(job_id, error_message):
     conn.close()
 
 
+def cancel_queued_job(job_id: str, reason: str) -> bool:
+    """Fail a job only if it is still queued (not yet claimed by the worker).
+
+    Returns True if the job was cancelled, False if the worker already
+    claimed it.  The status guard (WHERE status = 'queued') prevents
+    clobbering a job that transitioned to 'running' between create_job()
+    and this call.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    cur = conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'failed', error = ?, completed_at = ?
+           WHERE job_id = ? AND status = 'queued'""",
+        (reason[:2000] if reason else None, now, job_id),
+    )
+    changed = cur.rowcount
+    conn.commit()
+    conn.close()
+    return changed > 0
+
+
 def requeue_stale_running_jobs(max_age_seconds=300):
     """
     Requeue jobs stuck in 'running' beyond max_age_seconds.
