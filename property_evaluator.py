@@ -36,7 +36,12 @@ from green_space import (
     GreenEscapeEvaluation,
     evaluate_green_escape,
 )
-from road_noise import assess_road_noise, RoadNoiseAssessment
+from road_noise import (
+    assess_road_noise,
+    RoadNoiseAssessment,
+    _haversine_ft,
+    _nearest_point_on_segment,
+)
 from weather import get_weather_summary, WeatherSummary
 from scoring_config import (
     SCORING_MODEL,
@@ -159,6 +164,7 @@ CHECK_DISPLAY_NAMES = {
     "Gas station": "Gas Station Proximity",
     "Highway": "Highway Proximity",
     "High-volume road": "High-Traffic Road Proximity",
+    "Rail corridor": "Rail Corridor Proximity",
     "W/D in unit": "Washer/Dryer",
     "Central air": "Central Air Conditioning",
     "Size": "Square Footage",
@@ -180,7 +186,7 @@ _ACTION_HINTS: Dict[Tuple[str, str], Optional[str]] = {
     # Lifestyle entries can be added here as needed.
 }
 
-SAFETY_CHECKS = {"Gas station", "Highway", "High-volume road"}
+SAFETY_CHECKS = {"Gas station", "Highway", "High-volume road", "Rail corridor"}
 LISTING_CHECKS = {"W/D in unit", "Central air", "Size", "Bedrooms", "Cost"}
 
 # Distance thresholds (in feet) for proximity-band presentation.
@@ -190,6 +196,7 @@ PROXIMITY_THRESHOLDS = {
     "Gas station":      {"very_close": 200, "notable": 500},
     "Highway":          {"very_close": 500, "notable": 1000},
     "High-volume road": {"very_close": 200, "notable": 500},
+    "Rail corridor":    {"very_close": 328, "notable": 1640},  # 100m / 500m
 }
 
 # Natural prose labels for synthesis sentences, keyed by check_id.
@@ -197,6 +204,7 @@ _SYNTHESIS_LABELS = {
     "gas_station": "a gas station",
     "highway": "a highway",
     "high-volume_road": "a high-traffic road",
+    "rail_corridor": "an active rail line",
 }
 
 
@@ -274,6 +282,11 @@ def _proximity_explanation(check: Tier1Check, band: str) -> str:
             return (
                 "Nearby business data was unavailable, so we couldn't verify "
                 "gas station proximity."
+            )
+        if check.name == "Rail corridor":
+            return (
+                "Rail corridor data was unavailable, so we couldn't verify "
+                "proximity to active rail lines."
             )
         return (
             f"Automated road data for this area was incomplete, so we couldn't "
@@ -381,6 +394,59 @@ def _proximity_explanation(check: Tier1Check, band: str) -> str:
             return (
                 f"Nearest high-traffic road is {dist:,} ft away "
                 "\u2014 outside the typical noise and air quality impact zone."
+            )
+        return ""
+
+    # ── Rail corridor ──
+    if check.name == "Rail corridor":
+        # Extract level crossing info from details for conditional prose
+        has_crossings = "level crossing" in (check.details or "").lower()
+
+        # UNKNOWN is handled by the early-return block above.
+        if band == "VERY_CLOSE":
+            base = (
+                f"An active rail line is {dist:,} ft from this address. "
+                "At this distance, train noise and vibration are "
+                "typically noticeable, especially during freight service."
+            ) if dist is not None else (
+                "An active rail line is very close to this address. "
+                "Train noise and vibration are typically noticeable."
+            )
+            if has_crossings:
+                base += (
+                    " A nearby level crossing may produce additional "
+                    "horn noise, particularly at night."
+                )
+            return base
+        if band == "NOTABLE":
+            # Distinguish 100-300m (moderate) from 300-500m (worth noting)
+            if dist is not None and dist < _RAIL_MODERATE_FT:
+                base = (
+                    f"An active rail line is {dist:,} ft from this address. "
+                    "Train noise may be audible, especially during "
+                    "freight or late-night service."
+                )
+            elif dist is not None:
+                base = (
+                    f"An active rail line is {dist:,} ft from this address. "
+                    "At this distance, train noise is usually faint but "
+                    "may be noticeable in quiet conditions."
+                )
+            else:
+                base = (
+                    "An active rail line is within the search area. "
+                    "Some train noise may be audible."
+                )
+            if has_crossings:
+                base += (
+                    " A nearby level crossing may produce horn noise."
+                )
+            return base
+        # NEUTRAL / PASS
+        if dist is not None:
+            return (
+                f"Nearest rail line is {dist:,} ft away "
+                "\u2014 outside the typical noise impact zone."
             )
         return ""
 
@@ -1101,6 +1167,112 @@ class OverpassClient:
                 })
         return roads
 
+    def get_nearby_rail(
+        self, lat: float, lng: float, radius_meters: int = 750
+    ) -> Dict:
+        """Find active rail lines and level crossings within *radius_meters*.
+
+        Queries ``railway=rail`` ways (excluding abandoned, disused, and
+        under-construction tracks) and ``railway=level_crossing`` nodes.
+
+        Returns a dict with:
+          - segments: list of dicts with name, usage, service, nodes (polyline)
+          - level_crossings: count of nearby level crossing nodes
+
+        Uses the same SQLite cache pattern as get_nearby_roads().
+        """
+        query = f"""
+        [out:json][timeout:25];
+        (
+          way["railway"="rail"]["abandoned"!="yes"]["disused"!="yes"]["construction"!="yes"](around:{radius_meters},{lat},{lng});
+          node["railway"="level_crossing"](around:{radius_meters},{lat},{lng});
+        );
+        out body;
+        >;
+        out skel qt;
+        """
+
+        # SQLite persistent cache (same pattern as get_nearby_roads)
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_rail(data)
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache read failed in get_nearby_rail, "
+                "falling through to HTTP", exc_info=True,
+            )
+
+        data = self._traced_post(
+            "get_nearby_rail", self.base_url, {"data": query}
+        )
+
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache write failed in get_nearby_rail",
+                exc_info=True,
+            )
+
+        return self._parse_rail(data)
+
+    @staticmethod
+    def _parse_rail(data: dict) -> Dict:
+        """Parse rail ways and level crossings from an Overpass response.
+
+        Pass 1: build node_id → (lat, lon) lookup from skeleton nodes.
+        Pass 2: extract railway=rail ways (with geometry) and count
+        railway=level_crossing nodes.
+        """
+        # Pass 1: node coordinate lookup
+        node_coords: dict = {}
+        for el in data.get("elements", []):
+            if el.get("type") == "node" and "lat" in el and "lon" in el:
+                node_coords[el["id"]] = (el["lat"], el["lon"])
+
+        # Pass 2: rail ways and level crossings
+        segments: List[Dict] = []
+        level_crossings = 0
+
+        for el in data.get("elements", []):
+            if el.get("type") == "node":
+                tags = el.get("tags", {})
+                if tags.get("railway") == "level_crossing":
+                    level_crossings += 1
+                continue
+
+            if el.get("type") != "way" or "tags" not in el:
+                continue
+
+            tags = el["tags"]
+            if tags.get("railway") != "rail":
+                continue
+
+            # Resolve node coordinates into polyline
+            nodes: List[Tuple[float, float]] = []
+            for node_id in el.get("nodes", []):
+                coord = node_coords.get(node_id)
+                if coord is not None:
+                    nodes.append(coord)
+
+            if len(nodes) < 2:
+                continue
+
+            segments.append({
+                "name": tags.get("name", ""),
+                "usage": tags.get("usage", ""),
+                "service": tags.get("service", ""),
+                "nodes": nodes,
+            })
+
+        return {"segments": segments, "level_crossings": level_crossings}
+
     def get_nearby_emergency_services(
         self, lat: float, lng: float, radius_meters: int = 5000
     ) -> List[Dict]:
@@ -1590,6 +1762,87 @@ def check_high_volume_roads(
             result=CheckResult.UNKNOWN,
             details=f"Error checking: {str(e)}"
         )
+
+
+# Severity thresholds for rail corridor proximity (in meters → feet).
+_RAIL_MODERATE_FT = 300 * 3.28084   # 100-300m boundary (~984 ft)
+_RAIL_NOTABLE_FT = 500 * 3.28084    # 300-500m boundary (~1,640 ft)
+
+
+def check_rail_corridor(
+    overpass: "OverpassClient",
+    lat: float,
+    lng: float,
+) -> Tier1Check:
+    """Check proximity to active rail corridors (NES-107).
+
+    Queries for ``railway=rail`` ways within 750 m and reports the
+    distance to the nearest segment.  Also flags nearby level crossings
+    (horn noise zones).  Severity is determined by the presentation
+    layer via PROXIMITY_THRESHOLDS.
+    """
+    try:
+        rail_data = overpass.get_nearby_rail(lat, lng, radius_meters=750)
+    except Exception:
+        return Tier1Check(
+            name="Rail corridor",
+            result=CheckResult.UNKNOWN,
+            details="Overpass API unavailable",
+        )
+
+    segments = rail_data["segments"]
+    level_crossings = rail_data["level_crossings"]
+
+    if not segments:
+        return Tier1Check(
+            name="Rail corridor",
+            result=CheckResult.PASS,
+            details="No active rail lines within search area",
+        )
+
+    # Find nearest rail segment using point-to-polyline projection
+    nearest_name = ""
+    nearest_dist_ft = float("inf")
+
+    for seg in segments:
+        nodes = seg["nodes"]
+        for i in range(len(nodes) - 1):
+            a_lat, a_lng = nodes[i]
+            b_lat, b_lng = nodes[i + 1]
+            proj_lat, proj_lng = _nearest_point_on_segment(
+                lat, lng, a_lat, a_lng, b_lat, b_lng,
+            )
+            dist = _haversine_ft(lat, lng, proj_lat, proj_lng)
+            if dist < nearest_dist_ft:
+                nearest_dist_ft = dist
+                nearest_name = seg["name"] or "Active rail line"
+
+    dist_ft = round(nearest_dist_ft)
+
+    # Anything within 500 m (~1,640 ft) is flagged; beyond is clear
+    if nearest_dist_ft >= _RAIL_NOTABLE_FT:
+        return Tier1Check(
+            name="Rail corridor",
+            result=CheckResult.PASS,
+            details=(
+                f"Nearest rail line ({nearest_name}) is {dist_ft:,} ft away "
+                "— outside typical impact zone"
+            ),
+            distance_ft=float(dist_ft),
+        )
+
+    # Build details for FAIL result
+    details_parts = [f"{nearest_name} — {dist_ft:,} ft"]
+    if level_crossings > 0:
+        xing = "crossing" if level_crossings == 1 else "crossings"
+        details_parts.append(f"{level_crossings} level {xing} nearby")
+
+    return Tier1Check(
+        name="Rail corridor",
+        result=CheckResult.FAIL,
+        details="; ".join(details_parts),
+        distance_ft=float(dist_ft),
+    )
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -3697,6 +3950,13 @@ def evaluate_property(
     else:
         result.tier1_checks.append(_retry_once(check_highways, maps, overpass, lat, lng, _roads_data))
         result.tier1_checks.append(_retry_once(check_high_volume_roads, overpass, lat, lng, _roads_data))
+
+    # Rail corridor — independent Overpass query with 750 m radius (NES-107).
+    # Skip retry if Overpass is already known to be down from the road check.
+    if _roads_data is _OVERPASS_FAILED:
+        result.tier1_checks.append(check_rail_corridor(overpass, lat, lng))
+    else:
+        result.tier1_checks.append(_retry_once(check_rail_corridor, overpass, lat, lng))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
