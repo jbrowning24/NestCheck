@@ -27,7 +27,7 @@ import json
 import threading
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
-import requests
+
 from nc_trace import get_trace
 
 logger = logging.getLogger(__name__)
@@ -259,6 +259,7 @@ class GreenEscapeEvaluation:
     criteria: Dict[str, Any] = field(default_factory=dict)
     search_radius_used: int = DEFAULT_RADIUS_M
     messages: List[str] = field(default_factory=list)
+    osm_failed_count: int = 0  # Places that got empty OSM enrichment due to errors (Phase 3)
 
 
 # =============================================================================
@@ -506,163 +507,32 @@ def find_green_spaces(
 # =============================================================================
 
 def _overpass_query(query: str) -> Optional[Dict]:
-    """Execute an Overpass query with caching.
+    """Execute Overpass query through shared rate-limited HTTP layer.
 
     Returns the parsed JSON response on success. Raises OverpassRateLimitError
-    or OverpassQueryError on failure. Successful responses (even empty ones)
-    are cached; failures are not.
-
-    Uses a two-level cache:
-      1. In-memory dict (10-minute TTL) — fast, per-process
-      2. SQLite overpass_cache table (7-day TTL) — persistent across evals
+    or OverpassQueryError on failure. Uses in-memory cache (10-min TTL) plus
+    shared-layer SQLite cache (7-day TTL).
     """
-    # Level 1: in-memory cache
-    mem_cache_key = _cache_key("overpass", query)
-    cached = _cached_get(mem_cache_key)
+    # In-memory cache check
+    mem_key = _cache_key("overpass", query)
+    cached = _cached_get(mem_key)
     if cached is not None:
         return cached
 
-    # Level 2: SQLite persistent cache
-    from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
-    db_cache_key = overpass_cache_key(query)
+    from overpass_http import (
+        OverpassQueryError as _HTTPQueryError,
+        OverpassRateLimitError as _HTTPRateLimitError,
+        overpass_query as _overpass_http_query,
+    )
+
     try:
-        db_cached_json = get_overpass_cache(db_cache_key)
-        if db_cached_json is not None:
-            data = json.loads(db_cached_json)
-            _cached_set(mem_cache_key, data)  # Promote to L1
-            return data
-    except Exception:
-        logger.warning("Overpass SQLite cache read failed, falling through to HTTP", exc_info=True)
-
-    url = "https://overpass-api.de/api/interpreter"
-    session = requests.Session()
-    session.trust_env = False
-    t0 = time.time()
-    try:
-        resp = session.post(url, data={"data": query}, timeout=25)
-        elapsed_ms = int((time.time() - t0) * 1000)
-
-        # HTTP status validation (before parsing body)
-        if resp.status_code == 429:
-            trace = get_trace()
-            if trace:
-                trace.record_api_call(
-                    service="overpass",
-                    endpoint="osm_enrich_query",
-                    elapsed_ms=elapsed_ms,
-                    status_code=429,
-                    provider_status="rate_limit",
-                )
-            raise OverpassRateLimitError("Overpass rate limit (429)")
-        if resp.status_code == 504:
-            trace = get_trace()
-            if trace:
-                trace.record_api_call(
-                    service="overpass",
-                    endpoint="osm_enrich_query",
-                    elapsed_ms=elapsed_ms,
-                    status_code=504,
-                    provider_status="timeout",
-                )
-            raise OverpassQueryError("Overpass gateway timeout (504)")
-        if not (200 <= resp.status_code < 300):
-            trace = get_trace()
-            if trace:
-                trace.record_api_call(
-                    service="overpass",
-                    endpoint="osm_enrich_query",
-                    elapsed_ms=elapsed_ms,
-                    status_code=resp.status_code,
-                    provider_status="http_error",
-                )
-            raise OverpassQueryError(f"Overpass HTTP {resp.status_code}")
-
-        # JSON parse
-        try:
-            data = resp.json()
-        except (ValueError, json.JSONDecodeError):
-            trace = get_trace()
-            if trace:
-                trace.record_api_call(
-                    service="overpass",
-                    endpoint="osm_enrich_query",
-                    elapsed_ms=elapsed_ms,
-                    status_code=resp.status_code,
-                    provider_status="parse_error",
-                )
-            raise OverpassQueryError(
-                f"Overpass returned non-JSON response (HTTP {resp.status_code})"
-            )
-
-        # Body error check (Overpass may return 200 with error in JSON)
-        remark = None
-        if isinstance(data, dict):
-            osm3s = data.get("osm3s", {})
-            if isinstance(osm3s, dict):
-                remark = osm3s.get("remark")
-            if not remark:
-                remark = data.get("remark")
-        if remark:
-            remark_str = remark.lower() if isinstance(remark, str) else str(remark).lower()
-            if any(
-                phrase in remark_str
-                for phrase in (
-                    "runtime error",
-                    "timed out",
-                    "out of memory",
-                    "too many requests",
-                )
-            ):
-                trace = get_trace()
-                if trace:
-                    provider_status = (
-                        "rate_limit" if "too many requests" in remark_str else "body_error"
-                    )
-                    trace.record_api_call(
-                        service="overpass",
-                        endpoint="osm_enrich_query",
-                        elapsed_ms=elapsed_ms,
-                        status_code=resp.status_code,
-                        provider_status=provider_status,
-                    )
-                if "too many requests" in remark_str:
-                    raise OverpassRateLimitError("Overpass body error: " + str(remark)[:200])
-                raise OverpassQueryError("Overpass body error: " + str(remark)[:200])
-
-        # Success — record trace and cache
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint="osm_enrich_query",
-                elapsed_ms=elapsed_ms,
-                status_code=resp.status_code,
-            )
-        _cached_set(mem_cache_key, data)
-        try:
-            set_overpass_cache(db_cache_key, json.dumps(data))
-        except Exception:
-            logger.warning("Overpass SQLite cache write failed", exc_info=True)
-
-        return data
-
-    except (OverpassRateLimitError, OverpassQueryError):
-        raise
-    except Exception as e:
-        elapsed_ms = int((time.time() - t0) * 1000)
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint="osm_enrich_query",
-                elapsed_ms=elapsed_ms,
-                status_code=0,
-                provider_status="http_error",
-            )
-        logger.warning("Overpass query failed", exc_info=True)
-        raise OverpassQueryError(
-            f"Overpass request failed: {type(e).__name__}: {e}"
-        ) from e
+        result = _overpass_http_query(query, caller="green_escape", timeout=25)
+        _cached_set(mem_key, result)
+        return result
+    except _HTTPRateLimitError:
+        raise OverpassRateLimitError("Rate limited via shared layer")
+    except _HTTPQueryError as e:
+        raise OverpassQueryError(str(e))
 
 
 def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict[str, Any]:
@@ -859,17 +729,16 @@ def _parse_osm_elements_for_place(
 
 def batch_enrich_from_osm(
     places: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+) -> Tuple[List[Dict[str, Any]], int]:
     """Enrich multiple green spaces with a single Overpass query.
 
     Each entry in *places* must have ``_lat`` and ``_lng`` keys.
-    Returns a list of enrichment dicts (same order as *places*).
-
-    Retries once on batch failure, then falls back to per-place
-    ``enrich_from_osm()`` for the affected chunk.
+    Returns a tuple of (enrichment dicts in same order as *places*,
+    failed_count) where failed_count is the number of places that got
+    empty enrichment due to errors (not legitimately no OSM data).
     """
     if not places:
-        return []
+        return [], 0
 
     empty_result = {"area_sqm": None, "path_count": 0, "has_trail": False, "nature_tags": [], "enriched": False}
 
@@ -890,13 +759,25 @@ def batch_enrich_from_osm(
             misses.append(i)
 
     if not misses:
-        return results  # type: ignore[return-value]
+        return results, 0  # type: ignore[return-value]
+
+    failed_count = 0
+    rate_limited = False
 
     # Build a single Overpass union query with around() for each place
     # Chunk into groups of 15 to avoid query timeout on dense areas
     CHUNK_SIZE = 15
     for chunk_start in range(0, len(misses), CHUNK_SIZE):
         chunk_indices = misses[chunk_start : chunk_start + CHUNK_SIZE]
+        chunk_index = chunk_start // CHUNK_SIZE
+
+        # Skip Overpass entirely if we already hit rate limit
+        if rate_limited:
+            for idx in chunk_indices:
+                results[idx] = dict(empty_result)
+            failed_count += len(chunk_indices)
+            continue
+
         around_parts = []
         for idx in chunk_indices:
             p = places[idx]
@@ -924,31 +805,81 @@ def batch_enrich_from_osm(
     out skel qt;
     """
 
+        data = None
         try:
             data = _overpass_query(query)
-        except (OverpassRateLimitError, OverpassQueryError):
-            data = None
-        if data is None:
-            # Retry once
-            try:
-                data = _overpass_query(query)
-            except (OverpassRateLimitError, OverpassQueryError):
-                data = None
-        if data is None:
-            # Fall back to per-place enrichment for this chunk
+        except OverpassRateLimitError:
+            rate_limited = True
             logger.warning(
-                "Batch Overpass query failed after retry, falling back to"
-                " per-place enrichment for %d places",
+                "Overpass rate limit hit for batch chunk %d — skipping enrichment for %d places",
+                chunk_index,
                 len(chunk_indices),
             )
             for idx in chunk_indices:
-                p = places[idx]
-                p_lat = p.get("_lat", 0)
-                p_lng = p.get("_lng", 0)
-                if p_lat and p_lng:
-                    results[idx] = enrich_from_osm(p_lat, p_lng, p.get("name", ""))
-                else:
+                results[idx] = dict(empty_result)
+            failed_count += len(chunk_indices)
+            continue
+        except OverpassQueryError:
+            time.sleep(2)
+            try:
+                data = _overpass_query(query)
+            except OverpassRateLimitError:
+                rate_limited = True
+                logger.warning(
+                    "Overpass rate limit hit on retry for batch chunk %d — skipping enrichment for %d places",
+                    chunk_index,
+                    len(chunk_indices),
+                )
+                for idx in chunk_indices:
                     results[idx] = dict(empty_result)
+                failed_count += len(chunk_indices)
+                continue
+            except OverpassQueryError:
+                # Fall back to per-place enrichment (simpler queries may succeed)
+                logger.warning(
+                    "Batch Overpass query failed after retry, falling back to"
+                    " per-place enrichment for %d places",
+                    len(chunk_indices),
+                )
+                for idx in chunk_indices:
+                    p = places[idx]
+                    p_lat = p.get("_lat", 0)
+                    p_lng = p.get("_lng", 0)
+                    if not p_lat or not p_lng:
+                        results[idx] = dict(empty_result)
+                        continue
+                    try:
+                        results[idx] = enrich_from_osm(p_lat, p_lng, p.get("name", ""))
+                        _cached_set(_cache_key("osm_enrich", p_lat, p_lng), results[idx])
+                    except OverpassRateLimitError:
+                        rate_limited = True
+                        results[idx] = dict(empty_result)
+                        failed_count += 1
+                        idx_pos = chunk_indices.index(idx)
+                        for j in chunk_indices[idx_pos + 1 :]:
+                            results[j] = dict(empty_result)
+                            failed_count += 1
+                        break
+                    except OverpassQueryError:
+                        results[idx] = dict(empty_result)
+                        failed_count += 1
+                continue
+        except Exception as e:
+            time.sleep(2)
+            try:
+                data = _overpass_query(query)
+            except Exception:
+                logger.error(
+                    "Batch Overpass query failed for chunk %d after retry",
+                    chunk_index,
+                    exc_info=True,
+                )
+                for idx in chunk_indices:
+                    results[idx] = dict(empty_result)
+                failed_count += len(chunk_indices)
+                continue
+
+        if data is None:
             continue
 
         all_elements = data.get("elements", [])
@@ -1005,7 +936,7 @@ def batch_enrich_from_osm(
         if results[i] is None:
             results[i] = dict(empty_result)
 
-    return results  # type: ignore[return-value]
+    return results, failed_count  # type: ignore[return-value]
 
 
 # =============================================================================
@@ -1387,11 +1318,23 @@ def evaluate_green_escape(
     # Step 2: Enrich with OSM (batched — single Overpass query) and score
     if enable_osm:
         try:
-            osm_results = batch_enrich_from_osm(places)
+            osm_results, evaluation.osm_failed_count = batch_enrich_from_osm(places)
         except Exception:
             osm_results = [{}] * len(places)
+            evaluation.osm_failed_count = len(places)
     else:
         osm_results = [{}] * len(places)
+
+    total_parks = len(places)
+    if evaluation.osm_failed_count > 0 and evaluation.osm_failed_count < total_parks:
+        evaluation.messages.append(
+            f"Park detail data was partially unavailable ({evaluation.osm_failed_count} of {total_parks} parks). "
+            "Some parks may show limited information."
+        )
+    elif evaluation.osm_failed_count >= total_parks and total_parks > 0:
+        evaluation.messages.append(
+            "Park detail data was unavailable. Park scores are based on proximity and Google Places data only."
+        )
 
     scored: List[GreenSpaceResult] = []
     for place, osm_data in zip(places, osm_results):

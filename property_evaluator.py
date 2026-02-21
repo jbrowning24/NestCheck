@@ -1115,26 +1115,13 @@ class OverpassClient:
 
     def __init__(self):
         self.base_url = "https://overpass-api.de/api/interpreter"
-        self.session = requests.Session()
-        self.session.trust_env = False
 
     def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
-        """POST request with automatic trace recording."""
-        t0 = time.time()
-        response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
-        elapsed_ms = int((time.time() - t0) * 1000)
-        # Record trace before raise_for_status so failed calls are visible
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint=endpoint_name,
-                elapsed_ms=elapsed_ms,
-                status_code=response.status_code,
-            )
-        response.raise_for_status()
-        data = response.json()
-        return data
+        """Route through shared Overpass HTTP layer for rate limiting and caching."""
+        from overpass_http import overpass_query
+
+        query_text = data_payload.get("data", "")
+        return overpass_query(query_text, caller=f"overpass_client.{endpoint_name}")
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point.
@@ -4130,15 +4117,12 @@ def evaluate_property(
     result.tier1_checks.append(_retry_once(check_gas_stations, maps, lat, lng))
 
     # Fetch Overpass road data once, reuse for both highway and high-volume checks.
-    # Single retry on transient failure before giving up with sentinel.
+    # Shared layer handles retries; degrade to sentinel on failure.
     try:
         _roads_data = overpass.get_nearby_roads(lat, lng, radius_meters=200)
     except Exception:
-        time.sleep(1)
-        try:
-            _roads_data = overpass.get_nearby_roads(lat, lng, radius_meters=200)
-        except Exception:
-            _roads_data = _OVERPASS_FAILED
+        logger.warning("Overpass roads failed after retries, degrading")
+        _roads_data = _OVERPASS_FAILED
 
     # When the shared fetch already failed, skip _retry_once — retrying
     # won't help and just adds latency against a down endpoint.

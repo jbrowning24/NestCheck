@@ -21,14 +21,9 @@ Limitations:
 import logging
 import math
 import time
-import json
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, List, Tuple
-
-import requests
-from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
-from nc_trace import get_trace
 
 logger = logging.getLogger(__name__)
 
@@ -295,8 +290,8 @@ def fetch_all_roads(
 ) -> List[RoadSegment]:
     """Fetch all roads within radius using Overpass, with caching.
 
-    Queries for all road types in FHWA_REFERENCE_DBA.  Uses the same
-    two-level cache pattern as OverpassClient.get_nearby_roads().
+    Queries for all road types in FHWA_REFERENCE_DBA.  Uses shared
+    Overpass HTTP layer (cache, rate limiting, retries).
 
     Returns an empty list on any failure (graceful degradation).
     """
@@ -310,52 +305,17 @@ def fetch_all_roads(
     out skel qt;
     """
 
-    # Check SQLite persistent cache
-    db_cache_key = overpass_cache_key(query)
     try:
-        cached_json = get_overpass_cache(db_cache_key)
-        if cached_json is not None:
-            data = json.loads(cached_json)
-            return _parse_roads_with_geometry(data)
+        from overpass_http import overpass_query
+
+        data = overpass_query(query, caller="road_noise", timeout=25)
+        return _parse_roads_with_geometry(data)
     except Exception:
         logger.warning(
-            "Overpass cache read failed in fetch_all_roads, falling through to HTTP",
+            "Overpass road noise query/parse failed",
             exc_info=True,
         )
-
-    # HTTP fetch
-    url = "https://overpass-api.de/api/interpreter"
-    session = requests.Session()
-    session.trust_env = False
-    try:
-        t0 = time.time()
-        resp = session.post(url, data={"data": query}, timeout=25)
-        elapsed_ms = int((time.time() - t0) * 1000)
-        resp.raise_for_status()
-        data = resp.json()
-
-        # Record in trace
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint="road_noise_overpass",
-                elapsed_ms=elapsed_ms,
-                status_code=resp.status_code,
-            )
-    except Exception:
-        logger.warning("Overpass fetch failed in fetch_all_roads", exc_info=True)
         return []
-
-    # Cache successful response
-    try:
-        set_overpass_cache(db_cache_key, json.dumps(data))
-    except Exception:
-        logger.warning(
-            "Overpass cache write failed in fetch_all_roads", exc_info=True,
-        )
-
-    return _parse_roads_with_geometry(data)
 
 
 # =============================================================================
