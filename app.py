@@ -1250,6 +1250,7 @@ def index():
     preview_snapshot_id = None
     if result is None and LANDING_PREVIEW_SNAPSHOT_ID:
         try:
+            print(f"INDEX_PREVIEW: about to call get_snapshot({LANDING_PREVIEW_SNAPSHOT_ID!r})")
             snap = get_snapshot(LANDING_PREVIEW_SNAPSHOT_ID)
             print(f"PREVIEW LOAD: snap={snap is not None}, has_result={snap.get('result') is not None if snap else 'N/A'}, preview_result={preview_result is not None}")
             if snap and snap.get("result"):
@@ -1592,6 +1593,7 @@ def job_status(job_id):
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
     """Public, read-only snapshot page. No auth required."""
+    print(f"VIEW_SNAPSHOT: looking for {snapshot_id!r}")
     snapshot = get_snapshot(snapshot_id)
     if not snapshot:
         abort(404)

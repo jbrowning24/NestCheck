@@ -309,6 +309,7 @@ def get_snapshot(snapshot_id):
     """Load a snapshot by ID. Returns dict with metadata + result_json parsed,
     or None if not found.
     """
+    print(f"GET_SNAPSHOT: looking for {snapshot_id!r}, db_path={DB_PATH!r}")
     conn = _get_db()
     try:
         cur = _cursor(conn)
