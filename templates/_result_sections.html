@@ -55,6 +55,15 @@
       {% endfor %}
     </div>
     {% endif %}
+
+    {% set safety_concerns = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
+    {% if safety_concerns %}
+    <div class="verdict-proximity-flags">
+      {% for pc in safety_concerns %}
+      <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">⚠ {{ pc.headline }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}

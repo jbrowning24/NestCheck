@@ -241,6 +241,34 @@
 }
 .proximity-satellite-link:hover { text-decoration: underline; }
 
+/* --- Verdict Card Proximity Pills (NES-124) --- */
+.verdict-proximity-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.verdict-proximity-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.verdict-proximity-pill.proximity-very_close {
+  background-color: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+.verdict-proximity-pill.proximity-notable {
+  background-color: var(--color-warning-surface);
+  color: var(--color-warning-text);
+}
+.verdict-proximity-pill.proximity-neutral {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-dim);
+}
+
 /* --- Road Noise Card (sub-elements within .proximity-item) --- */
 .road-noise-detail {
   margin-top: 2px;
