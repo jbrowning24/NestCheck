@@ -185,6 +185,8 @@ FEATURE_CONFIG = {
 # Stripe / payment config
 # ---------------------------------------------------------------------------
 REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
+
+LANDING_PREVIEW_SNAPSHOT_ID = os.environ.get("LANDING_PREVIEW_SNAPSHOT_ID")
 if STRIPE_AVAILABLE:
     stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -909,6 +911,41 @@ def generate_insights(result_dict: dict) -> dict:
     }
 
 
+def _backfill_result(result):
+    """Apply standard backfills to a snapshot result dict. Mutates in place."""
+    if "score_band" not in result or isinstance(result["score_band"], str):
+        result["score_band"] = get_score_band(result.get("final_score", 0))
+    if "dimension_summaries" not in result:
+        result["dimension_summaries"] = generate_dimension_summaries(result)
+
+    _needs_presented = (
+        "presented_checks" not in result
+        or any(
+            "proximity_band" not in pc
+            for pc in (result.get("presented_checks") or [])
+            if pc.get("category") == "SAFETY"
+        )
+    )
+    if _needs_presented and result.get("tier1_checks"):
+        tier1_objs = [
+            Tier1Check(
+                name=c["name"],
+                result=CheckResult(c["result"]),
+                details=c.get("details", ""),
+                required=c.get("required", True),
+            )
+            for c in result["tier1_checks"]
+        ]
+        result["presented_checks"] = present_checks(tier1_objs)
+    if "structured_summary" not in result and result.get("presented_checks"):
+        result["structured_summary"] = generate_structured_summary(
+            result["presented_checks"]
+        )
+
+    if "insights" not in result:
+        result["insights"] = generate_insights(result)
+
+
 # ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
@@ -1208,6 +1245,18 @@ def index():
     snapshot_id = None
     request_id = getattr(g, "request_id", "unknown")
 
+    preview_result = None
+    preview_snapshot_id = None
+    if result is None and LANDING_PREVIEW_SNAPSHOT_ID:
+        try:
+            snap = get_snapshot(LANDING_PREVIEW_SNAPSHOT_ID)
+            if snap and snap.get("result"):
+                _backfill_result(snap["result"])
+                preview_result = snap["result"]
+                preview_snapshot_id = LANDING_PREVIEW_SNAPSHOT_ID
+        except Exception:
+            logger.exception("Failed to load landing preview snapshot")
+
     if request.method == "POST":
         address = request.form.get("address", "").strip()
         logger.info(
@@ -1223,6 +1272,7 @@ def index():
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
+                preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
                 require_payment=REQUIRE_PAYMENT,
             )
@@ -1258,6 +1308,7 @@ def index():
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
+                preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
                 require_payment=REQUIRE_PAYMENT,
             )
@@ -1294,6 +1345,7 @@ def index():
                         "index.html", result=result, error=error,
                         error_detail=error_detail,
                         address=address, snapshot_id=snapshot_id,
+                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                         require_payment=REQUIRE_PAYMENT,
                     )
@@ -1315,6 +1367,7 @@ def index():
                         "index.html", result=result, error=error,
                         error_detail=error_detail,
                         address=address, snapshot_id=snapshot_id,
+                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                         require_payment=REQUIRE_PAYMENT,
                     )
@@ -1343,6 +1396,7 @@ def index():
                     "index.html", result=result, error=error,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
@@ -1360,6 +1414,7 @@ def index():
                     "index.html", result=result, error=error,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
@@ -1385,6 +1440,7 @@ def index():
                             "index.html", result=result, error=error,
                             error_detail=error_detail,
                             address=address, snapshot_id=snapshot_id,
+                            preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                             is_builder=g.is_builder, request_id=request_id,
                             require_payment=REQUIRE_PAYMENT,
                         )
@@ -1404,6 +1460,7 @@ def index():
                         "index.html", result=result, error=error,
                         error_detail=error_detail,
                         address=address, snapshot_id=snapshot_id,
+                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                         require_payment=REQUIRE_PAYMENT,
                     )
@@ -1419,6 +1476,7 @@ def index():
                     "index.html", result=result, error=error,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
@@ -1447,6 +1505,7 @@ def index():
                     "index.html", result=result, error=error,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
@@ -1473,6 +1532,7 @@ def index():
                     "index.html", result=result, error=error,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                     require_payment=REQUIRE_PAYMENT,
                 )
@@ -1490,6 +1550,7 @@ def index():
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
         job_id=job_id,
+        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
         is_builder=g.is_builder, request_id=request_id,
         require_payment=REQUIRE_PAYMENT,
     )
@@ -1529,49 +1590,8 @@ def view_snapshot(snapshot_id):
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
-    # Backfill Phase 5 fields for old snapshots
     result = snapshot["result"]
-    if "score_band" not in result or isinstance(result["score_band"], str):
-        result["score_band"] = get_score_band(result.get("final_score", 0))
-    if "dimension_summaries" not in result:
-        result["dimension_summaries"] = generate_dimension_summaries(result)
-
-    # Backfill presented_checks for old snapshots (NES-80).
-    # Re-derives from raw tier1_checks using the current presentation logic,
-    # ensuring the proximity-band rendering path is always available.
-    # Triggers on two cases:
-    #   1. No presented_checks at all (very old snapshots)
-    #   2. presented_checks exists but items lack proximity_band (mid-era snapshots
-    #      created after present_checks() was added but before proximity_band was)
-    # distance_ft is not stored in snapshots; _proximity_band() handles
-    # None gracefully (PASS→NEUTRAL, UNKNOWN→NOTABLE, FAIL→VERY_CLOSE).
-    _needs_presented = (
-        "presented_checks" not in result
-        or any(
-            "proximity_band" not in pc
-            for pc in (result.get("presented_checks") or [])
-            if pc.get("category") == "SAFETY"
-        )
-    )
-    if _needs_presented and result.get("tier1_checks"):
-        tier1_objs = [
-            Tier1Check(
-                name=c["name"],
-                result=CheckResult(c["result"]),
-                details=c.get("details", ""),
-                required=c.get("required", True),
-            )
-            for c in result["tier1_checks"]
-        ]
-        result["presented_checks"] = present_checks(tier1_objs)
-    if "structured_summary" not in result and result.get("presented_checks"):
-        result["structured_summary"] = generate_structured_summary(
-            result["presented_checks"]
-        )
-
-    # insights depends on presented_checks (for proximity synthesis), so runs after
-    if "insights" not in result:
-        result["insights"] = generate_insights(result)
+    _backfill_result(result)
 
     return render_template(
         "snapshot.html",

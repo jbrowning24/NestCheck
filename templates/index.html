@@ -111,32 +111,36 @@
 
 </div>{# /.landing-hero-band #}
 
-<div class="features">
-  <div class="feature-card">
-    <h3>Green Escape</h3>
-    <p>Parks, trails, and nature within walking distance. Scored by quality and accessibility.</p>
+{% if preview_result %}
+  {% include '_verdict_preview.html' %}
+{% else %}
+  <div class="features">
+    <div class="feature-card">
+      <h3>Green Escape</h3>
+      <p>Parks, trails, and nature within walking distance. Scored by quality and accessibility.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Urban Access</h3>
+      <p>Transit options, commute times, and connectivity to major hubs.</p>
+    </div>
+    <div class="feature-card">
+      <h3>🛤️ Proximity &amp; Safety</h3>
+      <p>Distance from highways, gas stations, high-traffic roads, and rail corridors.</p>
+    </div>
+    <div class="feature-card">
+      <h3>🛒 Daily Errands</h3>
+      <p>Walking distance to grocery stores, pharmacies, and everyday essentials.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Daily Essentials</h3>
+      <p>Walkable groceries, cafes, fitness — the fabric of daily life.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Final Score</h3>
+      <p>One number, 0-100. Clear breakdown of how it was computed.</p>
+    </div>
   </div>
-  <div class="feature-card">
-    <h3>Urban Access</h3>
-    <p>Transit options, commute times, and connectivity to major hubs.</p>
-  </div>
-  <div class="feature-card">
-    <h3>🛤️ Proximity &amp; Safety</h3>
-    <p>Distance from highways, gas stations, high-traffic roads, and rail corridors.</p>
-  </div>
-  <div class="feature-card">
-    <h3>🛒 Daily Errands</h3>
-    <p>Walking distance to grocery stores, pharmacies, and everyday essentials.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Daily Essentials</h3>
-    <p>Walkable groceries, cafes, fitness — the fabric of daily life.</p>
-  </div>
-  <div class="feature-card">
-    <h3>Final Score</h3>
-    <p>One number, 0-100. Clear breakdown of how it was computed.</p>
-  </div>
-</div>
+{% endif %}
 
 {% else %}
 {# ============================================================ #}
