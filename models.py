@@ -33,7 +33,12 @@ if _USE_POSTGRES:
     import psycopg2.pool
 
 # SQLite fallback path (local dev / tests)
-DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
+# Railway: use persistent volume when RAILWAY_VOLUME_MOUNT_PATH is set
+if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH"):
+    DB_PATH = os.path.join(os.environ["RAILWAY_VOLUME_MOUNT_PATH"], "nestcheck.db")
+else:
+    DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
+print(f"DATABASE PATH: {DB_PATH}")
 
 # ---------------------------------------------------------------------------
 # Connection management
