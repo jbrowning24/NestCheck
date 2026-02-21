@@ -33,6 +33,16 @@ from nc_trace import get_trace
 logger = logging.getLogger(__name__)
 
 
+class OverpassRateLimitError(Exception):
+    """Overpass returned 429 or equivalent rate limit signal."""
+    pass
+
+
+class OverpassQueryError(Exception):
+    """Overpass returned an error (HTTP error, timeout, or error in response body)."""
+    pass
+
+
 # =============================================================================
 # CONFIGURATION / THRESHOLDS
 # =============================================================================
@@ -498,8 +508,9 @@ def find_green_spaces(
 def _overpass_query(query: str) -> Optional[Dict]:
     """Execute an Overpass query with caching.
 
-    Returns the parsed JSON response, or ``None`` if the request failed.
-    Successful responses (even empty ones) are cached; failures are not.
+    Returns the parsed JSON response on success. Raises OverpassRateLimitError
+    or OverpassQueryError on failure. Successful responses (even empty ones)
+    are cached; failures are not.
 
     Uses a two-level cache:
       1. In-memory dict (10-minute TTL) — fast, per-process
@@ -526,11 +537,99 @@ def _overpass_query(query: str) -> Optional[Dict]:
     url = "https://overpass-api.de/api/interpreter"
     session = requests.Session()
     session.trust_env = False
+    t0 = time.time()
     try:
-        t0 = time.time()
         resp = session.post(url, data={"data": query}, timeout=25)
         elapsed_ms = int((time.time() - t0) * 1000)
-        data = resp.json()
+
+        # HTTP status validation (before parsing body)
+        if resp.status_code == 429:
+            trace = get_trace()
+            if trace:
+                trace.record_api_call(
+                    service="overpass",
+                    endpoint="osm_enrich_query",
+                    elapsed_ms=elapsed_ms,
+                    status_code=429,
+                    provider_status="rate_limit",
+                )
+            raise OverpassRateLimitError("Overpass rate limit (429)")
+        if resp.status_code == 504:
+            trace = get_trace()
+            if trace:
+                trace.record_api_call(
+                    service="overpass",
+                    endpoint="osm_enrich_query",
+                    elapsed_ms=elapsed_ms,
+                    status_code=504,
+                    provider_status="timeout",
+                )
+            raise OverpassQueryError("Overpass gateway timeout (504)")
+        if not (200 <= resp.status_code < 300):
+            trace = get_trace()
+            if trace:
+                trace.record_api_call(
+                    service="overpass",
+                    endpoint="osm_enrich_query",
+                    elapsed_ms=elapsed_ms,
+                    status_code=resp.status_code,
+                    provider_status="http_error",
+                )
+            raise OverpassQueryError(f"Overpass HTTP {resp.status_code}")
+
+        # JSON parse
+        try:
+            data = resp.json()
+        except (ValueError, json.JSONDecodeError):
+            trace = get_trace()
+            if trace:
+                trace.record_api_call(
+                    service="overpass",
+                    endpoint="osm_enrich_query",
+                    elapsed_ms=elapsed_ms,
+                    status_code=resp.status_code,
+                    provider_status="parse_error",
+                )
+            raise OverpassQueryError(
+                f"Overpass returned non-JSON response (HTTP {resp.status_code})"
+            )
+
+        # Body error check (Overpass may return 200 with error in JSON)
+        remark = None
+        if isinstance(data, dict):
+            osm3s = data.get("osm3s", {})
+            if isinstance(osm3s, dict):
+                remark = osm3s.get("remark")
+            if not remark:
+                remark = data.get("remark")
+        if remark:
+            remark_str = remark.lower() if isinstance(remark, str) else str(remark).lower()
+            if any(
+                phrase in remark_str
+                for phrase in (
+                    "runtime error",
+                    "timed out",
+                    "out of memory",
+                    "too many requests",
+                )
+            ):
+                trace = get_trace()
+                if trace:
+                    provider_status = (
+                        "rate_limit" if "too many requests" in remark_str else "body_error"
+                    )
+                    trace.record_api_call(
+                        service="overpass",
+                        endpoint="osm_enrich_query",
+                        elapsed_ms=elapsed_ms,
+                        status_code=resp.status_code,
+                        provider_status=provider_status,
+                    )
+                if "too many requests" in remark_str:
+                    raise OverpassRateLimitError("Overpass body error: " + str(remark)[:200])
+                raise OverpassQueryError("Overpass body error: " + str(remark)[:200])
+
+        # Success — record trace and cache
         trace = get_trace()
         if trace:
             trace.record_api_call(
@@ -539,18 +638,31 @@ def _overpass_query(query: str) -> Optional[Dict]:
                 elapsed_ms=elapsed_ms,
                 status_code=resp.status_code,
             )
-    except Exception:
+        _cached_set(mem_cache_key, data)
+        try:
+            set_overpass_cache(db_cache_key, json.dumps(data))
+        except Exception:
+            logger.warning("Overpass SQLite cache write failed", exc_info=True)
+
+        return data
+
+    except (OverpassRateLimitError, OverpassQueryError):
+        raise
+    except Exception as e:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        trace = get_trace()
+        if trace:
+            trace.record_api_call(
+                service="overpass",
+                endpoint="osm_enrich_query",
+                elapsed_ms=elapsed_ms,
+                status_code=0,
+                provider_status="http_error",
+            )
         logger.warning("Overpass query failed", exc_info=True)
-        return None
-
-    # Store in both caches on success
-    _cached_set(mem_cache_key, data)
-    try:
-        set_overpass_cache(db_cache_key, json.dumps(data))
-    except Exception:
-        logger.warning("Overpass SQLite cache write failed", exc_info=True)
-
-    return data
+        raise OverpassQueryError(
+            f"Overpass request failed: {type(e).__name__}: {e}"
+        ) from e
 
 
 def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict[str, Any]:
@@ -593,8 +705,9 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
     out skel qt;
     """
 
-    data = _overpass_query(query)
-    if data is None:
+    try:
+        data = _overpass_query(query)
+    except (OverpassRateLimitError, OverpassQueryError):
         return result  # Don't cache on failure
     elements = data.get("elements", [])
     if not elements:
@@ -811,10 +924,16 @@ def batch_enrich_from_osm(
     out skel qt;
     """
 
-        data = _overpass_query(query)
+        try:
+            data = _overpass_query(query)
+        except (OverpassRateLimitError, OverpassQueryError):
+            data = None
         if data is None:
             # Retry once
-            data = _overpass_query(query)
+            try:
+                data = _overpass_query(query)
+            except (OverpassRateLimitError, OverpassQueryError):
+                data = None
         if data is None:
             # Fall back to per-place enrichment for this chunk
             logger.warning(
