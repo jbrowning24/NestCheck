@@ -1238,6 +1238,7 @@ def _wants_json():
 @app.route("/", methods=["GET", "POST"])
 @limiter.limit(RATE_LIMIT_EVAL, methods=["POST"])
 def index():
+    print(f"INDEX ROUTE: LANDING_PREVIEW_SNAPSHOT_ID={LANDING_PREVIEW_SNAPSHOT_ID!r}")
     result = None
     error = None
     error_detail = None  # builder-mode diagnostic
@@ -1250,12 +1251,22 @@ def index():
     if result is None and LANDING_PREVIEW_SNAPSHOT_ID:
         try:
             snap = get_snapshot(LANDING_PREVIEW_SNAPSHOT_ID)
+            print(f"PREVIEW LOAD: snap={snap is not None}, has_result={snap.get('result') is not None if snap else 'N/A'}, preview_result={preview_result is not None}")
             if snap and snap.get("result"):
                 _backfill_result(snap["result"])
                 preview_result = snap["result"]
                 preview_snapshot_id = LANDING_PREVIEW_SNAPSHOT_ID
         except Exception:
             logger.exception("Failed to load landing preview snapshot")
+
+    # Temporary debug: diagnose landing preview loading
+    snap_status = (snap is not None) if "snap" in dir() else "not reached"
+    logger.info(
+        "Landing preview: env=%s, snap=%s, result=%s",
+        LANDING_PREVIEW_SNAPSHOT_ID,
+        snap_status,
+        preview_result is not None,
+    )
 
     if request.method == "POST":
         address = request.form.get("address", "").strip()
