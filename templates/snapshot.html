@@ -31,7 +31,7 @@
     {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
   </div>
   <div class="share-actions">
-    <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
+    <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span id="shareBtnText">Copy share link</span>
     </button>
@@ -52,16 +52,17 @@
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
   }
 
-  function copyShareLink() {
+  function copyShareLink(triggerEl) {
     var url = window.location.href;
     navigator.clipboard.writeText(url).then(function() {
-      var btn = document.getElementById('shareBtn');
-      var txt = document.getElementById('shareBtnText');
+      var btn = triggerEl || document.getElementById('shareBtn');
+      var txt = btn.querySelector('span') || btn;
+      var origText = txt.textContent;
       btn.classList.add('copied');
       txt.textContent = 'Copied!';
       setTimeout(function() {
         btn.classList.remove('copied');
-        txt.textContent = 'Copy share link';
+        txt.textContent = origText;
       }, 2000);
 
       // Track share event
