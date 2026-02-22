@@ -58,6 +58,32 @@
 }
 .snapshot-cta a:hover { background: var(--color-primary-dark); }
 
+/* --- Contextual Share Prompt (NES-123) --- */
+.share-prompt {
+  max-width: 800px;
+  margin: 16px auto 0;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+.share-prompt-text {
+  font-size: 0.92em;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+/* Tint border/background based on score band */
+.share-prompt.band-exceptional { border-color: var(--band-exceptional); background: var(--band-exceptional-light); }
+.share-prompt.band-strong      { border-color: var(--band-strong);      background: var(--band-strong-light); }
+.share-prompt.band-moderate    { border-color: var(--band-moderate);    background: var(--band-moderate-light); }
+.share-prompt.band-limited     { border-color: var(--band-limited);     background: var(--band-limited-light); }
+.share-prompt.band-poor        { border-color: var(--band-poor);        background: var(--band-poor-light); }
+
 /* --- Responsive (snapshot-only) --- */
 
 /* Small tablet — tighten share bar before it stacks at 640px */
@@ -70,9 +96,10 @@
 @media (max-width: 640px) {
   .share-bar { flex-direction: column; align-items: stretch; }
   .share-btn { justify-content: center; }
+  .share-prompt { flex-direction: column; text-align: center; }
 }
 
 /* --- Print (snapshot-only) --- */
 @media print {
-  .snapshot-cta { display: none; }
+  .snapshot-cta, .share-prompt { display: none; }
 }
