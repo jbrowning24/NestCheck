@@ -66,6 +66,30 @@
     {% endif %}
   </div>
 
+  {# ── CONTEXTUAL SHARE PROMPT (snapshot only — NES-123) ──── #}
+  {% if is_snapshot is defined and is_snapshot %}
+  {% set band = result.score_band.css_class if result.score_band is mapping else '' %}
+  <div class="share-prompt {{ band }}">
+    <div class="share-prompt-text">
+      {% if band == 'band-exceptional' %}
+        This property is a standout — share this report with your household.
+      {% elif band == 'band-strong' %}
+        This property looks promising — send it to someone who should see it.
+      {% elif band == 'band-moderate' %}
+        Considering this property? Share the evaluation and talk it over.
+      {% elif band == 'band-limited' %}
+        Some trade-offs here — share this report and get another perspective.
+      {% else %}
+        Every evaluation helps narrow the search — share to keep everyone in the loop.
+      {% endif %}
+    </div>
+    <button class="share-btn" onclick="copyShareLink()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      Share this report
+    </button>
+  </div>
+  {% endif %}
+
   {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
   {% set has_map_data = result.coordinates is defined and result.coordinates
                         and result.neighborhood_places is defined and result.neighborhood_places %}
