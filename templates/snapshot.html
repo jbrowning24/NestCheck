@@ -34,6 +34,9 @@
 
 {% block nav_links %}
   <a href="/" class="nav-link">Evaluate an address</a>
+  {% if is_builder %}
+    <a href="/builder/dashboard" class="nav-link nav-link--builder">Dashboard</a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -61,9 +64,24 @@
     </button>
     <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
-    <a href="/compare?ids={{ snapshot_id }}" class="share-btn share-btn--secondary">Compare</a>
+    <a href="/compare?ids={{ snapshot_id }}" class="share-btn share-btn--secondary">Compare with another address</a>
   </div>
 </div>
+{% endif %}
+
+{% if is_builder %}
+<details class="error-diagnostic">
+  <summary>Builder diagnostic</summary>
+  <pre>{{ {
+    "snapshot_id": snapshot_id,
+    "snapshot_url": request.url,
+    "address": result.address,
+    "created_at": snapshot.created_at,
+    "view_count": snapshot.view_count,
+    "walk_scores": result.walk_scores if result.walk_scores is defined else none,
+    "transit_access": result.transit_access if result.transit_access is defined else none,
+  } | tojson(indent=2) }}</pre>
+</details>
 {% endif %}
 
 <div class="report-layout">
