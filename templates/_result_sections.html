@@ -13,7 +13,7 @@
 
   {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
   {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
-  <div class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
+  <div id="verdict" class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
     <div class="verdict-address">{{ result.address }}</div>
 
     {% if is_preview %}
@@ -454,7 +454,7 @@
   {% endif %}{# not is_preview — end of locked sections 2–5.6 #}
 
   {# ── 6. PROXIMITY & ENVIRONMENT — always shown (preview + full) ── #}
-  <div class="report-section">
+  <div id="proximity-environment" class="report-section">
     <h2>Proximity &amp; Environment</h2>
 
     {# Section-level synthesis insight #}
@@ -590,7 +590,7 @@
 
   {# ── 7. HOW WE SCORE — full report only ─────────────────── #}
   {% if not is_preview %}
-  <div class="report-section">
+  <div id="how-we-score" class="report-section">
     <div class="collapsible-toggle" onclick="toggleSection(this)">
       <h2>How We Score</h2>
       <span class="collapse-icon">&#9654;</span>

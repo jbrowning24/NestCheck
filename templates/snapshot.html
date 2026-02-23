@@ -65,6 +65,10 @@
 </div>
 {% endif %}
 
+<div class="report-layout">
+  {% set is_snapshot = true %}
+  {% include '_result_sections.html' %}
+
   <aside class="report-layout__rail">
     {% include '_report_rail.html' %}
   </aside>
