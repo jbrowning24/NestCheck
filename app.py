@@ -2,6 +2,7 @@ import os
 import sys
 import io
 import csv
+import re
 import logging
 import uuid
 import secrets
@@ -16,6 +17,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
@@ -32,6 +34,8 @@ from models import (
     create_payment, get_payment_by_session, get_payment_by_id,
     update_payment_status, redeem_payment,
     hash_email, check_free_tier_used, record_free_tier_usage,
+    generate_magic_link_token, save_magic_link, verify_magic_link,
+    get_snapshots_by_email,
 )
 from weather import serialize_for_result as _serialize_weather
 from og_image import generate_og_image
@@ -56,6 +60,16 @@ try:
 except ImportError:
     stripe = None  # type: ignore[assignment]
     STRIPE_AVAILABLE = False
+
+# ---------------------------------------------------------------------------
+# Resend (optional — app starts without it for local dev without email)
+# ---------------------------------------------------------------------------
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    resend = None  # type: ignore[assignment]
+    RESEND_AVAILABLE = False
 
 load_dotenv()
 
@@ -222,11 +236,42 @@ def _is_builder(req):
     return False
 
 
+# ---------------------------------------------------------------------------
+# Auth cookie (magic-link email identity)
+# ---------------------------------------------------------------------------
+_AUTH_COOKIE_NAME = "nc_auth"
+_AUTH_COOKIE_MAX_AGE = 30 * 24 * 3600  # 30 days
+
+# Resend API key for sending magic-link emails (optional — app runs without it)
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "NestCheck <noreply@nestcheck.com>")
+
+
+def _get_auth_serializer():
+    """Return an itsdangerous serializer for signing auth cookies."""
+    return URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="nc-auth")
+
+
+def _get_authenticated_email() -> str | None:
+    """Read and verify the auth cookie, returning the email or None."""
+    token = request.cookies.get(_AUTH_COOKIE_NAME)
+    if not token:
+        return None
+    try:
+        email = _get_auth_serializer().loads(token, max_age=_AUTH_COOKIE_MAX_AGE)
+        return email
+    except (BadSignature, SignatureExpired):
+        return None
+
+
 @app.before_request
 def _set_request_context():
-    """Set builder mode, visitor ID, and request ID on every request."""
+    """Set builder mode, visitor ID, auth email, and request ID on every request."""
     g.request_id = _generate_request_id()
     g.is_builder = _is_builder(request)
+
+    # Authenticated email from magic-link cookie
+    g.user_email = _get_authenticated_email()
 
     # Visitor ID: anonymous, cookie-based, for return-visit tracking
     g.visitor_id = request.cookies.get("nc_vid")
@@ -253,6 +298,16 @@ def _after_request(response):
         response.set_cookie(
             "nc_builder", BUILDER_SECRET,
             max_age=90 * 24 * 3600, httponly=True, samesite="Lax"
+        )
+
+    # Set auth cookie if magic-link verification flagged it
+    auth_email = getattr(g, "set_auth_cookie_email", None)
+    if auth_email:
+        token = _get_auth_serializer().dumps(auth_email)
+        response.set_cookie(
+            _AUTH_COOKIE_NAME, token,
+            max_age=_AUTH_COOKIE_MAX_AGE, httponly=True, samesite="Lax",
+            secure=not app.debug,
         )
 
     return response
@@ -1401,18 +1456,34 @@ def index():
         #         return render_template(...)
 
         # ---------------------------------------------------------------
-        # Free tier gate — one free evaluation per email (NES-120)
-        # Checked before the payment gate so eligible users skip Stripe.
+        # Email identity — always required for snapshot ownership.
+        # Builder mode bypasses email requirement.
         # ---------------------------------------------------------------
-        email = ""
-        email_h = None       # set if email provided and valid
-        free_tier_used = False  # True when this request is using the free tier
+        email = request.form.get("email", "").strip()
+        email_h = None
+        free_tier_used = False
 
-        if REQUIRE_PAYMENT and not g.is_builder:
+        if not g.is_builder:
+            # Paid path sends payment_token instead of email
             payment_token = request.form.get("payment_token", "").strip()
-            email = request.form.get("email", "").strip()
 
-            if not payment_token and email:
+            if not email and not payment_token:
+                if _wants_json():
+                    return jsonify({
+                        "error": "Please enter your email address.",
+                        "request_id": request_id,
+                    }), 400
+                error = "Please enter your email address."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                    require_payment=REQUIRE_PAYMENT,
+                )
+
+            if email:
                 # Minimal server-side email format check
                 if "@" not in email or "." not in email.split("@")[-1]:
                     if _wants_json():
@@ -1429,9 +1500,15 @@ def index():
                         is_builder=g.is_builder, request_id=request_id,
                         require_payment=REQUIRE_PAYMENT,
                     )
-
-                # Free tier path: check if this email already claimed
                 email_h = hash_email(email)
+
+        # ---------------------------------------------------------------
+        # Free tier gate — one free evaluation per email (NES-120)
+        # Only enforced when REQUIRE_PAYMENT=true.
+        # ---------------------------------------------------------------
+        if REQUIRE_PAYMENT and not g.is_builder and email_h:
+            payment_token = request.form.get("payment_token", "").strip()
+            if not payment_token:
                 if check_free_tier_used(email_h):
                     log_event(
                         "free_tier_exhausted", visitor_id=g.visitor_id,
@@ -1570,6 +1647,7 @@ def index():
         job_id = create_job(
             address, visitor_id=g.visitor_id, request_id=request_id,
             place_id=place_id, email_hash=email_h, persona=persona,
+            email_raw=email,
         )
         logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
 
@@ -1997,6 +2075,107 @@ def terms():
 
 
 # ---------------------------------------------------------------------------
+# Magic-link authentication
+# ---------------------------------------------------------------------------
+
+@app.route("/send-magic-link", methods=["POST"])
+@limiter.limit("5/minute")
+def send_magic_link():
+    """Send a magic-link email for authentication.
+
+    Expects form data with 'email'. Generates a token, sends the email via
+    Resend, then persists the token only on successful send (no orphaned
+    tokens on failure).
+    """
+    email = (request.form.get("email") or "").strip().lower()
+    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return jsonify({"error": "Please enter a valid email address."}), 400
+
+    if not RESEND_AVAILABLE or not RESEND_API_KEY:
+        logger.error("[magic-link] Resend not available (installed=%s, key=%s)",
+                      RESEND_AVAILABLE, bool(RESEND_API_KEY))
+        return jsonify({"error": "Email sending is not configured."}), 503
+
+    # Generate token first, but don't persist until send succeeds
+    token = generate_magic_link_token()
+    verify_url = request.host_url.rstrip("/") + f"/auth/verify?token={token}"
+
+    try:
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from": RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": "Your NestCheck sign-in link",
+            "html": (
+                f"<p>Click the link below to access your NestCheck reports:</p>"
+                f'<p><a href="{verify_url}">Sign in to NestCheck</a></p>'
+                f"<p>This link expires in 15 minutes.</p>"
+                f"<p>If you didn't request this, you can ignore this email.</p>"
+            ),
+        })
+    except Exception:
+        logger.exception("[magic-link] Failed to send email to %s", email)
+        return jsonify({"error": "Could not send email. Please try again."}), 500
+
+    # Email sent successfully — now persist the token
+    save_magic_link(token, email)
+
+    log_event("magic_link_sent", metadata={"email_hash": hash_email(email)})
+    return jsonify({"ok": True, "message": "Check your email for a sign-in link."})
+
+
+@app.route("/auth/verify")
+def auth_verify():
+    """Verify a magic-link token and set an auth cookie.
+
+    On success, sets a signed cookie and redirects to /my-reports.
+    On failure, renders an error page.
+    """
+    token = request.args.get("token", "")
+    if not token:
+        flash("Invalid or missing link.", "error")
+        return redirect("/")
+
+    email = verify_magic_link(token)
+    if not email:
+        flash("This link has expired or already been used. Please request a new one.", "error")
+        return redirect("/")
+
+    # Flag for _after_request to set the auth cookie
+    g.set_auth_cookie_email = email
+    log_event("magic_link_verified", metadata={"email_hash": hash_email(email)})
+    return redirect("/my-reports")
+
+
+@app.route("/my-reports")
+def my_reports():
+    """Dashboard showing all snapshots for the authenticated user.
+
+    If not authenticated, renders an email entry form that triggers
+    the magic-link flow.
+    """
+    if not g.user_email:
+        return render_template("my_reports.html", authenticated=False, snapshots=[])
+
+    email_h = hash_email(g.user_email)
+    snapshots = get_snapshots_by_email(email_h)
+    return render_template(
+        "my_reports.html",
+        authenticated=True,
+        email=g.user_email,
+        snapshots=snapshots,
+    )
+
+
+@app.route("/auth/logout")
+def auth_logout():
+    """Clear the auth cookie and redirect home."""
+    resp = redirect("/")
+    resp.delete_cookie(_AUTH_COOKIE_NAME)
+    return resp
+
+
+# ---------------------------------------------------------------------------
 # Stripe Checkout — create a checkout session for one evaluation
 # ---------------------------------------------------------------------------
 
@@ -2032,6 +2211,7 @@ def create_checkout():
 
     place_id = request.form.get("place_id", "").strip() or None
     persona = request.form.get("persona", "").strip() or None
+    checkout_email = request.form.get("email", "").strip() or None
     if persona and persona not in PERSONA_PRESETS:
         persona = None
     visitor_id = getattr(g, "visitor_id", "unknown")
@@ -2054,6 +2234,8 @@ def create_checkout():
             success_url += f"&place_id={_quote_param(place_id)}"
         if persona:
             success_url += f"&persona={_quote_param(persona)}"
+        if checkout_email:
+            success_url += f"&email={_quote_param(checkout_email)}"
         cancel_url = url_for("index", _external=True)
 
     try:

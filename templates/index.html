@@ -117,12 +117,10 @@
           </div>
         </div>
 
-        {% if require_payment %}
         <div class="email-gate" id="emailGate">
-          <input type="email" name="email" id="email-input" placeholder="Your email — first report is free" required>
-          <p class="email-disclosure">One free evaluation per email. We'll use it to deliver your report.</p>
+          <input type="email" name="email" id="email-input" placeholder="Your email — to access your report later" required>
+          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
         </div>
-        {% endif %}
         <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
       </div>
     </form>
@@ -437,6 +435,11 @@
       if (personaForCheckout) {
         checkoutBody.append('persona', personaForCheckout.value);
       }
+      // Include email so it survives the Stripe round-trip
+      var emailForCheckout = document.getElementById('email-input');
+      if (emailForCheckout && emailForCheckout.value) {
+        checkoutBody.append('email', emailForCheckout.value.trim());
+      }
 
       fetch('/checkout/create', {
         method: 'POST',
@@ -472,20 +475,15 @@
       var address = form.querySelector('input[name="address"]').value.trim();
       if (!address) return;
 
-      if (REQUIRE_PAYMENT) {
-        // Free tier path: submit with email for free evaluation
-        var emailInput = document.getElementById('email-input');
-        var email = emailInput ? emailInput.value.trim() : '';
-        if (emailInput && !email) {
-          emailInput.focus();
-          emailInput.reportValidity();
-          return;
-        }
-        submitEvaluation(address, null, email);
-      } else {
-        // Free mode (REQUIRE_PAYMENT=false): submit evaluation directly
-        submitEvaluation(address, null, null);
+      // Email always required for snapshot ownership / My Reports.
+      var emailInput = document.getElementById('email-input');
+      var email = emailInput ? emailInput.value.trim() : '';
+      if (emailInput && !email) {
+        emailInput.focus();
+        emailInput.reportValidity();
+        return;
       }
+      submitEvaluation(address, null, email);
     });
 
     var evalBtn = document.getElementById('evalBtn');
@@ -499,6 +497,7 @@
     var returnAddress = urlParams.get('address');
     var returnPlaceId = urlParams.get('place_id');
     var returnPersona = urlParams.get('persona');
+    var returnEmail = urlParams.get('email');
 
     // Populate place_id from URL if present (survives Stripe round-trip)
     if (returnPlaceId) {
@@ -527,8 +526,8 @@
       if (addressInput) {
         addressInput.value = returnAddress;
       }
-      // Auto-submit with the payment token (paid path — no email needed)
-      submitEvaluation(returnAddress, paymentToken, null);
+      // Auto-submit with the payment token + email from Stripe round-trip
+      submitEvaluation(returnAddress, paymentToken, returnEmail);
     }
 
     // If we landed with ?job_id= (e.g. non-JS form POST redirect), start polling

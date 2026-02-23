@@ -1,0 +1,153 @@
+{% extends "_base.html" %}
+
+{% block title %}NestCheck — My Reports{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <style>
+    .my-reports { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .my-reports h1 { margin-bottom: 0.25rem; }
+    .my-reports .subtitle { color: var(--color-text-muted, #6b7280); margin-bottom: 1.5rem; }
+
+    /* Sign-in prompt (unauthenticated) */
+    .auth-prompt { text-align: center; padding: 3rem 1rem; }
+    .auth-prompt p { margin-bottom: 1rem; color: var(--color-text-muted, #6b7280); }
+    .auth-prompt form { display: flex; gap: 0.5rem; max-width: 400px; margin: 0 auto; }
+    .auth-prompt input[type="email"] {
+      flex: 1; padding: 0.6rem 0.75rem; border: 1px solid var(--color-border, #d1d5db);
+      border-radius: 6px; font-size: 0.95rem;
+    }
+    .auth-prompt button {
+      padding: 0.6rem 1.25rem; background: var(--color-primary, #2563eb); color: #fff;
+      border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer;
+    }
+    .auth-prompt button:hover { opacity: 0.9; }
+    .auth-prompt .auth-sent { color: var(--color-success, #16a34a); font-weight: 500; display: none; }
+
+    /* Report list */
+    .report-list { list-style: none; padding: 0; margin: 0; }
+    .report-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem; border: 1px solid var(--color-border, #e5e7eb);
+      border-radius: 8px; margin-bottom: 0.75rem;
+      transition: border-color 0.15s;
+    }
+    .report-item:hover { border-color: var(--color-primary, #2563eb); }
+    .report-item a { text-decoration: none; color: inherit; flex: 1; }
+    .report-address { font-weight: 600; color: var(--color-text, #1f2937); }
+    .report-meta { font-size: 0.85rem; color: var(--color-text-muted, #6b7280); margin-top: 0.25rem; }
+    .report-score {
+      font-size: 1.25rem; font-weight: 700; color: var(--color-primary, #2563eb);
+      min-width: 3rem; text-align: right;
+    }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted, #6b7280); }
+    .empty-state a { color: var(--color-primary, #2563eb); }
+
+    .sign-out { font-size: 0.85rem; color: var(--color-text-muted, #6b7280); }
+    .sign-out a { color: var(--color-text-muted, #6b7280); text-decoration: underline; }
+  </style>
+{% endblock %}
+
+{% block nav_links %}
+  <a href="/" class="nav-link">Home</a>
+{% endblock %}
+
+{% block content %}
+<div class="my-reports">
+
+{% if not authenticated %}
+  {# ---- Unauthenticated: show email entry → magic link ---- #}
+  <div class="auth-prompt">
+    <h1>Access Your Reports</h1>
+    <p>Enter the email you used when evaluating an address. We'll send you a sign-in link.</p>
+    <form id="magicLinkForm">
+      <input type="email" id="mlEmail" placeholder="you@example.com" required>
+      <button type="submit" id="mlBtn">Send link</button>
+    </form>
+    <p class="auth-sent" id="authSent">Check your inbox for a sign-in link.</p>
+  </div>
+
+{% else %}
+  {# ---- Authenticated: show reports ---- #}
+  <h1>My Reports</h1>
+  <p class="subtitle">
+    {{ email }}
+    <span class="sign-out">&middot; <a href="/auth/logout">Sign out</a></span>
+  </p>
+
+  {% if snapshots %}
+  <ul class="report-list">
+    {% for s in snapshots %}
+    <li class="report-item">
+      <a href="/s/{{ s.snapshot_id }}">
+        <div class="report-address">{{ s.address_norm or s.address_input }}</div>
+        <div class="report-meta">
+          {{ s.created_at[:10] if s.created_at else '' }}
+          {% if s.is_preview %} &middot; Preview{% endif %}
+        </div>
+      </a>
+      {% if s.final_score is not none %}
+      <div class="report-score">{{ s.final_score }}</div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state">
+    <p>No reports yet. <a href="/">Evaluate an address</a> to get started.</p>
+  </div>
+  {% endif %}
+
+{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var form = document.getElementById('magicLinkForm');
+  if (!form) return;
+
+  function csrfToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  }
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var btn = document.getElementById('mlBtn');
+    var emailInput = document.getElementById('mlEmail');
+    var email = emailInput.value.trim();
+    if (!email) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    var body = new FormData();
+    body.append('email', email);
+
+    fetch('/send-magic-link', {
+      method: 'POST',
+      body: body,
+      headers: { 'X-CSRFToken': csrfToken() }
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          document.getElementById('authSent').style.display = 'block';
+          form.style.display = 'none';
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Send link';
+          alert(data.error || 'Something went wrong.');
+        }
+      })
+      .catch(function() {
+        btn.disabled = false;
+        btn.textContent = 'Send link';
+        alert('Network error. Please try again.');
+      });
+  });
+})();
+</script>
+{% endblock %}

@@ -14,6 +14,7 @@ import os
 import json
 import uuid
 import hashlib
+import secrets
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -146,7 +147,9 @@ _TABLES_SQL = [
         passed_tier1    INTEGER NOT NULL DEFAULT 0,
         is_preview      INTEGER NOT NULL DEFAULT 0,
         result_json     TEXT NOT NULL,
-        view_count      INTEGER NOT NULL DEFAULT 0
+        view_count      INTEGER NOT NULL DEFAULT 0,
+        email_hash      TEXT,
+        email_raw       TEXT
     )""",
     """CREATE TABLE IF NOT EXISTS events (
         id          {auto_pk},
@@ -163,6 +166,7 @@ _TABLES_SQL = [
         request_id       TEXT,
         place_id         TEXT,
         email_hash       TEXT,
+        email_raw        TEXT,
         persona          TEXT,
         status           TEXT NOT NULL DEFAULT 'queued',
         current_stage    TEXT,
@@ -201,6 +205,15 @@ _TABLES_SQL = [
         snapshot_id TEXT,
         created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
+    """CREATE TABLE IF NOT EXISTS magic_links (
+        id          {auto_pk},
+        token       TEXT UNIQUE NOT NULL,
+        email       TEXT NOT NULL,
+        email_hash  TEXT NOT NULL,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at  TEXT NOT NULL,
+        used_at     TEXT
+    )""",
 ]
 
 _INDEXES_SQL = [
@@ -215,6 +228,9 @@ _INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status)",
     "CREATE INDEX IF NOT EXISTS idx_payments_job ON payments(job_id)",
     "CREATE INDEX IF NOT EXISTS idx_free_tier_email ON free_tier_usage(email_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_magic_links_token ON magic_links(token)",
+    "CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email_hash)",
+    # idx_snapshots_email created after email column migration (see init_db)
 ]
 
 
@@ -243,7 +259,7 @@ def init_db():
                    WHERE table_name = 'evaluation_jobs'"""
             )
             cols = {row["column_name"] for row in cur.fetchall()}
-            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona"):
+            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona", "email_raw"):
                 if col not in cols:
                     try:
                         cur.execute(
@@ -258,7 +274,7 @@ def init_db():
                     "PRAGMA table_info(evaluation_jobs)"
                 ).fetchall()
             }
-            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona"):
+            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona", "email_raw"):
                 if col not in cols:
                     try:
                         conn.execute(
@@ -339,6 +355,38 @@ def init_db():
                 except sqlite3.OperationalError:
                     pass
 
+        # Migrate snapshots — add email identity columns (magic link auth).
+        # email_hash: SHA-256 for indexed lookups (My Reports).
+        # email_raw: plaintext for display / re-sending magic links.
+        for col in ("email_hash", "email_raw"):
+            if _USE_POSTGRES:
+                if col not in snap_cols:
+                    try:
+                        cur.execute(
+                            f"ALTER TABLE snapshots ADD COLUMN {col} TEXT"
+                        )
+                    except psycopg2.errors.DuplicateColumn:
+                        conn.rollback()
+            else:
+                if col not in snap_cols:
+                    try:
+                        conn.execute(
+                            f"ALTER TABLE snapshots ADD COLUMN {col} TEXT"
+                        )
+                    except sqlite3.OperationalError:
+                        pass
+
+        # Index on snapshots(email_hash) — created after migration ensures
+        # the column exists on both fresh and pre-existing databases.
+        if _USE_POSTGRES:
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_snapshots_email ON snapshots(email_hash)"
+            )
+        else:
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_snapshots_email ON snapshots(email_hash)"
+            )
+
         conn.commit()
     finally:
         _return_conn(conn)
@@ -353,11 +401,19 @@ def generate_snapshot_id():
     return uuid.uuid4().hex[:8]
 
 
-def save_snapshot(address_input, address_norm, result_dict, is_preview=False):
+def save_snapshot(
+    address_input,
+    address_norm,
+    result_dict,
+    is_preview=False,
+    email_hash: Optional[str] = None,
+    email_raw: Optional[str] = None,
+):
     """Persist an evaluation snapshot. Returns the snapshot_id.
 
     result_dict is the full template-ready dict from result_to_dict().
     is_preview: if True, snapshot is saved as a gated preview (NES-132).
+    email_hash / email_raw: optional user identity for My Reports lookup.
     """
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
@@ -367,8 +423,9 @@ def save_snapshot(address_input, address_norm, result_dict, is_preview=False):
         cur.execute(
             _q("""INSERT INTO snapshots
                    (snapshot_id, address_input, address_norm, created_at,
-                    verdict, final_score, passed_tier1, is_preview, result_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
+                    verdict, final_score, passed_tier1, is_preview, result_json,
+                    email_hash, email_raw)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
             (
                 snapshot_id,
                 address_input,
@@ -379,6 +436,8 @@ def save_snapshot(address_input, address_norm, result_dict, is_preview=False):
                 1 if result_dict.get("passed_tier1") else 0,
                 1 if is_preview else 0,
                 json.dumps(result_dict, default=str),
+                email_hash,
+                email_raw,
             ),
         )
         conn.commit()
@@ -589,13 +648,14 @@ def get_recent_snapshots(limit=20):
 # Evaluation job queue (async evaluation)
 # ---------------------------------------------------------------------------
 
-def create_job(address, visitor_id=None, request_id=None, place_id=None, email_hash=None, persona=None):
+def create_job(address, visitor_id=None, request_id=None, place_id=None, email_hash=None, persona=None, email_raw=None):
     """Enqueue an evaluation job. Returns job_id.
 
     address: raw address string from the user.
     place_id: optional Google Places place_id for direct geocoding.
     email_hash: optional SHA-256 hash of the user's email (free tier tracking).
     persona: optional persona key for weighted scoring (NES-133).
+    email_raw: optional plaintext email for storing on the snapshot.
     """
     job_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
@@ -604,9 +664,9 @@ def create_job(address, visitor_id=None, request_id=None, place_id=None, email_h
         cur = _cursor(conn)
         cur.execute(
             _q("""INSERT INTO evaluation_jobs
-                   (job_id, address, visitor_id, request_id, place_id, email_hash, persona, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)"""),
-            (job_id, address, visitor_id, request_id, place_id, email_hash, persona, now),
+                   (job_id, address, visitor_id, request_id, place_id, email_hash, persona, email_raw, status, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?)"""),
+            (job_id, address, visitor_id, request_id, place_id, email_hash, persona, email_raw, now),
         )
         conn.commit()
         return job_id
@@ -1169,5 +1229,117 @@ def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
             (snapshot_id, email_hash),
         )
         conn.commit()
+    finally:
+        _return_conn(conn)
+
+
+# ---------------------------------------------------------------------------
+# Magic links (passwordless email auth)
+# ---------------------------------------------------------------------------
+
+_MAGIC_LINK_TTL_MINUTES = 15
+
+
+def generate_magic_link_token() -> str:
+    """Generate a cryptographically secure magic link token (not yet persisted)."""
+    return secrets.token_urlsafe(32)
+
+
+def save_magic_link(token: str, email: str) -> None:
+    """Persist a magic link token to the DB. Call only after email is sent.
+
+    Separating generation from persistence ensures no orphaned valid tokens
+    exist if the email send fails.
+    """
+    email_h = hash_email(email)
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(minutes=_MAGIC_LINK_TTL_MINUTES)
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        cur.execute(
+            _q("""INSERT INTO magic_links (token, email, email_hash, created_at, expires_at)
+                   VALUES (?, ?, ?, ?, ?)"""),
+            (token, email.lower().strip(), email_h, now.isoformat(), expires.isoformat()),
+        )
+        conn.commit()
+    finally:
+        _return_conn(conn)
+
+
+def create_magic_link(email: str) -> str:
+    """Create a magic link token for the given email. Returns the token.
+
+    Convenience wrapper that generates and immediately persists. For flows
+    where the token must only be saved after a side-effect (e.g. email send),
+    use generate_magic_link_token() + save_magic_link() instead.
+    """
+    token = generate_magic_link_token()
+    save_magic_link(token, email)
+    return token
+
+
+def verify_magic_link(token: str) -> Optional[str]:
+    """Verify a magic link token. Returns the email if valid, None otherwise.
+
+    A token is valid if it exists, hasn't been used, and hasn't expired.
+    Uses an atomic UPDATE with WHERE guards so concurrent requests cannot
+    both consume the same token (mirrors claim_next_job pattern).
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        if _USE_POSTGRES:
+            # Atomic: UPDATE ... WHERE guards + RETURNING in one statement
+            cur.execute(
+                """UPDATE magic_links SET used_at = %s
+                   WHERE token = %s AND used_at IS NULL AND expires_at > %s
+                   RETURNING email""",
+                (now, token, now),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)["email"] if row else None
+        else:
+            # SQLite: UPDATE with WHERE guards, then check rowcount
+            cur.execute(
+                "UPDATE magic_links SET used_at = ? WHERE token = ? AND used_at IS NULL AND expires_at > ?",
+                (now, token, now),
+            )
+            if cur.rowcount == 0:
+                conn.commit()
+                return None
+            cur.execute("SELECT email FROM magic_links WHERE token = ?", (token,))
+            row = cur.fetchone()
+            conn.commit()
+            return dict(row)["email"] if row else None
+    finally:
+        _return_conn(conn)
+
+
+# ---------------------------------------------------------------------------
+# Snapshot queries by email (My Reports dashboard)
+# ---------------------------------------------------------------------------
+
+def get_snapshots_by_email(email_hash: str, limit: int = 50) -> list:
+    """Return recent snapshots for an authenticated user (by email hash).
+
+    Returns a list of dicts with snapshot metadata (no result_json) sorted
+    by created_at DESC. Used by the My Reports dashboard.
+    """
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        cur.execute(
+            _q("""SELECT snapshot_id, address_input, address_norm, created_at,
+                          verdict, final_score, passed_tier1, is_preview, view_count
+                   FROM snapshots
+                   WHERE email_hash = ?
+                   ORDER BY created_at DESC
+                   LIMIT ?"""),
+            (email_hash, limit),
+        )
+        return [dict(row) for row in cur.fetchall()]
     finally:
         _return_conn(conn)

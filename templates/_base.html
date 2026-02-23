@@ -27,6 +27,7 @@
   {% block nav_content %}
     <a href="/" class="logo">Nest<span>Check</span></a>
     <div>
+      {% if g.user_email %}<a href="/my-reports" class="nav-link">My Reports</a>{% endif %}
       {% block nav_links %}{% endblock %}
     </div>
   {% endblock %}
