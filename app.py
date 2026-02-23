@@ -1633,10 +1633,11 @@ def view_snapshot(snapshot_id):
     if g.is_builder:
         is_preview = False
 
-    # Track view
-    increment_view_count(snapshot_id)
-    log_event("snapshot_viewed", snapshot_id=snapshot_id,
-              visitor_id=g.visitor_id)
+    # Track view — skip during payment-pending polling to avoid inflating count
+    if not payment_pending:
+        increment_view_count(snapshot_id)
+        log_event("snapshot_viewed", snapshot_id=snapshot_id,
+                  visitor_id=g.visitor_id)
 
     result = snapshot["result"]
     _backfill_result(result)
@@ -1650,6 +1651,20 @@ def view_snapshot(snapshot_id):
         is_preview=is_preview,
         payment_pending=payment_pending,
     )
+
+
+@app.route("/api/snapshot/<snapshot_id>/status")
+def snapshot_status(snapshot_id):
+    """Lightweight status check for preview unlock polling (NES-132).
+
+    Returns {unlocked: true/false} without loading the full result_json.
+    Used by payment-pending polling to avoid full page reloads that inflate
+    view_count and waste bandwidth.
+    """
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+    return jsonify({"unlocked": not bool(snapshot.get("is_preview"))})
 
 
 @app.route("/api/snapshot/<snapshot_id>/json")

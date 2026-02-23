@@ -100,39 +100,42 @@
     }
   }
 
-  // NES-132: Preview checkout flow
-  function startPreviewCheckout(snapshotId) {
-    var btn = document.querySelector('.preview-unlock-btn');
+  // NES-132: Preview checkout flow — bind via data attribute
+  (function() {
+    var btn = document.querySelector('.preview-unlock-btn[data-snapshot-id]');
     if (!btn) return;
-    btn.disabled = true;
-    btn.textContent = 'Redirecting to checkout...';
+    btn.addEventListener('click', function() {
+      var snapshotId = btn.dataset.snapshotId;
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to checkout...';
 
-    fetch('/checkout/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': csrfToken()
-      },
-      body: 'snapshot_id=' + encodeURIComponent(snapshotId)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
+      fetch('/checkout/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrfToken()
+        },
+        body: 'snapshot_id=' + encodeURIComponent(snapshotId)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Unlock full report \u2014 $9';
+          alert(data.error || 'Something went wrong. Please try again.');
+        }
+      })
+      .catch(function() {
         btn.disabled = false;
         btn.textContent = 'Unlock full report \u2014 $9';
-        alert(data.error || 'Something went wrong. Please try again.');
-      }
-    })
-    .catch(function() {
-      btn.disabled = false;
-      btn.textContent = 'Unlock full report \u2014 $9';
+      });
     });
-  }
+  })();
 </script>
 
-{# NES-132: Payment pending — poll for webhook unlock #}
+{# NES-132: Payment pending — poll lightweight status endpoint for unlock #}
 {% if payment_pending is defined and payment_pending %}
 <script>
   (function() {
@@ -142,7 +145,6 @@
       attempts++;
       if (attempts >= maxAttempts) {
         clearInterval(interval);
-        // Show a message that payment is still processing
         var banner = document.querySelector('.preview-health-banner');
         if (banner) {
           banner.innerHTML = '<div class="preview-health-title">Payment received</div>' +
@@ -150,9 +152,16 @@
         }
         return;
       }
-      // Reload the page — if webhook has unlocked the snapshot, server
-      // will render the full report (is_preview=0).
-      window.location.href = '/s/{{ snapshot_id }}';
+      // Lightweight JSON check — avoids full page reloads that inflate view_count
+      fetch('/api/snapshot/{{ snapshot_id }}/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.unlocked) {
+            clearInterval(interval);
+            window.location.href = '/s/{{ snapshot_id }}';
+          }
+        })
+        .catch(function() {}); // Swallow network errors, retry on next interval
     }, 2000);
   })();
 </script>

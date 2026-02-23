@@ -22,7 +22,7 @@
     {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
     <div class="preview-health-banner">
       <div class="preview-health-title">Health &amp; Safety Check</div>
-      <div class="preview-health-status {% if clear_count == safety_checks | length %}preview-status-clear{% else %}preview-status-concern{% endif %}">
+      <div class="preview-health-status {% if clear_count == (safety_checks | length) %}preview-status-clear{% else %}preview-status-concern{% endif %}">
         {{ clear_count }} of {{ safety_checks | length }} checks clear
       </div>
     </div>
@@ -518,7 +518,7 @@
   <div class="preview-upgrade-cta">
     <h3>See the full livability report</h3>
     <p>Neighborhood map, transit access, parks &amp; green space, walkability scores, and more.</p>
-    <button class="preview-unlock-btn" onclick="startPreviewCheckout('{{ snapshot_id }}')">
+    <button class="preview-unlock-btn" data-snapshot-id="{{ snapshot_id }}">
       Unlock full report &mdash; $9
     </button>
   </div>
