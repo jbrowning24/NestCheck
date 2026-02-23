@@ -518,6 +518,50 @@
       </div>
     {% endif %}
 
+    {# ── Sidewalk & Cycleway Coverage card (NES-110) ── #}
+    {# Three-state guard: key absent → old snapshot, hide card.           #}
+    {# value=none → Overpass failed / no roads, hide card.                #}
+    {# value={..} → show card with coverage data.                         #}
+    {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
+      {% set sc = result.sidewalk_coverage %}
+      {% if sc.data_confidence == "HIGH" %}
+        {% if sc.sidewalk_pct >= 60 %}
+          {% set sw_css = "proximity-neutral" %}
+        {% elif sc.sidewalk_pct >= 30 %}
+          {% set sw_css = "proximity-notable" %}
+        {% else %}
+          {% set sw_css = "proximity-very_close" %}
+        {% endif %}
+      {% else %}
+        {% set sw_css = "proximity-neutral" %}
+      {% endif %}
+      <div class="proximity-item {{ sw_css }}">
+        <div class="proximity-name">
+          <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+          Sidewalk &amp; Cycleway Coverage
+        </div>
+        <div class="proximity-detail">
+          {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
+          &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
+        </div>
+        <div class="proximity-detail">
+          {{ sc.total_road_segments }} road segments assessed within 500 m
+          {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
+          {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
+        </div>
+        <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
+          Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
+        </div>
+        <div class="collapsible-toggle" onclick="toggleSection(this)">
+          <span class="collapse-icon">&#9654;</span>
+          <span>About this metric</span>
+        </div>
+        <div class="collapsible-body collapsed">
+          {{ sc.methodology_note }}
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   {# ── NES-132: UPGRADE CTA — preview only ──────────────────── #}

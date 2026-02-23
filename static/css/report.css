@@ -288,6 +288,22 @@
   margin-top: 4px;
 }
 
+/* --- Sidewalk Coverage Card (sub-elements within .proximity-item) --- */
+.sidewalk-confidence {
+  margin-top: 4px;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+.sidewalk-confidence-high {
+  color: var(--color-pass-text, #1e7e34);
+}
+.sidewalk-confidence-medium {
+  color: var(--color-warning-text, #856404);
+}
+.sidewalk-confidence-low {
+  color: var(--color-danger, #c53030);
+}
+
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {
   font-size: 0.9em;
