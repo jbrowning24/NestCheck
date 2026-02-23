@@ -1,0 +1,115 @@
+{% extends "_base.html" %}
+{% from "_macros.html" import score_ring %}
+
+{% block title %}Compare Addresses — NestCheck{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/compare.css') }}">
+{% endblock %}
+
+{% block nav_links %}
+  <a href="/" class="nav-link">Evaluate an address</a>
+{% endblock %}
+
+{% block content %}
+
+{# ── SUMMARY BAR ─────────────────────────────────────────────── #}
+<div class="compare-summary">
+  <h1 class="compare-title">Compare Addresses</h1>
+  <div class="compare-summary-cards">
+    {% for eval in evaluations %}
+    {% set band_class = eval.score_band.css_class if eval.score_band is mapping else '' %}
+    {% set band_label = eval.score_band.label if eval.score_band is mapping else eval.verdict %}
+    {% set is_top = eval.final_score == top_score and top_score_unique %}
+    <div class="compare-summary-card{% if is_top %} compare-summary-card--top{% endif %}">
+      {% if is_top %}
+        <div class="compare-top-badge">Top rated</div>
+      {% endif %}
+      <div class="compare-summary-address" title="{{ eval.address }}">{{ eval.address }}</div>
+      <div class="compare-summary-score-row">
+        {{ score_ring(eval.final_score, band_class, 'compare-score-ring') }}
+        <div class="compare-summary-details">
+          <div class="score-band {{ band_class }}">{{ band_label }}</div>
+          <div class="compare-score-scale">out of 100</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── COMPARISON GRID ─────────────────────────────────────────── #}
+<div class="compare-grid compare-grid--{{ evaluation_count }}">
+  {% for eval in evaluations %}
+  <div class="compare-column">
+    {# Column header (visible always; toggles on mobile) #}
+    <div class="compare-column-header" onclick="toggleCompareColumn(this)">
+      <h2 class="compare-column-address">{{ eval.address }}</h2>
+      <span class="compare-column-score">{{ eval.final_score }}/100</span>
+      <span class="compare-collapse-icon">&#9660;</span>
+    </div>
+    <div class="compare-column-body">
+      {# Set context variables for the include #}
+      {% set result = eval.result %}
+      {% set snapshot_id = eval.snapshot_id %}
+      {% set is_snapshot = true %}
+      {% set is_preview = eval.is_preview %}
+      {% set compare_index = loop.index %}
+      {% include '_result_sections.html' %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── BOTTOM CTA ──────────────────────────────────────────────── #}
+<div class="compare-bottom-cta">
+  <a href="/" class="share-btn">Run another evaluation</a>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Required by _result_sections.html collapsible toggles (road noise, sidewalks, how-we-score)
+  function toggleSection(el) {
+    var body = el.nextElementSibling;
+    var icon = el.querySelector('.collapse-icon');
+    if (body.classList.contains('collapsed')) {
+      body.classList.remove('collapsed');
+      icon.innerHTML = '&#9660;';
+    } else {
+      body.classList.add('collapsed');
+      icon.innerHTML = '&#9654;';
+    }
+  }
+
+  function toggleCompareColumn(headerEl) {
+    // Only activate on mobile (< 768px)
+    if (window.innerWidth >= 768) return;
+    var body = headerEl.nextElementSibling;
+    var icon = headerEl.querySelector('.compare-collapse-icon');
+    if (body.classList.contains('compare-column--collapsed')) {
+      body.classList.remove('compare-column--collapsed');
+      icon.innerHTML = '&#9660;';
+    } else {
+      body.classList.add('compare-column--collapsed');
+      icon.innerHTML = '&#9654;';
+    }
+  }
+
+  // Auto-collapse all but the first column on mobile
+  (function() {
+    if (window.innerWidth >= 768) return;
+    var bodies = document.querySelectorAll('.compare-column-body');
+    var icons = document.querySelectorAll('.compare-collapse-icon');
+    for (var i = 1; i < bodies.length; i++) {
+      bodies[i].classList.add('compare-column--collapsed');
+      if (icons[i]) icons[i].innerHTML = '&#9654;';
+    }
+  })();
+</script>
+
+{# Multi-instance map init for comparison columns #}
+<script src="{{ url_for('static', filename='js/compare-maps.js') }}"></script>
+{% endblock %}

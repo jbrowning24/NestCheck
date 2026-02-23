@@ -1,0 +1,311 @@
+/* ================================================================
+   compare.css — Comparison page layout and overrides.
+   Loaded by compare.html after report.css.
+   ================================================================ */
+
+/* --- Page Title --- */
+.compare-title {
+  font-size: var(--font-size-md-3);
+  color: var(--color-primary-dark);
+  text-align: center;
+  margin-bottom: var(--space-20);
+}
+
+/* --- Summary Bar --- */
+.compare-summary {
+  max-width: 1200px;
+  margin: var(--space-24) auto;
+  padding: 0 var(--space-24);
+}
+
+.compare-summary-cards {
+  display: flex;
+  gap: var(--space-16);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.compare-summary-card {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20);
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-card);
+}
+
+.compare-summary-card--top {
+  border-color: var(--band-exceptional);
+  border-width: 2px;
+}
+
+.compare-top-badge {
+  position: absolute;
+  top: calc(-1 * var(--space-10));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--band-exceptional);
+  color: var(--color-surface);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-12);
+  border-radius: var(--radius-lg);
+  white-space: nowrap;
+}
+
+.compare-summary-address {
+  font-size: var(--font-size-body-4);
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  margin-bottom: var(--space-12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compare-summary-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+}
+
+.compare-summary-details {
+  text-align: left;
+}
+
+.compare-score-scale {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+}
+
+/* Smaller score ring for summary cards */
+.compare-score-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.compare-score-ring .score-ring { width: 100%; height: 100%; }
+.compare-score-ring .score-ring-value { font-size: 1.3em; }
+
+/* --- Comparison Grid --- */
+.compare-grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--space-16);
+  display: grid;
+  gap: var(--space-16);
+}
+
+.compare-grid--2 { grid-template-columns: 1fr 1fr; }
+.compare-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
+.compare-grid--4 { grid-template-columns: 1fr 1fr; }
+
+/* --- Column --- */
+.compare-column {
+  min-width: 0; /* prevent grid blowout from long content */
+}
+
+.compare-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12) var(--space-16);
+  margin-bottom: var(--space-12);
+  position: sticky;
+  top: 56px; /* below nav */
+  z-index: 10;
+  box-shadow: var(--shadow-card);
+}
+
+.compare-column-address {
+  font-size: var(--font-size-body-3);
+  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-semibold);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.compare-column-score {
+  font-size: var(--font-size-body-4);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.compare-collapse-icon {
+  display: none; /* hidden on desktop */
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
+}
+
+/* --- Narrow-column overrides for _result_sections.html content --- */
+.compare-column .verdict-card {
+  padding: var(--space-16);
+}
+
+.compare-column .score-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.compare-column .score-ring-container {
+  width: 72px;
+  height: 72px;
+}
+
+.compare-column .score-ring-value {
+  font-size: 1.4em;
+}
+
+.compare-column .report-section {
+  padding: var(--space-16);
+}
+
+/* Place cards: vertical stack instead of horizontal scroll in narrow columns */
+.compare-column .place-cards {
+  flex-direction: column;
+  overflow-x: visible;
+}
+
+.compare-column .place-card {
+  width: 100%;
+  flex: none;
+}
+
+.compare-column .place-card--headline {
+  width: 100%;
+}
+
+/* Walkscore pills: stack vertically */
+.compare-column .walkscore-row {
+  flex-direction: column;
+}
+
+.compare-column .walkscore-pill {
+  min-width: auto;
+}
+
+/* Subscore grid: 2-column in narrow compare view */
+.compare-column .subscore-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+/* Dimension rows: compact for narrow columns */
+.compare-column .dimension-bar {
+  width: 40px;
+}
+
+/* Map: shorter in comparison context */
+.compare-column .map-leaflet {
+  height: 250px;
+}
+
+/* Hide elements that don't make sense per-column in comparison */
+.compare-column .snapshot-cta,
+.compare-column .share-bar,
+.compare-column .share-prompt,
+.compare-column .disclaimer,
+.compare-column .preview-upgrade-cta {
+  display: none;
+}
+
+/* --- Bottom CTA --- */
+.compare-bottom-cta {
+  text-align: center;
+  padding: var(--space-40) var(--space-24);
+}
+
+/* --- Responsive: Tablet (< 1024px) --- */
+@media (max-width: 1024px) {
+  .compare-grid--3 {
+    grid-template-columns: 1fr 1fr;
+    /* 3-evaluation: 2 cols, third wraps to next row */
+  }
+}
+
+/* --- Responsive: Mobile (< 768px) --- */
+@media (max-width: 768px) {
+  .compare-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .compare-column-header {
+    cursor: pointer;
+    position: static;
+  }
+
+  .compare-collapse-icon {
+    display: inline;
+  }
+
+  .compare-column-body.compare-column--collapsed {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .compare-column-body {
+    max-height: none;
+    overflow: visible;
+    transition: max-height 0.3s ease;
+  }
+
+  .compare-summary-card {
+    min-width: 140px;
+  }
+
+  .compare-score-ring {
+    width: 48px;
+    height: 48px;
+  }
+  .compare-score-ring .score-ring-value {
+    font-size: 1.1em;
+  }
+}
+
+/* --- Responsive: Phone (< 640px) --- */
+@media (max-width: 640px) {
+  .compare-summary-cards {
+    gap: var(--space-8);
+  }
+
+  .compare-summary-card {
+    padding: var(--space-12);
+    min-width: 0;
+    flex: 1;
+  }
+
+  .compare-summary-address {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* --- Print --- */
+@media print {
+  .compare-column-body.compare-column--collapsed {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .compare-collapse-icon { display: none; }
+  .compare-column-header { position: static; }
+  .compare-grid { display: block; }
+  .compare-column { break-inside: avoid; margin-bottom: 20px; }
+  .compare-bottom-cta { display: none; }
+}

@@ -10,7 +10,7 @@ from functools import wraps
 from urllib.parse import quote as _stdlib_quote
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    make_response, abort, jsonify, g, Response
+    make_response, abort, jsonify, g, Response, flash
 )
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
@@ -1720,6 +1720,81 @@ def view_snapshot(snapshot_id):
         is_builder=g.is_builder,
         is_preview=is_preview,
         payment_pending=payment_pending,
+    )
+
+
+@app.route("/compare")
+@limiter.limit("30/minute")
+def compare():
+    """Side-by-side comparison of 2-4 evaluated addresses."""
+    raw_ids = request.args.get("ids", "").strip()
+    if not raw_ids:
+        flash("Select at least two addresses to compare.", "error")
+        return redirect(url_for("index"))
+
+    # Parse and deduplicate, preserving order
+    ids = []
+    for sid in raw_ids.split(","):
+        sid = sid.strip()
+        if sid and sid not in ids:
+            ids.append(sid)
+
+    if len(ids) < 2:
+        flash("Select at least two addresses to compare.", "error")
+        return redirect(url_for("index"))
+    if len(ids) > 4:
+        flash("You can compare up to four addresses at once.", "error")
+        return redirect(url_for("index"))
+
+    # Fetch and prepare each snapshot
+    evaluations = []
+    for sid in ids:
+        snapshot = get_snapshot(sid)
+        if not snapshot:
+            logger.warning("Compare: snapshot %s not found, skipping", sid)
+            continue
+        result = snapshot["result"]
+        _backfill_result(result)
+        evaluations.append({
+            "snapshot_id": sid,
+            "address": result.get("address", snapshot.get("address_norm", "")),
+            "result": result,
+            "final_score": result.get("final_score", 0),
+            "verdict": result.get("verdict", ""),
+            "score_band": result.get("score_band", {}),
+            "is_preview": bool(snapshot.get("is_preview")),
+        })
+
+    if len(evaluations) < 2:
+        flash(
+            "Could not load enough snapshots for comparison. "
+            "Some may have been deleted.",
+            "error",
+        )
+        return redirect(url_for("index"))
+
+    # Determine top-rated for badge (only highlight if one stands above the rest)
+    top_score = max(e["final_score"] for e in evaluations)
+    top_score_unique = sum(
+        1 for e in evaluations if e["final_score"] == top_score
+    ) == 1
+
+    log_event(
+        "compare_viewed",
+        visitor_id=g.visitor_id,
+        metadata={
+            "snapshot_ids": [e["snapshot_id"] for e in evaluations],
+            "count": len(evaluations),
+        },
+    )
+
+    return render_template(
+        "compare.html",
+        evaluations=evaluations,
+        evaluation_count=len(evaluations),
+        top_score=top_score,
+        top_score_unique=top_score_unique,
+        is_builder=g.is_builder,
     )
 
 

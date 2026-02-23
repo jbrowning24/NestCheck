@@ -120,3 +120,21 @@ footer {
   background: var(--color-fail-bg);
   border-color: var(--color-danger-border);
 }
+
+/* --- Flash Messages --- */
+.flash-messages {
+  max-width: 800px;
+  margin: var(--space-16) auto;
+  padding: 0 var(--space-24);
+}
+.flash-msg {
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+  font-size: 0.9em;
+  margin-bottom: var(--space-8);
+}
+.flash-msg--error {
+  background: var(--color-fail-bg);
+  color: var(--color-fail-text);
+  border: 1px solid var(--color-danger-border);
+}
