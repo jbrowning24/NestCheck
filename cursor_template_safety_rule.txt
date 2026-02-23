@@ -1,0 +1,26 @@
+# Cursor Preamble: Template Safety Rule
+# --------------------------------------
+# Add this to your Cursor prompt for ANY PR that touches files in templates/
+#
+# Paste at the top of your Cursor prompt when the task involves template changes:
+
+"""
+TEMPLATE SAFETY RULE (non-negotiable):
+Before committing any change to a file in templates/, you MUST:
+1. List every {% include '...' %} directive in the file BEFORE your changes.
+2. List every {% include '...' %} directive in the file AFTER your changes.
+3. If any include was REMOVED, explain why. If it was unintentional, restore it.
+4. If you are adding a new wrapper/container around existing content, the existing
+   content (including all includes) must remain INSIDE the new wrapper — not be
+   replaced by it.
+In your status report, include this section:
+## Template Include Audit
+- File: [filename]
+- Includes BEFORE: [list]
+- Includes AFTER: [list]
+- Removed: [none / list with justification]
+This rule exists because a previous refactor silently replaced an include with new
+markup, deleting the entire evaluation body from the snapshot page. The page still
+returned 200 OK with header/nav/footer, so the deletion was invisible to status
+code checks.
+"""
