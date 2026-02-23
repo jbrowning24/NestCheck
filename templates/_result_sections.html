@@ -674,19 +674,32 @@
   </div>{# .report-section #}
   {% endif %}{# not is_preview #}
 
-  {# ── SHARE + EXPORT BAR (index only — snapshot has it at top) ── #}
-  {% if not is_preview and not is_snapshot and snapshot_id %}
+  {# ── SHARE + EXPORT BAR ──────────────────────────────────────── #}
+  {% if not is_preview and snapshot_id %}
   <div class="share-bar">
-    <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <span id="shareBtnText">Copy share link</span>
-    </button>
-    <button class="share-btn share-btn--secondary" onclick="window.print()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Save as PDF
-    </button>
-    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
-    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
+    {% if is_snapshot and snapshot is defined %}
+    <div class="snapshot-meta">
+      Snapshot created {{ snapshot.created_at[:10] }}
+      {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
+    </div>
+    {% endif %}
+    <div class="share-actions">
+      <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        <span>Share</span>
+      </button>
+      <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span id="shareBtnText">Copy share link</span>
+      </button>
+      <button class="share-btn share-btn--secondary" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Save as PDF
+      </button>
+      <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
+      <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
+      <a href="/compare?ids={{ snapshot_id }}" class="share-btn share-btn--secondary">Compare with another address</a>
+    </div>
   </div>
   {% endif %}
 

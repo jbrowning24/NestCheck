@@ -599,6 +599,38 @@
     });
   }
 
+  function nativeShare() {
+    var snapshotId = '{{ snapshot_id or "" }}';
+    if (!snapshotId) return;
+    var url = window.location.origin + '/s/' + snapshotId;
+    navigator.share({
+      title: {{ (result.address if result else '') | tojson }},
+      text: {{ ((result.verdict ~ ' · Score: ' ~ result.final_score ~ '/100') if result else '') | tojson }},
+      url: url
+    }).then(function() {
+      fetch('/api/event', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+        body: JSON.stringify({
+          event_type: 'snapshot_shared',
+          snapshot_id: snapshotId
+        })
+      }).catch(function() {});
+    }).catch(function(err) {
+      if (err.name !== 'AbortError') {
+        console.warn('Share failed:', err);
+      }
+    });
+  }
+
+  // Feature detection: show native share button if Web Share API is available
+  (function() {
+    if (navigator.share) {
+      var btn = document.getElementById('nativeShareBtn');
+      if (btn) btn.style.display = '';
+    }
+  })();
+
   function toggleSection(el) {
     var body = el.nextElementSibling;
     var icon = el.querySelector('.collapse-icon');
