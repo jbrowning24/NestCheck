@@ -833,6 +833,11 @@ class GoogleMapsClient:
                 status_code=response.status_code,
                 provider_status=provider_status,
             )
+        try:
+            from health_monitor import record_call
+            record_call("google_maps", response.status_code == 200, elapsed_ms)
+        except Exception:
+            pass
         return data
 
     def geocode(self, address: str, place_id: Optional[str] = None) -> Tuple[float, float]:

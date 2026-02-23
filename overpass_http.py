@@ -296,9 +296,21 @@ class OverpassHTTPClient:
                     status_code=status_code,
                 )
 
+            try:
+                from health_monitor import record_call
+                record_call("overpass", True, elapsed_ms)
+            except Exception:
+                pass
+
             return data
 
         except (OverpassRateLimitError, OverpassQueryError):
+            _elapsed = int((time.monotonic() - start) * 1000)
+            try:
+                from health_monitor import record_call
+                record_call("overpass", False, _elapsed)
+            except Exception:
+                pass
             raise
         except requests.exceptions.Timeout:
             elapsed_ms = int((time.monotonic() - start) * 1000)
@@ -310,6 +322,11 @@ class OverpassHTTPClient:
                     status_code=0,
                     provider_status="timeout",
                 )
+            try:
+                from health_monitor import record_call
+                record_call("overpass", False, elapsed_ms, "timeout")
+            except Exception:
+                pass
             raise OverpassQueryError(
                 f"Overpass request timeout after {timeout}s [caller={caller}]"
             )
@@ -323,6 +340,11 @@ class OverpassHTTPClient:
                     status_code=0,
                     provider_status="exception",
                 )
+            try:
+                from health_monitor import record_call
+                record_call("overpass", False, elapsed_ms, str(e))
+            except Exception:
+                pass
             raise OverpassQueryError(
                 f"Overpass request failed: {e} [caller={caller}]"
             ) from e

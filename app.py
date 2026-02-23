@@ -1983,12 +1983,24 @@ def sitemap_xml():
 @app.route("/healthz")
 @limiter.exempt
 def healthz():
-    """Lightweight health-check endpoint for monitoring."""
+    """Health-check endpoint with API dependency status.
+
+    Reports config validation and live health of external data sources
+    (Google Maps, Overpass, Open-Meteo). Overall status is 'degraded'
+    when config is missing or any API is down.
+    """
+    from health_monitor import get_status as get_api_health
     config_ok, missing = _check_service_config()
+    api_health = get_api_health()
+
+    any_down = any(s.get("status") == "down" for s in api_health.values())
+    overall = "ok" if config_ok and not any_down else "degraded"
+
     return jsonify({
-        "status": "ok" if config_ok else "degraded",
+        "status": overall,
         "missing_keys": missing,
-    }), 200 if config_ok else 503
+        "api_health": api_health,
+    }), 200 if overall == "ok" else 503
 
 
 @app.route("/debug/trace/<snapshot_id>")
