@@ -21,6 +21,7 @@ from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, Tier1Check,
     present_checks, get_score_band, proximity_synthesis,
+    PERSONA_PRESETS, DEFAULT_PERSONA,
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
