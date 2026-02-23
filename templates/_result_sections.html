@@ -4,7 +4,7 @@
 {# is_builder (optional).                                             #}
 {# ================================================================== #}
 
-{% from "_macros.html" import fmt_time, data_row %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, safety_flags %}
 
 <div class="report">
 
@@ -17,21 +17,7 @@
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      <div class="score-ring-container {{ band_class }}">
-        {% set pct = result.final_score / 100 %}
-        {% set circ = 251.33 %}
-        <svg class="score-ring" viewBox="0 0 100 100">
-          <circle class="score-ring-track" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8" />
-          <circle class="score-ring-fill" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8"
-                  stroke-dasharray="{{ circ }}"
-                  stroke-dashoffset="{{ circ * (1 - pct) }}"
-                  stroke-linecap="round"
-                  transform="rotate(-90 50 50)" />
-        </svg>
-        <div class="score-ring-value">{{ result.final_score }}</div>
-      </div>
+      {{ score_ring(result.final_score, band_class, 'score-ring-container') }}
       <div class="score-details">
         <div class="score-band {{ band_class }}">{{ band_label }}</div>
         <div class="score-scale">out of 100</div>
@@ -56,14 +42,7 @@
     </div>
     {% endif %}
 
-    {% set safety_concerns = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
-    {% if safety_concerns %}
-    <div class="verdict-proximity-flags">
-      {% for pc in safety_concerns %}
-      <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">⚠ {{ pc.headline }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
+    {{ safety_flags(result.presented_checks) }}
   </div>
 
   {# ── CONTEXTUAL SHARE PROMPT (snapshot only — NES-123) ──── #}

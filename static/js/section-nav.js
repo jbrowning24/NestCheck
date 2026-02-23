@@ -54,11 +54,13 @@
 
     links.forEach(function (link) {
       link.classList.remove("rail-nav__link--active");
+      link.removeAttribute("aria-current");
     });
 
     var activeLink = linkMap[sectionId];
     if (activeLink) {
       activeLink.classList.add("rail-nav__link--active");
+      activeLink.setAttribute("aria-current", "true");
     }
   }
 
@@ -70,6 +72,8 @@
       var target = document.getElementById(targetId);
       if (target) {
         target.scrollIntoView({ behavior: "smooth", block: "start" });
+        // Update URL hash so section is bookmarkable
+        history.replaceState(null, "", "#" + targetId);
         // Update active state immediately for responsiveness
         setActive(targetId);
       }
