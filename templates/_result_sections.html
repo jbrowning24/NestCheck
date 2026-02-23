@@ -36,6 +36,14 @@
         <div class="score-scale">out of 100</div>
       </div>
     </div>
+    {% else %}
+    {# Disqualified — property failed tier 1 safety checks (NES-164) #}
+    <div class="verdict-failed-banner">
+      <div class="verdict-failed-title">Health &amp; Safety Concerns</div>
+      {% if result.structured_summary is defined and result.structured_summary %}
+        <div class="verdict-failed-summary">{{ result.structured_summary }}</div>
+      {% endif %}
+    </div>
     {% endif %}
 
     {# Persona badge — only shown for non-balanced personas (NES-133) #}

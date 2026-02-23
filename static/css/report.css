@@ -757,6 +757,24 @@
   color: var(--color-fail, #c62828);
 }
 
+/* Disqualified verdict — failed tier 1 safety checks (NES-164) */
+.verdict-failed-banner {
+  padding: 20px 16px;
+}
+
+.verdict-failed-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-danger-text);
+}
+
+.verdict-failed-summary {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: var(--color-danger-text-dark);
+  line-height: 1.5;
+}
+
 /* Upgrade CTA block */
 .preview-upgrade-cta {
   text-align: center;
