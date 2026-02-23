@@ -835,7 +835,7 @@ class GoogleMapsClient:
             )
         try:
             from health_monitor import record_call
-            record_call("google_maps", response.status_code == 200, elapsed_ms)
+            record_call("google_maps", provider_status in ("OK", "ZERO_RESULTS"), elapsed_ms)
         except Exception:
             pass
         return data
