@@ -13,7 +13,7 @@
 
   {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
   {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
-  <div class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
+  <div id="verdict" class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
     <div class="verdict-address">{{ result.address }}</div>
 
     {% if is_preview %}
@@ -451,28 +451,28 @@
   </div>
   {% endif %}
 
-  {# ── 5.7 NEARBY SCHOOLS ──────────────────────────────────────── #}
-  {# Informational only — nearest schools via Overpass/OSM,          #}
-  {# estimated walk times via haversine (~3 mph). Zero API cost.     #}
-  {# Same three-state guard as libraries.                            #}
-  {% if result.nearby_schools is defined and result.nearby_schools is not none %}
-  <div id="schools" class="report-section">
-    <h2>Schools</h2>
+  {# ── 5.7 NEARBY PHARMACIES ──────────────────────────────────── #}
+  {# Informational only — nearest pharmacies, estimated walk       #}
+  {# times via haversine (~3 mph). Same three-state guard as       #}
+  {# emergency services / libraries.                               #}
+  {% if result.nearby_pharmacies is defined and result.nearby_pharmacies is not none %}
+  <div id="pharmacies" class="report-section">
+    <h2>Pharmacies</h2>
 
-    {% if result.nearby_schools %}
-      {% for school in result.nearby_schools %}
+    {% if result.nearby_pharmacies %}
+      {% for pharm in result.nearby_pharmacies %}
       {{ data_row(
-          name=school.name,
-          detail=school.level | capitalize if school.level != "other" else "School",
-          value="~" ~ school.est_walk_min ~ " min walk",
+          name=pharm.name,
+          detail="Pharmacy",
+          value="~" ~ pharm.est_walk_min ~ " min walk",
           variant="hub"
       ) }}
       {% endfor %}
-      {% if result.school_count is defined and result.school_count > 0 %}
-        <p class="section-footnote">{{ result.school_count }} {{ "school" if result.school_count == 1 else "schools" }} within 1.9 mi</p>
+      {% if result.pharmacy_count is defined and result.pharmacy_count > 0 %}
+        <p class="section-footnote">{{ result.pharmacy_count }} {{ "pharmacy" if result.pharmacy_count == 1 else "pharmacies" }} within 1.2 mi</p>
       {% endif %}
     {% else %}
-      <p class="section-empty">No schools found within 1.9 mi.</p>
+      <p class="section-empty">No pharmacies found within 1.2 mi.</p>
     {% endif %}
 
   </div>
@@ -481,7 +481,7 @@
   {% endif %}{# not is_preview — end of locked sections 2–5.7 #}
 
   {# ── 6. PROXIMITY & ENVIRONMENT — always shown (preview + full) ── #}
-  <div class="report-section">
+  <div id="proximity-environment" class="report-section">
     <h2>Proximity &amp; Environment</h2>
 
     {# Section-level synthesis insight #}
@@ -617,7 +617,7 @@
 
   {# ── 7. HOW WE SCORE — full report only ─────────────────── #}
   {% if not is_preview %}
-  <div class="report-section">
+  <div id="how-we-score" class="report-section">
     <div class="collapsible-toggle" onclick="toggleSection(this)">
       <h2>How We Score</h2>
       <span class="collapse-icon">&#9654;</span>

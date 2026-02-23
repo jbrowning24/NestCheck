@@ -716,15 +716,13 @@ class NearbyLibrary:
 
 
 @dataclass
-class NearbySchool:
-    """A nearby school found via Overpass/OSM (NES-109).
+class NearbyPharmacy:
+    """A nearby pharmacy (NES-108).
 
     Informational only — not scored.  Walk time is estimated from
     haversine distance at ~3 mph, not Google Distance Matrix.
-    Zero marginal API cost (Overpass is free).
     """
-    name: str               # School name (fallback: "School")
-    level: str              # "elementary", "secondary", "combined", or "other"
+    name: str               # Pharmacy name (fallback: "Pharmacy")
     distance_ft: int        # Straight-line distance in feet
     est_walk_min: int       # Estimated walk time in minutes (~3 mph)
     lat: float
@@ -815,10 +813,10 @@ class EvaluationResult:
     nearby_libraries: Optional[List[NearbyLibrary]] = None
     library_count: int = 0  # total within search radius (display may be capped at 3)
 
-    # Nearby schools — informational, not scored (NES-109)
-    # None = lookup failed; [] = searched, found nothing; [...] = found schools
-    nearby_schools: Optional[List[NearbySchool]] = None
-    school_count: int = 0  # total within search radius (display may be capped at 5)
+    # Nearby pharmacies — informational, not scored (NES-108)
+    # None = lookup failed; [] = searched, found nothing; [...] = found pharmacies
+    nearby_pharmacies: Optional[List[NearbyPharmacy]] = None
+    pharmacy_count: int = 0  # total within search radius (display may be capped at 3)
 
     # Weather climate normals — informational, not scored (NES-32)
     weather_summary: Optional[WeatherSummary] = None
@@ -1137,7 +1135,7 @@ def _walking_times_batch(
 
 
 LIBRARY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for libraries
-SCHOOL_SEARCH_RADIUS_M = 3000   # ~1.9 mi — tuneable search radius for schools
+PHARMACY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for pharmacies
 
 
 class OverpassClient:
@@ -1520,25 +1518,25 @@ class OverpassClient:
 
         return libraries
 
-    # ── School proximity (NES-109) ──────────────────────────────────
+    # ── Pharmacy proximity (NES-108) ─────────────────────────────────
 
-    def get_nearby_schools(
-        self, lat: float, lng: float, radius_meters: int = SCHOOL_SEARCH_RADIUS_M
+    def get_nearby_pharmacies(
+        self, lat: float, lng: float, radius_meters: int = PHARMACY_SEARCH_RADIUS_M
     ) -> List[Dict]:
-        """Find schools within *radius_meters* of a point via Overpass.
+        """Find pharmacies within *radius_meters* of a point.
 
-        Queries OSM ``amenity=school`` nodes and ways.  Filters out
-        non-public facilities (``access`` in {``private``, ``customers``,
-        ``no``}).  Infers level from ``isced:level`` or name heuristics.
+        Queries both node and way elements for ``amenity=pharmacy``.
+        Filters out non-public facilities (``access`` in
+        {``private``, ``customers``, ``no``}).
 
-        Returns a list of dicts with keys: name, level, lat, lng.
-        Zero marginal API cost — uses the shared Overpass HTTP layer.
+        Returns a list of dicts with keys: name, lat, lng.
+        Uses the same SQLite cache pattern as other Overpass queries.
         """
         query = f"""
         [out:json][timeout:25];
         (
-          node["amenity"="school"](around:{radius_meters},{lat},{lng});
-          way["amenity"="school"](around:{radius_meters},{lat},{lng});
+          node["amenity"="pharmacy"](around:{radius_meters},{lat},{lng});
+          way["amenity"="pharmacy"](around:{radius_meters},{lat},{lng});
         );
         out center;
         """
@@ -1550,15 +1548,15 @@ class OverpassClient:
             if cached_json is not None:
                 import json as _json
                 data = _json.loads(cached_json)
-                return self._parse_schools(data)
+                return self._parse_pharmacies(data)
         except Exception:
             logger.warning(
-                "Overpass SQLite cache read failed in get_nearby_schools, "
+                "Overpass SQLite cache read failed in get_nearby_pharmacies, "
                 "falling through to HTTP", exc_info=True,
             )
 
         data = self._traced_post(
-            "get_nearby_schools", self.base_url, {"data": query}
+            "get_nearby_pharmacies", self.base_url, {"data": query}
         )
 
         try:
@@ -1566,24 +1564,23 @@ class OverpassClient:
             set_overpass_cache(db_cache_key, _json.dumps(data))
         except Exception:
             logger.warning(
-                "Overpass SQLite cache write failed in get_nearby_schools",
+                "Overpass SQLite cache write failed in get_nearby_pharmacies",
                 exc_info=True,
             )
 
-        return self._parse_schools(data)
+        return self._parse_pharmacies(data)
 
     @staticmethod
-    def _parse_schools(data: dict) -> List[Dict]:
-        """Extract schools from an Overpass response.
+    def _parse_pharmacies(data: dict) -> List[Dict]:
+        """Extract pharmacies from an Overpass response.
 
         Handles both node and way elements (ways use ``center`` coords).
         Filters out non-public facilities and deduplicates by OSM element ID.
-        Infers level from ``isced:level`` tag or name-based heuristics.
         """
         _NON_PUBLIC_ACCESS = {"private", "customers", "no"}
 
         seen_ids: set = set()
-        schools: List[Dict] = []
+        pharmacies: List[Dict] = []
         for element in data.get("elements", []):
             eid = (element.get("type"), element.get("id"))
             if eid in seen_ids:
@@ -1592,7 +1589,7 @@ class OverpassClient:
 
             tags = element.get("tags", {})
 
-            # Skip explicitly non-public schools
+            # Skip explicitly non-public pharmacies
             if tags.get("access", "") in _NON_PUBLIC_ACCESS:
                 continue
 
@@ -1609,55 +1606,15 @@ class OverpassClient:
             if s_lat is None or s_lng is None:
                 continue
 
-            name = tags.get("name") or "School"
-            level = OverpassClient._infer_school_level(tags, name)
+            name = tags.get("name") or "Pharmacy"
 
-            schools.append({
+            pharmacies.append({
                 "name": name,
-                "level": level,
                 "lat": s_lat,
                 "lng": s_lng,
             })
 
-        return schools
-
-    @staticmethod
-    def _infer_school_level(tags: Dict, name: str) -> str:
-        """Infer school level from OSM tags and name heuristics.
-
-        Uses ``isced:level`` tag when available, otherwise falls back
-        to keyword matching on the school name.
-
-        Returns one of: "elementary", "secondary", "combined", "other".
-        """
-        # Prefer structured ISCED level tag
-        isced = tags.get("isced:level", "")
-        if isced:
-            # ISCED 0-1 = pre-primary/primary, 2 = lower secondary, 3 = upper secondary
-            levels = set(isced.replace(" ", "").split(";"))
-            has_primary = bool(levels & {"0", "1"})
-            has_secondary = bool(levels & {"2", "3"})
-            if has_primary and has_secondary:
-                return "combined"
-            if has_primary:
-                return "elementary"
-            if has_secondary:
-                return "secondary"
-
-        # Fallback: keyword matching on name
-        name_lower = name.lower()
-        elementary_keywords = {"elementary", "primary", "grammar"}
-        secondary_keywords = {"middle school", "junior high", "high school", "secondary", "senior high"}
-        has_elem = any(kw in name_lower for kw in elementary_keywords)
-        has_sec = any(kw in name_lower for kw in secondary_keywords)
-        if has_elem and has_sec:
-            return "combined"
-        if has_elem:
-            return "elementary"
-        if has_sec:
-            return "secondary"
-
-        return "other"
+        return pharmacies
 
     def has_nearby_elevators(self, lat: float, lng: float, radius_meters: int = 150) -> Optional[bool]:
         """Check for elevator nodes near a transit station (NES-31).
@@ -1841,49 +1798,53 @@ def get_library_proximity(
         return None  # None = failure (section hidden)
 
 
-def get_school_proximity(
+# ── Pharmacy proximity (NES-108) ──────────────────────────────────
+
+_PHARMACY_DISPLAY_CAP = 3
+
+
+def get_pharmacy_proximity(
     overpass: "OverpassClient",
     lat: float,
     lng: float,
-) -> Optional[Tuple[List[NearbySchool], int]]:
-    """Find nearby schools via Overpass (zero marginal API cost) (NES-109).
+) -> Optional[Tuple[List[NearbyPharmacy], int]]:
+    """Find nearby pharmacies via Overpass (zero Google API cost).
 
-    Returns a tuple of (schools, total_count) where schools is capped
-    at _SCHOOL_DISPLAY_CAP (5) sorted by distance.  total_count is the
+    Returns a tuple of (pharmacies, total_count) where pharmacies is capped
+    at _PHARMACY_DISPLAY_CAP (3) sorted by distance.  total_count is the
     full count within the search radius for context display.
 
     Returns None on failure, ([], 0) when none found.
     """
     try:
-        raw = overpass.get_nearby_schools(lat, lng)
+        raw = overpass.get_nearby_pharmacies(lat, lng)
         if not raw:
             return ([], 0)
 
         # Calculate distances and sort by nearest
-        for school in raw:
-            school["distance_ft"] = _haversine_feet(lat, lng, school["lat"], school["lng"])
+        for pharm in raw:
+            pharm["distance_ft"] = _haversine_feet(lat, lng, pharm["lat"], pharm["lng"])
         raw.sort(key=lambda x: x["distance_ft"])
 
         total_count = len(raw)
-        selected = raw[:_SCHOOL_DISPLAY_CAP]
+        selected = raw[:_PHARMACY_DISPLAY_CAP]
 
         results = [
-            NearbySchool(
-                name=school["name"],
-                level=school["level"],
-                distance_ft=school["distance_ft"],
-                est_walk_min=max(1, round(school["distance_ft"] / 5280 / _WALK_MPH * 60)),
-                lat=school["lat"],
-                lng=school["lng"],
+            NearbyPharmacy(
+                name=pharm["name"],
+                distance_ft=pharm["distance_ft"],
+                est_walk_min=max(1, round(pharm["distance_ft"] / 5280 / _WALK_MPH * 60)),
+                lat=pharm["lat"],
+                lng=pharm["lng"],
             )
-            for school in selected
+            for pharm in selected
         ]
 
         return (results, total_count)
 
     except Exception:
         logger.warning(
-            "School proximity lookup failed; continuing without", exc_info=True
+            "Pharmacy proximity lookup failed; continuing without", exc_info=True
         )
         return None  # None = failure (section hidden)
 
@@ -4290,10 +4251,10 @@ def evaluate_property(
             _timed_stage_in_thread, parent_trace,
             "nearby_libraries", get_library_proximity, overpass, lat, lng,
         )
-        # School proximity — Overpass only, zero Google API cost (NES-109).
-        futures["nearby_schools"] = pool.submit(
+        # Pharmacy proximity — Overpass only, zero Google API cost (NES-108).
+        futures["nearby_pharmacies"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
-            "nearby_schools", get_school_proximity, overpass, lat, lng,
+            "nearby_pharmacies", get_pharmacy_proximity, overpass, lat, lng,
         )
         # Road noise — standalone Overpass query, no maps client needed.
         futures["road_noise"] = pool.submit(
@@ -4336,13 +4297,13 @@ def evaluate_property(
                         result.library_count = count
                     else:
                         result.nearby_libraries = None
-                elif stage_name == "nearby_schools":
+                elif stage_name == "nearby_pharmacies":
                     if stage_result is not None:
-                        schools, count = stage_result
-                        result.nearby_schools = schools
-                        result.school_count = count
+                        pharms, count = stage_result
+                        result.nearby_pharmacies = pharms
+                        result.pharmacy_count = count
                     else:
-                        result.nearby_schools = None
+                        result.nearby_pharmacies = None
                 elif stage_name == "road_noise":
                     result.road_noise_assessment = stage_result
                 elif stage_name == "weather":
