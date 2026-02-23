@@ -1,0 +1,51 @@
+{# ================================================================== #}
+{# Sticky rail for snapshot page — mini score card, map, section nav. #}
+{# Included by snapshot.html inside .report-layout__rail.             #}
+{# Expects: result (same context as _result_sections.html).           #}
+{# ================================================================== #}
+{% from "_macros.html" import score_ring, safety_flags %}
+
+{# ── MINI SCORE CARD ─────────────────────────────────────────────── #}
+{% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
+<div class="report-rail-score">
+  <div class="rail-address" title="{{ result.address }}">{{ result.address }}</div>
+
+  {% if show_score %}
+  {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
+  {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
+  <div class="rail-score-header">
+    {{ score_ring(result.final_score, band_class, 'rail-score-ring') }}
+    <div class="rail-score-details">
+      <div class="score-band {{ band_class }}">{{ band_label }}</div>
+      <div class="score-scale">out of 100</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {{ safety_flags(result.presented_checks, 'rail-flags') }}
+</div>
+
+{# ── MAP ─────────────────────────────────────────────────────────── #}
+{% set has_map_data = result.coordinates is defined and result.coordinates
+                      and result.neighborhood_places is defined and result.neighborhood_places %}
+{% if has_map_data %}
+<div class="report-rail-map">
+  <div id="rail-map-leaflet" class="rail-map-leaflet"></div>
+</div>
+{% endif %}
+
+{# ── SECTION NAV ─────────────────────────────────────────────────── #}
+<nav class="report-rail-nav" aria-label="Report sections">
+  <a href="#verdict" class="rail-nav__link" data-section="verdict">Verdict</a>
+  <a href="#your-neighborhood" class="rail-nav__link" data-section="your-neighborhood">Neighborhood</a>
+  <a href="#getting-around" class="rail-nav__link" data-section="getting-around">Getting Around</a>
+  <a href="#parks-green-space" class="rail-nav__link" data-section="parks-green-space">Parks</a>
+  {% if result.emergency_services is defined and result.emergency_services is not none %}
+  <a href="#emergency-services" class="rail-nav__link" data-section="emergency-services">Emergency</a>
+  {% endif %}
+  {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
+  <a href="#libraries" class="rail-nav__link" data-section="libraries">Libraries</a>
+  {% endif %}
+  <a href="#proximity-environment" class="rail-nav__link" data-section="proximity-environment">Proximity</a>
+  <a href="#how-we-score" class="rail-nav__link" data-section="how-we-score">Scoring</a>
+</nav>

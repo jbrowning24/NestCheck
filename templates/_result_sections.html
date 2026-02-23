@@ -30,21 +30,7 @@
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      <div class="score-ring-container {{ band_class }}">
-        {% set pct = result.final_score / 100 %}
-        {% set circ = 251.33 %}
-        <svg class="score-ring" viewBox="0 0 100 100">
-          <circle class="score-ring-track" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8" />
-          <circle class="score-ring-fill" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8"
-                  stroke-dasharray="{{ circ }}"
-                  stroke-dashoffset="{{ circ * (1 - pct) }}"
-                  stroke-linecap="round"
-                  transform="rotate(-90 50 50)" />
-        </svg>
-        <div class="score-ring-value">{{ result.final_score }}</div>
-      </div>
+      {{ score_ring(result.final_score, band_class, 'score-ring-container') }}
       <div class="score-details">
         <div class="score-band {{ band_class }}">{{ band_label }}</div>
         <div class="score-scale">out of 100</div>
@@ -109,7 +95,7 @@
   {% set has_map_data = result.coordinates is defined and result.coordinates
                         and result.neighborhood_places is defined and result.neighborhood_places %}
   {% if has_map_data %}
-  <div id="neighborhood-map" class="report-section map-container">
+  <div id="neighborhood-map" class="report-section map-container report-map-inline">
     <div id="neighborhood-map-leaflet" class="map-leaflet"></div>
   </div>
   {# Embed map data as JSON for neighborhood-map.js — no extra API calls #}
@@ -126,7 +112,7 @@
   } | tojson }}
   </script>
   {% else %}
-  <div id="neighborhood-map" class="report-section map-placeholder">
+  <div id="neighborhood-map" class="report-section map-placeholder report-map-inline">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
       <line x1="9" y1="9" x2="15" y2="9"/>
@@ -204,7 +190,7 @@
   {% endif %}
 
   {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
-  <div class="report-section">
+  <div id="getting-around" class="report-section">
     <h2>Getting Around</h2>
 
     {% if result.insights is defined and result.insights and result.insights.getting_around %}
@@ -313,7 +299,7 @@
   </div>
 
   {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
-  <div class="report-section">
+  <div id="parks-green-space" class="report-section">
     <h2>Parks &amp; Green Space</h2>
 
     {% if result.insights is defined and result.insights and result.insights.parks %}
@@ -406,7 +392,7 @@
   {#   value=[]    → searched, found nothing, show "none found"        #}
   {#   value=[..]  → found stations, show cards                        #}
   {% if result.emergency_services is defined and result.emergency_services is not none %}
-  <div class="report-section">
+  <div id="emergency-services" class="report-section">
     <h2>Emergency Services</h2>
 
     {% if result.emergency_services %}
@@ -430,7 +416,7 @@
   {# times via haversine (~3 mph). Same three-state guard as         #}
   {# emergency services.                                             #}
   {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
-  <div class="report-section">
+  <div id="libraries" class="report-section">
     <h2>Libraries</h2>
 
     {% if result.nearby_libraries %}

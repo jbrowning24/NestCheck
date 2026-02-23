@@ -197,5 +197,6 @@
      Documented here so the canonical values live with the tokens.
      Mobile:  max-width: 640px   — phones
      Tablet:  max-width: 768px   — small tablets, iPad portrait
-     Desktop: max-width: 1024px  — large tablets, small desktops  */
+     Desktop: max-width: 1024px  — large tablets, small desktops
+     Rail:    min-width: 1200px  — desktop with sticky sidebar    */
 }
