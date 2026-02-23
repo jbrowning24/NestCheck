@@ -786,10 +786,30 @@
 /* --- Print (shared) --- */
 @media print {
   nav, .share-bar, footer { display: none; }
+  .cookie-banner { display: none; }
   body { background: var(--color-surface); }
   .report { margin: 0 auto; }
   .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
   .verdict-card { box-shadow: none; border: 1px solid #ddd; }
   .place-card { box-shadow: none; border: 1px solid #ddd; }
   .preview-upgrade-cta { display: none; }
+  .disclaimer { break-inside: avoid; }
+  /* Force collapsed sections open for print */
+  .collapsible-body.collapsed { display: block !important; max-height: none !important; }
+  .collapsible-toggle .collapse-icon { display: none; }
+  /* Leaflet map: hide interactive controls, preserve rendered tiles */
+  .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
+  /* Preserve score ring and status colors in print */
+  .score-ring-fill, .verdict-card, .proximity-item { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* NestCheck branding header for PDF */
+  body::before {
+    content: "NestCheck Property Evaluation";
+    display: block;
+    text-align: center;
+    font-size: 0.85em;
+    color: #888;
+    padding: 8px 0 4px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 16px;
+  }
 }

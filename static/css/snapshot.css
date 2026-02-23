@@ -102,4 +102,5 @@
 /* --- Print (snapshot-only) --- */
 @media print {
   .snapshot-cta, .share-prompt { display: none; }
+  .snapshot-meta { display: block; text-align: center; margin-bottom: 8px; }
 }

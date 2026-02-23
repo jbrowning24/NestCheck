@@ -24,7 +24,7 @@ from property_evaluator import (
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
-    unlock_snapshot,
+    unlock_snapshot, get_og_image, save_og_image,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     create_job, get_job, cancel_queued_job,
@@ -33,6 +33,7 @@ from models import (
     hash_email, check_free_tier_used, record_free_tier_usage,
 )
 from weather import serialize_for_result as _serialize_weather
+from og_image import generate_og_image
 
 def _quote_param(s: str) -> str:
     """URL-encode a string for use as a query parameter value.
@@ -1747,6 +1748,55 @@ def export_snapshot_csv(snapshot_id):
             "Content-Disposition": f"attachment; filename=nestcheck-{snapshot_id}.csv"
         },
     )
+
+
+@app.route("/api/snapshot/<snapshot_id>/og-image.png")
+def snapshot_og_image(snapshot_id):
+    """Serve the OpenGraph preview image for a snapshot.
+
+    Generates on first request via Pillow, then caches in DB.
+    Returns 404 for unknown or preview-mode snapshots.
+    """
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        abort(404)
+
+    # No OG image for unpaid preview snapshots
+    if snapshot.get("is_preview"):
+        abort(404)
+
+    # Check DB cache first
+    cached = get_og_image(snapshot_id)
+    if cached:
+        resp = make_response(cached)
+        resp.headers["Content-Type"] = "image/png"
+        resp.headers["Cache-Control"] = "public, max-age=86400"
+        return resp
+
+    # Generate
+    result = snapshot["result"]
+    band_class = ""
+    sb = result.get("score_band")
+    if isinstance(sb, dict):
+        band_class = sb.get("css_class", "")
+
+    png_bytes = generate_og_image(
+        address=result.get("address", snapshot.get("address_input", "")),
+        score=result.get("final_score", 0),
+        verdict=result.get("verdict", ""),
+        band_css_class=band_class,
+    )
+
+    if not png_bytes:
+        abort(500)
+
+    # Cache for next time
+    save_og_image(snapshot_id, png_bytes)
+
+    resp = make_response(png_bytes)
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
 
 
 @app.route("/api/event", methods=["POST"])
