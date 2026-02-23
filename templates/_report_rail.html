@@ -46,6 +46,9 @@
   {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
   <a href="#libraries" class="rail-nav__link" data-section="libraries">Libraries</a>
   {% endif %}
+  {% if result.nearby_schools is defined and result.nearby_schools is not none %}
+  <a href="#schools" class="rail-nav__link" data-section="schools">Schools</a>
+  {% endif %}
   <a href="#proximity-environment" class="rail-nav__link" data-section="proximity-environment">Proximity</a>
   <a href="#how-we-score" class="rail-nav__link" data-section="how-we-score">Scoring</a>
 </nav>
