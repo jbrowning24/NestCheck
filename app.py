@@ -1610,7 +1610,11 @@ def view_snapshot(snapshot_id):
 
     if payment_token and is_preview:
         payment = get_payment_by_id(payment_token)
-        if payment and payment["status"] in ("paid", "redeemed"):
+        # Verify the payment is linked to THIS snapshot (prevents using
+        # someone else's payment_token to unlock a different snapshot).
+        if (payment
+                and payment["status"] in ("paid", "redeemed")
+                and payment.get("snapshot_id") == snapshot_id):
             unlock_snapshot(snapshot_id)
             is_preview = False
             log_event("preview_unlocked", snapshot_id=snapshot_id,
@@ -1618,7 +1622,9 @@ def view_snapshot(snapshot_id):
                       metadata={"payment_id": payment_token})
             # Redirect to clean URL (strip payment_token)
             return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
-        elif payment and payment["status"] == "pending":
+        elif (payment
+                and payment["status"] == "pending"
+                and payment.get("snapshot_id") == snapshot_id):
             # Stripe webhook hasn't fired yet — template will show
             # "Payment processing..." with auto-refresh polling.
             payment_pending = True
