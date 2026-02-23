@@ -1,0 +1,94 @@
+{# ================================================================== #}
+{# _eval_snippet.html — Reusable condensed evaluation snippet.       #}
+{#                                                                    #}
+{# Expects:                                                           #}
+{#   preview_result   — full result dict from a snapshot              #}
+{#                                                                    #}
+{# Designed for reuse on landing page, curated lists, location pages. #}
+{# ================================================================== #}
+
+{% from '_macros.html' import fmt_time %}
+
+<div class="eval-snippet">
+  <div class="eval-snippet-label">See what NestCheck finds</div>
+
+  <div class="eval-snippet-card">
+
+    {# ── Address ── #}
+    <div class="eval-snippet-address">{{ preview_result.address }}</div>
+
+    {# ── Health Proximity Highlights ── #}
+    {% set safety_checks = (preview_result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+    {% set concerns = safety_checks | selectattr('result_type', 'ne', 'CLEAR') | list %}
+
+    <div class="snippet-proximity">
+      <div class="snippet-section-label">Health &amp; Safety</div>
+      {% if concerns %}
+        {% for pc in concerns[:2] %}
+        <div class="snippet-proximity-item snippet-proximity-{{ (pc.proximity_band or 'neutral') | lower }}">
+          <div class="snippet-proximity-headline">
+            {% if pc.result_type == 'CONFIRMED_ISSUE' -%}
+              <span class="snippet-proximity-icon snippet-proximity-icon--issue">&#10007;</span>
+            {%- else -%}
+              <span class="snippet-proximity-icon snippet-proximity-icon--unverified">?</span>
+            {%- endif %}
+            {{ pc.headline }}
+          </div>
+          {% if pc.explanation %}
+          <div class="snippet-proximity-detail">{{ pc.explanation }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="snippet-proximity-item snippet-proximity-clear">
+          <span class="snippet-proximity-icon snippet-proximity-icon--clear">&#10003;</span>
+          No environmental concerns detected near this address.
+        </div>
+      {% endif %}
+    </div>
+
+    {# ── Walkability Proof Points ── #}
+    {% set np = preview_result.neighborhood_places | default({}) %}
+    {% set snippet_places = [] %}
+    {% for cat_key, cat_icon, cat_label in [("grocery", "🛒", "Grocery"), ("coffee", "☕", "Coffee"), ("fitness", "💪", "Fitness")] %}
+      {% set places = np[cat_key] | default([]) %}
+      {% if places and snippet_places | length < 3 %}
+        {% set p = places[0] %}
+        {% if snippet_places.append({"name": p.name, "walk_time_min": p.walk_time_min, "rating": p.rating, "icon": cat_icon, "label": cat_label}) %}{% endif %}
+      {% endif %}
+    {% endfor %}
+
+    {% if snippet_places %}
+    <div class="snippet-places">
+      <div class="snippet-section-label">Nearby</div>
+      <div class="snippet-places-grid">
+        {% for sp in snippet_places %}
+        <div class="snippet-place">
+          <div class="snippet-place-icon">{{ sp.icon }}</div>
+          <div class="snippet-place-info">
+            <div class="snippet-place-name">{{ sp.name }}</div>
+            <div class="snippet-place-meta">
+              {% if sp.walk_time_min %}{{ fmt_time(sp.walk_time_min, "walk") }}{% endif %}
+              {% if sp.rating %}<span class="snippet-place-rating">{{ "%.1f"|format(sp.rating) }} ★</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Overall Assessment ── #}
+    {% set band_class = preview_result.score_band.css_class if preview_result.score_band is mapping else '' %}
+    {% set band_label = preview_result.score_band.label if preview_result.score_band is mapping else (preview_result.score_band or preview_result.verdict) %}
+    <div class="snippet-assessment">
+      <div class="snippet-assessment-score {{ band_class }}">{{ preview_result.final_score }}<span class="snippet-assessment-max">/100</span></div>
+      <div class="snippet-assessment-label {{ band_class }}">{{ band_label }}</div>
+    </div>
+
+  </div>{# /.eval-snippet-card #}
+
+  <div class="eval-snippet-cta">
+    <a href="#evaluate">Run your own evaluation &rarr;</a>
+  </div>
+</div>
