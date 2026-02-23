@@ -133,26 +133,30 @@ def ingest(
             "inSR": "4326",
             "spatialRel": "esriSpatialRelIntersects",
         }
-        resp = requests.get(TIGER_ENDPOINT, params=params, timeout=60)
+        try:
+            resp = requests.get(TIGER_ENDPOINT, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from TIGER endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print("Sample attributes:", json.dumps(feat.get("attributes", {}), indent=2)[:1000])
-            print("Sample geometry keys:", list(feat.get("geometry", {}).keys()))
+            logger.info("Sample attributes: %.1000s", json.dumps(feat.get("attributes", {}), indent=2))
+            logger.info("Sample geometry keys: %s", list(feat.get("geometry", {}).keys()))
         return
 
     # TIGER roads layer doesn't have STATE/COUNTY attribute fields
     # Must use bounding box spatial queries
-    bbox = None
     if state or county:
-        logger.warning("TIGER roads use bbox filtering, not state/county attributes.")
-        logger.warning("Use --bbox instead. Ignoring state/county filters.")
+        if not bbox:
+            logger.warning("TIGER roads use bbox filtering, not state/county attributes.")
+            logger.warning("Use --bbox instead. Ignoring state/county filters.")
 
     logger.info("Starting TIGER street network ingestion")
     if bbox:
@@ -233,7 +237,7 @@ def ingest(
                 logger.info("Page limit reached (%d) — stopping.", limit_pages)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 

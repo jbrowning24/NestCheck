@@ -117,18 +117,22 @@ def ingest(limit_pages: int = 0, us_only: bool = False, discover: bool = False):
             "f": "json",
             "resultRecordCount": 1,
         }
-        resp = requests.get(FRA_ENDPOINT, params=params, timeout=30)
+        try:
+            resp = requests.get(FRA_ENDPOINT, params=params, timeout=30)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from FRA endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print("Sample attributes:", json.dumps(feat.get("attributes", {}), indent=2)[:1000])
-            print("Sample geometry keys:", list(feat.get("geometry", {}).keys()))
+            logger.info("Sample attributes: %.1000s", json.dumps(feat.get("attributes", {}), indent=2))
+            logger.info("Sample geometry keys: %s", list(feat.get("geometry", {}).keys()))
         return
 
     where = "COUNTRY = 'US'" if us_only else "1=1"
@@ -217,7 +221,7 @@ def ingest(limit_pages: int = 0, us_only: bool = False, discover: bool = False):
                 logger.info("Page limit reached (%d) — stopping.", limit_pages)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 

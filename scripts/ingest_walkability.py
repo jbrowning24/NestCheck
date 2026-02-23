@@ -70,7 +70,9 @@ def _probe_endpoint() -> str:
                     logger.info("Walkability endpoint found: %s", url[:80])
                     return url
         except Exception:
+            logger.warning("Walkability endpoint probe failed: %s", url[:80])
             continue
+    logger.warning("All walkability endpoints failed probing — falling back to default")
     return WALKABILITY_ENDPOINTS[0]
 
 
@@ -134,35 +136,41 @@ def ingest(
             "f": "json",
             "resultRecordCount": 1,
         }
-        resp = requests.get(endpoint, params=params, timeout=60)
+        try:
+            resp = requests.get(endpoint, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from walkability endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "fields" in data:
-            print("Available fields:")
+            logger.info("Available fields:")
             for field in data["fields"][:30]:
-                print(f"  {field['name']} ({field.get('type', '')})")
+                logger.info("  %s (%s)", field["name"], field.get("type", ""))
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print("\nSample geometry:", feat.get("geometry", {}))
+            logger.info("Sample geometry: %s", feat.get("geometry", {}))
             attrs = feat.get("attributes", {})
-            print("\nSample key values:")
+            logger.info("Sample key values:")
             for k in ["NatWalkInd", "GEOID20", "CBSA_Name", "TotPop",
                        "D2A_Ranked", "D3B_Ranked", "STATEFP"]:
                 val = _attr(attrs, k)
                 if val is not None:
-                    print(f"  {k}: {val}")
-        print(f"\nEndpoint used: {endpoint}")
+                    logger.info("  %s: %s", k, val)
+        logger.info("Endpoint used: %s", endpoint)
         return
 
     endpoint = _probe_endpoint()
     where = "1=1"
     if state:
-        where = f"STATEFP = '{state.upper()}'"
+        if not (state.isdigit() and len(state) <= 2):
+            raise ValueError(f"Invalid state FIPS code: {state!r} (expected 1-2 digit code, e.g. 36 for NY)")
+        where = f"STATEFP = '{state}'"
 
     logger.info("Starting Walkability Index ingestion")
     logger.info("  Endpoint: %s", endpoint[:80])
@@ -257,7 +265,7 @@ def ingest(
                 logger.info("Limit reached (%d) — stopping.", limit)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 

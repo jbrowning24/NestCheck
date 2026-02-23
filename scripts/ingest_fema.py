@@ -140,20 +140,24 @@ def ingest(
         params["geometryType"] = "esriGeometryEnvelope"
         params["inSR"] = "4326"
         params["spatialRel"] = "esriSpatialRelIntersects"
-        resp = requests.get(FEMA_ENDPOINT, params=params, timeout=60)
+        try:
+            resp = requests.get(FEMA_ENDPOINT, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from FEMA endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print("Sample attributes:", json.dumps(feat.get("attributes", {}), indent=2))
-            print("Sample geometry keys:", list(feat.get("geometry", {}).keys()))
+            logger.info("Sample attributes: %s", json.dumps(feat.get("attributes", {}), indent=2))
+            logger.info("Sample geometry keys: %s", list(feat.get("geometry", {}).keys()))
             if feat.get("geometry", {}).get("rings"):
-                print("Ring count:", len(feat["geometry"]["rings"]))
+                logger.info("Ring count: %d", len(feat["geometry"]["rings"]))
         return
 
     if metro:
@@ -244,7 +248,7 @@ def ingest(
                 logger.info("Page limit reached (%d) — stopping.", limit_pages)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 
@@ -334,7 +338,7 @@ if __name__ == "__main__":
     if args.bbox:
         parts = [float(x.strip()) for x in args.bbox.split(",")]
         if len(parts) != 4:
-            print("ERROR: bbox must have 4 values: lng_min,lat_min,lng_max,lat_max")
+            logger.error("bbox must have 4 values: lng_min,lat_min,lng_max,lat_max")
             sys.exit(1)
         bbox = tuple(parts)
 

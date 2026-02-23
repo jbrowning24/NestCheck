@@ -118,26 +118,33 @@ def ingest(
             "f": "json",
             "resultRecordCount": 1,
         }
-        resp = requests.get(PARKSERVE_ENDPOINT, params=params, timeout=60)
+        try:
+            resp = requests.get(PARKSERVE_ENDPOINT, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from ParkServe endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "features" in data and data["features"]:
             feat = data["features"][0]
             attrs = feat.get("attributes", {})
-            print("Sample attributes:", json.dumps(attrs, indent=2)[:1500])
-            print("Sample geometry keys:", list(feat.get("geometry", {}).keys()))
+            logger.info("Sample attributes: %.1500s", json.dumps(attrs, indent=2))
+            logger.info("Sample geometry keys: %s", list(feat.get("geometry", {}).keys()))
             if feat.get("geometry", {}).get("rings"):
-                print("Ring count:", len(feat["geometry"]["rings"]))
+                logger.info("Ring count: %d", len(feat["geometry"]["rings"]))
         return
 
     where = "1=1"
     if state:
-        where = f"State = '{state.upper()}'"
+        st = state.upper()
+        if not (len(st) == 2 and st.isalpha()):
+            raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")
+        where = f"State = '{st}'"
 
     logger.info("Starting ParkServe park polygon ingestion")
     logger.info("  WHERE: %s", where)
@@ -222,7 +229,7 @@ def ingest(
                 logger.info("Page limit reached (%d) — stopping.", limit_pages)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 

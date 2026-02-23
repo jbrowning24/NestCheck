@@ -98,21 +98,9 @@ def fetch_canopy_from_ejscreen(offset: int, where_clause: str = "1=1") -> dict:
                 raise
 
 
-def _sample_canopy_at_point(lat: float, lng: float) -> float | None:
-    """
-    Sample NLCD tree canopy at a single point using MRLC WCS.
-    Returns canopy percentage (0-100) or None.
-    This is a fallback for individual point queries.
-    """
-    # The MRLC WCS can return pixel values at a point
-    # For bulk ingestion, we use EJScreen's pre-computed data instead
-    return None
-
-
 def ingest(
     limit: int = 0,
     state: str = "",
-    bbox: tuple | None = None,
     discover: bool = False,
 ):
     """Main ingestion loop.
@@ -131,34 +119,41 @@ def ingest(
             "f": "json",
             "resultRecordCount": 1,
         }
-        resp = requests.get(EJSCREEN_CANOPY_ENDPOINT, params=params, timeout=60)
+        try:
+            resp = requests.get(EJSCREEN_CANOPY_ENDPOINT, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from EJScreen canopy endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "fields" in data:
-            print("Available fields (looking for canopy/tree fields):")
+            logger.info("Available fields (looking for canopy/tree fields):")
             for field in data["fields"]:
                 name = field["name"]
                 if any(k in name.upper() for k in ["CANOP", "TREE", "VEGETA", "GREEN", "NDVI"]):
-                    print(f"  *** {name} ({field.get('type', '')}) ***")
+                    logger.info("  *** %s (%s) ***", name, field.get("type", ""))
                 elif len(data["fields"]) <= 50:
-                    print(f"  {name} ({field.get('type', '')})")
+                    logger.info("  %s (%s)", name, field.get("type", ""))
             if len(data["fields"]) > 50:
-                print(f"  ... {len(data['fields'])} total fields")
+                logger.info("  ... %d total fields", len(data["fields"]))
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print(f"\nSample geometry: {feat.get('geometry', {})}")
-        print(f"\nNote: NLCD raster data requires GDAL/rasterio for direct ingestion.")
-        print("This script uses EJScreen block group data as a canopy proxy.")
+            logger.info("Sample geometry: %s", feat.get("geometry", {}))
+        logger.info("Note: NLCD raster data requires GDAL/rasterio for direct ingestion.")
+        logger.info("This script uses EJScreen block group data as a canopy proxy.")
         return
 
     where = "1=1"
     if state:
-        where = f"ST_ABBREV = '{state.upper()}'"
+        st = state.upper()
+        if not (len(st) == 2 and st.isalpha()):
+            raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")
+        where = f"ST_ABBREV = '{st}'"
 
     logger.info("Starting NLCD tree canopy ingestion (via EJScreen proxy)")
     logger.info("  WHERE: %s", where)
@@ -245,7 +240,7 @@ def ingest(
                 logger.info("Limit reached (%d) — stopping.", limit)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 
@@ -313,10 +308,6 @@ if __name__ == "__main__":
         help="Filter to a single state (e.g., NY, CA).",
     )
     parser.add_argument(
-        "--bbox", type=str, default="",
-        help="Bounding box: lng_min,lat_min,lng_max,lat_max.",
-    )
-    parser.add_argument(
         "--discover", action="store_true",
         help="Print available fields and exit.",
     )
@@ -329,11 +320,6 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True)
     else:
-        bbox = None
-        if args.bbox:
-            parts = [float(x.strip()) for x in args.bbox.split(",")]
-            if len(parts) == 4:
-                bbox = tuple(parts)
-        ingest(limit=args.limit, state=args.state, bbox=bbox)
+        ingest(limit=args.limit, state=args.state)
         if args.verify:
             verify()

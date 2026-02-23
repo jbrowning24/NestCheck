@@ -81,6 +81,9 @@ STATES_FIPS = [
 
 PAGE_SIZE = 2000
 
+# Census API uses this sentinel for missing/suppressed data
+CENSUS_MISSING_VALUE = "-666666666"
+
 
 def fetch_acs_state(state_fips: str, api_key: str = "") -> list[dict]:
     """Fetch ACS data for all block groups in a state."""
@@ -116,7 +119,7 @@ def fetch_acs_state(state_fips: str, api_key: str = "") -> list[dict]:
                 time.sleep(wait)
             else:
                 logger.error("[%s] ACS fetch failed after 3 attempts: %s", state_fips, e)
-                return []
+                raise
 
 
 def fetch_centroids_state(state_fips: str) -> dict[str, tuple[float, float]]:
@@ -133,40 +136,50 @@ def fetch_centroids_state(state_fips: str) -> dict[str, tuple[float, float]]:
             "resultOffset": offset,
             "resultRecordCount": PAGE_SIZE,
         }
-        try:
-            resp = requests.get(TIGERWEB_BG_ENDPOINT, params=params, timeout=90)
-            resp.raise_for_status()
-            data = resp.json()
-            if "error" in data:
-                logger.warning("[%s] TIGERweb error: %s", state_fips, data["error"])
-                break
-            features = data.get("features", [])
-            if not features:
-                break
-            for feat in features:
-                attrs = feat.get("attributes", {})
-                geoid = attrs.get("GEOID", "")
-                lat_str = attrs.get("CENTLAT", "")
-                lng_str = attrs.get("CENTLON", "")
-                try:
-                    lat = float(lat_str.replace("+", "")) if lat_str else None
-                    lng = float(lng_str) if lng_str else None
-                    if lat and lng:
-                        centroids[geoid] = (lat, lng)
-                except (ValueError, TypeError):
-                    pass
-            if len(features) < PAGE_SIZE:
-                break
-            offset += PAGE_SIZE
-        except Exception as e:
-            logger.warning("[%s] TIGERweb centroid fetch failed: %s", state_fips, e)
+        for attempt in range(3):
+            try:
+                resp = requests.get(TIGERWEB_BG_ENDPOINT, params=params, timeout=90)
+                resp.raise_for_status()
+                data = resp.json()
+                if "error" in data:
+                    logger.warning("[%s] TIGERweb error: %s", state_fips, data["error"])
+                    return centroids
+                break  # success
+            except Exception as e:
+                if attempt < 2:
+                    wait = 5 * (attempt + 1)
+                    logger.warning(
+                        "[%s] TIGERweb fetch failed (attempt %d): %s — retrying in %ds",
+                        state_fips, attempt + 1, e, wait,
+                    )
+                    time.sleep(wait)
+                else:
+                    logger.error("[%s] TIGERweb fetch failed after 3 attempts: %s", state_fips, e)
+                    raise
+        features = data.get("features", [])
+        if not features:
             break
+        for feat in features:
+            attrs = feat.get("attributes", {})
+            geoid = attrs.get("GEOID", "")
+            lat_str = attrs.get("CENTLAT", "")
+            lng_str = attrs.get("CENTLON", "")
+            try:
+                lat = float(lat_str.replace("+", "")) if lat_str else None
+                lng = float(lng_str) if lng_str else None
+                if lat is not None and lng is not None:
+                    centroids[geoid] = (lat, lng)
+            except (ValueError, TypeError):
+                pass
+        if len(features) < PAGE_SIZE:
+            break
+        offset += PAGE_SIZE
     return centroids
 
 
 def _safe_float(val, default=None):
     """Convert Census API value to float."""
-    if val is None or val == "" or val == "-666666666" or val == "-666666666.0":
+    if val is None or val == "" or val == CENSUS_MISSING_VALUE or val == f"{CENSUS_MISSING_VALUE}.0":
         return default
     try:
         return float(val)
@@ -176,7 +189,7 @@ def _safe_float(val, default=None):
 
 def _safe_int(val, default=None):
     """Convert Census API value to int."""
-    if val is None or val == "" or val == "-666666666":
+    if val is None or val == "" or val == CENSUS_MISSING_VALUE:
         return default
     try:
         return int(float(val))
@@ -202,23 +215,36 @@ def ingest(
         }
         if api_key:
             params["key"] = api_key
-        resp = requests.get(ACS_BASE, params=params, timeout=30)
-        print(f"ACS API status: {resp.status_code}")
+        try:
+            resp = requests.get(ACS_BASE, params=params, timeout=30)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
+        logger.info("ACS API status: %d", resp.status_code)
         if resp.status_code == 200:
             data = resp.json()
             if data:
-                print(f"Headers: {data[0]}")
+                logger.info("Headers: %s", data[0])
                 if len(data) > 1:
-                    print(f"Sample row: {data[1]}")
-                    print(f"Total rows: {len(data) - 1}")
+                    logger.info("Sample row: %s", data[1])
+                    logger.info("Total rows: %d", len(data) - 1)
         # Also probe TIGERweb
-        centroids = fetch_centroids_state(test_state)
-        print(f"\nTIGERweb centroids for state {test_state}: {len(centroids)}")
+        try:
+            centroids = fetch_centroids_state(test_state)
+        except Exception as e:
+            logger.error("TIGERweb probe failed: %s", e)
+            return
+        logger.info("TIGERweb centroids for state %s: %d", test_state, len(centroids))
         if centroids:
             sample = list(centroids.items())[:3]
             for geoid, (lat, lng) in sample:
-                print(f"  {geoid}: ({lat}, {lng})")
+                logger.info("  %s: (%s, %s)", geoid, lat, lng)
         return
+
+    if state and state not in STATES_FIPS:
+        if not (state.isdigit() and len(state) <= 2):
+            raise ValueError(f"Invalid FIPS code: {state!r} (expected 2-digit code, e.g. 36 for NY)")
+        logger.warning("State FIPS %s not in standard list — proceeding anyway", state)
 
     states_to_run = [state] if state else STATES_FIPS
 

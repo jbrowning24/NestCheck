@@ -116,7 +116,9 @@ def _probe_endpoint() -> str:
                     logger.info("EJScreen endpoint found: %s", url[:80])
                     return url
         except Exception:
+            logger.warning("EJScreen endpoint probe failed: %s", url[:80])
             continue
+    logger.warning("All EJScreen endpoints failed probing — falling back to default")
     return EJSCREEN_GEOPLATFORM
 
 
@@ -171,34 +173,40 @@ def ingest(
             "f": "json",
             "resultRecordCount": 1,
         }
-        resp = requests.get(endpoint, params=params, timeout=60)
+        try:
+            resp = requests.get(endpoint, params=params, timeout=60)
+        except Exception as e:
+            logger.error("Discover request failed: %s", e)
+            return
         if resp.status_code != 200:
-            print(f"ERROR: HTTP {resp.status_code}")
+            logger.error("HTTP %d from EJScreen endpoint", resp.status_code)
             return
         data = resp.json()
         if "error" in data:
-            print(f"ERROR: {json.dumps(data['error'], indent=2)}")
+            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
             return
         if "fields" in data:
-            print("Available fields:")
+            logger.info("Available fields:")
             for field in data["fields"][:40]:
-                print(f"  {field['name']} ({field.get('type', '')})")
+                logger.info("  %s (%s)", field["name"], field.get("type", ""))
             if len(data["fields"]) > 40:
-                print(f"  ... and {len(data['fields']) - 40} more fields")
+                logger.info("  ... and %d more fields", len(data["fields"]) - 40)
         if "features" in data and data["features"]:
             feat = data["features"][0]
-            print("\nSample geometry:", feat.get("geometry", {}))
+            logger.info("Sample geometry: %s", feat.get("geometry", {}))
             attrs = feat.get("attributes", {})
             indicators = _get_indicator_fields(attrs)
-            print("\nExtracted indicators:", json.dumps(indicators, indent=2))
-        print(f"\nEndpoint used: {endpoint}")
+            logger.info("Extracted indicators: %s", json.dumps(indicators, indent=2))
+        logger.info("Endpoint used: %s", endpoint)
         return
 
     endpoint = _probe_endpoint()
     where = "1=1"
     if state:
-        # Try common state field names
-        where = f"ST_ABBREV = '{state.upper()}'"
+        st = state.upper()
+        if not (len(st) == 2 and st.isalpha()):
+            raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")
+        where = f"ST_ABBREV = '{st}'"
 
     logger.info("Starting EJScreen block group ingestion")
     logger.info("  Endpoint: %s", endpoint[:80])
@@ -285,7 +293,7 @@ def ingest(
                 logger.info("Limit reached (%d) — stopping.", limit)
                 break
 
-            if len(features) < PAGE_SIZE:
+            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
                 logger.info("Last page received — done.")
                 break
 
