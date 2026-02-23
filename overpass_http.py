@@ -232,7 +232,7 @@ class OverpassHTTPClient:
             # Parse JSON body
             try:
                 data = resp.json()
-            except (ValueError, json.JSONDecodeError):
+            except ValueError:
                 if trace:
                     trace.record_api_call(
                         service="overpass",
