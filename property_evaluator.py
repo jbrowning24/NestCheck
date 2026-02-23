@@ -1737,6 +1737,7 @@ def get_emergency_services(
 # Walking speed for estimated walk times (no Google API cost).
 _WALK_MPH = 3.0
 _LIBRARY_DISPLAY_CAP = 3
+_SCHOOL_DISPLAY_CAP = 5
 
 
 def _haversine_feet(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
@@ -4764,6 +4765,22 @@ def main():
             "final_score": result.final_score,
             "score_band": get_score_band(result.final_score)["label"],
             "model_version": result.model_version,
+            "nearby_schools": (
+                [
+                    {
+                        "name": s.name,
+                        "level": s.level,
+                        "distance_ft": s.distance_ft,
+                        "est_walk_min": s.est_walk_min,
+                        "lat": s.lat,
+                        "lng": s.lng,
+                    }
+                    for s in result.nearby_schools
+                ]
+                if result.nearby_schools is not None
+                else None
+            ),
+            "school_count": result.school_count,
         }
         print(json.dumps(output, indent=2))
     else:
