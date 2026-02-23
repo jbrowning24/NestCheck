@@ -10,7 +10,7 @@ the indirection of YAML/JSON config files.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 
 
 # =============================================================================
@@ -111,7 +111,7 @@ class PersonaPreset:
     key: str                   # URL-safe identifier, e.g. "balanced"
     label: str                 # Human-readable, e.g. "Balanced"
     description: str           # Short tagline for UI
-    weights: dict              # dimension_name -> float weight
+    weights: Dict[str, float]  # dimension_name -> weight multiplier
 
 
 @dataclass(frozen=True)
@@ -360,8 +360,11 @@ PERSONA_PRESETS = {
 
 DEFAULT_PERSONA = "balanced"
 
-# Validate all persona weights at import time
+# Validate all persona weights at import time (ValueError, not assert,
+# so validation is never stripped by python -O).
 for _k, _p in PERSONA_PRESETS.items():
     _wsum = sum(_p.weights.values())
-    assert abs(_wsum - 6.0) < 0.001, f"Persona {_k!r} weights sum to {_wsum}, expected 6.0"
-    assert len(_p.weights) == 6, f"Persona {_k!r} has {len(_p.weights)} weights, expected 6"
+    if abs(_wsum - 6.0) >= 0.001:
+        raise ValueError(f"Persona {_k!r} weights sum to {_wsum}, expected 6.0")
+    if len(_p.weights) != 6:
+        raise ValueError(f"Persona {_k!r} has {len(_p.weights)} weights, expected 6")

@@ -432,6 +432,10 @@
       if (placeIdForCheckout && placeIdForCheckout.value) {
         checkoutBody.append('place_id', placeIdForCheckout.value);
       }
+      var personaForCheckout = document.querySelector('input[name="persona"]:checked');
+      if (personaForCheckout) {
+        checkoutBody.append('persona', personaForCheckout.value);
+      }
 
       fetch('/checkout/create', {
         method: 'POST',
@@ -493,11 +497,22 @@
     var paymentToken = urlParams.get('payment_token');
     var returnAddress = urlParams.get('address');
     var returnPlaceId = urlParams.get('place_id');
+    var returnPersona = urlParams.get('persona');
 
     // Populate place_id from URL if present (survives Stripe round-trip)
     if (returnPlaceId) {
       var placeIdField = document.getElementById('place-id-input');
       if (placeIdField) placeIdField.value = returnPlaceId;
+    }
+    // Restore persona selection from URL (survives Stripe round-trip)
+    if (returnPersona) {
+      var personaRadio = document.querySelector('input[name="persona"][value="' + returnPersona + '"]');
+      if (personaRadio) {
+        personaRadio.checked = true;
+        var allOpts = document.querySelectorAll('.persona-option');
+        for (var pi = 0; pi < allOpts.length; pi++) allOpts[pi].classList.remove('persona-option--active');
+        personaRadio.closest('.persona-option').classList.add('persona-option--active');
+      }
     }
 
     if (REQUIRE_PAYMENT && paymentToken && returnAddress) {

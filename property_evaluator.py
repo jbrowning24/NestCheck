@@ -49,6 +49,8 @@ from scoring_config import (
     DimensionResult,
     apply_piecewise,
     apply_quality_multiplier,
+    PERSONA_PRESETS,
+    DEFAULT_PERSONA,
 )
 
 load_dotenv()
@@ -4000,7 +4002,6 @@ def evaluate_property(
     )
 
     # Resolve persona weights for Tier 2 aggregation (NES-133)
-    from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
     persona_key = persona if persona and persona in PERSONA_PRESETS else DEFAULT_PERSONA
     result.persona = persona_key
     _persona_weights = PERSONA_PRESETS[persona_key].weights

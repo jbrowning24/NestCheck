@@ -1861,6 +1861,9 @@ def create_checkout():
             return jsonify({"error": "Address required"}), 400
 
     place_id = request.form.get("place_id", "").strip() or None
+    persona = request.form.get("persona", "").strip() or None
+    if persona and persona not in PERSONA_PRESETS:
+        persona = None
     visitor_id = getattr(g, "visitor_id", "unknown")
     payment_id = secrets.token_hex(8)
 
@@ -1879,6 +1882,8 @@ def create_checkout():
         )
         if place_id:
             success_url += f"&place_id={_quote_param(place_id)}"
+        if persona:
+            success_url += f"&persona={_quote_param(persona)}"
         cancel_url = url_for("index", _external=True)
 
     try:
