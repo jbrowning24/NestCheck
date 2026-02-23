@@ -1,8 +1,11 @@
 {# ================================================================== #}
 {# Shared result rendering partial — included by index.html and       #}
 {# snapshot.html. Expects: result, snapshot_id, is_snapshot,          #}
-{# is_builder (optional).                                             #}
+{# is_builder (optional), is_preview (optional, NES-132).             #}
 {# ================================================================== #}
+
+{# NES-132: Default is_preview to false for backward compatibility #}
+{% set is_preview = is_preview if is_preview is defined else false %}
 
 {% from "_macros.html" import fmt_time, data_row %}
 
@@ -10,10 +13,20 @@
 
   {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
   {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
-  <div class="verdict-card{% if not show_score %} score-failed{% endif %}">
+  <div class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
     <div class="verdict-address">{{ result.address }}</div>
 
-    {% if show_score %}
+    {% if is_preview %}
+    {# NES-132: Health status banner instead of score ring #}
+    {% set safety_checks = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+    {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+    <div class="preview-health-banner">
+      <div class="preview-health-title">Health &amp; Safety Check</div>
+      <div class="preview-health-status {% if clear_count == safety_checks | length %}preview-status-clear{% else %}preview-status-concern{% endif %}">
+        {{ clear_count }} of {{ safety_checks | length }} checks clear
+      </div>
+    </div>
+    {% elif show_score %}
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
@@ -39,7 +52,8 @@
     </div>
     {% endif %}
 
-    {% if result.dimension_summaries is defined and result.dimension_summaries %}
+    {# Dimension summaries — full report only #}
+    {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
     <div class="dimension-list">
       {% for dim in result.dimension_summaries %}
       {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
@@ -56,6 +70,7 @@
     </div>
     {% endif %}
 
+    {# Safety concern pills — shown in BOTH preview and full #}
     {% set safety_concerns = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
     {% if safety_concerns %}
     <div class="verdict-proximity-flags">
@@ -65,6 +80,9 @@
     </div>
     {% endif %}
   </div>
+
+  {# ── NES-132: Sections 2–5.6 are locked in preview mode ────── #}
+  {% if not is_preview %}
 
   {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
   {% set has_map_data = result.coordinates is defined and result.coordinates
@@ -413,7 +431,9 @@
   </div>
   {% endif %}
 
-  {# ── 6. PROXIMITY & ENVIRONMENT ────────────────────────────── #}
+  {% endif %}{# not is_preview — end of locked sections 2–5.6 #}
+
+  {# ── 6. PROXIMITY & ENVIRONMENT — always shown (preview + full) ── #}
   <div class="report-section">
     <h2>Proximity &amp; Environment</h2>
 
@@ -493,7 +513,19 @@
 
   </div>
 
-  {# ── 7. HOW WE SCORE ──────────────────────────────────────── #}
+  {# ── NES-132: UPGRADE CTA — preview only ──────────────────── #}
+  {% if is_preview %}
+  <div class="preview-upgrade-cta">
+    <h3>See the full livability report</h3>
+    <p>Neighborhood map, transit access, parks &amp; green space, walkability scores, and more.</p>
+    <button class="preview-unlock-btn" onclick="startPreviewCheckout('{{ snapshot_id }}')">
+      Unlock full report &mdash; $9
+    </button>
+  </div>
+  {% endif %}
+
+  {# ── 7. HOW WE SCORE — full report only ─────────────────── #}
+  {% if not is_preview %}
   <div class="report-section">
     <div class="collapsible-toggle" onclick="toggleSection(this)">
       <h2>How We Score</h2>
@@ -523,9 +555,10 @@
 
     </div>{# .collapsible-body #}
   </div>{# .report-section #}
+  {% endif %}{# not is_preview #}
 
   {# ── SHARE + EXPORT BAR (index only — snapshot has it at top) ── #}
-  {% if not is_snapshot and snapshot_id %}
+  {% if not is_preview and not is_snapshot and snapshot_id %}
   <div class="share-bar">
     <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>

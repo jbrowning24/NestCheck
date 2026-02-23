@@ -24,6 +24,7 @@ from property_evaluator import (
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
+    unlock_snapshot,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     create_job, get_job, cancel_queued_job,
@@ -1592,11 +1593,39 @@ def job_status(job_id):
 
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
-    """Public, read-only snapshot page. No auth required."""
+    """Public, read-only snapshot page. No auth required.
+
+    NES-132: Preview snapshots show only health/safety checks + road noise.
+    Unlock via payment_token query param (return from Stripe checkout).
+    """
     print(f"VIEW_SNAPSHOT: looking for {snapshot_id!r}")
     snapshot = get_snapshot(snapshot_id)
     if not snapshot:
         abort(404)
+
+    # ── NES-132: Preview unlock via payment_token ──
+    payment_token = request.args.get("payment_token", "").strip()
+    is_preview = bool(snapshot.get("is_preview"))
+    payment_pending = False
+
+    if payment_token and is_preview:
+        payment = get_payment_by_id(payment_token)
+        if payment and payment["status"] in ("paid", "redeemed"):
+            unlock_snapshot(snapshot_id)
+            is_preview = False
+            log_event("preview_unlocked", snapshot_id=snapshot_id,
+                      visitor_id=g.visitor_id,
+                      metadata={"payment_id": payment_token})
+            # Redirect to clean URL (strip payment_token)
+            return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
+        elif payment and payment["status"] == "pending":
+            # Stripe webhook hasn't fired yet — template will show
+            # "Payment processing..." with auto-refresh polling.
+            payment_pending = True
+
+    # Builder bypass — always show full report
+    if g.is_builder:
+        is_preview = False
 
     # Track view
     increment_view_count(snapshot_id)
@@ -1612,6 +1641,8 @@ def view_snapshot(snapshot_id):
         result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+        is_preview=is_preview,
+        payment_pending=payment_pending,
     )
 
 
@@ -1763,24 +1794,47 @@ def create_checkout():
     Expects form data with 'address'. Returns JSON with 'checkout_url'.
     The payment_id is embedded in the success_url so the frontend can
     pass it back to POST / after payment completes.
+
+    NES-132: Also supports preview unlock flow — when 'snapshot_id' is
+    provided, the checkout unlocks an existing preview snapshot instead
+    of creating a new evaluation.
     """
     if not REQUIRE_PAYMENT or not STRIPE_AVAILABLE:
         return jsonify({"error": "Payments not enabled"}), 400
 
-    address = request.form.get("address", "").strip()
-    if not address:
-        return jsonify({"error": "Address required"}), 400
+    # NES-132: Preview unlock flow — snapshot_id provided
+    unlock_snapshot_id = request.form.get("snapshot_id", "").strip() or None
+
+    if unlock_snapshot_id:
+        snapshot = get_snapshot(unlock_snapshot_id)
+        if not snapshot or not snapshot.get("is_preview"):
+            return jsonify({"error": "Invalid snapshot for unlock"}), 400
+        address = snapshot["address_input"]
+    else:
+        address = request.form.get("address", "").strip()
+        if not address:
+            return jsonify({"error": "Address required"}), 400
 
     place_id = request.form.get("place_id", "").strip() or None
     visitor_id = getattr(g, "visitor_id", "unknown")
     payment_id = secrets.token_hex(8)
 
-    success_url = (
-        url_for("index", _external=True)
-        + f"?payment_token={payment_id}&address={_quote_param(address)}"
-    )
-    if place_id:
-        success_url += f"&place_id={_quote_param(place_id)}"
+    if unlock_snapshot_id:
+        # Unlock flow: return to snapshot page after payment
+        success_url = (
+            url_for("view_snapshot", snapshot_id=unlock_snapshot_id, _external=True)
+            + f"?payment_token={payment_id}"
+        )
+        cancel_url = url_for("view_snapshot", snapshot_id=unlock_snapshot_id, _external=True)
+    else:
+        # New eval flow: return to index (existing behavior)
+        success_url = (
+            url_for("index", _external=True)
+            + f"?payment_token={payment_id}&address={_quote_param(address)}"
+        )
+        if place_id:
+            success_url += f"&place_id={_quote_param(place_id)}"
+        cancel_url = url_for("index", _external=True)
 
     try:
         session = stripe.checkout.Session.create(
@@ -1791,7 +1845,7 @@ def create_checkout():
             }],
             mode="payment",
             success_url=success_url,
-            cancel_url=url_for("index", _external=True),
+            cancel_url=cancel_url,
             client_reference_id=payment_id,
             metadata={"address": address, "visitor_id": visitor_id},
         )
@@ -1799,11 +1853,13 @@ def create_checkout():
         logger.error("Stripe checkout creation failed: %s", e)
         return jsonify({"error": "Payment system error"}), 500
 
-    create_payment(payment_id, session.id, visitor_id, address)
+    create_payment(payment_id, session.id, visitor_id, address,
+                   snapshot_id=unlock_snapshot_id)
     log_event(
         "checkout_created",
         visitor_id=visitor_id,
-        metadata={"payment_id": payment_id, "address": address},
+        metadata={"payment_id": payment_id, "address": address,
+                   "snapshot_id": unlock_snapshot_id},
     )
     return jsonify({"checkout_url": session.url})
 
@@ -1845,6 +1901,13 @@ def stripe_webhook():
             updated = update_payment_status(payment["id"], "paid", expected_status="pending")
             if updated:
                 logger.info("Payment confirmed via webhook: %s", payment["id"])
+                # NES-132: Auto-unlock preview snapshot if this payment is
+                # for a preview unlock (snapshot_id set at checkout creation).
+                if payment.get("snapshot_id"):
+                    unlock_snapshot(payment["snapshot_id"])
+                    log_event("preview_unlocked_webhook",
+                              snapshot_id=payment["snapshot_id"],
+                              metadata={"payment_id": payment["id"]})
 
     # Always return 200 to acknowledge receipt — even for event types we don't handle
     return "", 200
