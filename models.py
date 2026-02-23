@@ -163,6 +163,7 @@ _TABLES_SQL = [
         request_id       TEXT,
         place_id         TEXT,
         email_hash       TEXT,
+        persona          TEXT,
         status           TEXT NOT NULL DEFAULT 'queued',
         current_stage    TEXT,
         result_snapshot_id TEXT,
@@ -242,7 +243,7 @@ def init_db():
                    WHERE table_name = 'evaluation_jobs'"""
             )
             cols = {row["column_name"] for row in cur.fetchall()}
-            for col in ("visitor_id", "request_id", "place_id", "email_hash"):
+            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona"):
                 if col not in cols:
                     try:
                         cur.execute(
@@ -257,7 +258,7 @@ def init_db():
                     "PRAGMA table_info(evaluation_jobs)"
                 ).fetchall()
             }
-            for col in ("visitor_id", "request_id", "place_id", "email_hash"):
+            for col in ("visitor_id", "request_id", "place_id", "email_hash", "persona"):
                 if col not in cols:
                     try:
                         conn.execute(
@@ -588,12 +589,13 @@ def get_recent_snapshots(limit=20):
 # Evaluation job queue (async evaluation)
 # ---------------------------------------------------------------------------
 
-def create_job(address, visitor_id=None, request_id=None, place_id=None, email_hash=None):
+def create_job(address, visitor_id=None, request_id=None, place_id=None, email_hash=None, persona=None):
     """Enqueue an evaluation job. Returns job_id.
 
     address: raw address string from the user.
     place_id: optional Google Places place_id for direct geocoding.
     email_hash: optional SHA-256 hash of the user's email (free tier tracking).
+    persona: optional persona key for weighted scoring (NES-133).
     """
     job_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
@@ -602,9 +604,9 @@ def create_job(address, visitor_id=None, request_id=None, place_id=None, email_h
         cur = _cursor(conn)
         cur.execute(
             _q("""INSERT INTO evaluation_jobs
-                   (job_id, address, visitor_id, request_id, place_id, email_hash, status, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, 'queued', ?)"""),
-            (job_id, address, visitor_id, request_id, place_id, email_hash, now),
+                   (job_id, address, visitor_id, request_id, place_id, email_hash, persona, status, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?)"""),
+            (job_id, address, visitor_id, request_id, place_id, email_hash, persona, now),
         )
         conn.commit()
         return job_id

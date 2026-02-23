@@ -38,14 +38,27 @@
     </div>
     {% endif %}
 
+    {# Persona badge — only shown for non-balanced personas (NES-133) #}
+    {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
+    <div class="persona-badge">
+      Scored as: <strong>{{ result.persona.label }}</strong>
+    </div>
+    {% endif %}
+
     {# Dimension summaries — full report only #}
     {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
     <div class="dimension-list">
       {% for dim in result.dimension_summaries %}
+      {% set dim_weight = result.persona.weights[dim.name] if result.persona is defined and result.persona and result.persona.weights is defined and dim.name in (result.persona.weights or {}) else 1.0 %}
       {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
         {% if slot == "right" %}
         <div class="dimension-indicator">
           <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
+          {% if dim_weight > 1.0 %}
+            <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
+          {% elif dim_weight < 1.0 %}
+            <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+          {% endif %}
           <div class="dimension-bar">
             <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
           </div>
@@ -586,9 +599,29 @@
 
     <p class="scoring-explanation">
       NestCheck evaluates six daily-life factors, each scored 0–10.
+      {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
+      With the <strong>{{ result.persona.label }}</strong> lens, dimensions
+      are weighted to reflect that lifestyle.
+      {% else %}
       The scores are combined and normalized to a 100-point scale.
+      {% endif %}
       Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
     </p>
+
+    {% if result.persona is defined and result.persona and result.persona.weights and result.persona.key != 'balanced' %}
+    <div class="persona-weights-table">
+      {% for dim_name, weight in result.persona.weights.items() %}
+      <div class="persona-weight-row">
+        <span class="pw-dim">{{ dim_name }}</span>
+        <span class="pw-weight {% if weight > 1.0 %}pw-emphasis{% elif weight < 1.0 %}pw-deemphasis{% endif %}">
+          {% if weight > 1.0 %}+{{ "%.0f"|format((weight - 1.0) * 100) }}% weight
+          {% elif weight < 1.0 %}-{{ "%.0f"|format((1.0 - weight) * 100) }}% weight
+          {% else %}standard weight{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     {# Band thresholds must match SCORING_MODEL.score_bands in scoring_config.py #}
     <div class="band-table">

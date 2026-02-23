@@ -93,6 +93,30 @@
       <input type="hidden" name="place_id" id="place-id-input" value="">
       <div class="search-box">
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+
+        {# Persona selector — scoring lens (NES-133) #}
+        <div class="persona-selector" id="personaSelector">
+          <label class="persona-label">Scoring lens:</label>
+          <div class="persona-options">
+            <label class="persona-option persona-option--active">
+              <input type="radio" name="persona" value="balanced" checked>
+              <span class="persona-pill">Balanced</span>
+            </label>
+            <label class="persona-option">
+              <input type="radio" name="persona" value="active">
+              <span class="persona-pill">Active &amp; Outdoorsy</span>
+            </label>
+            <label class="persona-option">
+              <input type="radio" name="persona" value="commuter">
+              <span class="persona-pill">Urban Commuter</span>
+            </label>
+            <label class="persona-option">
+              <input type="radio" name="persona" value="quiet">
+              <span class="persona-pill">Peace &amp; Quiet</span>
+            </label>
+          </div>
+        </div>
+
         {% if require_payment %}
         <div class="email-gate" id="emailGate">
           <input type="email" name="email" id="email-input" placeholder="Your email — first report is free" required>
@@ -330,6 +354,10 @@
       if (placeIdInput && placeIdInput.value) {
         body.append('place_id', placeIdInput.value);
       }
+      var personaInput = document.querySelector('input[name="persona"]:checked');
+      if (personaInput) {
+        body.append('persona', personaInput.value);
+      }
 
       fetch('/', {
         method: 'POST',
@@ -404,6 +432,10 @@
       if (placeIdForCheckout && placeIdForCheckout.value) {
         checkoutBody.append('place_id', placeIdForCheckout.value);
       }
+      var personaForCheckout = document.querySelector('input[name="persona"]:checked');
+      if (personaForCheckout) {
+        checkoutBody.append('persona', personaForCheckout.value);
+      }
 
       fetch('/checkout/create', {
         method: 'POST',
@@ -465,11 +497,22 @@
     var paymentToken = urlParams.get('payment_token');
     var returnAddress = urlParams.get('address');
     var returnPlaceId = urlParams.get('place_id');
+    var returnPersona = urlParams.get('persona');
 
     // Populate place_id from URL if present (survives Stripe round-trip)
     if (returnPlaceId) {
       var placeIdField = document.getElementById('place-id-input');
       if (placeIdField) placeIdField.value = returnPlaceId;
+    }
+    // Restore persona selection from URL (survives Stripe round-trip)
+    if (returnPersona) {
+      var personaRadio = document.querySelector('input[name="persona"][value="' + returnPersona + '"]');
+      if (personaRadio) {
+        personaRadio.checked = true;
+        var allOpts = document.querySelectorAll('.persona-option');
+        for (var pi = 0; pi < allOpts.length; pi++) allOpts[pi].classList.remove('persona-option--active');
+        personaRadio.closest('.persona-option').classList.add('persona-option--active');
+      }
     }
 
     if (REQUIRE_PAYMENT && paymentToken && returnAddress) {
@@ -499,6 +542,20 @@
         if (btn) btn.disabled = true;
         startPolling(initialJobId, overlay, loadingText, loadingSub, btn || {}, form || document.body);
       }
+    }
+  })();
+
+  // Persona pill toggle — highlight the selected option (NES-133)
+  (function() {
+    var opts = document.querySelectorAll('.persona-option input[type="radio"]');
+    for (var i = 0; i < opts.length; i++) {
+      opts[i].addEventListener('change', function() {
+        var all = document.querySelectorAll('.persona-option');
+        for (var j = 0; j < all.length; j++) {
+          all[j].classList.remove('persona-option--active');
+        }
+        this.closest('.persona-option').classList.add('persona-option--active');
+      });
     }
   })();
 

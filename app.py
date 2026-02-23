@@ -943,6 +943,13 @@ def _backfill_result(result):
         result["structured_summary"] = generate_structured_summary(
             result["presented_checks"]
         )
+    if "persona" not in result:
+        result["persona"] = {
+            "key": "balanced",
+            "label": "Balanced",
+            "description": "Equal weight across all dimensions",
+            "weights": {},
+        }
 
     if "insights" not in result:
         result["insights"] = generate_insights(result)
@@ -1236,6 +1243,19 @@ def result_to_dict(result):
         output["presented_checks"]
     )
 
+    # Persona metadata — for result display and snapshot persistence (NES-133)
+    persona_key = getattr(result, "persona", None) or DEFAULT_PERSONA
+    persona_preset = PERSONA_PRESETS.get(persona_key)
+    output["persona"] = {
+        "key": persona_key,
+        "label": persona_preset.label if persona_preset else "Balanced",
+        "description": persona_preset.description if persona_preset else "",
+        "weights": {
+            s["name"]: persona_preset.weights.get(s["name"], 1.0) if persona_preset else 1.0
+            for s in output["tier2_scores"]
+        },
+    }
+
     output["verdict"] = generate_verdict(output)
     output["score_band"] = get_score_band(result.final_score)
     output["dimension_summaries"] = generate_dimension_summaries(output)
@@ -1525,9 +1545,12 @@ def index():
         # Async queue: create job first so redeem_payment can link atomically.
         # A job with no payment is harmless; a redeemed payment with no job is a lost credit.
         place_id = request.form.get('place_id', '').strip() or None
+        persona = request.form.get('persona', '').strip() or None
+        if persona and persona not in PERSONA_PRESETS:
+            persona = None  # fall back to balanced
         job_id = create_job(
             address, visitor_id=g.visitor_id, request_id=request_id,
-            place_id=place_id, email_hash=email_h,
+            place_id=place_id, email_hash=email_h, persona=persona,
         )
         logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
 
@@ -1914,6 +1937,9 @@ def create_checkout():
             return jsonify({"error": "Address required"}), 400
 
     place_id = request.form.get("place_id", "").strip() or None
+    persona = request.form.get("persona", "").strip() or None
+    if persona and persona not in PERSONA_PRESETS:
+        persona = None
     visitor_id = getattr(g, "visitor_id", "unknown")
     payment_id = secrets.token_hex(8)
 
@@ -1932,6 +1958,8 @@ def create_checkout():
         )
         if place_id:
             success_url += f"&place_id={_quote_param(place_id)}"
+        if persona:
+            success_url += f"&persona={_quote_param(persona)}"
         cancel_url = url_for("index", _external=True)
 
     try:
