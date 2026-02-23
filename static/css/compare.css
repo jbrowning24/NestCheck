@@ -262,7 +262,7 @@
   }
 
   .compare-column-body {
-    max-height: none;
+    max-height: 5000px;
     overflow: visible;
     transition: max-height 0.3s ease;
   }

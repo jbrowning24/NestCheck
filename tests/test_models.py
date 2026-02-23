@@ -202,12 +202,6 @@ class TestCheckReturnVisit:
 
 class TestGetRecentSnapshots:
     def test_returns_recent(self):
-        # Clean up snapshots from other tests (conftest only clears some tables)
-        conn = _get_db()
-        conn.execute("DELETE FROM snapshots")
-        conn.commit()
-        _return_conn(conn)
-
         result = {"verdict": "OK", "final_score": 50}
         save_snapshot("1 Elm", "1 Elm St", result)
         save_snapshot("2 Oak", "2 Oak Ave", result)

@@ -44,7 +44,9 @@
   {% for eval in evaluations %}
   <div class="compare-column">
     {# Column header (visible always; toggles on mobile) #}
-    <div class="compare-column-header" onclick="toggleCompareColumn(this)">
+    <div class="compare-column-header" role="button" tabindex="0"
+         onclick="toggleCompareColumn(this)"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCompareColumn(this);}">
       <h2 class="compare-column-address">{{ eval.address }}</h2>
       <span class="compare-column-score">{{ eval.final_score }}/100</span>
       <span class="compare-collapse-icon">&#9660;</span>
