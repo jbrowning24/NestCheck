@@ -24,7 +24,7 @@ from property_evaluator import (
 )
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
-    unlock_snapshot,
+    unlock_snapshot, get_og_image, save_og_image,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     create_job, get_job, cancel_queued_job,
@@ -33,7 +33,7 @@ from models import (
     hash_email, check_free_tier_used, record_free_tier_usage,
 )
 from weather import serialize_for_result as _serialize_weather
-from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
+from og_image import generate_og_image
 
 def _quote_param(s: str) -> str:
     """URL-encode a string for use as a query parameter value.
@@ -1037,6 +1037,30 @@ def _serialize_road_noise(assessment):
     }
 
 
+def _serialize_sidewalk_coverage(assessment):
+    """Serialize SidewalkCoverageAssessment to template dict.
+
+    Returns None when assessment is absent (old snapshots / Overpass failure),
+    which the template uses to hide the card.
+    """
+    if not assessment:
+        return None
+    return {
+        "total_road_segments": assessment.total_road_segments,
+        "roads_with_sidewalk": assessment.roads_with_sidewalk,
+        "roads_without_sidewalk": assessment.roads_without_sidewalk,
+        "roads_untagged": assessment.roads_untagged,
+        "roads_with_cycleway": assessment.roads_with_cycleway,
+        "separate_cycleways": assessment.separate_cycleways,
+        "separate_footways": assessment.separate_footways,
+        "sidewalk_pct": assessment.sidewalk_pct,
+        "cycleway_pct": assessment.cycleway_pct,
+        "data_confidence": assessment.data_confidence,
+        "data_confidence_note": assessment.data_confidence_note,
+        "methodology_note": assessment.methodology_note,
+    }
+
+
 def _serialize_urban_access(urban_access):
     """Serialize UrbanAccessProfile to template dict."""
     if not urban_access:
@@ -1132,6 +1156,9 @@ def result_to_dict(result):
         "green_escape": _serialize_green_escape(result.green_escape_evaluation),
         "road_noise": _serialize_road_noise(
             getattr(result, "road_noise_assessment", None)
+        ),
+        "sidewalk_coverage": _serialize_sidewalk_coverage(
+            getattr(result, "sidewalk_coverage", None)
         ),
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
@@ -1773,6 +1800,55 @@ def export_snapshot_csv(snapshot_id):
     )
 
 
+@app.route("/api/snapshot/<snapshot_id>/og-image.png")
+def snapshot_og_image(snapshot_id):
+    """Serve the OpenGraph preview image for a snapshot.
+
+    Generates on first request via Pillow, then caches in DB.
+    Returns 404 for unknown or preview-mode snapshots.
+    """
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        abort(404)
+
+    # No OG image for unpaid preview snapshots
+    if snapshot.get("is_preview"):
+        abort(404)
+
+    # Check DB cache first
+    cached = get_og_image(snapshot_id)
+    if cached:
+        resp = make_response(cached)
+        resp.headers["Content-Type"] = "image/png"
+        resp.headers["Cache-Control"] = "public, max-age=86400"
+        return resp
+
+    # Generate
+    result = snapshot["result"]
+    band_class = ""
+    sb = result.get("score_band")
+    if isinstance(sb, dict):
+        band_class = sb.get("css_class", "")
+
+    png_bytes = generate_og_image(
+        address=result.get("address", snapshot.get("address_input", "")),
+        score=result.get("final_score", 0),
+        verdict=result.get("verdict", ""),
+        band_css_class=band_class,
+    )
+
+    if not png_bytes:
+        abort(500)
+
+    # Cache for next time
+    save_og_image(snapshot_id, png_bytes)
+
+    resp = make_response(png_bytes)
+    resp.headers["Content-Type"] = "image/png"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.route("/api/event", methods=["POST"])
 @limiter.limit("30/minute")
 def track_event():
@@ -2012,12 +2088,24 @@ def sitemap_xml():
 @app.route("/healthz")
 @limiter.exempt
 def healthz():
-    """Lightweight health-check endpoint for monitoring."""
+    """Health-check endpoint with API dependency status.
+
+    Reports config validation and live health of external data sources
+    (Google Maps, Overpass, Open-Meteo). Overall status is 'degraded'
+    when config is missing or any API is down.
+    """
+    from health_monitor import get_status as get_api_health
     config_ok, missing = _check_service_config()
+    api_health = get_api_health()
+
+    any_down = any(s.get("status") == "down" for s in api_health.values())
+    overall = "ok" if config_ok and not any_down else "degraded"
+
     return jsonify({
-        "status": "ok" if config_ok else "degraded",
+        "status": overall,
         "missing_keys": missing,
-    }), 200 if config_ok else 503
+        "api_health": api_health,
+    }), 200 if overall == "ok" else 503
 
 
 @app.route("/debug/trace/<snapshot_id>")

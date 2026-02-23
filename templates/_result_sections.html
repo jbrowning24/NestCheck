@@ -30,21 +30,7 @@
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      <div class="score-ring-container {{ band_class }}">
-        {% set pct = result.final_score / 100 %}
-        {% set circ = 251.33 %}
-        <svg class="score-ring" viewBox="0 0 100 100">
-          <circle class="score-ring-track" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8" />
-          <circle class="score-ring-fill" cx="50" cy="50" r="40"
-                  fill="none" stroke-width="8"
-                  stroke-dasharray="{{ circ }}"
-                  stroke-dashoffset="{{ circ * (1 - pct) }}"
-                  stroke-linecap="round"
-                  transform="rotate(-90 50 50)" />
-        </svg>
-        <div class="score-ring-value">{{ result.final_score }}</div>
-      </div>
+      {{ score_ring(result.final_score, band_class, 'score-ring-container') }}
       <div class="score-details">
         <div class="score-band {{ band_class }}">{{ band_label }}</div>
         <div class="score-scale">out of 100</div>
@@ -111,7 +97,7 @@
         Every evaluation helps narrow the search — share to keep everyone in the loop.
       {% endif %}
     </div>
-    <button class="share-btn" onclick="copyShareLink(this)">
+    <button class="share-btn" onclick="(typeof nativeShare==='function' && navigator.share ? nativeShare : copyShareLink)(this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       Share this report
     </button>
@@ -122,7 +108,7 @@
   {% set has_map_data = result.coordinates is defined and result.coordinates
                         and result.neighborhood_places is defined and result.neighborhood_places %}
   {% if has_map_data %}
-  <div id="neighborhood-map" class="report-section map-container">
+  <div id="neighborhood-map" class="report-section map-container report-map-inline">
     <div id="neighborhood-map-leaflet" class="map-leaflet"></div>
   </div>
   {# Embed map data as JSON for neighborhood-map.js — no extra API calls #}
@@ -139,7 +125,7 @@
   } | tojson }}
   </script>
   {% else %}
-  <div id="neighborhood-map" class="report-section map-placeholder">
+  <div id="neighborhood-map" class="report-section map-placeholder report-map-inline">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
       <line x1="9" y1="9" x2="15" y2="9"/>
@@ -217,7 +203,7 @@
   {% endif %}
 
   {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
-  <div class="report-section">
+  <div id="getting-around" class="report-section">
     <h2>Getting Around</h2>
 
     {% if result.insights is defined and result.insights and result.insights.getting_around %}
@@ -326,7 +312,7 @@
   </div>
 
   {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
-  <div class="report-section">
+  <div id="parks-green-space" class="report-section">
     <h2>Parks &amp; Green Space</h2>
 
     {% if result.insights is defined and result.insights and result.insights.parks %}
@@ -419,7 +405,7 @@
   {#   value=[]    → searched, found nothing, show "none found"        #}
   {#   value=[..]  → found stations, show cards                        #}
   {% if result.emergency_services is defined and result.emergency_services is not none %}
-  <div class="report-section">
+  <div id="emergency-services" class="report-section">
     <h2>Emergency Services</h2>
 
     {% if result.emergency_services %}
@@ -443,7 +429,7 @@
   {# times via haversine (~3 mph). Same three-state guard as         #}
   {# emergency services.                                             #}
   {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
-  <div class="report-section">
+  <div id="libraries" class="report-section">
     <h2>Libraries</h2>
 
     {% if result.nearby_libraries %}
@@ -545,6 +531,50 @@
       </div>
     {% endif %}
 
+    {# ── Sidewalk & Cycleway Coverage card (NES-110) ── #}
+    {# Three-state guard: key absent → old snapshot, hide card.           #}
+    {# value=none → Overpass failed / no roads, hide card.                #}
+    {# value={..} → show card with coverage data.                         #}
+    {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
+      {% set sc = result.sidewalk_coverage %}
+      {% if sc.data_confidence == "HIGH" %}
+        {% if sc.sidewalk_pct >= 60 %}
+          {% set sw_css = "proximity-neutral" %}
+        {% elif sc.sidewalk_pct >= 30 %}
+          {% set sw_css = "proximity-notable" %}
+        {% else %}
+          {% set sw_css = "proximity-very_close" %}
+        {% endif %}
+      {% else %}
+        {% set sw_css = "proximity-neutral" %}
+      {% endif %}
+      <div class="proximity-item {{ sw_css }}">
+        <div class="proximity-name">
+          <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+          Sidewalk &amp; Cycleway Coverage
+        </div>
+        <div class="proximity-detail">
+          {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
+          &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
+        </div>
+        <div class="proximity-detail">
+          {{ sc.total_road_segments }} road segments assessed within 500 m
+          {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
+          {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
+        </div>
+        <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
+          Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
+        </div>
+        <div class="collapsible-toggle" onclick="toggleSection(this)">
+          <span class="collapse-icon">&#9654;</span>
+          <span>About this metric</span>
+        </div>
+        <div class="collapsible-body collapsed">
+          {{ sc.methodology_note }}
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   {# ── NES-132: UPGRADE CTA — preview only ──────────────────── #}
@@ -617,6 +647,10 @@
     <button class="share-btn" id="shareBtn" onclick="copyShareLink()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span id="shareBtnText">Copy share link</span>
+    </button>
+    <button class="share-btn share-btn--secondary" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Save as PDF
     </button>
     <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
