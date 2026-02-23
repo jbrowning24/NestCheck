@@ -24,24 +24,32 @@
 
 {% block content %}
 
-<!-- SHARE + EXPORT BAR -->
-<div class="share-bar">
-  <div class="snapshot-meta">
-    Snapshot created {{ snapshot.created_at[:10] }}
-    {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
-  </div>
-  <div class="share-actions">
-    <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      <span id="shareBtnText">Copy share link</span>
-    </button>
-    <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
-    <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
-  </div>
-</div>
+<div class="report-layout">
+  <div class="report-layout__main">
+    <!-- SHARE + EXPORT BAR -->
+    <div class="share-bar">
+      <div class="snapshot-meta">
+        Snapshot created {{ snapshot.created_at[:10] }}
+        {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
+      </div>
+      <div class="share-actions">
+        <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span id="shareBtnText">Copy share link</span>
+        </button>
+        <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
+        <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
+      </div>
+    </div>
 
-{% set is_snapshot = true %}
-{% include '_result_sections.html' %}
+    {% set is_snapshot = true %}
+    {% include '_result_sections.html' %}
+  </div>
+
+  <aside class="report-layout__rail">
+    {% include '_report_rail.html' %}
+  </aside>
+</div>
 
 {% endblock %}
 
@@ -90,4 +98,5 @@
   }
 </script>
 <script src="{{ url_for('static', filename='js/neighborhood-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/section-nav.js') }}"></script>
 {% endblock %}
