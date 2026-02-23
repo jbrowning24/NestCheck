@@ -7,7 +7,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row %}
+{% from "_macros.html" import fmt_time, data_row, score_ring %}
 
 <div class="report">
 
@@ -479,8 +479,6 @@
 
   </div>
   {% endif %}
-
-  {% endif %}{# not is_preview — end of locked sections 2–5.7 #}
 
   {# ── 6. PROXIMITY & ENVIRONMENT — always shown (preview + full) ── #}
   <div id="proximity-environment" class="report-section">
