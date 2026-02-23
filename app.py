@@ -1232,6 +1232,24 @@ def result_to_dict(result):
     )
     output["library_count"] = result.library_count
 
+    # Nearby pharmacies — informational, not scored (NES-108).
+    # Same three-state convention as emergency_services / libraries.
+    output["nearby_pharmacies"] = (
+        [
+            {
+                "name": pharm.name,
+                "distance_ft": pharm.distance_ft,
+                "est_walk_min": pharm.est_walk_min,
+                "lat": pharm.lat,
+                "lng": pharm.lng,
+            }
+            for pharm in result.nearby_pharmacies
+        ]
+        if result.nearby_pharmacies is not None
+        else None
+    )
+    output["pharmacy_count"] = result.pharmacy_count
+
     # Weather climate normals — informational context for insights (NES-32).
     output["weather"] = _serialize_weather(
         getattr(result, "weather_summary", None)
