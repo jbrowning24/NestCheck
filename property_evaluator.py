@@ -716,6 +716,20 @@ class NearbyLibrary:
 
 
 @dataclass
+class NearbyPharmacy:
+    """A nearby pharmacy (NES-108).
+
+    Informational only — not scored.  Walk time is estimated from
+    haversine distance at ~3 mph, not Google Distance Matrix.
+    """
+    name: str               # Pharmacy name (fallback: "Pharmacy")
+    distance_ft: int        # Straight-line distance in feet
+    est_walk_min: int       # Estimated walk time in minutes (~3 mph)
+    lat: float
+    lng: float
+
+
+@dataclass
 class TransitAccessResult:
     """Result of the smart transit frequency approximation."""
     primary_stop: Optional[str] = None
@@ -798,6 +812,11 @@ class EvaluationResult:
     # None = lookup failed; [] = searched, found nothing; [...] = found libraries
     nearby_libraries: Optional[List[NearbyLibrary]] = None
     library_count: int = 0  # total within search radius (display may be capped at 3)
+
+    # Nearby pharmacies — informational, not scored (NES-108)
+    # None = lookup failed; [] = searched, found nothing; [...] = found pharmacies
+    nearby_pharmacies: Optional[List[NearbyPharmacy]] = None
+    pharmacy_count: int = 0  # total within search radius (display may be capped at 3)
 
     # Weather climate normals — informational, not scored (NES-32)
     weather_summary: Optional[WeatherSummary] = None
@@ -1116,6 +1135,7 @@ def _walking_times_batch(
 
 
 LIBRARY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for libraries
+PHARMACY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for pharmacies
 
 
 class OverpassClient:
@@ -1498,6 +1518,104 @@ class OverpassClient:
 
         return libraries
 
+    # ── Pharmacy proximity (NES-108) ─────────────────────────────────
+
+    def get_nearby_pharmacies(
+        self, lat: float, lng: float, radius_meters: int = PHARMACY_SEARCH_RADIUS_M
+    ) -> List[Dict]:
+        """Find pharmacies within *radius_meters* of a point.
+
+        Queries both node and way elements for ``amenity=pharmacy``.
+        Filters out non-public facilities (``access`` in
+        {``private``, ``customers``, ``no``}).
+
+        Returns a list of dicts with keys: name, lat, lng.
+        Uses the same SQLite cache pattern as other Overpass queries.
+        """
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["amenity"="pharmacy"](around:{radius_meters},{lat},{lng});
+          way["amenity"="pharmacy"](around:{radius_meters},{lat},{lng});
+        );
+        out center;
+        """
+
+        from models import overpass_cache_key, get_overpass_cache, set_overpass_cache
+        db_cache_key = overpass_cache_key(query)
+        try:
+            cached_json = get_overpass_cache(db_cache_key)
+            if cached_json is not None:
+                import json as _json
+                data = _json.loads(cached_json)
+                return self._parse_pharmacies(data)
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache read failed in get_nearby_pharmacies, "
+                "falling through to HTTP", exc_info=True,
+            )
+
+        data = self._traced_post(
+            "get_nearby_pharmacies", self.base_url, {"data": query}
+        )
+
+        try:
+            import json as _json
+            set_overpass_cache(db_cache_key, _json.dumps(data))
+        except Exception:
+            logger.warning(
+                "Overpass SQLite cache write failed in get_nearby_pharmacies",
+                exc_info=True,
+            )
+
+        return self._parse_pharmacies(data)
+
+    @staticmethod
+    def _parse_pharmacies(data: dict) -> List[Dict]:
+        """Extract pharmacies from an Overpass response.
+
+        Handles both node and way elements (ways use ``center`` coords).
+        Filters out non-public facilities and deduplicates by OSM element ID.
+        """
+        _NON_PUBLIC_ACCESS = {"private", "customers", "no"}
+
+        seen_ids: set = set()
+        pharmacies: List[Dict] = []
+        for element in data.get("elements", []):
+            eid = (element.get("type"), element.get("id"))
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+
+            tags = element.get("tags", {})
+
+            # Skip explicitly non-public pharmacies
+            if tags.get("access", "") in _NON_PUBLIC_ACCESS:
+                continue
+
+            # Coordinates: nodes carry lat/lon directly; ways carry center.
+            if element["type"] == "node":
+                s_lat = element.get("lat")
+                s_lng = element.get("lon")
+            elif "center" in element:
+                s_lat = element["center"].get("lat")
+                s_lng = element["center"].get("lon")
+            else:
+                continue  # way without center data — skip
+
+            if s_lat is None or s_lng is None:
+                continue
+
+            name = tags.get("name") or "Pharmacy"
+
+            pharmacies.append({
+                "name": name,
+                "lat": s_lat,
+                "lng": s_lng,
+            })
+
+        return pharmacies
+
     def has_nearby_elevators(self, lat: float, lng: float, radius_meters: int = 150) -> Optional[bool]:
         """Check for elevator nodes near a transit station (NES-31).
 
@@ -1675,6 +1793,57 @@ def get_library_proximity(
     except Exception:
         logger.warning(
             "Library proximity lookup failed; continuing without", exc_info=True
+        )
+        return None  # None = failure (section hidden)
+
+
+# ── Pharmacy proximity (NES-108) ──────────────────────────────────
+
+_PHARMACY_DISPLAY_CAP = 3
+
+
+def get_pharmacy_proximity(
+    overpass: "OverpassClient",
+    lat: float,
+    lng: float,
+) -> Optional[Tuple[List[NearbyPharmacy], int]]:
+    """Find nearby pharmacies via Overpass (zero Google API cost).
+
+    Returns a tuple of (pharmacies, total_count) where pharmacies is capped
+    at _PHARMACY_DISPLAY_CAP (3) sorted by distance.  total_count is the
+    full count within the search radius for context display.
+
+    Returns None on failure, ([], 0) when none found.
+    """
+    try:
+        raw = overpass.get_nearby_pharmacies(lat, lng)
+        if not raw:
+            return ([], 0)
+
+        # Calculate distances and sort by nearest
+        for pharm in raw:
+            pharm["distance_ft"] = _haversine_feet(lat, lng, pharm["lat"], pharm["lng"])
+        raw.sort(key=lambda x: x["distance_ft"])
+
+        total_count = len(raw)
+        selected = raw[:_PHARMACY_DISPLAY_CAP]
+
+        results = [
+            NearbyPharmacy(
+                name=pharm["name"],
+                distance_ft=pharm["distance_ft"],
+                est_walk_min=max(1, round(pharm["distance_ft"] / 5280 / _WALK_MPH * 60)),
+                lat=pharm["lat"],
+                lng=pharm["lng"],
+            )
+            for pharm in selected
+        ]
+
+        return (results, total_count)
+
+    except Exception:
+        logger.warning(
+            "Pharmacy proximity lookup failed; continuing without", exc_info=True
         )
         return None  # None = failure (section hidden)
 
@@ -4081,6 +4250,11 @@ def evaluate_property(
             _timed_stage_in_thread, parent_trace,
             "nearby_libraries", get_library_proximity, overpass, lat, lng,
         )
+        # Pharmacy proximity — Overpass only, zero Google API cost (NES-108).
+        futures["nearby_pharmacies"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "nearby_pharmacies", get_pharmacy_proximity, overpass, lat, lng,
+        )
         # Road noise — standalone Overpass query, no maps client needed.
         futures["road_noise"] = pool.submit(
             _timed_stage_in_thread, parent_trace,
@@ -4122,6 +4296,13 @@ def evaluate_property(
                         result.library_count = count
                     else:
                         result.nearby_libraries = None
+                elif stage_name == "nearby_pharmacies":
+                    if stage_result is not None:
+                        pharms, count = stage_result
+                        result.nearby_pharmacies = pharms
+                        result.pharmacy_count = count
+                    else:
+                        result.nearby_pharmacies = None
                 elif stage_name == "road_noise":
                     result.road_noise_assessment = stage_result
                 elif stage_name == "weather":
