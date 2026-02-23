@@ -84,7 +84,129 @@
 .share-prompt.band-limited     { border-color: var(--band-limited);     background: var(--band-limited-light); }
 .share-prompt.band-poor        { border-color: var(--band-poor);        background: var(--band-poor-light); }
 
-/* --- Responsive (snapshot-only) --- */
+/* ================================================================
+   Report Layout — Two-column grid with sticky right rail (NES-41)
+   Desktop (≥1200px): main content + 280px rail
+   Below 1200px: single column, rail hidden
+   ================================================================ */
+
+/* --- Grid Container --- */
+.report-layout {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* --- Rail (hidden by default, shown on desktop) --- */
+.report-layout__rail {
+  display: none;
+}
+
+/* --- Mini Score Card (rail) --- */
+.report-rail-score {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border: 1px solid var(--color-border-muted);
+  margin-bottom: 12px;
+}
+.rail-address {
+  font-size: 0.78em;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail-score-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rail-score-ring {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+}
+.rail-score-ring .score-ring { width: 100%; height: 100%; }
+.rail-score-ring .score-ring-value { font-size: 1.3em; }
+.rail-score-details .score-band { font-size: 0.92em; }
+.rail-score-details .score-scale { font-size: 0.78em; }
+.rail-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.rail-flags .verdict-proximity-pill { font-size: 0.72rem; padding: 3px 8px; }
+
+/* --- Rail Map --- */
+.report-rail-map {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-border-muted);
+}
+.rail-map-leaflet {
+  width: 100%;
+  height: 250px;
+}
+
+/* --- Rail Section Nav --- */
+.report-rail-nav {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 12px 0;
+  border: 1px solid var(--color-border-muted);
+}
+.rail-nav__link {
+  display: block;
+  padding: 6px 16px;
+  font-size: 0.82em;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.rail-nav__link:hover {
+  color: var(--color-primary);
+}
+.rail-nav__link--active {
+  color: var(--color-primary);
+  font-weight: 600;
+  border-left-color: var(--color-primary);
+}
+
+/* ================================================================
+   Desktop — activate rail layout (≥1200px)
+   ================================================================ */
+@media (min-width: 1200px) {
+  .report-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 24px;
+    align-items: start;
+  }
+  .report-layout__rail {
+    display: block;
+    position: sticky;
+    top: 80px;
+    align-self: start;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+  /* Hide inline map in main content — it lives in the rail on desktop */
+  .report-map-inline {
+    display: none;
+  }
+}
+
+/* ================================================================
+   Responsive (snapshot-only)
+   ================================================================ */
 
 /* Small tablet — tighten share bar before it stacks at 640px */
 @media (max-width: 768px) {
@@ -99,8 +221,12 @@
   .share-prompt { flex-direction: column; text-align: center; }
 }
 
-/* --- Print (snapshot-only) --- */
+/* ================================================================
+   Print (snapshot-only)
+   ================================================================ */
 @media print {
   .snapshot-cta, .share-prompt { display: none; }
-  .snapshot-meta { display: block; text-align: center; margin-bottom: 8px; }
+  .report-layout__rail { display: none; }
+  .report-layout { display: block; max-width: 800px; }
+  .report-map-inline { display: block; }
 }

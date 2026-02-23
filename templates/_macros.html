@@ -25,6 +25,53 @@
 
    When called without {% call %}, `value` renders as plain .data-row__value.
    ── #}
+{# ── score_ring ───────────────────────────────────────────────────────
+   SVG ring showing the final score with band-coloured fill arc.
+
+   Args:
+     score:      Numeric score 0–100 (required).
+     band_class: CSS class for band colouring, e.g. "band-exceptional".
+     size_class: Wrapper CSS class controlling dimensions.
+                 "score-ring-container" (main) or "rail-score-ring" (rail).
+   ── #}
+{% macro score_ring(score, band_class='', size_class='score-ring-container') %}
+{% set pct = score / 100 %}
+{% set circ = 251.33 %}
+<div class="{{ size_class }} {{ band_class }}">
+  <svg class="score-ring" viewBox="0 0 100 100">
+    <circle class="score-ring-track" cx="50" cy="50" r="40"
+            fill="none" stroke-width="8" />
+    <circle class="score-ring-fill" cx="50" cy="50" r="40"
+            fill="none" stroke-width="8"
+            stroke-dasharray="{{ circ }}"
+            stroke-dashoffset="{{ circ * (1 - pct) }}"
+            stroke-linecap="round"
+            transform="rotate(-90 50 50)" />
+  </svg>
+  <div class="score-ring-value">{{ score }}</div>
+</div>
+{% endmacro %}
+
+
+{# ── safety_flags ─────────────────────────────────────────────────────
+   Render safety-concern pills from presented_checks.
+
+   Args:
+     presented_checks: The result.presented_checks list.
+     pill_class:       Extra CSS class on the wrapper div (optional).
+   ── #}
+{% macro safety_flags(presented_checks, pill_class='verdict-proximity-flags') %}
+{% set safety_concerns = (presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
+{% if safety_concerns %}
+<div class="{{ pill_class }}">
+  {% for pc in safety_concerns %}
+  <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">⚠ {{ pc.headline }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+
 {% macro data_row(name, detail=None, value=None, variant="hub", no_border=false) %}
 <div class="data-row data-row--{{ variant }}{% if no_border %} data-row--no-border{% endif %}">
   <div class="data-row__info">

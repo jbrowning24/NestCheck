@@ -1030,6 +1030,30 @@ def _serialize_road_noise(assessment):
     }
 
 
+def _serialize_sidewalk_coverage(assessment):
+    """Serialize SidewalkCoverageAssessment to template dict.
+
+    Returns None when assessment is absent (old snapshots / Overpass failure),
+    which the template uses to hide the card.
+    """
+    if not assessment:
+        return None
+    return {
+        "total_road_segments": assessment.total_road_segments,
+        "roads_with_sidewalk": assessment.roads_with_sidewalk,
+        "roads_without_sidewalk": assessment.roads_without_sidewalk,
+        "roads_untagged": assessment.roads_untagged,
+        "roads_with_cycleway": assessment.roads_with_cycleway,
+        "separate_cycleways": assessment.separate_cycleways,
+        "separate_footways": assessment.separate_footways,
+        "sidewalk_pct": assessment.sidewalk_pct,
+        "cycleway_pct": assessment.cycleway_pct,
+        "data_confidence": assessment.data_confidence,
+        "data_confidence_note": assessment.data_confidence_note,
+        "methodology_note": assessment.methodology_note,
+    }
+
+
 def _serialize_urban_access(urban_access):
     """Serialize UrbanAccessProfile to template dict."""
     if not urban_access:
@@ -1125,6 +1149,9 @@ def result_to_dict(result):
         "green_escape": _serialize_green_escape(result.green_escape_evaluation),
         "road_noise": _serialize_road_noise(
             getattr(result, "road_noise_assessment", None)
+        ),
+        "sidewalk_coverage": _serialize_sidewalk_coverage(
+            getattr(result, "sidewalk_coverage", None)
         ),
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,

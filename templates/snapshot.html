@@ -65,8 +65,10 @@
 </div>
 {% endif %}
 
-{% set is_snapshot = true %}
-{% include '_result_sections.html' %}
+  <aside class="report-layout__rail">
+    {% include '_report_rail.html' %}
+  </aside>
+</div>
 
 {% endblock %}
 
@@ -213,4 +215,5 @@
 {% endif %}
 
 <script src="{{ url_for('static', filename='js/neighborhood-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/section-nav.js') }}"></script>
 {% endblock %}
