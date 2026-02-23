@@ -146,6 +146,12 @@ def _fetch_daily_data(lat: float, lng: float) -> Optional[dict]:
                 provider_status="OK" if resp.ok else "ERROR",
             )
 
+        try:
+            from health_monitor import record_call
+            record_call("open_meteo", resp.ok, int(elapsed_ms))
+        except Exception:
+            pass
+
         if not resp.ok:
             logger.warning(
                 "Open-Meteo API returned %d for (%.2f, %.2f)",
@@ -157,20 +163,31 @@ def _fetch_daily_data(lat: float, lng: float) -> Optional[dict]:
 
     except requests.Timeout:
         logger.warning("Open-Meteo API timed out for (%.2f, %.2f)", lat, lng)
+        _elapsed_ms = int((time.time() - t0) * 1000)
         if trace:
             trace.record_api_call(
                 service="open_meteo",
                 endpoint="archive",
-                elapsed_ms=(time.time() - t0) * 1000,
+                elapsed_ms=_elapsed_ms,
                 status_code=0,
                 provider_status="TIMEOUT",
             )
+        try:
+            from health_monitor import record_call
+            record_call("open_meteo", False, _elapsed_ms, "timeout")
+        except Exception:
+            pass
         return None
     except Exception:
         logger.warning(
             "Open-Meteo API request failed for (%.2f, %.2f)",
             lat, lng, exc_info=True,
         )
+        try:
+            from health_monitor import record_call
+            record_call("open_meteo", False, int((time.time() - t0) * 1000), "exception")
+        except Exception:
+            pass
         return None
 
 
