@@ -16,6 +16,8 @@ from scoring_config import (
     DimensionResult,
     apply_piecewise,
     apply_quality_multiplier,
+    PERSONA_PRESETS,
+    DEFAULT_PERSONA,
 )
 from property_evaluator import get_score_band, SCORE_BANDS, Tier2Score
 
@@ -385,3 +387,119 @@ class TestModelVersionPresence:
             model_version=SCORING_MODEL.version,
         )
         assert dr.model_version == SCORING_MODEL.version
+
+
+# =============================================================================
+# Persona preset tests (NES-133)
+# =============================================================================
+
+class TestPersonaPresets:
+    """Validate persona preset definitions."""
+
+    EXPECTED_DIMENSIONS = {
+        "Parks & Green Space",
+        "Coffee & Social Spots",
+        "Daily Essentials",
+        "Fitness & Recreation",
+        "Road Noise",
+        "Getting Around",
+    }
+
+    def test_all_personas_have_six_weights(self):
+        for key, preset in PERSONA_PRESETS.items():
+            assert len(preset.weights) == 6, f"Persona {key} has {len(preset.weights)} weights"
+
+    def test_all_persona_weights_sum_to_six(self):
+        for key, preset in PERSONA_PRESETS.items():
+            total = sum(preset.weights.values())
+            assert abs(total - 6.0) < 0.001, f"Persona {key} weights sum to {total}"
+
+    def test_balanced_is_all_ones(self):
+        balanced = PERSONA_PRESETS["balanced"]
+        for dim, w in balanced.weights.items():
+            assert w == 1.0, f"Balanced persona weight for {dim} is {w}, expected 1.0"
+
+    def test_all_weights_are_positive(self):
+        for key, preset in PERSONA_PRESETS.items():
+            for dim, w in preset.weights.items():
+                assert w > 0, f"Persona {key} has non-positive weight {w} for {dim}"
+
+    def test_default_persona_exists(self):
+        assert DEFAULT_PERSONA in PERSONA_PRESETS
+
+    def test_all_dimension_names_are_valid(self):
+        """Persona weight keys must match actual Tier 2 dimension names."""
+        for key, preset in PERSONA_PRESETS.items():
+            assert set(preset.weights.keys()) == self.EXPECTED_DIMENSIONS, (
+                f"Persona {key} has mismatched dimension names"
+            )
+
+    def test_persona_preset_fields(self):
+        """Each preset has required fields."""
+        for key, preset in PERSONA_PRESETS.items():
+            assert preset.key == key
+            assert len(preset.label) > 0
+            assert len(preset.description) > 0
+
+
+class TestWeightedAggregation:
+    """Verify weighted scoring produces correct results."""
+
+    def _make_scores(self, parks=5, coffee=5, grocery=5, fitness=5, noise=5, transit=5):
+        return [
+            DimensionResult(score=float(parks), max_score=10.0, name="Parks & Green Space", details="", scoring_inputs={}),
+            DimensionResult(score=float(coffee), max_score=10.0, name="Coffee & Social Spots", details="", scoring_inputs={}),
+            DimensionResult(score=float(grocery), max_score=10.0, name="Daily Essentials", details="", scoring_inputs={}),
+            DimensionResult(score=float(fitness), max_score=10.0, name="Fitness & Recreation", details="", scoring_inputs={}),
+            Tier2Score(name="Road Noise", points=noise, max_points=10, details=""),
+            Tier2Score(name="Getting Around", points=transit, max_points=10, details=""),
+        ]
+
+    def _weighted_norm(self, scores, persona_key):
+        weights = PERSONA_PRESETS[persona_key].weights
+        total = sum(s.points * weights.get(s.name, 1.0) for s in scores)
+        mx = sum(s.max_points * weights.get(s.name, 1.0) for s in scores)
+        return int(total / mx * 100 + 0.5) if mx > 0 else 0
+
+    def test_balanced_matches_unweighted(self):
+        """Balanced persona must produce identical result to unweighted sum."""
+        scores = self._make_scores(8, 7, 6, 5, 7, 6)
+        weights = PERSONA_PRESETS["balanced"].weights
+        weighted_total = sum(s.points * weights[s.name] for s in scores)
+        unweighted_total = sum(s.points for s in scores)
+        assert weighted_total == unweighted_total
+
+    def test_active_persona_emphasizes_parks_fitness(self):
+        """Active persona should score higher when parks/fitness are strong."""
+        scores = self._make_scores(parks=9, coffee=3, grocery=5, fitness=9, noise=4, transit=3)
+        balanced_norm = self._weighted_norm(scores, "balanced")
+        active_norm = self._weighted_norm(scores, "active")
+        assert active_norm > balanced_norm, "Active persona should score higher when parks/fitness dominate"
+
+    def test_commuter_persona_emphasizes_transit(self):
+        """Commuter persona should score higher when transit is strong."""
+        scores = self._make_scores(parks=3, coffee=8, grocery=5, fitness=3, noise=4, transit=9)
+        balanced_norm = self._weighted_norm(scores, "balanced")
+        commuter_norm = self._weighted_norm(scores, "commuter")
+        assert commuter_norm > balanced_norm, "Commuter persona should score higher when transit dominates"
+
+    def test_quiet_persona_emphasizes_noise(self):
+        """Quiet persona should score higher when road noise is good."""
+        scores = self._make_scores(parks=5, coffee=3, grocery=8, fitness=3, noise=9, transit=3)
+        balanced_norm = self._weighted_norm(scores, "balanced")
+        quiet_norm = self._weighted_norm(scores, "quiet")
+        assert quiet_norm > balanced_norm, "Quiet persona should score higher when noise/grocery dominate"
+
+    def test_all_personas_in_range(self):
+        """Weighted normalization must always be 0-100."""
+        scores = self._make_scores(10, 10, 10, 10, 10, 10)
+        for key in PERSONA_PRESETS:
+            norm = self._weighted_norm(scores, key)
+            assert 0 <= norm <= 100, f"Persona {key} produced out-of-range score {norm}"
+
+    def test_all_zeros(self):
+        """Zero scores produce 0 for all personas."""
+        scores = self._make_scores(0, 0, 0, 0, 0, 0)
+        for key in PERSONA_PRESETS:
+            norm = self._weighted_norm(scores, key)
+            assert norm == 0, f"Persona {key} produced {norm} from all-zero scores"

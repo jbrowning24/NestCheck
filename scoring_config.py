@@ -100,6 +100,21 @@ class DimensionResult:
 
 
 @dataclass(frozen=True)
+class PersonaPreset:
+    """A persona preset with dimension weights for Tier 2 scoring.
+
+    Weights are multipliers applied during aggregation — higher weight means
+    the dimension contributes proportionally more to the final 0-100 score.
+    All persona weight dicts must have exactly 6 keys summing to 6.0 so the
+    maximum possible raw weighted score stays at 60 (same as 6 × 10).
+    """
+    key: str                   # URL-safe identifier, e.g. "balanced"
+    label: str                 # Human-readable, e.g. "Balanced"
+    description: str           # Short tagline for UI
+    weights: dict              # dimension_name -> float weight
+
+
+@dataclass(frozen=True)
 class ScoringModel:
     """Top-level container for all scoring parameters.
 
@@ -237,7 +252,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.2.0",
+    version="1.3.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
@@ -282,3 +297,71 @@ SCORING_MODEL = ScoringModel(
         ScoreBand(0, "Significant Gaps", "band-poor"),
     ),
 )
+
+
+# =============================================================================
+# Persona presets — scoring lens weights for Tier 2 aggregation (NES-133)
+# =============================================================================
+
+PERSONA_PRESETS = {
+    "balanced": PersonaPreset(
+        key="balanced",
+        label="Balanced",
+        description="Equal weight across all dimensions",
+        weights={
+            "Parks & Green Space": 1.0,
+            "Coffee & Social Spots": 1.0,
+            "Daily Essentials": 1.0,
+            "Fitness & Recreation": 1.0,
+            "Road Noise": 1.0,
+            "Getting Around": 1.0,
+        },
+    ),
+    "active": PersonaPreset(
+        key="active",
+        label="Active & Outdoorsy",
+        description="Emphasizes parks, trails, and fitness",
+        weights={
+            "Parks & Green Space": 1.6,
+            "Coffee & Social Spots": 0.6,
+            "Daily Essentials": 0.8,
+            "Fitness & Recreation": 1.6,
+            "Road Noise": 0.6,
+            "Getting Around": 0.8,
+        },
+    ),
+    "commuter": PersonaPreset(
+        key="commuter",
+        label="Urban Commuter",
+        description="Emphasizes transit and walkable amenities",
+        weights={
+            "Parks & Green Space": 0.6,
+            "Coffee & Social Spots": 1.5,
+            "Daily Essentials": 0.9,
+            "Fitness & Recreation": 0.7,
+            "Road Noise": 0.6,
+            "Getting Around": 1.7,
+        },
+    ),
+    "quiet": PersonaPreset(
+        key="quiet",
+        label="Peace & Quiet",
+        description="Emphasizes quiet living and daily essentials",
+        weights={
+            "Parks & Green Space": 1.2,
+            "Coffee & Social Spots": 0.7,
+            "Daily Essentials": 1.3,
+            "Fitness & Recreation": 0.6,
+            "Road Noise": 1.5,
+            "Getting Around": 0.7,
+        },
+    ),
+}
+
+DEFAULT_PERSONA = "balanced"
+
+# Validate all persona weights at import time
+for _k, _p in PERSONA_PRESETS.items():
+    _wsum = sum(_p.weights.values())
+    assert abs(_wsum - 6.0) < 0.001, f"Persona {_k!r} weights sum to {_wsum}, expected 6.0"
+    assert len(_p.weights) == 6, f"Persona {_k!r} has {len(_p.weights)} weights, expected 6"

@@ -124,6 +124,51 @@
   line-height: 1.4;
 }
 
+/* --- Persona Selector (NES-133) ------------------------------ */
+.persona-selector {
+  padding: var(--space-8) var(--space-16) 0;
+}
+.persona-label {
+  display: block;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-8);
+}
+.persona-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+.persona-option {
+  cursor: pointer;
+  flex: 0 1 auto;
+}
+.persona-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.persona-pill {
+  display: inline-block;
+  padding: var(--space-6) var(--space-12);
+  font-size: var(--font-size-small);
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.persona-pill:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.persona-option--active .persona-pill {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface);
+}
+
 /* --- Why Block (callout) ------------------------------------- */
 .why-block {
   max-width: 560px;
@@ -355,9 +400,17 @@
   }
   .search-box {
     flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .search-box input[type="text"] {
+    flex: 1 1 auto;
   }
   .search-box button {
     width: auto;
+  }
+  .persona-selector {
+    flex: 1 1 100%;
+    order: 1;
   }
   .features {
     grid-template-columns: repeat(2, 1fr);

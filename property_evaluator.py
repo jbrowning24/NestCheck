@@ -777,6 +777,11 @@ class EvaluationResult:
     # Scoring model version used to produce this evaluation
     model_version: str = ""
 
+    # Persona key used for weighted scoring (NES-133)
+    persona: Optional[str] = None
+    tier2_total_weighted: float = 0.0
+    tier2_max_weighted: float = 0.0
+
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
 
@@ -3961,6 +3966,7 @@ def evaluate_property(
     api_key: str,
     on_stage: Optional[Callable[[str], None]] = None,
     place_id: Optional[str] = None,
+    persona: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
@@ -3992,6 +3998,12 @@ def evaluate_property(
         lng=lng,
         model_version=SCORING_MODEL.version,
     )
+
+    # Resolve persona weights for Tier 2 aggregation (NES-133)
+    from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
+    persona_key = persona if persona and persona in PERSONA_PRESETS else DEFAULT_PERSONA
+    result.persona = persona_key
+    _persona_weights = PERSONA_PRESETS[persona_key].weights
 
     # --- Parallel enrichment stages ---
     # All stages below depend only on lat/lng from geocoding.  Running them
@@ -4246,9 +4258,19 @@ def evaluate_property(
     # the per-dimension points shown in the UI/CLI/API output.
     result.tier2_total = sum(s.points for s in result.tier2_scores)
     result.tier2_max = sum(s.max_points for s in result.tier2_scores)
-    if result.tier2_max > 0:
+
+    # Weighted aggregation — persona weights adjust dimension contributions.
+    # When all weights are 1.0 ("balanced"), this is algebraically identical
+    # to the previous equal-weight sum.
+    result.tier2_total_weighted = sum(
+        s.points * _persona_weights.get(s.name, 1.0) for s in result.tier2_scores
+    )
+    result.tier2_max_weighted = sum(
+        s.max_points * _persona_weights.get(s.name, 1.0) for s in result.tier2_scores
+    )
+    if result.tier2_max_weighted > 0:
         result.tier2_normalized = int(
-            (result.tier2_total / result.tier2_max) * 100 + 0.5
+            (result.tier2_total_weighted / result.tier2_max_weighted) * 100 + 0.5
         )
     else:
         result.tier2_normalized = 0

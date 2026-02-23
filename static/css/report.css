@@ -783,6 +783,62 @@
   cursor: not-allowed;
 }
 
+/* =====================================================
+   NES-133: Persona badge and weight indicators
+   ===================================================== */
+
+.persona-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  font-size: var(--font-size-small);
+  color: var(--color-primary);
+  background: var(--color-primary-faint, rgba(37, 99, 235, 0.08));
+  border-radius: var(--radius-full, 9999px);
+  font-weight: 600;
+}
+
+.dimension-weight-badge {
+  font-size: 0.7em;
+  line-height: 1;
+  margin-left: 2px;
+}
+.weight-up {
+  color: var(--color-primary, #2563eb);
+}
+.weight-down {
+  color: var(--color-text-muted, #9ca3af);
+}
+
+.persona-weights-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: var(--color-surface-subtle, #f8fafc);
+  border-radius: var(--radius-md, 8px);
+}
+.persona-weight-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-small);
+}
+.pw-dim {
+  color: var(--color-text-secondary);
+}
+.pw-weight {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.pw-emphasis {
+  color: var(--color-primary, #2563eb);
+}
+.pw-deemphasis {
+  color: var(--color-text-muted, #9ca3af);
+}
+
 /* --- Print (shared) --- */
 @media print {
   nav, .share-bar, footer { display: none; }

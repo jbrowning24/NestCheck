@@ -77,7 +77,7 @@ def _reissue_free_tier_if_needed(job_id: str) -> None:
         logger.exception("[worker] Failed to reissue free tier credit for job %s", job_id)
 
 
-def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None) -> None:
+def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None, persona: str = None) -> None:
     """
     Run a single evaluation job: evaluate, save snapshot, complete or fail.
     Updates current_stage in the DB as evaluation progresses.
@@ -90,14 +90,14 @@ def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str 
                 scope.set_tag("job_id", job_id)
                 scope.set_tag("request_id", request_id or "")
                 scope.set_tag("address", (address or "")[:200])
-                _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash)
+                _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash, persona)
             return
         except Exception:
             raise  # Re-raise so _worker_loop can handle and capture
-    _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash)
+    _run_job_impl(job_id, address, visitor_id, request_id, place_id, email_hash, persona)
 
 
-def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None) -> None:
+def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None, persona: str = None) -> None:
     """Inner job execution (called with or without Sentry scope)."""
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
@@ -123,7 +123,7 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
 
     try:
         listing = PropertyListing(address=address)
-        eval_result = evaluate_property(listing, api_key, on_stage=on_stage, place_id=place_id)
+        eval_result = evaluate_property(listing, api_key, on_stage=on_stage, place_id=place_id, persona=persona)
 
         # Serialize result for snapshot (same as app.py). Lazy import to avoid
         # circular dependency (app imports worker for start_worker).
@@ -193,9 +193,10 @@ def _worker_loop() -> None:
             request_id = job.get("request_id")
             place_id = job.get("place_id")
             email_hash = job.get("email_hash")
+            persona = job.get("persona")
             logger.info("[worker] Claimed job %s: %r", job_id, address)
             try:
-                _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id, place_id=place_id, email_hash=email_hash)
+                _run_job(job_id, address, visitor_id=visitor_id, request_id=request_id, place_id=place_id, email_hash=email_hash, persona=persona)
             except Exception as e:
                 logger.exception("[worker] Unhandled error in job %s", job_id)
                 if os.environ.get("SENTRY_DSN"):
