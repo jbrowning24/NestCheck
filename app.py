@@ -1028,6 +1028,7 @@ def _serialize_green_escape(evaluation):
             "rating": p.rating,
             "user_ratings_total": p.user_ratings_total,
             "walk_time_min": p.walk_time_min,
+            "drive_time_min": p.drive_time_min,
             "types_display": p.types_display,
             "daily_walk_value": p.daily_walk_value,
             "criteria_status": p.criteria_status,
@@ -1057,6 +1058,7 @@ def _serialize_green_escape(evaluation):
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
+            "drive_time_min": s.drive_time_min,
             "daily_walk_value": s.daily_walk_value,
             "criteria_status": s.criteria_status,
             "criteria_reasons": s.criteria_reasons,
@@ -2382,6 +2384,15 @@ def healthz():
         "missing_keys": missing,
         "api_health": api_health,
     }), 200 if overall == "ok" else 503
+
+
+@app.route("/healthz/latest-snapshot")
+@limiter.exempt
+def healthz_latest_snapshot():
+    """Return the most recent snapshot ID for post-deploy smoke tests."""
+    rows = get_recent_snapshots(limit=1)
+    sid = rows[0]["snapshot_id"] if rows else None
+    return jsonify({"snapshot_id": sid})
 
 
 @app.route("/debug/trace/<snapshot_id>")

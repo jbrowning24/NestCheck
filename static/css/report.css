@@ -652,6 +652,11 @@
   color: var(--color-text-light);
   margin-top: 2px;
 }
+.eval-note {
+  margin: 4px 0 0;
+  font-size: 0.82em;
+  color: var(--color-text-light);
+}
 .osm-note {
   margin-top: 8px;
   font-size: 0.78em;

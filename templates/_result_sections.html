@@ -321,6 +321,12 @@
       <p class="section-insight">{{ result.insights.parks }}</p>
     {% endif %}
 
+    {% if result.green_escape and result.green_escape.messages %}
+      {% for msg in result.green_escape.messages %}
+        <p class="eval-note">{{ msg }}</p>
+      {% endfor %}
+    {% endif %}
+
     {% if result.green_escape and result.green_escape.best_daily_park %}
       {% set park = result.green_escape.best_daily_park %}
       <div class="park-highlight">
