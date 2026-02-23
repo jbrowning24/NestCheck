@@ -177,6 +177,19 @@
   </form>
 </div>
 
+{% if is_builder %}
+<details class="error-diagnostic">
+  <summary>Builder diagnostic</summary>
+  <pre>{{ {
+    "snapshot_id": snapshot_id or none,
+    "snapshot_url": (request.host_url ~ 's/' ~ snapshot_id) if snapshot_id else none,
+    "address": result.address,
+    "walk_scores": result.walk_scores if result.walk_scores is defined else none,
+    "transit_access": result.transit_access if result.transit_access is defined else none,
+  } | tojson(indent=2) }}</pre>
+</details>
+{% endif %}
+
 {% set is_snapshot = false %}
 {% include '_result_sections.html' %}
 {% endif %}
@@ -559,18 +572,19 @@
     }
   })();
 
-  function copyShareLink() {
+  function copyShareLink(triggerEl) {
     var snapshotId = '{{ snapshot_id or "" }}';
     if (!snapshotId) return;
     var url = window.location.origin + '/s/' + snapshotId;
     navigator.clipboard.writeText(url).then(function() {
-      var btn = document.getElementById('shareBtn');
-      var txt = document.getElementById('shareBtnText');
+      var btn = triggerEl || document.getElementById('shareBtn');
+      var txt = btn.querySelector('span') || btn;
+      var origText = txt.textContent;
       btn.classList.add('copied');
       txt.textContent = 'Copied!';
       setTimeout(function() {
         btn.classList.remove('copied');
-        txt.textContent = 'Copy share link';
+        txt.textContent = origText;
       }, 2000);
 
       // Track share event
