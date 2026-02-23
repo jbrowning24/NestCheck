@@ -147,33 +147,6 @@
   color: var(--color-text-dark);
 }
 
-/* --- Landing Preview (verdict card when LANDING_PREVIEW_SNAPSHOT_ID set) --- */
-.landing-preview {
-  max-width: 720px;
-  margin: var(--space-40) auto var(--space-60);
-  padding: 0 var(--space-24);
-}
-.landing-preview-label {
-  text-align: center;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: var(--space-12);
-}
-.landing-preview-cta {
-  text-align: center;
-  margin-top: var(--space-20);
-}
-.landing-preview-cta a {
-  color: var(--color-primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-.landing-preview-cta a:hover {
-  text-decoration: underline;
-}
-
 /* --- Evaluation Snippet (reusable condensed eval component) -- */
 .eval-snippet {
   max-width: 720px;

@@ -2,8 +2,7 @@
 {# _eval_snippet.html — Reusable condensed evaluation snippet.       #}
 {#                                                                    #}
 {# Expects:                                                           #}
-{#   preview_result        — full result dict from a snapshot         #}
-{#   preview_snapshot_id   — snapshot ID for the "full report" link   #}
+{#   preview_result   — full result dict from a snapshot              #}
 {#                                                                    #}
 {# Designed for reuse on landing page, curated lists, location pages. #}
 {# ================================================================== #}
@@ -52,7 +51,7 @@
     {% set np = preview_result.neighborhood_places | default({}) %}
     {% set snippet_places = [] %}
     {% for cat_key, cat_icon, cat_label in [("grocery", "🛒", "Grocery"), ("coffee", "☕", "Coffee"), ("fitness", "💪", "Fitness")] %}
-      {% set places = np.get(cat_key, []) %}
+      {% set places = np[cat_key] | default([]) %}
       {% if places and snippet_places | length < 3 %}
         {% set p = places[0] %}
         {% if snippet_places.append({"name": p.name, "walk_time_min": p.walk_time_min, "rating": p.rating, "icon": cat_icon, "label": cat_label}) %}{% endif %}
@@ -69,7 +68,7 @@
           <div class="snippet-place-info">
             <div class="snippet-place-name">{{ sp.name }}</div>
             <div class="snippet-place-meta">
-              {{ fmt_time(sp.walk_time_min, "walk") }}
+              {% if sp.walk_time_min %}{{ fmt_time(sp.walk_time_min, "walk") }}{% endif %}
               {% if sp.rating %}<span class="snippet-place-rating">{{ "%.1f"|format(sp.rating) }} ★</span>{% endif %}
             </div>
           </div>
