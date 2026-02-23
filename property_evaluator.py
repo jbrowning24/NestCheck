@@ -42,6 +42,7 @@ from road_noise import (
     _haversine_ft,
     _nearest_point_on_segment,
 )
+from sidewalk_coverage import assess_sidewalk_coverage, SidewalkCoverageAssessment
 from weather import get_weather_summary, WeatherSummary
 from scoring_config import (
     SCORING_MODEL,
@@ -793,6 +794,9 @@ class EvaluationResult:
 
     # Weather climate normals — informational, not scored (NES-32)
     weather_summary: Optional[WeatherSummary] = None
+
+    # Sidewalk & cycleway coverage — informational, not scored (NES-110)
+    sidewalk_coverage: Optional[SidewalkCoverageAssessment] = None
 
 
 # =============================================================================
@@ -4069,6 +4073,11 @@ def evaluate_property(
             _timed_stage_in_thread, parent_trace,
             "weather", get_weather_summary, lat, lng,
         )
+        # Sidewalk/cycleway coverage — Overpass only, zero cost (NES-110).
+        futures["sidewalk_coverage"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "sidewalk_coverage", assess_sidewalk_coverage, lat, lng,
+        )
 
         # Collect results — each stage fails independently
         for stage_name, future in futures.items():
@@ -4099,6 +4108,8 @@ def evaluate_property(
                     result.road_noise_assessment = stage_result
                 elif stage_name == "weather":
                     result.weather_summary = stage_result
+                elif stage_name == "sidewalk_coverage":
+                    result.sidewalk_coverage = stage_result
             except Exception:
                 pass  # Graceful degradation — same as the sequential path
 
