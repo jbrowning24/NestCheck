@@ -1647,7 +1647,7 @@ class OverpassClient:
         # Fallback: keyword matching on name
         name_lower = name.lower()
         elementary_keywords = {"elementary", "primary", "grammar"}
-        secondary_keywords = {"middle", "junior high", "high school", "secondary", "senior high"}
+        secondary_keywords = {"middle school", "junior high", "high school", "secondary", "senior high"}
         has_elem = any(kw in name_lower for kw in elementary_keywords)
         has_sec = any(kw in name_lower for kw in secondary_keywords)
         if has_elem and has_sec:
