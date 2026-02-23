@@ -320,6 +320,24 @@ def init_db():
                 except sqlite3.OperationalError:
                     pass
 
+        # Migrate snapshots — add og_image_png column (NES-40: OG image cache).
+        if _USE_POSTGRES:
+            if "og_image_png" not in snap_cols:
+                try:
+                    cur.execute(
+                        "ALTER TABLE snapshots ADD COLUMN og_image_png BYTEA"
+                    )
+                except psycopg2.errors.DuplicateColumn:
+                    conn.rollback()
+        else:
+            if "og_image_png" not in snap_cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE snapshots ADD COLUMN og_image_png BLOB"
+                    )
+                except sqlite3.OperationalError:
+                    pass
+
         conn.commit()
     finally:
         _return_conn(conn)
@@ -421,6 +439,37 @@ def increment_view_count(snapshot_id):
         cur.execute(
             _q("UPDATE snapshots SET view_count = view_count + 1 WHERE snapshot_id = ?"),
             (snapshot_id,),
+        )
+        conn.commit()
+    finally:
+        _return_conn(conn)
+
+
+def get_og_image(snapshot_id: str) -> Optional[bytes]:
+    """Return cached OG image PNG bytes, or None."""
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        cur.execute(
+            _q("SELECT og_image_png FROM snapshots WHERE snapshot_id = ?"),
+            (snapshot_id,),
+        )
+        row = cur.fetchone()
+        if row and row["og_image_png"]:
+            return bytes(row["og_image_png"])
+        return None
+    finally:
+        _return_conn(conn)
+
+
+def save_og_image(snapshot_id: str, png_bytes: bytes) -> None:
+    """Cache OG image PNG bytes for a snapshot."""
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        cur.execute(
+            _q("UPDATE snapshots SET og_image_png = ? WHERE snapshot_id = ?"),
+            (png_bytes, snapshot_id),
         )
         conn.commit()
     finally:

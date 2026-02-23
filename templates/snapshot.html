@@ -25,6 +25,11 @@
   {% endif %}
   <meta property="og:type" content="article">
   <meta property="og:url" content="{{ request.url }}">
+  {% if not is_preview %}
+  <meta property="og:image" content="{{ url_for('snapshot_og_image', snapshot_id=snapshot_id, _external=True) }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  {% endif %}
 {% endblock %}
 
 {% block nav_links %}
@@ -42,9 +47,17 @@
     {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
   </div>
   <div class="share-actions">
+    <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      <span>Share</span>
+    </button>
     <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span id="shareBtnText">Copy share link</span>
+    </button>
+    <button class="share-btn share-btn--secondary" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Save as PDF
     </button>
     <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
@@ -90,6 +103,37 @@
       }).catch(function() {}); // fire-and-forget
     });
   }
+
+  function nativeShare() {
+    navigator.share({
+      title: {{ result.address | tojson }},
+      text: {{ (result.verdict ~ ' · Score: ' ~ result.final_score ~ '/100') | tojson }},
+      url: window.location.href
+    }).then(function() {
+      // Track share event
+      fetch('/api/event', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()},
+        body: JSON.stringify({
+          event_type: 'snapshot_shared',
+          snapshot_id: '{{ snapshot_id }}'
+        })
+      }).catch(function() {});
+    }).catch(function(err) {
+      // User cancelled — ignore
+      if (err.name !== 'AbortError') {
+        console.warn('Share failed:', err);
+      }
+    });
+  }
+
+  // Feature detection: show native share button if Web Share API is available
+  (function() {
+    if (navigator.share) {
+      var btn = document.getElementById('nativeShareBtn');
+      if (btn) btn.style.display = '';
+    }
+  })();
 
   function toggleSection(el) {
     var body = el.nextElementSibling;
