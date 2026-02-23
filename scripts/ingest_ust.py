@@ -114,24 +114,27 @@ def discover_fields():
         "f": "json",
         "resultRecordCount": 1,
     }
-    resp = requests.get(UST_ENDPOINT, params=params, timeout=30)
+    try:
+        resp = requests.get(UST_ENDPOINT, params=params, timeout=30)
+    except Exception as e:
+        logger.error("Discover request failed: %s", e)
+        return None
     if resp.status_code != 200:
-        print(f"ERROR: HTTP {resp.status_code}")
-        print(resp.text[:500])
+        logger.error("HTTP %d: %s", resp.status_code, resp.text[:500])
         return None
     data = resp.json()
     if "error" in data:
-        print(f"ERROR from ArcGIS: {json.dumps(data['error'], indent=2)}")
+        logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
         return None
     if "fields" in data:
-        print("Available fields:")
+        logger.info("Available fields:")
         for field in data["fields"]:
-            print(f"  {field['name']} ({field['type']})")
+            logger.info("  %s (%s)", field["name"], field["type"])
     if "features" in data and data["features"]:
-        print("\nSample record:")
+        logger.info("Sample record:")
         feat = data["features"][0]
-        print(f"  Attributes: {json.dumps(feat.get('attributes', {}), indent=2)}")
-        print(f"  Geometry: {feat.get('geometry', {})}")
+        logger.info("  Attributes: %s", json.dumps(feat.get("attributes", {}), indent=2))
+        logger.info("  Geometry: %s", feat.get("geometry", {}))
     return data
 
 
@@ -145,6 +148,8 @@ def ingest(limit: int = 0, state: str = "", discover: bool = False):
     # Build WHERE clause (State field uses full names, e.g. "New York")
     where = "1=1"
     if state:
+        if not state.replace(" ", "").isalpha():
+            raise ValueError(f"Invalid state name: {state!r} (expected full name, e.g. 'New York')")
         where = f"State = '{state}'"
 
     logger.info("Starting UST Finder ingestion")
@@ -212,14 +217,18 @@ def ingest(limit: int = 0, state: str = "", discover: bool = False):
                     "tos_usts": attrs.get("TOS_USTs", 0),
                 }
 
-                conn.execute(
-                    """INSERT INTO facilities_ust
-                       (name, geometry, metadata_json)
-                       VALUES (?, MakePoint(?, ?, 4326), ?)""",
-                    (name, lng, lat, json.dumps(metadata)),
-                )
-                inserted_this_batch += 1
-                total_inserted += 1
+                try:
+                    conn.execute(
+                        """INSERT INTO facilities_ust
+                           (name, geometry, metadata_json)
+                           VALUES (?, MakePoint(?, ?, 4326), ?)""",
+                        (name, lng, lat, json.dumps(metadata)),
+                    )
+                    inserted_this_batch += 1
+                    total_inserted += 1
+                except Exception as e:
+                    logger.warning("Insert failed for %s: %s", name[:50], e)
+                    total_skipped += 1
 
                 if limit and total_inserted >= limit:
                     break
@@ -262,10 +271,11 @@ def ingest(limit: int = 0, state: str = "", discover: bool = False):
         conn.close()
 
     # Step 4: Report
-    db_path = os.path.join(
-        os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""),
-        "spatial.db",
-    ) if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH") else "data/spatial.db"
+    db_path = (
+        os.path.join(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""), "spatial.db")
+        if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+        else os.environ.get("NESTCHECK_SPATIAL_DB_PATH", "data/spatial.db")
+    )
 
     db_size_mb = 0
     if os.path.exists(db_path):

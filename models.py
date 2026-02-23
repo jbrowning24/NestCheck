@@ -144,6 +144,7 @@ _TABLES_SQL = [
         verdict         TEXT,
         final_score     INTEGER,
         passed_tier1    INTEGER NOT NULL DEFAULT 0,
+        is_preview      INTEGER NOT NULL DEFAULT 0,
         result_json     TEXT NOT NULL,
         view_count      INTEGER NOT NULL DEFAULT 0
     )""",
@@ -188,7 +189,8 @@ _TABLES_SQL = [
         status            TEXT NOT NULL DEFAULT 'pending',
         created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         redeemed_at       TIMESTAMP,
-        job_id            TEXT
+        job_id            TEXT,
+        snapshot_id       TEXT
     )""",
     """CREATE TABLE IF NOT EXISTS free_tier_usage (
         id          {auto_pk},
@@ -264,6 +266,60 @@ def init_db():
                     except sqlite3.OperationalError:
                         pass  # Another process already added it
 
+        # Migrate snapshots — add is_preview column (NES-132: free preview tier).
+        if _USE_POSTGRES:
+            cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_name = 'snapshots'"""
+            )
+            snap_cols = {row["column_name"] for row in cur.fetchall()}
+            if "is_preview" not in snap_cols:
+                try:
+                    cur.execute(
+                        "ALTER TABLE snapshots ADD COLUMN is_preview INTEGER NOT NULL DEFAULT 0"
+                    )
+                except psycopg2.errors.DuplicateColumn:
+                    conn.rollback()
+        else:
+            snap_cols = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(snapshots)").fetchall()
+            }
+            if "is_preview" not in snap_cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE snapshots ADD COLUMN is_preview INTEGER NOT NULL DEFAULT 0"
+                    )
+                except sqlite3.OperationalError:
+                    pass
+
+        # Migrate payments — add snapshot_id column (NES-132: link payment to preview snapshot).
+        if _USE_POSTGRES:
+            cur.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_name = 'payments'"""
+            )
+            pay_cols = {row["column_name"] for row in cur.fetchall()}
+            if "snapshot_id" not in pay_cols:
+                try:
+                    cur.execute(
+                        "ALTER TABLE payments ADD COLUMN snapshot_id TEXT"
+                    )
+                except psycopg2.errors.DuplicateColumn:
+                    conn.rollback()
+        else:
+            pay_cols = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(payments)").fetchall()
+            }
+            if "snapshot_id" not in pay_cols:
+                try:
+                    conn.execute(
+                        "ALTER TABLE payments ADD COLUMN snapshot_id TEXT"
+                    )
+                except sqlite3.OperationalError:
+                    pass
+
         conn.commit()
     finally:
         _return_conn(conn)
@@ -278,10 +334,11 @@ def generate_snapshot_id():
     return uuid.uuid4().hex[:8]
 
 
-def save_snapshot(address_input, address_norm, result_dict):
+def save_snapshot(address_input, address_norm, result_dict, is_preview=False):
     """Persist an evaluation snapshot. Returns the snapshot_id.
 
     result_dict is the full template-ready dict from result_to_dict().
+    is_preview: if True, snapshot is saved as a gated preview (NES-132).
     """
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
@@ -291,8 +348,8 @@ def save_snapshot(address_input, address_norm, result_dict):
         cur.execute(
             _q("""INSERT INTO snapshots
                    (snapshot_id, address_input, address_norm, created_at,
-                    verdict, final_score, passed_tier1, result_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""),
+                    verdict, final_score, passed_tier1, is_preview, result_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
             (
                 snapshot_id,
                 address_input,
@@ -301,6 +358,7 @@ def save_snapshot(address_input, address_norm, result_dict):
                 result_dict.get("verdict", ""),
                 result_dict.get("final_score", 0),
                 1 if result_dict.get("passed_tier1") else 0,
+                1 if is_preview else 0,
                 json.dumps(result_dict, default=str),
             ),
         )
@@ -332,6 +390,25 @@ def get_snapshot(snapshot_id):
             logger.error("Corrupted result_json for snapshot %s: %s", snapshot_id, e)
             return None
         return data
+    finally:
+        _return_conn(conn)
+
+
+def unlock_snapshot(snapshot_id: str) -> bool:
+    """Flip a preview snapshot to unlocked (NES-132).
+
+    Returns True if a row was actually updated (was a preview).
+    Idempotent: calling on an already-unlocked snapshot returns False.
+    """
+    conn = _get_db()
+    try:
+        cur = _cursor(conn)
+        cur.execute(
+            _q("UPDATE snapshots SET is_preview = 0 WHERE snapshot_id = ? AND is_preview = 1"),
+            (snapshot_id,),
+        )
+        conn.commit()
+        return cur.rowcount > 0
     finally:
         _return_conn(conn)
 
@@ -821,10 +898,17 @@ def set_weather_cache(cache_key: str, summary_json: str) -> None:
 # Payments (Stripe one-time evaluation credits)
 # ---------------------------------------------------------------------------
 
-def create_payment(payment_id: str, stripe_session_id: str, visitor_id: str, address: str) -> None:
+def create_payment(
+    payment_id: str,
+    stripe_session_id: str,
+    visitor_id: str,
+    address: str,
+    snapshot_id: str = None,
+) -> None:
     """Insert a new payment row with status 'pending'.
 
     Called when a Stripe Checkout session is created, before the user pays.
+    snapshot_id: optional — set when this payment unlocks a preview snapshot (NES-132).
     """
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
@@ -832,9 +916,9 @@ def create_payment(payment_id: str, stripe_session_id: str, visitor_id: str, add
         cur = _cursor(conn)
         cur.execute(
             _q("""INSERT INTO payments
-                   (id, stripe_session_id, visitor_id, address, status, created_at)
-                   VALUES (?, ?, ?, ?, 'pending', ?)"""),
-            (payment_id, stripe_session_id, visitor_id, address, now),
+                   (id, stripe_session_id, visitor_id, address, status, created_at, snapshot_id)
+                   VALUES (?, ?, ?, ?, 'pending', ?, ?)"""),
+            (payment_id, stripe_session_id, visitor_id, address, now, snapshot_id),
         )
         conn.commit()
     finally:

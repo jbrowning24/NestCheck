@@ -206,10 +206,13 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# NestCheck SQLite database (runtime data, not code)
+# NestCheck SQLite databases (runtime data, not code)
 nestcheck.db
 nestcheck.db-wal
 nestcheck.db-shm
+data/spatial.db
+data/spatial.db-wal
+data/spatial.db-shm
 .env
 .DS_Store
  (Add .env example and ignore local env + macOS files)
