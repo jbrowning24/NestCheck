@@ -135,10 +135,18 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         address_norm = result.get("address", address)
 
         on_stage("saving")
+        # NES-132: free tier jobs (identified by email_hash) produce preview
+        # snapshots when payments are enabled. Paid jobs and REQUIRE_PAYMENT=false
+        # produce full (unlocked) snapshots.
+        # Read env directly to avoid coupling to app module-level state.
+        require_payment = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
+        is_preview = bool(require_payment and email_hash)
+
         snapshot_id = save_snapshot(
             address_input=address,
             address_norm=address_norm,
             result_dict=result,
+            is_preview=is_preview,
         )
         complete_job(job_id, snapshot_id)
         if email_hash:

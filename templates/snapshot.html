@@ -8,12 +8,21 @@
 {% endblock %}
 
 {% block meta_description %}
+  {% if is_preview %}
+  <meta name="description" content="Health &amp; safety proximity results for {{ result.address }} — NestCheck">
+  {% else %}
   <meta name="description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100 — NestCheck evaluation for {{ result.address }}">
+  {% endif %}
 {% endblock %}
 
 {% block og_tags %}
+  {% if is_preview %}
+  <meta property="og:title" content="NestCheck — Health Check for {{ result.address }}">
+  <meta property="og:description" content="Health &amp; safety proximity results for {{ result.address }}">
+  {% else %}
   <meta property="og:title" content="NestCheck — {{ result.address }}">
   <meta property="og:description" content="{{ result.verdict }} · Score: {{ result.final_score }}/100">
+  {% endif %}
   <meta property="og:type" content="article">
   <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
@@ -24,6 +33,8 @@
 
 {% block content %}
 
+{# NES-132: Hide share/export bar in preview mode #}
+{% if not is_preview %}
 <!-- SHARE + EXPORT BAR -->
 <div class="share-bar">
   <div class="snapshot-meta">
@@ -39,6 +50,7 @@
     <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
   </div>
 </div>
+{% endif %}
 
 {% set is_snapshot = true %}
 {% include '_result_sections.html' %}
@@ -88,6 +100,73 @@
       icon.innerHTML = '&#9654;';
     }
   }
+
+  // NES-132: Preview checkout flow — bind via data attribute
+  (function() {
+    var btn = document.querySelector('.preview-unlock-btn[data-snapshot-id]');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      var snapshotId = btn.dataset.snapshotId;
+      btn.disabled = true;
+      btn.textContent = 'Redirecting to checkout...';
+
+      fetch('/checkout/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRFToken': csrfToken()
+        },
+        body: 'snapshot_id=' + encodeURIComponent(snapshotId)
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Unlock full report \u2014 $9';
+          alert(data.error || 'Something went wrong. Please try again.');
+        }
+      })
+      .catch(function() {
+        btn.disabled = false;
+        btn.textContent = 'Unlock full report \u2014 $9';
+      });
+    });
+  })();
 </script>
+
+{# NES-132: Payment pending — poll lightweight status endpoint for unlock #}
+{% if payment_pending is defined and payment_pending %}
+<script>
+  (function() {
+    var attempts = 0;
+    var maxAttempts = 15;
+    var interval = setInterval(function() {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        var banner = document.querySelector('.preview-health-banner');
+        if (banner) {
+          banner.innerHTML = '<div class="preview-health-title">Payment received</div>' +
+            '<div class="preview-health-status">Please refresh the page to see your full report.</div>';
+        }
+        return;
+      }
+      // Lightweight JSON check — avoids full page reloads that inflate view_count
+      fetch('/api/snapshot/{{ snapshot_id }}/status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.unlocked) {
+            clearInterval(interval);
+            window.location.href = '/s/{{ snapshot_id }}';
+          }
+        })
+        .catch(function() {}); // Swallow network errors, retry on next interval
+    }, 2000);
+  })();
+</script>
+{% endif %}
+
 <script src="{{ url_for('static', filename='js/neighborhood-map.js') }}"></script>
 {% endblock %}
