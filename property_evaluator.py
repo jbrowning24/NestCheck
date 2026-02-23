@@ -4008,6 +4008,7 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
         t1 = time.time()
         if trace:
             trace.record_stage(stage_name, t0, t1)
+            trace.end_stage()
         else:
             logger.info("  [stage] %s OK (%.1fs)", stage_name, t1 - t0)
         return result
@@ -4019,6 +4020,7 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
                 error_class=type(exc).__name__,
                 error_message=str(exc)[:200],
             )
+            trace.end_stage()
         else:
             logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, t1 - t0, exc_info=True)
         raise
@@ -4356,6 +4358,7 @@ def evaluate_property(
 
     if trace:
         trace.record_stage("tier1_checks", _t0_tier1, time.time())
+        trace.end_stage()
 
     # Determine if passed tier 1
     fail_count = sum(
