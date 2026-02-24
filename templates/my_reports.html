@@ -46,6 +46,22 @@
 
     .sign-out { font-size: 0.85rem; color: var(--color-text-muted, #6b7280); }
     .sign-out a { color: var(--color-text-muted, #6b7280); text-decoration: underline; }
+
+    /* Compare checkboxes */
+    .report-item .compare-checkbox {
+      width: 18px; height: 18px; margin: 0 0.75rem 0 0;
+      cursor: pointer; flex-shrink: 0;
+      accent-color: var(--color-primary, #0f3460);
+    }
+    .compare-actions {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .compare-selected-btn {
+      padding: 0.5rem 1rem; background: var(--color-primary, #0f3460); color: #fff;
+      border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer;
+    }
+    .compare-selected-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   </style>
 {% endblock %}
 
@@ -73,13 +89,19 @@
   <h1>My Reports</h1>
   <p class="subtitle">
     {{ email }}
-    <span class="sign-out">&middot; <a href="/auth/logout">Sign out</a></span>
+    <span class="sign-out">&middot; <a href="/auth/logout" onclick="if(window.NestCheckCompare)NestCheckCompare.clear()">Sign out</a></span>
   </p>
 
   {% if snapshots %}
+  <div class="compare-actions">
+    <button id="compareSelectedBtn" class="compare-selected-btn" disabled>Compare selected</button>
+  </div>
   <ul class="report-list">
     {% for s in snapshots %}
     <li class="report-item">
+      <input type="checkbox" class="compare-checkbox"
+             data-snapshot-id="{{ s.snapshot_id | e }}"
+             data-snapshot-address="{{ (s.address_norm or s.address_input) | e }}">
       <a href="/s/{{ s.snapshot_id }}">
         <div class="report-address">{{ s.address_norm or s.address_input }}</div>
         <div class="report-meta">

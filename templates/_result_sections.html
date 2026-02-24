@@ -793,7 +793,11 @@
       </button>
       <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
       <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
-      <a href="/compare?ids={{ snapshot_id }}" class="share-btn share-btn--secondary">Compare with another address</a>
+      {% if compare_index is not defined %}
+      <button class="share-btn share-btn--secondary" id="compareAddBtn"
+              data-snapshot-id="{{ snapshot_id | e }}"
+              data-snapshot-address="{{ result.address | e }}">Add to comparison</button>
+      {% endif %}
     </div>
   </div>
   {% endif %}

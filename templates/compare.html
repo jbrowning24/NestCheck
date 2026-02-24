@@ -66,7 +66,12 @@
 
 {# ── BOTTOM CTA ──────────────────────────────────────────────── #}
 <div class="compare-bottom-cta">
-  <a href="/" class="share-btn">Run another evaluation</a>
+  <a href="/" class="share-btn">Add another address</a>
+  {% if evaluation_count < 4 %}
+  <p style="margin-top:0.5rem;color:var(--color-text-muted,#555);font-size:0.85rem;">
+    You can compare up to 4 addresses. Run another evaluation and add it to your comparison.
+  </p>
+  {% endif %}
 </div>
 
 {% endblock %}
