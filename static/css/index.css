@@ -60,7 +60,7 @@
 }
 .search-box input[type="text"] {
   flex: 1;
-  padding: var(--space-14) var(--space-16);
+  padding: var(--space-14) var(--space-4);
   border: none;
   font-size: var(--font-size-input);
   background: transparent;
@@ -74,7 +74,7 @@
 /* CTA button — primary action, visually weighted as focal point */
 .search-box button {
   width: 100%;
-  padding: var(--space-16) var(--space-32);
+  padding: var(--space-4) var(--space-32);
   background: var(--color-primary);
   color: var(--color-surface);
   border: none;
@@ -102,7 +102,7 @@
 
 /* --- Email gate (free tier, shown when REQUIRE_PAYMENT) ------ */
 .email-gate {
-  padding: 0 var(--space-16);
+  padding: 0 var(--space-4);
 }
 .email-gate input[type="email"] {
   width: 100%;
@@ -126,7 +126,7 @@
 
 /* --- Persona Selector (NES-133) ------------------------------ */
 .persona-selector {
-  padding: var(--space-8) var(--space-16) 0;
+  padding: var(--space-8) var(--space-4) 0;
 }
 .persona-label {
   display: block;
@@ -327,7 +327,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-10);
-  padding-top: var(--space-16);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border-card);
 }
 .snippet-assessment-score {
@@ -379,7 +379,7 @@
   padding: 0 var(--space-24);
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-16);
+  gap: var(--space-4);
 }
 .feature-card {
   background: var(--color-surface);
@@ -443,7 +443,7 @@
 .loading-progress {
   width: 200px;
   height: 6px;
-  margin-top: var(--space-16);
+  margin-top: var(--space-4);
   background: var(--color-border);
   border-radius: 3px;
   overflow: hidden;
@@ -463,7 +463,7 @@
 }
 
 .loading-patience {
-  margin-top: var(--space-16);
+  margin-top: var(--space-4);
   font-size: var(--font-size-sm);
   color: var(--color-text-faintest);
   opacity: 0;
@@ -477,7 +477,7 @@
 .error-banner {
   max-width: 640px;
   margin: 0 auto var(--space-20);
-  padding: var(--space-16) var(--space-20);
+  padding: var(--space-4) var(--space-20);
   background: var(--color-danger-bg);
   border: 1px solid var(--color-danger-border);
   border-radius: var(--radius-lg);
@@ -522,17 +522,17 @@
 
 .error-diagnostic {
   max-width: 640px;
-  margin: 0 auto var(--space-16);
+  margin: 0 auto var(--space-4);
 }
 
 /* --- Search Form (result-page variant) ----------------------- */
 .search-section--result {
-  margin-top: var(--space-24);
+  margin-top: var(--space-6);
 }
 
 /* --- Share Bar (index variant) ------------------------------- */
 .share-bar {
-  margin: 0 auto var(--space-16);
+  margin: 0 auto var(--space-4);
   justify-content: flex-end;
 }
 

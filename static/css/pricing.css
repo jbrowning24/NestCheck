@@ -72,7 +72,7 @@
 }
 .price-btn {
   display: inline-block;
-  padding: var(--space-16) var(--space-40);
+  padding: var(--space-4) var(--space-40);
   background: var(--color-primary);
   color: var(--color-surface);
   border-radius: var(--radius-md);

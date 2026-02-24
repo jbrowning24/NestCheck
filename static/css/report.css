@@ -4,33 +4,46 @@
    Loaded after base.css.
    ================================================================ */
 
+/* --- Summary Narrative (Phase 2A) --- */
+.summary-narrative {
+  margin: var(--space-6) 0 var(--space-8);
+  padding: var(--space-5) var(--space-6);
+  font-size: var(--text-lg);
+  line-height: 1.65;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--color-primary);
+  overflow-wrap: break-word;
+}
+
 /* --- Report Container --- */
 .report {
   max-width: 800px;
-  margin: 30px auto 60px;
-  padding: 0 24px;
+  margin: var(--space-8) auto var(--space-60);
+  padding: 0 var(--space-6);
 }
 
 /* --- Verdict Header --- */
 .verdict-card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
   border: 1px solid var(--color-border-muted);
 }
 .verdict-address {
-  font-size: 0.9em;
+  font-size: var(--text-base);
   color: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 .score-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 /* SVG Score Ring */
@@ -49,7 +62,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8em;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-text-strong);
   line-height: 1;
@@ -64,7 +77,7 @@
 
 /* Band label text color */
 .score-band {
-  font-size: 1.1em;
+  font-size: var(--text-xl);
   font-weight: 600;
   color: var(--color-text-heading);
 }
@@ -75,24 +88,24 @@
 .score-band.band-poor        { color: var(--band-poor); }
 
 .score-scale {
-  font-size: 0.85em;
+  font-size: var(--text-sm);
   color: var(--color-text-faintest);
 }
 .dimension-list {
   border-top: 1px solid var(--color-border-light);
-  padding-top: 16px;
+  padding-top: var(--space-4);
 }
 .dimension-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 100px;
   flex-shrink: 0;
 }
 .dimension-score {
   font-weight: 600;
   color: var(--color-text-heading);
-  font-size: 0.9em;
+  font-size: var(--text-base);
   white-space: nowrap;
 }
 .dimension-bar {
@@ -113,15 +126,15 @@
 .report-section {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 24px 28px;
-  margin-bottom: 20px;
+  padding: var(--space-6) var(--space-6);
+  margin-bottom: var(--space-5);
   box-shadow: var(--shadow-card);
 }
 .report-section h2 {
-  font-size: 1.15em;
+  font-size: var(--text-xl);
   color: var(--color-primary-dark);
-  margin-bottom: 16px;
-  padding-bottom: 10px;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--color-bg);
 }
 .section-empty {
@@ -131,7 +144,7 @@
   color: var(--color-text-faint);
   font-size: var(--font-size-body-4);
   line-height: var(--line-height-normal);
-  padding: var(--space-16) 0;
+  padding: var(--space-4) 0;
 }
 .section-empty svg {
   flex-shrink: 0;
@@ -150,11 +163,15 @@
 }
 .collapsible-toggle h2 { cursor: pointer; flex: 1; }
 .collapse-icon {
-  font-size: 0.85em;
+  display: inline-block;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
-  transition: transform 0.2s;
+  transition: transform 0.15s ease;
   flex-shrink: 0;
-  margin-left: 8px;
+  margin-left: var(--space-2);
+}
+.collapse-icon.is-expanded {
+  transform: rotate(90deg);
 }
 .collapsible-body {
   max-height: 2000px;
@@ -171,71 +188,72 @@
 .data-row {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 .data-row:last-child { border-bottom: none; }
 .data-row__info { flex: 1; }
-.data-row__name { font-weight: 600; font-size: 0.95em; color: var(--color-text); }
-.data-row__detail { font-size: 0.85em; color: var(--color-text-lighter); margin-top: 2px; }
+.data-row__name { font-weight: 500; font-size: var(--text-base); color: var(--color-text-secondary); }
+.data-row__detail { font-size: var(--text-sm); color: var(--color-text-lighter); margin-top: var(--space-1); }
 .data-row__right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-left: 16px;
+  gap: var(--space-2);
+  padding-left: var(--space-4);
 }
-.data-row__value { font-weight: 600; color: var(--color-primary); font-size: 0.95em; white-space: nowrap; }
+.data-row__value { font-weight: 600; color: var(--color-text); font-size: var(--text-base); white-space: nowrap; }
 
 /* Variant: place (parks, green spaces — 12px padding, top-aligned) */
-.data-row--place { padding: 12px 0; border-bottom: 1px solid var(--color-border-light); align-items: flex-start; }
+.data-row--place { padding: var(--space-3) 0; align-items: flex-start; }
 
 /* Variant: hub (transit, emergency, libraries — center-aligned) */
-.data-row--hub { border-bottom: 1px solid var(--color-border-light); align-items: center; }
+.data-row--hub { align-items: center; }
 
 /* Variant: dimension (score breakdown — compact, no border) */
-.data-row--dimension { padding: 6px 0; align-items: center; gap: 12px; }
+.data-row--dimension { padding: var(--space-2) 0; align-items: center; gap: var(--space-3); border-bottom: none; }
 .data-row--dimension .data-row__name {
   color: var(--color-text-secondary);
-  font-size: 0.9em;
+  font-size: var(--text-base);
   min-width: 160px;
   flex-shrink: 0;
 }
 .data-row--dimension .data-row__detail {
   color: var(--color-text-dim);
-  font-size: 0.9em;
+  font-size: var(--text-base);
   flex: 1;
 }
 
 /* Modifier: suppress bottom border (e.g., park highlight) */
-.data-row--no-border { border-bottom: none; padding-bottom: 4px; }
+.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-1); }
 
 /* --- Proximity Band Items --- */
 .proximity-item {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 .proximity-neutral { background: var(--color-surface-subtle); border-left: 3px solid var(--color-border-muted); }
 .proximity-notable { background: var(--color-warning-surface); border-left: 3px solid var(--color-amber-border); }
 .proximity-very_close { background: var(--color-danger-bg); border-left: 3px solid var(--color-danger); }
 .proximity-name {
   font-weight: 600;
-  font-size: 0.95em;
+  font-size: var(--text-base);
   color: var(--color-text-strong);
 }
 .proximity-detail {
   color: var(--color-text-dim);
-  font-size: 0.9em;
-  margin-top: 4px;
+  font-size: var(--text-base);
+  margin-top: var(--space-1);
   line-height: 1.5;
 }
-.proximity-icon { margin-right: 6px; font-weight: 700; }
+.proximity-icon { margin-right: var(--space-2); font-weight: 700; }
 .proximity-icon-clear { color: var(--color-pass-text); }
 .proximity-icon-issue { color: var(--color-fail-text); }
 .proximity-icon-unverified { color: var(--color-warning-text); }
 .proximity-satellite-link {
   display: inline-block;
-  margin-top: 6px;
-  font-size: 0.85em;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-decoration: none;
 }
@@ -245,14 +263,14 @@
 .verdict-proximity-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 .verdict-proximity-pill {
   display: inline-flex;
   align-items: center;
-  font-size: 0.78rem;
-  padding: 4px 10px;
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2);
   border-radius: 12px;
   font-weight: 500;
 }
@@ -271,71 +289,76 @@
 
 /* --- Road Noise Card (sub-elements within .proximity-item) --- */
 .road-noise-detail {
-  margin-top: 2px;
-  font-size: 0.85em;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
   opacity: 0.85;
 }
 .road-noise-toggle {
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 .road-noise-label {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   opacity: 0.7;
 }
 .road-noise-methodology {
-  font-size: 0.8em;
+  font-size: var(--text-sm);
   opacity: 0.65;
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 /* --- Sidewalk Coverage Card (sub-elements within .proximity-item) --- */
 .sidewalk-confidence {
-  margin-top: 4px;
-  font-size: 0.82em;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 .sidewalk-confidence-high {
-  color: var(--color-pass-text, #1e7e34);
+  color: var(--color-pass-text);
 }
 .sidewalk-confidence-medium {
-  color: var(--color-warning-text, #856404);
+  color: var(--color-warning-text);
 }
 .sidewalk-confidence-low {
-  color: var(--color-danger, #c53030);
+  color: var(--color-danger);
 }
 
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {
-  font-size: 0.9em;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   line-height: 1.5;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 /* Insight callout — visually distinct from body text.
    Primary left accent bar + subtle background sets it apart
    from proximity items (which use status-colored left borders). */
 .section-insight {
-  font-size: 0.9em;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   line-height: 1.5;
-  margin-bottom: 16px;
-  padding: 10px 14px;
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-surface-subtle);
   border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
 }
 .band-table {
-  background: var(--color-surface-subtle);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  padding: 0;
+  margin-bottom: var(--space-4);
 }
 .band-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  font-size: 0.88em;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.band-row:last-child {
+  border-bottom: none;
 }
 .band-dot {
   width: 10px;
@@ -357,9 +380,10 @@
   color: var(--color-text-muted);
 }
 .scoring-note {
-  font-size: 0.85em;
-  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   font-style: italic;
+  margin-top: var(--space-4);
 }
 
 /* --- Missing Info --- */
@@ -367,7 +391,7 @@
   background: var(--color-warning-surface);
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-lg);
-  padding: 20px 24px;
+  padding: var(--space-5) var(--space-6);
 }
 .missing-section h2 {
   color: var(--color-warning-text);
@@ -376,30 +400,30 @@
 .missing-item {
   display: flex;
   align-items: flex-start;
-  padding: 8px 0;
-  gap: 10px;
+  padding: var(--space-2) 0;
+  gap: var(--space-2);
 }
 .missing-bullet {
   color: var(--color-amber);
   font-weight: 700;
   flex-shrink: 0;
 }
-.missing-text { font-size: 0.92em; color: var(--color-warning-text-dark); }
+.missing-text { font-size: var(--text-base); color: var(--color-warning-text-dark); }
 
 /* --- Park Subscores --- */
 .subscore-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-  margin-top: 12px;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
 }
 .subscore-card {
   background: var(--color-surface-subtle);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
 }
 .subscore-label {
-  font-size: 0.78em;
+  font-size: var(--text-sm);
   color: var(--color-text-light);
   text-transform: uppercase;
   font-weight: 600;
@@ -408,72 +432,78 @@
 .subscore-value {
   font-weight: 700;
   color: var(--color-primary-dark);
-  font-size: 1em;
+  font-size: var(--text-lg);
 }
 .subscore-reason {
-  font-size: 0.78em;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 
 /* --- Transit Accessibility (NES-31) --- */
-.accessibility-lines { margin-top: 8px; font-size: 0.82em; }
+.accessibility-lines {
+  margin-top: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+}
 .accessibility-attr { line-height: 1.6; }
 .accessibility-label { color: var(--color-text-faint); }
-.accessibility-yes { color: var(--color-text-lighter); }
-.accessibility-no { color: var(--color-danger); }
+.accessibility-yes { color: var(--color-pass-text); }
+.accessibility-no { color: var(--color-fail-text); }
 .accessibility-unverified { color: var(--color-text-faintest); font-style: italic; }
 
 /* --- Walk Score Pills --- */
 .walkscore-row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--color-border-light);
 }
 .walkscore-pill {
   flex: 1;
   min-width: 100px;
   background: var(--color-surface-subtle);
-  padding: 10px 12px;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   text-align: center;
 }
 .walkscore-pill .ws-label {
-  font-size: 0.72em;
+  font-size: var(--text-xs);
   color: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 .walkscore-pill .ws-value {
-  font-size: 1.5em;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-primary-dark);
 }
 .walkscore-pill .ws-desc {
-  font-size: 0.78em;
+  font-size: var(--text-sm);
   color: var(--color-text-light);
 }
 
 /* --- Neighborhood Cards --- */
 .neighborhood-category {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 .neighborhood-category:last-child { margin-bottom: 0; }
 .category-label {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2);
 }
 .place-cards {
   display: flex;
-  gap: 10px;
+  gap: var(--space-2);
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: var(--space-1);
   -webkit-overflow-scrolling: touch;
 }
 /* Place card — elevated card with hover lift.
@@ -484,10 +514,10 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
   box-shadow: var(--shadow-card);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -497,7 +527,7 @@
 }
 .place-card .place-name {
   font-weight: 700;
-  font-size: 0.9em;
+  font-size: var(--text-base);
   color: var(--color-text);
   line-height: var(--line-height-tight);
   display: -webkit-box;
@@ -513,9 +543,9 @@
   text-decoration: underline;
 }
 .place-card .place-meta {
-  font-size: 0.8em;
+  font-size: var(--text-sm);
   color: var(--color-text-lighter);
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 .place-card .place-rating {
   color: var(--color-amber);
@@ -523,14 +553,14 @@
 }
 .place-card .place-reviews {
   color: var(--color-text-disabled);
-  margin-left: 2px;
+  margin-left: var(--space-1);
 }
 .place-card .place-time {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-primary);
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: var(--space-1);
 }
 /* Headline card — top place per category with review snippet.
    Wider than compact cards to accommodate the snippet line. */
@@ -539,7 +569,7 @@
   border-color: var(--color-primary-light, var(--color-border-muted));
 }
 .place-snippet {
-  font-size: 0.78em;
+  font-size: var(--text-sm);
   font-style: italic;
   color: var(--color-text-light);
   line-height: var(--line-height-tight);
@@ -550,7 +580,7 @@
 }
 .place-snippet-time {
   font-style: normal;
-  font-size: 0.9em;
+  font-size: var(--text-base);
   color: var(--color-text-disabled);
   white-space: nowrap;
 }
@@ -560,34 +590,34 @@
   border-style: dashed;
 }
 .expanded-search-note {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-light);
-  margin: 4px 0 8px;
+  margin: var(--space-1) 0 var(--space-2);
   font-style: italic;
 }
 .neighborhood-category--empty .section-empty {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   padding-top: 0;
 }
 
 /* --- Share Bar (structural — page-specific overrides in index.css / snapshot.css) --- */
 .share-bar {
   max-width: 800px;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .share-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-primary);
   color: var(--color-surface);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 0.88em;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -599,9 +629,9 @@
 /* --- Disclaimer --- */
 .disclaimer {
   max-width: 800px;
-  margin: 0 auto 40px;
-  padding: 20px 24px;
-  font-size: 0.82em;
+  margin: 0 auto var(--space-10);
+  padding: var(--space-5) var(--space-6);
+  font-size: var(--text-sm);
   color: var(--color-text-disabled);
   line-height: 1.6;
 }
@@ -609,11 +639,11 @@
 
 /* --- Section Label (small uppercase muted label above a sub-section) --- */
 .section-label {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 /* --- Neighborhood map (interactive Leaflet — NES-38) --- */
@@ -651,49 +681,49 @@
 }
 .hidden { display: none; }
 .text-faint-sm {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
 }
 /* Faint summary line below a list (e.g. library count) */
 .section-footnote {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
-.park-highlight { margin-bottom: 16px; }
+.park-highlight { margin-bottom: var(--space-4); }
 .text-right { text-align: right; }
 .park-daily-value {
-  font-size: 0.82em;
+  font-size: var(--text-sm);
   color: var(--color-text-light);
   margin-top: 2px;
 }
 .eval-note {
-  margin: 4px 0 0;
-  font-size: 0.82em;
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
   color: var(--color-text-light);
 }
 .osm-note {
-  margin-top: 8px;
-  font-size: 0.78em;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-text-faint);
 }
 .subsection-divider {
-  margin-top: 8px;
-  padding-top: 12px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--color-border-light);
 }
 /* --- Community Profile: Stat Card Grid (NES-134) --- */
 .stat-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 .stat-card {
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: var(--space-4);
   text-align: center;
 }
 .stat-card__value {
@@ -701,7 +731,7 @@
   font-weight: 700;
   color: var(--color-primary);
   line-height: 1.2;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 .stat-card__label {
   font-size: var(--font-size-sm);
@@ -711,23 +741,23 @@
 .stat-card__compare {
   font-size: var(--font-size-sm-2);
   color: var(--color-text-faint);
-  margin-top: 6px;
+  margin-top: var(--space-2);
 }
 .community-profile-source {
   font-size: var(--font-size-sm-2);
   color: var(--color-text-disabled);
-  margin-top: 8px;
+  margin-top: var(--space-2);
   text-align: right;
 }
 .place-name--light { font-weight: 500; }
-.badge--inline { margin-left: 6px; }
+.badge--inline { margin-left: var(--space-2); }
 .share-btn--secondary {
   text-decoration: none;
   background: var(--color-text-heading);
 }
 .share-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -735,39 +765,39 @@
 
 /* Large tablet / small desktop */
 @media (max-width: 1024px) {
-  .verdict-card { padding: 24px 20px; }
-  .report-section { padding: 22px 24px; }
+  .verdict-card { padding: var(--space-6) var(--space-5); }
+  .report-section { padding: var(--space-5) var(--space-6); }
 }
 
 /* Small tablet */
 @media (max-width: 768px) {
   .score-ring-container { width: 80px; height: 80px; }
-  .score-ring-value { font-size: 1.5em; }
+  .score-ring-value { font-size: var(--text-xl); }
   .dimension-bar { width: 50px; }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
-  .data-row--dimension { gap: 8px; }
+  .data-row--dimension { gap: var(--space-2); }
   .data-row--dimension .data-row__name { min-width: 140px; }
-  .place-card { width: 150px; padding: 12px; }
+  .place-card { width: 150px; padding: var(--space-3); }
   .place-card--headline { width: 190px; }
-  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
 }
 
 /* Phone */
 @media (max-width: 640px) {
   .map-leaflet { height: 300px; }
-  .verdict-card { padding: 20px 16px; }
+  .verdict-card { padding: var(--space-5) var(--space-4); }
   .score-ring-container { width: 70px; height: 70px; }
-  .score-ring-value { font-size: 1.3em; }
-  .report-section { padding: 20px; }
+  .score-ring-value { font-size: var(--text-lg); }
+  .report-section { padding: var(--space-5); }
   .subscore-grid { grid-template-columns: 1fr 1fr; }
-  .section-insight { padding: 8px 12px; }
-  .place-cards { gap: 8px; }
-  .place-card { width: 140px; padding: 12px; }
+  .section-insight { padding: var(--space-2) var(--space-3); }
+  .place-cards { gap: var(--space-2); }
+  .place-card { width: 140px; padding: var(--space-3); }
   .place-card--headline { width: 180px; }
-  .stat-card { padding: 12px; }
-  .stat-card__value { font-size: 1.3rem; }
+  .stat-card { padding: var(--space-3); }
+  .stat-card__value { font-size: var(--text-xl); }
   /* Hub: stack vertically on phone */
-  .data-row--hub { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .data-row--hub { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
   .data-row--hub .data-row__right { padding-left: 0; }
   /* Dimension: wrap name to full width on phone */
   .data-row--dimension { flex-wrap: wrap; }
@@ -786,53 +816,53 @@
 }
 
 .preview-health-banner {
-  padding: 20px 16px;
+  padding: var(--space-5) var(--space-4);
 }
 
 .preview-health-title {
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .preview-health-status {
-  font-size: 1.6rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-text-heading);
 }
 
 .preview-status-clear {
-  color: var(--color-pass, #2e7d32);
+  color: var(--color-pass-text);
 }
 
 .preview-status-concern {
-  color: var(--color-fail, #c62828);
+  color: var(--color-fail-text);
 }
 
 /* Disqualified verdict — failed tier 1 safety checks (NES-164) */
 .verdict-failed-banner {
-  padding: 20px 16px;
+  padding: var(--space-5) var(--space-4);
 }
 
 .verdict-failed-title {
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--color-danger-text);
 }
 
 .verdict-failed-summary {
-  margin-top: 8px;
-  font-size: 0.92rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-base);
   color: var(--color-danger-text-dark);
   line-height: 1.5;
 }
 
 .verdict-failed-explanation {
-  margin-top: 6px;
-  font-size: 0.85rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-danger-text);
   opacity: 0.8;
 }
@@ -840,23 +870,23 @@
 /* Upgrade CTA block */
 .preview-upgrade-cta {
   text-align: center;
-  padding: 32px 24px;
-  margin: 20px 0;
+  padding: var(--space-8) var(--space-6);
+  margin: var(--space-5) 0;
   border: 2px dashed var(--color-border-muted);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
 }
 
 .preview-upgrade-cta h3 {
-  font-size: 1.15em;
+  font-size: var(--text-xl);
   color: var(--color-text-heading);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .preview-upgrade-cta p {
-  font-size: 0.92em;
+  font-size: var(--text-base);
   color: var(--color-text-light);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
   max-width: 420px;
   margin-left: auto;
   margin-right: auto;
@@ -864,13 +894,13 @@
 
 .preview-unlock-btn {
   display: inline-block;
-  padding: 12px 32px;
+  padding: var(--space-3) var(--space-8);
   background: var(--color-primary);
   color: var(--color-surface);
   border: none;
   border-radius: var(--radius-md);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--text-lg);
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -890,8 +920,8 @@
 
 .persona-badge {
   display: inline-block;
-  margin-top: 8px;
-  padding: 4px 12px;
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-small);
   color: var(--color-primary);
   background: var(--color-primary-faint, rgba(37, 99, 235, 0.08));
@@ -900,9 +930,9 @@
 }
 
 .dimension-weight-badge {
-  font-size: 0.7em;
+  font-size: var(--text-xs);
   line-height: 1;
-  margin-left: 2px;
+  margin-left: var(--space-1);
 }
 .weight-up {
   color: var(--color-primary, #2563eb);
@@ -914,9 +944,9 @@
 .persona-weights-table {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 12px 0;
-  padding: 12px 16px;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
   background: var(--color-surface-subtle, #f8fafc);
   border-radius: var(--radius-md, 8px);
 }
@@ -963,10 +993,10 @@
     content: "NestCheck Property Evaluation";
     display: block;
     text-align: center;
-    font-size: 0.85em;
+    font-size: var(--text-sm);
     color: #888;
-    padding: 8px 0 4px;
+    padding: var(--space-2) 0 var(--space-1);
     border-bottom: 1px solid #ddd;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
   }
 }

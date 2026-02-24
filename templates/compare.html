@@ -84,10 +84,10 @@
     var icon = el.querySelector('.collapse-icon');
     if (body.classList.contains('collapsed')) {
       body.classList.remove('collapsed');
-      icon.innerHTML = '&#9660;';
+      if (icon) icon.classList.add('is-expanded');
     } else {
       body.classList.add('collapsed');
-      icon.innerHTML = '&#9654;';
+      if (icon) icon.classList.remove('is-expanded');
     }
   }
 

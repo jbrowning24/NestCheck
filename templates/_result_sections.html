@@ -121,7 +121,7 @@
 
   {# ── SUMMARY NARRATIVE ─── #}
   {% if result.summary_narrative is defined and result.summary_narrative %}
-  <div class="summary-narrative" style="margin: 1.5rem 0 2rem; line-height: 1.65; color: #2d2d2d; font-size: 1.05rem; overflow-wrap: break-word;">
+  <div class="summary-narrative">
     {{ result.summary_narrative | safe }}
   </div>
   {% endif %}

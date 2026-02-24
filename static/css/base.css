@@ -17,13 +17,13 @@ body {
 nav {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  padding: 14px 24px;
+  padding: var(--space-3) var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 nav .logo {
-  font-size: 1.35em;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: var(--color-primary-dark);
   text-decoration: none;
@@ -32,27 +32,28 @@ nav .logo span { color: var(--color-primary); }
 nav a.nav-link {
   color: var(--color-text-muted);
   text-decoration: none;
-  font-size: 0.95em;
+  font-size: var(--text-base);
   font-weight: 500;
-  margin-left: 20px;
+  margin-left: var(--space-5);
 }
 nav a.nav-link:hover { color: var(--color-primary); }
 nav a.nav-link--builder { color: var(--color-builder-accent); }
 
 /* --- Footer --- */
 footer {
-  border-top: 1px solid var(--color-border);
-  padding: 24px;
+  font-size: var(--text-sm);
+  color: var(--color-text-faint);
+  padding: var(--space-8) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
+  letter-spacing: 0.01em;
   text-align: center;
-  font-size: 0.85em;
-  color: var(--color-text-disabled);
   background: var(--color-surface);
 }
 .footer-links {
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 .footer-links a {
-  color: var(--color-text-disabled);
+  color: var(--color-text-faint);
   text-decoration: none;
 }
 .footer-links a:hover {
@@ -69,12 +70,12 @@ footer {
   right: 0;
   background: var(--color-primary-dark);
   color: #e0e0e0;                       /* light gray on dark bg — no token (inverted context) */
-  padding: 14px 24px;
-  font-size: 14px;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-cookie);
   z-index: 9999;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -87,7 +88,7 @@ footer {
   background: var(--color-surface);
   color: var(--color-primary-dark);
   border: none;
-  padding: 6px 18px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 4px;
   cursor: pointer;
   font-weight: 600;
@@ -97,9 +98,9 @@ footer {
 /* --- Badge Utilities --- */
 .badge {
   display: inline-block;
-  padding: 2px 10px;
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-lg);
-  font-size: 0.8em;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 .badge-pass { background: var(--color-pass-bg); color: var(--color-pass-text); }
@@ -124,13 +125,13 @@ footer {
 /* --- Flash Messages --- */
 .flash-messages {
   max-width: 800px;
-  margin: var(--space-16) auto;
+  margin: var(--space-4) auto;
   padding: 0 var(--space-24);
 }
 .flash-msg {
-  padding: var(--space-12) var(--space-16);
+  padding: var(--space-12) var(--space-4);
   border-radius: var(--radius-md);
-  font-size: 0.9em;
+  font-size: var(--text-base);
   margin-bottom: var(--space-8);
 }
 .flash-msg--error {

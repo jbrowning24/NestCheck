@@ -18,25 +18,29 @@
   --color-surface: #ffffff;
   --color-surface-subtle: #f8f9fb;
 
-  /* Text — ordered dark to light */
-  --color-text: #1a1a2e;
-  --color-text-strong: #1e293b;
-  --color-text-dark: #333333;
-  --color-text-heading: #334155;
-  --color-text-secondary: #475569;
-  --color-text-muted: #555555;
-  --color-text-dim: #64748b;
-  --color-text-light: #666666;
-  --color-text-lighter: #777777;
-  --color-text-faint: #888888;
-  --color-text-faintest: #94a3b8;
-  --color-text-disabled: #999999;
+  /* Text — 5-step scale (primary → disabled) */
+  --color-text: #1a1a2e;           /* primary text, headings, strong */
+  --color-text-secondary: #475569; /* secondary info, data row names */
+  --color-text-muted: #64748b;     /* supporting text, explanations */
+  --color-text-faint: #94a3b8;     /* metadata, timestamps, footnotes */
+  --color-text-disabled: #b0b8c4;  /* disabled states only */
 
-  /* Borders — ordered dark to light */
-  --color-border: #e0e0e0;
-  --color-border-muted: #e2e8f0;
-  --color-border-card: #eef0f4;
-  --color-border-light: #f5f5f5;
+  /* Aliases — old token names (backward compat) */
+  --color-text-strong: var(--color-text);
+  --color-text-dark: var(--color-text);
+  --color-text-heading: var(--color-text-secondary);
+  --color-text-dim: var(--color-text-muted);
+  --color-text-light: var(--color-text-muted);
+  --color-text-lighter: var(--color-text-faint);
+  --color-text-faintest: var(--color-text-faint);
+
+  /* Borders — 2-step scale */
+  --color-border: #e2e8f0;       /* standard borders */
+  --color-border-light: #f0f2f5; /* subtle dividers */
+
+  /* Aliases — old token names (backward compat) */
+  --color-border-muted: var(--color-border);
+  --color-border-card: var(--color-border-light);
 
   /* Status: Pass / Good */
   --color-pass-bg: #d1fae5;
@@ -92,67 +96,69 @@
   --color-overlay-bg: rgba(255, 255, 255, 0.92);
 
   /* ---- Spacing ------------------------------------------------ */
-  /* Named by px equivalent.  Covers every value currently in use
-     across the CSS files.  Adopt gradually — existing hardcoded
-     values continue to work until migrated.                       */
+  /* 4px grid — clean scale. Old names aliased for backward compat. */
 
-  --space-2: 2px;
-  --space-4: 4px;
-  --space-6: 6px;
-  --space-8: 8px;
-  --space-10: 10px;
-  --space-12: 12px;
-  --space-14: 14px;
-  --space-16: 16px;
-  --space-18: 18px;
-  --space-20: 20px;
-  --space-24: 24px;
-  --space-28: 28px;
-  --space-30: 30px;
-  --space-32: 32px;
-  --space-36: 36px;
-  --space-40: 40px;
-  --space-60: 60px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-16: 64px;
+
+  /* Aliases — old token names (backward compat; 16px → --space-4) */
+  --space-12: var(--space-3);
+  --space-14: var(--space-3);
+  --space-18: var(--space-4);
+  --space-20: var(--space-5);
+  --space-24: var(--space-6);
+  --space-28: var(--space-6);
+  --space-30: var(--space-8);
+  --space-32: var(--space-8);
+  --space-36: var(--space-8);
+  --space-40: var(--space-10);
+  --space-60: var(--space-16);
 
   /* ---- Typography --------------------------------------------- */
 
   /* Font family */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 
-  /* Font sizes — display (large headings, hero, score numbers)
-     Tier spans 2–3 rem.  Responsive hero variants step down per
-     breakpoint; other display sizes are viewport-independent.     */
-  --font-size-3xl: 3rem;       /* score-number, price-tag, 404 h1       */
-  --font-size-2xl: 2.6rem;     /* hero h1 (desktop)                     */
-  --font-size-2xl-2: 2.3rem;   /* hero h1 (tablet ≤1024px)              */
-  --font-size-xl: 2.2rem;      /* pricing h1, legal h1                  */
-  --font-size-xl-2: 2rem;      /* hero h1 (mobile ≤640px)               */
+  /* Font sizes — 8-step type scale */
+  --text-3xl: 2.25rem;    /* 36px — hero headlines only */
+  --text-2xl: 1.5rem;     /* 24px — score ring value, stat card values */
+  --text-xl: 1.125rem;    /* 18px — section h2, score band label */
+  --text-lg: 1rem;        /* 16px — body text, inputs, prominent data */
+  --text-base: 0.875rem;  /* 14px — data row names, nav links, most UI text */
+  --text-sm: 0.75rem;     /* 12px — category labels, footnotes, subscore labels */
+  --text-xs: 0.6875rem;   /* 11px — pill badges, walkscore labels */
 
-  /* Font sizes — heading (section titles, nav logo, subheadings)
-     Tier spans 1–1.5 rem.                                         */
-  --font-size-lg-2: 1.5rem;    /* walkscore value                       */
-  --font-size-lg: 1.35rem;     /* nav logo                              */
-  --font-size-md-3: 1.15rem;   /* section h2, hero tagline              */
-  --font-size-md-2: 1.1rem;    /* snapshot-cta h3, legal h3, 404 body   */
-  --font-size-md: 1.05rem;     /* loading text, price button            */
-  --font-size-md-sm: 1.02rem;  /* why-block body text                   */
-
-  /* Font sizes — body (base text, nav links, card content)
-     Tier spans 0.88–1 rem.                                        */
-  --font-size-base: 1rem;      /* body text default                     */
-  --font-size-body-2: 0.95rem; /* nav link, feature h3, check label     */
-  --font-size-body-3: 0.92rem; /* error banner, snapshot-cta link       */
-  --font-size-body-4: 0.9rem;  /* verdict address, dimension text       */
-  --font-size-body-5: 0.88rem; /* feature-card p, place-meta, band row  */
-
-  /* Font sizes — small (captions, labels, fine print)
-     Tier spans 0.72–0.85 rem.                                     */
-  --font-size-sm: 0.85rem;     /* footer, collapse icon, scoring note   */
-  --font-size-sm-2: 0.82rem;   /* category label, disclaimer, park text */
-  --font-size-sm-3: 0.8rem;    /* badge, place-card meta                */
-  --font-size-xs: 0.78rem;     /* subscore label/reason, osm note       */
-  --font-size-xs-2: 0.75rem;   /* check icon, map attribution           */
-  --font-size-xs-3: 0.72rem;   /* walkscore pill label                  */
+  /* Aliases — old token names mapped to new scale (backward compat) */
+  --font-size-3xl: var(--text-3xl);
+  --font-size-2xl: var(--text-3xl);
+  --font-size-2xl-2: var(--text-3xl);
+  --font-size-xl: var(--text-3xl);
+  --font-size-xl-2: var(--text-3xl);
+  --font-size-lg-2: var(--text-2xl);
+  --font-size-lg: var(--text-xl);
+  --font-size-md-3: var(--text-xl);
+  --font-size-md-2: var(--text-xl);
+  --font-size-md: var(--text-base);
+  --font-size-md-sm: var(--text-base);
+  --font-size-base: var(--text-lg);
+  --font-size-body-2: var(--text-base);
+  --font-size-body-3: var(--text-base);
+  --font-size-body-4: var(--text-base);
+  --font-size-body-5: var(--text-base);
+  --font-size-sm: var(--text-sm);
+  --font-size-sm-2: var(--text-sm);
+  --font-size-sm-3: var(--text-sm);
+  --font-size-xs: var(--text-sm);
+  --font-size-xs-2: var(--text-sm);
+  --font-size-xs-3: var(--text-xs);
+  --font-size-small: var(--text-sm);
 
   /* Font sizes — pixel-locked (prevent iOS auto-zoom on focus)    */
   --font-size-input: 16px;     /* search input (iOS requires ≥16px)     */
