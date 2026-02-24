@@ -667,6 +667,43 @@
   padding-top: 12px;
   border-top: 1px solid var(--color-border-light);
 }
+/* --- Community Profile: Stat Card Grid (NES-134) --- */
+.stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+}
+.stat-card__value {
+  font-size: var(--font-size-lg-2);
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.stat-card__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+.stat-card__compare {
+  font-size: var(--font-size-sm-2);
+  color: var(--color-text-faint);
+  margin-top: 6px;
+}
+.community-profile-source {
+  font-size: var(--font-size-sm-2);
+  color: var(--color-text-disabled);
+  margin-top: 8px;
+  text-align: right;
+}
 .place-name--light { font-weight: 500; }
 .badge--inline { margin-left: 6px; }
 .share-btn--secondary {
@@ -697,6 +734,7 @@
   .data-row--dimension .data-row__name { min-width: 140px; }
   .place-card { width: 150px; padding: 12px; }
   .place-card--headline { width: 190px; }
+  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 }
 
 /* Phone */
@@ -711,6 +749,8 @@
   .place-cards { gap: 8px; }
   .place-card { width: 140px; padding: 12px; }
   .place-card--headline { width: 180px; }
+  .stat-card { padding: 12px; }
+  .stat-card__value { font-size: 1.3rem; }
   /* Hub: stack vertically on phone */
   .data-row--hub { flex-direction: column; align-items: flex-start; gap: 4px; }
   .data-row--hub .data-row__right { padding-left: 0; }

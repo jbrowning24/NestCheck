@@ -9,6 +9,7 @@ from app import (
     _insight_neighborhood,
     _insight_getting_around,
     _insight_parks,
+    _insight_community_profile,
     _join_labels,
     _nearest_walk_time,
     _weather_context,
@@ -600,9 +601,12 @@ class TestParksEdgeCases:
 # ===========================================================================
 
 class TestGenerateInsights:
-    def test_returns_all_four_keys(self):
+    def test_returns_all_five_keys(self):
         result = generate_insights({})
-        assert set(result.keys()) == {"your_neighborhood", "getting_around", "parks", "proximity"}
+        assert set(result.keys()) == {
+            "your_neighborhood", "getting_around", "parks", "proximity",
+            "community_profile",
+        }
 
     def test_empty_input_returns_all_none(self):
         result = generate_insights({})
@@ -960,3 +964,136 @@ class TestJoinLabels:
     def test_custom_conjunction_three_items(self):
         result = _join_labels(["cafés", "gyms", "parks"], "or")
         assert result == "cafés, gyms, or parks"
+
+
+# ---------------------------------------------------------------------------
+# Community Profile insight (NES-134)
+# ---------------------------------------------------------------------------
+
+def _make_demographics(
+    children_pct=35.0,
+    renter_pct=38.8,
+    owner_pct=61.2,
+    transit_pct=12.5,
+    walk_pct=5.0,
+    bike_pct=2.5,
+    wfh_pct=7.5,
+    drive_alone_pct=62.5,
+    median_rent=1800,
+    county_children_pct=32.0,
+    county_renter_pct=35.0,
+    county_transit_pct=18.0,
+    county_median_rent=1650,
+    county_name="Westchester County",
+):
+    """Build a synthetic demographics dict matching serialized CensusProfile."""
+    return {
+        "children_pct": children_pct,
+        "renter_pct": renter_pct,
+        "owner_pct": owner_pct,
+        "commute": {
+            "drive_alone_pct": drive_alone_pct,
+            "transit_pct": transit_pct,
+            "walk_pct": walk_pct,
+            "bike_pct": bike_pct,
+            "wfh_pct": wfh_pct,
+            "carpool_pct": 10.0,
+        },
+        "median_rent": median_rent,
+        "county_children_pct": county_children_pct,
+        "county_renter_pct": county_renter_pct,
+        "county_commute": {
+            "transit_pct": county_transit_pct,
+            "drive_alone_pct": 58.0,
+            "walk_pct": 4.0,
+            "bike_pct": 1.0,
+            "wfh_pct": 11.0,
+            "carpool_pct": 8.0,
+        },
+        "county_median_rent": county_median_rent,
+        "county_name": county_name,
+        "geoid": "36119025300",
+    }
+
+
+class TestInsightCommunityProfile:
+    def test_none_demographics_returns_none(self):
+        assert _insight_community_profile(None, None, {}) is None
+
+    def test_balanced_persona_children_first(self):
+        demo = _make_demographics()
+        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+
+        assert result is not None
+        # Children sentence should come before tenure sentence
+        children_pos = result.find("children")
+        rent_pos = result.find("rent")
+        assert children_pos < rent_pos or rent_pos == -1
+
+    def test_commuter_persona_commute_first(self):
+        demo = _make_demographics()
+        result = _insight_community_profile(demo, {"key": "commuter"}, {})
+
+        assert result is not None
+        # Commute info should appear before children
+        commute_pos = result.find("commuters") if "commuters" in result else result.find("drive")
+        children_pos = result.find("children")
+        assert commute_pos >= 0, "Expected commute info in output"
+        assert children_pos >= 0, "Expected children info in output"
+        assert commute_pos < children_pos
+
+    def test_county_comparison_included(self):
+        demo = _make_demographics()
+        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+
+        assert "Westchester County" in result
+        assert "32%" in result  # county children pct
+
+    def test_transit_comparison_for_high_transit(self):
+        demo = _make_demographics(transit_pct=15.0)
+        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+
+        assert "transit" in result.lower()
+        assert "18%" in result  # county transit pct
+
+    def test_quiet_persona_tenure_first(self):
+        demo = _make_demographics()
+        result = _insight_community_profile(demo, {"key": "quiet"}, {})
+
+        assert result is not None
+        # Tenure sentence should come first
+        assert result.startswith("This tract is")
+
+    def test_sidewalk_cross_reference(self):
+        demo = _make_demographics(walk_pct=5.0)
+        result_dict = {"sidewalk_coverage": {"sidewalk_pct": 75.0}}
+        result = _insight_community_profile(demo, {"key": "commuter"}, result_dict)
+
+        assert result is not None
+        assert "sidewalk" in result.lower()
+        assert "75%" in result
+
+    def test_no_sidewalk_cross_ref_when_low_walk(self):
+        demo = _make_demographics(walk_pct=1.0)
+        result_dict = {"sidewalk_coverage": {"sidewalk_pct": 75.0}}
+        result = _insight_community_profile(demo, {"key": "commuter"}, result_dict)
+
+        # walk_pct < 3 so no sidewalk cross-reference
+        if result:
+            assert "sidewalk" not in result.lower()
+
+    def test_wfh_sentence_for_quiet_persona(self):
+        demo = _make_demographics(wfh_pct=15.0)
+        result = _insight_community_profile(demo, {"key": "quiet"}, {})
+
+        assert "work from home" in result.lower()
+        assert "15%" in result
+
+    def test_default_persona_when_none(self):
+        """When persona is None, falls back to balanced ordering."""
+        demo = _make_demographics()
+        result = _insight_community_profile(demo, None, {})
+
+        assert result is not None
+        # Should use balanced ordering (children first)
+        assert "children" in result.lower()

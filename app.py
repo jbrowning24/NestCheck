@@ -38,6 +38,7 @@ from models import (
     get_snapshots_by_email,
 )
 from weather import serialize_for_result as _serialize_weather
+from census import serialize_for_result as _serialize_census
 from og_image import generate_og_image
 
 def _quote_param(s: str) -> str:
@@ -940,6 +941,146 @@ def _insight_parks(green_escape: dict | None, tier2: dict) -> str | None:
     )
 
 
+def _insight_community_profile(
+    demographics: dict | None,
+    persona: dict | None,
+    result_dict: dict,
+) -> str | None:
+    """Generate a persona-aware narrative for the Community Profile section.
+
+    Uses context-not-judgment framing: percentages and county comparisons
+    only, no characterizations of desirability.  Narrative emphasis varies
+    by persona:
+      - balanced: children stats first, then tenure, then commute
+      - commuter/active: commute first, then rent, then children
+      - quiet: tenure first, then children, then commute
+    """
+    if not demographics:
+        return None
+
+    persona_key = (persona or {}).get("key", "balanced")
+    county_name = demographics.get("county_name") or "the county"
+
+    # Extract key stats
+    children_pct = demographics.get("children_pct", 0)
+    owner_pct = demographics.get("owner_pct", 0)
+    renter_pct = demographics.get("renter_pct", 0)
+    county_children_pct = demographics.get("county_children_pct")
+    county_renter_pct = demographics.get("county_renter_pct")
+
+    commute = demographics.get("commute") or {}
+    transit_pct = commute.get("transit_pct", 0)
+    walk_pct = commute.get("walk_pct", 0)
+    bike_pct = commute.get("bike_pct", 0)
+    wfh_pct = commute.get("wfh_pct", 0)
+    drive_pct = commute.get("drive_alone_pct", 0)
+
+    county_commute = demographics.get("county_commute") or {}
+    county_transit_pct = county_commute.get("transit_pct") if county_commute else None
+
+    median_rent = demographics.get("median_rent")
+    county_median_rent = demographics.get("county_median_rent")
+
+    # Build narrative parts per persona ordering
+    parts: list[str] = []
+
+    def _children_sentence() -> str | None:
+        if children_pct <= 0:
+            return None
+        s = f"{children_pct:.0f}% of households in this census tract include children under 18"
+        if county_children_pct is not None:
+            s += f", compared to {county_children_pct:.0f}% across {county_name}"
+        return s
+
+    def _tenure_sentence() -> str | None:
+        if renter_pct <= 0:
+            return None
+        s = f"About {renter_pct:.0f}% of households here rent"
+        if county_renter_pct is not None:
+            s += f" (county average: {county_renter_pct:.0f}%)"
+        return s
+
+    def _tenure_detailed_sentence() -> str:
+        s = f"This tract is {owner_pct:.0f}% owner-occupied and {renter_pct:.0f}% renter-occupied"
+        if county_renter_pct is not None:
+            s += f" (county average: {county_renter_pct:.0f}% renter)"
+        return s
+
+    def _commute_summary() -> str | None:
+        bits = []
+        if drive_pct > 50:
+            bits.append(f"{drive_pct:.0f}% drive alone")
+        if transit_pct >= 5:
+            bits.append(f"{transit_pct:.0f}% use public transit")
+        if walk_pct + bike_pct >= 3:
+            bits.append(f"{walk_pct + bike_pct:.0f}% walk or bike")
+        if wfh_pct >= 5:
+            bits.append(f"{wfh_pct:.0f}% work from home")
+        if not bits:
+            return None
+        return "Among commuters here, " + ", ".join(bits)
+
+    def _transit_comparison() -> str | None:
+        if transit_pct < 10:
+            return None
+        s = f"{transit_pct:.0f}% of residents commute by public transit"
+        if county_transit_pct is not None:
+            s += f", compared to {county_transit_pct:.0f}% countywide"
+        return s
+
+    def _sidewalk_cross_ref() -> str | None:
+        sidewalk = result_dict.get("sidewalk_coverage")
+        if not sidewalk or walk_pct < 3:
+            return None
+        sw_pct = sidewalk.get("sidewalk_pct", 0)
+        if sw_pct < 60:
+            return None
+        return (
+            f"The {walk_pct:.0f}% walk-to-work rate is supported by "
+            f"{sw_pct:.0f}% sidewalk coverage on nearby roads"
+        )
+
+    def _rent_sentence() -> str | None:
+        if median_rent is None:
+            return None
+        s = f"Median rent in this tract is ${median_rent:,}"
+        if county_median_rent is not None:
+            s += f" (county median: ${county_median_rent:,})"
+        return s
+
+    def _wfh_sentence() -> str | None:
+        if wfh_pct < 10:
+            return None
+        return f"A notable {wfh_pct:.0f}% of residents work from home"
+
+    if persona_key in ("commuter", "active"):
+        # Commute first, then rent, then children
+        for fn in (_commute_summary, _sidewalk_cross_ref, _rent_sentence,
+                   _children_sentence, _tenure_sentence):
+            s = fn()
+            if s:
+                parts.append(s)
+    elif persona_key == "quiet":
+        # Tenure first, then children, then commute
+        for fn in (_tenure_detailed_sentence, _children_sentence,
+                   _wfh_sentence, _transit_comparison):
+            s = fn()
+            if s:
+                parts.append(s)
+    else:
+        # Balanced: children first, then tenure, then commute
+        for fn in (_children_sentence, _tenure_sentence,
+                   _transit_comparison, _rent_sentence):
+            s = fn()
+            if s:
+                parts.append(s)
+
+    if not parts:
+        return None
+
+    return ". ".join(parts) + "."
+
+
 def generate_insights(result_dict: dict) -> dict:
     """Generate plain-English insights for report sections.
 
@@ -947,7 +1088,7 @@ def generate_insights(result_dict: dict) -> dict:
     evaluations and old snapshots (with graceful fallbacks).
 
     Returns a dict with keys: your_neighborhood, getting_around, parks,
-    proximity.  Each value is a string or None.
+    proximity, community_profile.  Each value is a string or None.
     """
     tier2 = _tier2_lookup(result_dict)
     neighborhood = result_dict.get("neighborhood_places") or {}
@@ -958,6 +1099,8 @@ def generate_insights(result_dict: dict) -> dict:
     green_escape = result_dict.get("green_escape")
     presented = result_dict.get("presented_checks") or []
     weather = result_dict.get("weather")
+    demographics = result_dict.get("demographics")
+    persona = result_dict.get("persona")
 
     return {
         "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
@@ -966,6 +1109,9 @@ def generate_insights(result_dict: dict) -> dict:
         ),
         "parks": _insight_parks(green_escape, tier2),
         "proximity": proximity_synthesis(presented),
+        "community_profile": _insight_community_profile(
+            demographics, persona, result_dict,
+        ),
     }
 
 
@@ -1006,6 +1152,9 @@ def _backfill_result(result):
             "description": "Equal weight across all dimensions",
             "weights": {},
         }
+
+    if "demographics" not in result:
+        result["demographics"] = None
 
     if "insights" not in result:
         result["insights"] = generate_insights(result)
@@ -1310,6 +1459,11 @@ def result_to_dict(result):
     # Weather climate normals — informational context for insights (NES-32).
     output["weather"] = _serialize_weather(
         getattr(result, "weather_summary", None)
+    )
+
+    # Census ACS demographics — informational context (NES-134).
+    output["demographics"] = _serialize_census(
+        getattr(result, "demographics", None)
     )
 
     # Presentation layer for the new results UI

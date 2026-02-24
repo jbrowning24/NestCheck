@@ -44,6 +44,7 @@ from road_noise import (
 )
 from sidewalk_coverage import assess_sidewalk_coverage, SidewalkCoverageAssessment
 from weather import get_weather_summary, WeatherSummary
+from census import get_demographics, CensusProfile
 from scoring_config import (
     SCORING_MODEL,
     DimensionConfig,
@@ -823,6 +824,9 @@ class EvaluationResult:
 
     # Sidewalk & cycleway coverage — informational, not scored (NES-110)
     sidewalk_coverage: Optional[SidewalkCoverageAssessment] = None
+
+    # Census ACS demographics — informational, not scored (NES-134)
+    demographics: Optional[CensusProfile] = None
 
 
 # =============================================================================
@@ -4273,6 +4277,11 @@ def evaluate_property(
             _timed_stage_in_thread, parent_trace,
             "sidewalk_coverage", assess_sidewalk_coverage, lat, lng,
         )
+        # Census ACS demographics — Census API, no maps client needed (NES-134).
+        futures["demographics"] = pool.submit(
+            _timed_stage_in_thread, parent_trace,
+            "demographics", get_demographics, lat, lng,
+        )
 
         # Collect results — each stage fails independently
         for stage_name, future in futures.items():
@@ -4312,6 +4321,8 @@ def evaluate_property(
                     result.weather_summary = stage_result
                 elif stage_name == "sidewalk_coverage":
                     result.sidewalk_coverage = stage_result
+                elif stage_name == "demographics":
+                    result.demographics = stage_result
             except Exception:
                 pass  # Graceful degradation — same as the sequential path
 

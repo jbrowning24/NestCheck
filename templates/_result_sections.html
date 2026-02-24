@@ -631,6 +631,80 @@
 
   </div>
 
+  {# ── 6b. COMMUNITY PROFILE — shown in both preview and full (NES-134) ── #}
+  {# Three-state guard: key absent = old snapshot (hide),                     #}
+  {#   value=none = API failure (hide), value=dict = show section.            #}
+  {% if result.demographics is defined and result.demographics is not none %}
+  <div id="community-profile" class="report-section">
+    <h2>Community Profile</h2>
+
+    {# Section-level narrative insight #}
+    {% if result.insights is defined and result.insights and result.insights.community_profile %}
+      <p class="section-insight">{{ result.insights.community_profile }}</p>
+    {% endif %}
+
+    {# Stat card grid #}
+    {% set demo = result.demographics %}
+    <div class="stat-card-grid">
+
+      {# Households with children #}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(demo.children_pct) }}%</div>
+        <div class="stat-card__label">Households with children</div>
+        {% if demo.county_children_pct is not none %}
+        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_children_pct) }}%</div>
+        {% endif %}
+      </div>
+
+      {# Renter-occupied #}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(demo.renter_pct) }}%</div>
+        <div class="stat-card__label">Renter-occupied housing</div>
+        {% if demo.county_renter_pct is not none %}
+        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_renter_pct) }}%</div>
+        {% endif %}
+      </div>
+
+      {# Median rent #}
+      {% if demo.median_rent is not none %}
+      <div class="stat-card">
+        <div class="stat-card__value">${{ "{:,}".format(demo.median_rent) }}</div>
+        <div class="stat-card__label">Median gross rent</div>
+        {% if demo.county_median_rent is not none %}
+        <div class="stat-card__compare">{{ demo.county_name or "County" }}: ${{ "{:,}".format(demo.county_median_rent) }}</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# Transit commuters #}
+      {% if demo.commute and demo.commute.transit_pct >= 1 %}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(demo.commute.transit_pct) }}%</div>
+        <div class="stat-card__label">Commute by transit</div>
+        {% if demo.county_commute is not none and demo.county_commute.transit_pct is defined %}
+        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_commute.transit_pct) }}%</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {# Work from home #}
+      {% if demo.commute and demo.commute.wfh_pct >= 5 %}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(demo.commute.wfh_pct) }}%</div>
+        <div class="stat-card__label">Work from home</div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# Data attribution #}
+    <p class="community-profile-source">
+      Source: U.S. Census Bureau, ACS 5-Year Estimates &middot; Tract {{ demo.geoid }}
+    </p>
+
+  </div>
+  {% endif %}
+
   {# ── NES-132: UPGRADE CTA — preview only ──────────────────── #}
   {% if is_preview %}
   <div class="preview-upgrade-cta">
