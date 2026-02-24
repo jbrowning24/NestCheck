@@ -775,6 +775,13 @@
   line-height: 1.5;
 }
 
+.verdict-failed-explanation {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--color-danger-text);
+  opacity: 0.8;
+}
+
 /* Upgrade CTA block */
 .preview-upgrade-cta {
   text-align: center;
