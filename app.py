@@ -28,6 +28,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
+app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
+    os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
+    os.environ.get('GOOGLE_MAPS_API_KEY')
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
