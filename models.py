@@ -381,6 +381,28 @@ def init_db():
                     except sqlite3.OperationalError:
                         pass
 
+        # Migrate snapshots — add key finding denormalized columns.
+        # key_finding_type: classification string for dashboard display/filtering.
+        # key_finding_revealing: 0/1 flag for badge coloring.
+        for col, col_type in (("key_finding_type", "TEXT"), ("key_finding_revealing", "INTEGER DEFAULT 0")):
+            if _USE_POSTGRES:
+                if col not in snap_cols:
+                    try:
+                        cur.execute(
+                            f"ALTER TABLE snapshots ADD COLUMN {col} {col_type}"
+                        )
+                        conn.commit()
+                    except psycopg2.errors.DuplicateColumn:
+                        conn.rollback()
+            else:
+                if col not in snap_cols:
+                    try:
+                        conn.execute(
+                            f"ALTER TABLE snapshots ADD COLUMN {col} {col_type}"
+                        )
+                    except sqlite3.OperationalError:
+                        pass
+
         # Index on snapshots(email_hash) — created after migration ensures
         # the column exists on both fresh and pre-existing databases.
         if _USE_POSTGRES:
@@ -425,12 +447,14 @@ def save_snapshot(
     conn = _get_db()
     try:
         cur = _cursor(conn)
+        key_finding = result_dict.get("key_finding") or {}
         cur.execute(
             _q("""INSERT INTO snapshots
                    (snapshot_id, address_input, address_norm, created_at,
                     verdict, final_score, passed_tier1, is_preview, result_json,
-                    email_hash, email_raw)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
+                    email_hash, email_raw,
+                    key_finding_type, key_finding_revealing)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""),
             (
                 snapshot_id,
                 address_input,
@@ -443,6 +467,8 @@ def save_snapshot(
                 json.dumps(result_dict, default=str),
                 email_hash,
                 email_raw,
+                key_finding.get("type"),
+                1 if key_finding.get("is_revealing") else 0,
             ),
         )
         conn.commit()
@@ -640,7 +666,8 @@ def get_recent_snapshots(limit=20):
         cur = _cursor(conn)
         cur.execute(
             _q("""SELECT snapshot_id, address_input, address_norm, created_at,
-                          verdict, final_score, passed_tier1, view_count
+                          verdict, final_score, passed_tier1, view_count,
+                          key_finding_type, key_finding_revealing
                    FROM snapshots ORDER BY created_at DESC LIMIT ?"""),
             (limit,),
         )

@@ -76,6 +76,15 @@
     .badge-shared { background: #9e6a0333; color: #fbbf24; }
     .badge-return { background: #8b5cf633; color: #a78bfa; }
     .badge-error { background: #f8514933; color: #f85149; }
+    .badge-finding {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.78em;
+      font-weight: 600;
+    }
+    .badge-revealing { background: #92400e33; color: #fbbf24; }
+    .badge-normal { background: #30363d; color: #8b949e; }
     .back-link {
       display: inline-block;
       margin-bottom: 16px;
@@ -117,6 +126,7 @@
         <th>ID</th>
         <th>Address</th>
         <th>Score</th>
+        <th>Finding</th>
         <th>Views</th>
         <th>Created</th>
       </tr>
@@ -125,12 +135,21 @@
         <td><a href="/s/{{ s.snapshot_id }}">{{ s.snapshot_id }}</a></td>
         <td>{{ s.address_input[:50] }}{% if s.address_input|length > 50 %}...{% endif %}</td>
         <td>{{ s.final_score }}</td>
+        <td>
+          {% if s.key_finding_type and s.key_finding_type != 'neutral' %}
+            <span class="badge-finding {% if s.key_finding_revealing %}badge-revealing{% else %}badge-normal{% endif %}">
+              {{ s.key_finding_type | replace('_', ' ') }}
+            </span>
+          {% else %}
+            —
+          {% endif %}
+        </td>
         <td>{{ s.view_count }}</td>
         <td>{{ s.created_at[:19] }}</td>
       </tr>
       {% endfor %}
       {% if not recent_snapshots %}
-      <tr><td colspan="5" style="color: #8b949e; text-align: center;">No snapshots yet</td></tr>
+      <tr><td colspan="6" style="color: #8b949e; text-align: center;">No snapshots yet</td></tr>
       {% endif %}
     </table>
   </div>

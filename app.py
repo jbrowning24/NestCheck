@@ -1115,6 +1115,113 @@ def generate_insights(result_dict: dict) -> dict:
     }
 
 
+def generate_key_finding(result_dict: dict) -> dict:
+    """Classify an evaluation into a finding type with headline and is_revealing flag.
+
+    Checks conditions in priority order — first match wins.
+    Health flags take priority because they're the highest-value finding.
+    Uses tier2_normalized (not final_score) for health flag strength assessment
+    since tier2_normalized reflects amenity/walkability quality independent of
+    the tier1 gate.
+    """
+    presented = result_dict.get("presented_checks") or []
+    tier2_scores = result_dict.get("tier2_scores") or []
+    final_score = result_dict.get("final_score", 0)
+    tier2_norm = result_dict.get("tier2_normalized")
+    if tier2_norm is None:
+        tier2_norm = final_score
+
+    has_confirmed = any(
+        pc.get("result_type") == "CONFIRMED_ISSUE" for pc in presented
+    )
+    has_verification = any(
+        pc.get("result_type") == "VERIFICATION_NEEDED" for pc in presented
+    )
+
+    # 1. health_flag_on_strong_location
+    if has_confirmed and tier2_norm >= 55:
+        return {
+            "type": "health_flag_on_strong_location",
+            "headline": "Proximity concern on an otherwise strong location",
+            "is_revealing": True,
+        }
+
+    # 2. health_flag_on_weak_location
+    if has_confirmed and tier2_norm < 55:
+        return {
+            "type": "health_flag_on_weak_location",
+            "headline": "Proximity concern compounds existing gaps",
+            "is_revealing": False,
+        }
+
+    # 3. verification_needed (no confirmed issues)
+    if has_verification and not has_confirmed:
+        return {
+            "type": "verification_needed",
+            "headline": "Safety data incomplete — verification recommended",
+            "is_revealing": True,
+        }
+
+    # 4. single_dimension_outlier
+    if tier2_scores:
+        fractions = []
+        for s in tier2_scores:
+            max_pts = s.get("max", 0)
+            pts = s.get("points", 0)
+            frac = pts / max_pts if max_pts > 0 else 0.0
+            fractions.append({"name": s.get("name", "Unknown"), "frac": frac})
+
+        weak = [f for f in fractions if f["frac"] <= 0.1]
+        strong = [f for f in fractions if f["frac"] >= 0.6]
+        if len(weak) == 1 and len(strong) >= 3:
+            return {
+                "type": "single_dimension_outlier",
+                "headline": f"Strong location with one notable gap: {weak[0]['name']}",
+                "is_revealing": True,
+            }
+
+    # 5. uniformly_strong
+    has_safety_concern = any(
+        pc.get("result_type") in ("CONFIRMED_ISSUE", "VERIFICATION_NEEDED")
+        for pc in presented
+    )
+    if final_score >= 70 and not has_safety_concern:
+        return {
+            "type": "uniformly_strong",
+            "headline": "Well-rounded location",
+            "is_revealing": False,
+        }
+
+    # 6. car_dependent_with_assets
+    if tier2_scores:
+        zero_dims = [s for s in tier2_scores if s.get("points", 0) == 0]
+        high_dims = [
+            s for s in tier2_scores
+            if (s.get("points", 0) / s.get("max", 1) if s.get("max", 0) > 0 else 0) >= 0.7
+        ]
+        if len(zero_dims) >= 2 and len(high_dims) >= 1:
+            return {
+                "type": "car_dependent_with_assets",
+                "headline": "Car-dependent but has standout qualities",
+                "is_revealing": True,
+            }
+
+    # 7. uniformly_weak
+    if final_score < 40 and not has_confirmed:
+        return {
+            "type": "uniformly_weak",
+            "headline": "Limited walkable access across most dimensions",
+            "is_revealing": False,
+        }
+
+    # 8. neutral (default)
+    return {
+        "type": "neutral",
+        "headline": None,
+        "is_revealing": False,
+    }
+
+
 def generate_summary_narrative(result_dict: dict) -> str:
     """Generate 2-3 paragraphs of plain-English synthesis for the report header.
 
@@ -1458,6 +1565,9 @@ def _backfill_result(result):
     if "summary_narrative" not in result:
         result["summary_narrative"] = generate_summary_narrative(result)
 
+    if "key_finding" not in result:
+        result["key_finding"] = generate_key_finding(result)
+
 
 # ---------------------------------------------------------------------------
 # Serialization helpers
@@ -1791,6 +1901,7 @@ def result_to_dict(result):
     output["dimension_summaries"] = generate_dimension_summaries(output)
     output["insights"] = generate_insights(output)
     output["summary_narrative"] = generate_summary_narrative(output)
+    output["key_finding"] = generate_key_finding(output)
     return output
 
 
