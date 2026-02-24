@@ -5,12 +5,17 @@ Lightweight, append-only design. No ORM — just raw sqlite3.
 Works locally and on Railway without additional services.
 """
 
+import hashlib
 import sqlite3
 import os
 import json
+import logging
 import uuid
 import time
 from datetime import datetime, timezone, timedelta
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
@@ -55,6 +60,17 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_events_snapshot ON events(snapshot_id);
         CREATE INDEX IF NOT EXISTS idx_events_visitor ON events(visitor_id);
         CREATE INDEX IF NOT EXISTS idx_snapshots_created ON snapshots(created_at);
+
+        CREATE TABLE IF NOT EXISTS overpass_cache (
+            cache_key     TEXT PRIMARY KEY,
+            response_json TEXT NOT NULL,
+            created_at    TEXT
+        );
+        CREATE TABLE IF NOT EXISTS weather_cache (
+            cache_key     TEXT PRIMARY KEY,
+            summary_json  TEXT NOT NULL,
+            created_at    TEXT
+        );
     """)
 
     # Migration for pre-place_id databases.
@@ -381,3 +397,136 @@ def save_snapshot_for_place(
         return snapshot_id
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Overpass cache (7-day TTL)
+# ---------------------------------------------------------------------------
+
+_OVERPASS_CACHE_TTL_DAYS = 7
+
+
+def overpass_cache_key(query_string: str) -> str:
+    """Generate a deterministic cache key from an Overpass query string."""
+    return hashlib.sha256(query_string.encode()).hexdigest()
+
+
+def _check_cache_ttl(created_str, ttl_days: int) -> bool:
+    """Return True if a cache entry is still valid (younger than TTL).
+
+    Shared helper for overpass_cache and weather_cache TTL checks.
+    """
+    if not created_str:
+        return True  # No timestamp → assume valid
+    try:
+        if isinstance(created_str, datetime):
+            created = created_str
+        else:
+            created = datetime.fromisoformat(str(created_str))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - created
+        return age <= timedelta(days=ttl_days)
+    except (ValueError, TypeError):
+        return True  # Can't parse → return data anyway
+
+
+def get_overpass_cache(cache_key: str) -> Optional[str]:
+    """Look up a cached Overpass response by key.
+
+    Returns the raw JSON string if found and younger than TTL, else None.
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            row = conn.execute(
+                """SELECT response_json, created_at FROM overpass_cache
+                   WHERE cache_key = ?""",
+                (cache_key,),
+            ).fetchone()
+            if not row:
+                return None
+            if not _check_cache_ttl(row["created_at"], _OVERPASS_CACHE_TTL_DAYS):
+                return None
+            return row["response_json"]
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Overpass cache lookup failed", exc_info=True)
+        return None
+
+
+def set_overpass_cache(cache_key: str, response_json: str) -> None:
+    """Store an Overpass response in the persistent cache.
+
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                """INSERT OR REPLACE INTO overpass_cache (cache_key, response_json, created_at)
+                   VALUES (?, ?, ?)""",
+                (cache_key, response_json, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Overpass cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Weather cache (90-day TTL)
+# ---------------------------------------------------------------------------
+
+_WEATHER_CACHE_TTL_DAYS = 90
+
+
+def get_weather_cache(cache_key: str) -> Optional[str]:
+    """Look up cached weather summary by rounded-coordinate key.
+
+    Returns the raw JSON string if found and younger than TTL, else None.
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            row = conn.execute(
+                """SELECT summary_json, created_at FROM weather_cache
+                   WHERE cache_key = ?""",
+                (cache_key,),
+            ).fetchone()
+            if not row:
+                return None
+            if not _check_cache_ttl(row["created_at"], _WEATHER_CACHE_TTL_DAYS):
+                return None
+            return row["summary_json"]
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Weather cache lookup failed", exc_info=True)
+        return None
+
+
+def set_weather_cache(cache_key: str, summary_json: str) -> None:
+    """Store a weather summary in the persistent cache.
+
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                """INSERT OR REPLACE INTO weather_cache (cache_key, summary_json, created_at)
+                   VALUES (?, ?, ?)""",
+                (cache_key, summary_json, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Weather cache write failed", exc_info=True)
