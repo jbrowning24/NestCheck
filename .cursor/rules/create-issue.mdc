@@ -1,3 +1,8 @@
+---
+description: Capture bugs/features fast while mid-development
+globs: ["**/*"]
+alwaysApply: false
+---
 
 # Create Issue
 

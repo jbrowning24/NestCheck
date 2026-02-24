@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exploration"
+  short_description: "Deep-dive discovery before planning or coding"
+  default_prompt: "Use $exploration to analyze the problem and relevant codebase context before planning or implementation."

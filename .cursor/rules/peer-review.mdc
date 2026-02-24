@@ -1,3 +1,8 @@
+---
+description: Evaluate feedback from other AI models with your project context
+globs: ["**/*"]
+alwaysApply: false
+---
 
 # Peer Review Evaluation
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linear Issue Creator"
+  short_description: "Create structured Linear issues quickly"
+  default_prompt: "Use $linear-issue-creator to capture this as a Linear issue with clear title, priority, and context."

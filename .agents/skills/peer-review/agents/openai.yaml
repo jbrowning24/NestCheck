@@ -1,0 +1,4 @@
+interface:
+  display_name: "Peer Review"
+  short_description: "Verify and triage review findings"
+  default_prompt: "Use $peer-review to validate this reviewer feedback against the actual code before applying changes."

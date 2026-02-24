@@ -1,3 +1,8 @@
+---
+description: Shift into teaching mode for deep understanding
+globs: ["**/*"]
+alwaysApply: false
+---
 
 # Learning Opportunity
 

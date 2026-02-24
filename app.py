@@ -1,172 +1,36 @@
 import os
-import sys
 import io
 import csv
-import re
 import logging
 import uuid
-import secrets
+import sqlite3
 import traceback
+from datetime import datetime, timezone
 from functools import wraps
-from urllib.parse import quote as _stdlib_quote
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    make_response, abort, jsonify, g, Response, flash
+    make_response, abort, jsonify, g, Response
 )
-from flask_wtf.csrf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from werkzeug.middleware.proxy_fix import ProxyFix
-from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
-    PropertyListing, evaluate_property, CheckResult, Tier1Check,
-    present_checks, get_score_band, proximity_synthesis,
-    PERSONA_PRESETS, DEFAULT_PERSONA,
+    PropertyListing, evaluate_property, CheckResult, GoogleMapsClient
 )
+from urban_access import urban_access_result_to_dict
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
-    unlock_snapshot, get_og_image, save_og_image,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
-    create_job, get_job, cancel_queued_job,
-    create_payment, get_payment_by_session, get_payment_by_id,
-    update_payment_status, redeem_payment,
-    hash_email, check_free_tier_used, record_free_tier_usage,
-    generate_magic_link_token, save_magic_link, verify_magic_link,
-    get_snapshots_by_email,
+    get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
 )
-from weather import serialize_for_result as _serialize_weather
-from census import serialize_for_result as _serialize_census
-from og_image import generate_og_image
-
-def _quote_param(s: str) -> str:
-    """URL-encode a string for use as a query parameter value.
-
-    Uses safe='' so everything is encoded — including / and # which the
-    stdlib default leaves alone.  This prevents addresses like
-    "123 Main St #4B" from breaking the round-trip through Stripe's
-    success redirect URL.
-    """
-    return _stdlib_quote(s, safe="")
-
-
-# ---------------------------------------------------------------------------
-# Stripe (optional — app starts without it for local dev without payments)
-# ---------------------------------------------------------------------------
-try:
-    import stripe
-    STRIPE_AVAILABLE = True
-except ImportError:
-    stripe = None  # type: ignore[assignment]
-    STRIPE_AVAILABLE = False
-
-# ---------------------------------------------------------------------------
-# Resend (optional — app starts without it for local dev without email)
-# ---------------------------------------------------------------------------
-try:
-    import resend
-    RESEND_AVAILABLE = True
-except ImportError:
-    resend = None  # type: ignore[assignment]
-    RESEND_AVAILABLE = False
 
 load_dotenv()
 
-# ---------------------------------------------------------------------------
-# Sentry error tracking — gated on SENTRY_DSN; silent when unset (local dev)
-# ---------------------------------------------------------------------------
-_sentry_dsn = os.environ.get("SENTRY_DSN")
-if _sentry_dsn:
-    import sentry_sdk
-    from sentry_sdk.integrations.flask import FlaskIntegration
-    import requests.exceptions
-
-    def _sentry_before_send(event, hint):
-        """Demote expected failures to breadcrumbs; only unexpected errors become Sentry events."""
-        exc_info = hint.get("exc_info")
-        if exc_info:
-            exc_type, exc_value, _ = exc_info
-            msg = str(exc_value) if exc_value else ""
-            # Geocoding failed for bad address (ZERO_RESULTS, etc.)
-            if exc_type is ValueError and "Geocoding failed" in msg:
-                sentry_sdk.add_breadcrumb(
-                    category="geocoding",
-                    message=msg,
-                    level="warning",
-                )
-                return None
-            # Overpass timeouts / request failures
-            if exc_type is not None and issubclass(exc_type, requests.exceptions.RequestException):
-                sentry_sdk.add_breadcrumb(
-                    category="overpass",
-                    message=msg,
-                    level="warning",
-                )
-                return None
-            # Rate limit 429 from non-requests HTTP clients (requests 429s
-            # already caught above as RequestException subclass)
-            if hasattr(exc_value, "response") and getattr(exc_value.response, "status_code", None) == 429:
-                sentry_sdk.add_breadcrumb(
-                    category="rate_limit",
-                    message=msg or "HTTP 429",
-                    level="warning",
-                )
-                return None
-        return event
-
-    sentry_sdk.init(
-        dsn=_sentry_dsn,
-        integrations=[FlaskIntegration()],
-        traces_sample_rate=0.0,
-        release=os.environ.get("RAILWAY_GIT_COMMIT_SHA"),
-        environment=os.environ.get("RAILWAY_ENVIRONMENT", "production"),
-        before_send=_sentry_before_send,
-    )
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
-app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY')
-if (not app.config['SECRET_KEY'] or app.config['SECRET_KEY'] == 'nestcheck-dev-key') and os.environ.get('FLASK_DEBUG') != '1':
-    print("FATAL: SECRET_KEY is not set. Refusing to start with insecure default.", file=sys.stderr)
-    print("Set SECRET_KEY in your environment or .env file.", file=sys.stderr)
-    sys.exit(1)
-
-# Proxy fix — Railway (and most PaaS) run behind a reverse proxy that sets
-# X-Forwarded-For.  ProxyFix rewrites request.remote_addr to the real
-# client IP so both Flask-Limiter and logging see the correct address.
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
-
-# CSRF protection — validates X-CSRFToken header on all POST requests.
-# Token is rendered into a <meta> tag in templates; JS reads it and sends
-# as a header on every fetch() call.
-csrf = CSRFProtect(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Rate limiting — protects cost-sensitive endpoints from abuse.
-# In-memory storage is per-process (with 2 gunicorn workers the effective
-# limit is ~2x nominal).  Upgrade to Redis if precision is needed later.
-# ---------------------------------------------------------------------------
-RATE_LIMIT_DEFAULT = os.environ.get("RATE_LIMIT_DEFAULT", "60/minute")
-RATE_LIMIT_EVAL = os.environ.get("RATE_LIMIT_EVAL", "10/hour")
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=[RATE_LIMIT_DEFAULT],
-    storage_uri="memory://",
-)
-logging.getLogger("flask-limiter").setLevel(logging.WARNING)
-
-
-@limiter.request_filter
-def _builder_bypass():
-    """Exempt builder-mode requests from all rate limits."""
-    return _is_builder(request)
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -200,17 +64,6 @@ FEATURE_CONFIG = {
 }
 
 # ---------------------------------------------------------------------------
-# Stripe / payment config
-# ---------------------------------------------------------------------------
-REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
-
-LANDING_PREVIEW_SNAPSHOT_ID = os.environ.get("LANDING_PREVIEW_SNAPSHOT_ID")
-if STRIPE_AVAILABLE:
-    stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "")
-
-# ---------------------------------------------------------------------------
 # Builder mode
 # ---------------------------------------------------------------------------
 BUILDER_MODE_ENV = os.environ.get("BUILDER_MODE", "").lower() == "true"
@@ -237,42 +90,11 @@ def _is_builder(req):
     return False
 
 
-# ---------------------------------------------------------------------------
-# Auth cookie (magic-link email identity)
-# ---------------------------------------------------------------------------
-_AUTH_COOKIE_NAME = "nc_auth"
-_AUTH_COOKIE_MAX_AGE = 30 * 24 * 3600  # 30 days
-
-# Resend API key for sending magic-link emails (optional — app runs without it)
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "NestCheck <noreply@nestcheck.com>")
-
-
-def _get_auth_serializer():
-    """Return an itsdangerous serializer for signing auth cookies."""
-    return URLSafeTimedSerializer(app.config["SECRET_KEY"], salt="nc-auth")
-
-
-def _get_authenticated_email() -> str | None:
-    """Read and verify the auth cookie, returning the email or None."""
-    token = request.cookies.get(_AUTH_COOKIE_NAME)
-    if not token:
-        return None
-    try:
-        email = _get_auth_serializer().loads(token, max_age=_AUTH_COOKIE_MAX_AGE)
-        return email
-    except (BadSignature, SignatureExpired):
-        return None
-
-
 @app.before_request
 def _set_request_context():
-    """Set builder mode, visitor ID, auth email, and request ID on every request."""
+    """Set builder mode, visitor ID, and request ID on every request."""
     g.request_id = _generate_request_id()
     g.is_builder = _is_builder(request)
-
-    # Authenticated email from magic-link cookie
-    g.user_email = _get_authenticated_email()
 
     # Visitor ID: anonymous, cookie-based, for return-visit tracking
     g.visitor_id = request.cookies.get("nc_vid")
@@ -286,9 +108,8 @@ def _set_request_context():
 @app.after_request
 def _after_request(response):
     """Set cookies after request if needed."""
-    # Set visitor ID cookie (1 year) — only if user has accepted cookies
-    has_consent = request.cookies.get("nc_cookie_consent") == "1"
-    if getattr(g, "set_visitor_cookie", False) and has_consent:
+    # Set visitor ID cookie (1 year)
+    if getattr(g, "set_visitor_cookie", False):
         response.set_cookie(
             "nc_vid", g.visitor_id,
             max_age=365 * 24 * 3600, httponly=True, samesite="Lax"
@@ -301,16 +122,6 @@ def _after_request(response):
             max_age=90 * 24 * 3600, httponly=True, samesite="Lax"
         )
 
-    # Set auth cookie if magic-link verification flagged it
-    auth_email = getattr(g, "set_auth_cookie_email", None)
-    if auth_email:
-        token = _get_auth_serializer().dumps(auth_email)
-        response.set_cookie(
-            _AUTH_COOKIE_NAME, token,
-            max_age=_AUTH_COOKIE_MAX_AGE, httponly=True, samesite="Lax",
-            secure=not app.debug,
-        )
-
     return response
 
 
@@ -318,1255 +129,24 @@ def _after_request(response):
 # Verdict generation
 # ---------------------------------------------------------------------------
 
-def generate_structured_summary(presented_checks: list) -> str:
-    """Generate a structured summary sentence from presented checks.
-
-    Only counts SAFETY-category checks. LIFESTYLE checks (listing details)
-    are excluded from the summary since they are no longer displayed.
-
-    Examples:
-        "1 confirmed concern · 1 item we couldn't verify"
-        "All safety checks passed"
-        "2 confirmed concerns"
-    """
-    safety = [c for c in presented_checks if c.get("category") == "SAFETY"]
-
-    confirmed = [c for c in safety if c["result_type"] == "CONFIRMED_ISSUE"]
-    verification = [c for c in safety if c["result_type"] == "VERIFICATION_NEEDED"]
-
-    parts = []
-    if confirmed:
-        n = len(confirmed)
-        parts.append(f"{n} confirmed concern{'s' if n != 1 else ''}")
-    if verification:
-        n = len(verification)
-        parts.append(f"{n} item{'s' if n != 1 else ''} we couldn't verify")
-
-    if not parts:
-        return "All safety checks passed"
-
-    return " · ".join(parts)
-
-
-
-
 def generate_verdict(result_dict):
     """Generate a one-line verdict based on the evaluation result."""
     score = result_dict.get("final_score", 0)
-    band_info = get_score_band(score)
-    verdict = band_info["label"]
+    passed = result_dict.get("passed_tier1", False)
 
-    # Append proximity concern suffix when tier1 checks failed
-    if not result_dict.get("passed_tier1", False):
-        presented = result_dict.get("presented_checks", [])
-        has_confirmed = any(
-            pc.get("result_type") == "CONFIRMED_ISSUE"
-            for pc in presented
-        )
-        if has_confirmed:
-            verdict += " — has proximity concerns"
+    if not passed:
+        return "Does not meet baseline requirements"
 
-    return verdict
-
-
-def generate_dimension_summaries(result_dict: dict) -> list:
-    """Generate plain-English summaries for each scoring dimension.
-
-    Reads from the serialized result dict so it works for both new
-    evaluations and old snapshots (with graceful fallbacks).
-    """
-    # Build a lookup: tier2 dimension name → {points, max}
-    tier2 = {
-        s["name"]: {"points": s["points"], "max": s["max"]}
-        for s in result_dict.get("tier2_scores", [])
-    }
-
-    neighborhood = result_dict.get("neighborhood_places") or {}
-    green = result_dict.get("green_escape") or {}
-    urban = result_dict.get("urban_access") or {}
-    transit = result_dict.get("transit_access") or {}
-
-    summaries = []
-
-    # ── Parks & Green Space ──────────────────────────────────────
-    best_park = green.get("best_daily_park")
-    if best_park and best_park.get("name"):
-        park_summary = f"{best_park['name']} — {best_park.get('walk_time_min', '?')} min walk"
+    if score >= 85:
+        return "Exceptional daily-life match"
+    elif score >= 70:
+        return "Strong daily-life match"
+    elif score >= 55:
+        return "Solid foundation with trade-offs"
+    elif score >= 40:
+        return "Compromised walkability — car likely needed"
     else:
-        park_summary = "No parks found within walking distance"
-    t2 = tier2.get("Parks & Green Space", {})
-    summaries.append({
-        "name": "Parks & Green Space",
-        "summary": park_summary,
-        "score": t2.get("points", 0),
-        "max_score": t2.get("max", 10),
-    })
-
-    # ── Coffee & Social Spots ────────────────────────────────────
-    coffee_places = neighborhood.get("coffee") or []
-    walkable_coffee = [p for p in coffee_places if (p.get("walk_time_min") or 99) <= 20]
-    if walkable_coffee:
-        nearest = min(p.get("walk_time_min", 99) for p in walkable_coffee)
-        coffee_summary = f"{len(walkable_coffee)} options within walking distance · nearest {nearest} min"
-    else:
-        coffee_summary = "No cafés or social spots found nearby"
-    t2 = tier2.get("Coffee & Social Spots", {})
-    summaries.append({
-        "name": "Coffee & Social Spots",
-        "summary": coffee_summary,
-        "score": t2.get("points", 0),
-        "max_score": t2.get("max", 10),
-    })
-
-    # ── Daily Essentials ─────────────────────────────────────────
-    grocery_places = neighborhood.get("grocery") or []
-    walkable_grocery = [p for p in grocery_places if (p.get("walk_time_min") or 99) <= 20]
-    if walkable_grocery:
-        nearest = min(p.get("walk_time_min", 99) for p in walkable_grocery)
-        grocery_summary = f"{len(walkable_grocery)} stores within walking distance · nearest {nearest} min"
-    else:
-        grocery_summary = "No grocery stores found nearby"
-    t2 = tier2.get("Daily Essentials", {})
-    summaries.append({
-        "name": "Daily Essentials",
-        "summary": grocery_summary,
-        "score": t2.get("points", 0),
-        "max_score": t2.get("max", 10),
-    })
-
-    # ── Fitness & Recreation ─────────────────────────────────────
-    fitness_places = neighborhood.get("fitness") or []
-    walkable_fitness = [p for p in fitness_places if (p.get("walk_time_min") or 99) <= 20]
-    if walkable_fitness:
-        nearest = min(p.get("walk_time_min", 99) for p in walkable_fitness)
-        fitness_summary = f"{len(walkable_fitness)} options within walking distance · nearest {nearest} min"
-    else:
-        fitness_summary = "No fitness options found nearby"
-    t2 = tier2.get("Fitness & Recreation", {})
-    summaries.append({
-        "name": "Fitness & Recreation",
-        "summary": fitness_summary,
-        "score": t2.get("points", 0),
-        "max_score": t2.get("max", 10),
-    })
-
-    # ── Getting Around ───────────────────────────────────────────
-    freq = result_dict.get("frequency_label") or ""
-    primary = urban.get("primary_transit")
-    if primary and primary.get("name"):
-        transit_summary = f"{primary['name']} — {primary.get('walk_time_min', '?')} min walk"
-        if freq:
-            transit_summary += f" · {freq}"
-    elif transit.get("primary_stop"):
-        transit_summary = f"{transit['primary_stop']} — {transit.get('walk_minutes', '?')} min walk"
-        if freq:
-            transit_summary += f" · {freq}"
-    else:
-        transit_summary = "No public transit found nearby"
-    t2 = tier2.get("Getting Around", {})
-    summaries.append({
-        "name": "Getting Around",
-        "summary": transit_summary,
-        "score": t2.get("points", 0),
-        "max_score": t2.get("max", 10),
-    })
-
-    return summaries
-
-
-# ---------------------------------------------------------------------------
-# Insight generation — plain-English takeaways per report section
-# ---------------------------------------------------------------------------
-
-def _tier2_lookup(result_dict: dict) -> dict:
-    """Build a tier2 dimension name -> {points, max} lookup."""
-    return {
-        s["name"]: {"points": s["points"], "max": s["max"]}
-        for s in result_dict.get("tier2_scores", [])
-    }
-
-
-def _nearest_walk_time(places: list) -> int | None:
-    """Return the shortest walk_time_min from a list of place dicts, or None."""
-    times = [p.get("walk_time_min") for p in places if p.get("walk_time_min") is not None]
-    return min(times) if times else None
-
-
-def _join_labels(items: list[str], conjunction: str = "and") -> str:
-    """Join a list of strings with commas and a final conjunction.
-
-    Examples:
-        ["cafés"]                         → "cafés"
-        ["cafés", "grocery stores"]       → "cafés and grocery stores"
-        ["cafés", "grocery stores", "gyms"] → "cafés, grocery stores, and gyms"
-    """
-    if len(items) <= 2:
-        return f" {conjunction} ".join(items)
-    return f", ".join(items[:-1]) + f", {conjunction} " + items[-1]
-
-
-def _insight_neighborhood(neighborhood: dict, tier2: dict) -> str | None:
-    """Generate a plain-English insight for the Your Neighborhood section.
-
-    Synthesizes across all four neighborhood categories: coffee, grocery,
-    fitness, and parks.
-    """
-    if not neighborhood:
-        return None
-
-    # Gather per-dimension data
-    dims = {
-        "coffee": {
-            "label": "café and social spot",
-            "label_plural": "cafés and social spots",
-            "places": neighborhood.get("coffee") or [],
-            "score": tier2.get("Coffee & Social Spots", {}).get("points", 0),
-        },
-        "grocery": {
-            "label": "grocery",
-            "label_plural": "grocery stores",
-            "places": neighborhood.get("grocery") or [],
-            "score": tier2.get("Daily Essentials", {}).get("points", 0),
-        },
-        "fitness": {
-            "label": "gym or fitness",
-            "label_plural": "gyms and fitness options",
-            "places": neighborhood.get("fitness") or [],
-            "score": tier2.get("Fitness & Recreation", {}).get("points", 0),
-        },
-        "parks": {
-            "label": "parks",
-            "label_plural": "parks and green spaces",
-            "places": neighborhood.get("parks") or [],
-            "score": tier2.get("Parks & Green Space", {}).get("points", 0),
-        },
-    }
-
-    # Classify each dimension
-    strong = []   # score >= 7
-    middling = [] # 4-6
-    weak = []     # < 4
-
-    for key, d in dims.items():
-        d["nearest_time"] = _nearest_walk_time(d["places"])
-        d["nearest_name"] = d["places"][0]["name"] if d["places"] else None
-        d["key"] = key
-        if d["score"] >= 7:
-            strong.append(d)
-        elif d["score"] >= 4:
-            middling.append(d)
-        else:
-            weak.append(d)
-
-    # Sort strong by score desc so we lead with the best
-    strong.sort(key=lambda d: -d["score"])
-
-    # All strong
-    if len(strong) == len(dims):
-        lead = strong[0]
-        also_clause = _join_labels([d["label_plural"] for d in strong[1:]])
-        return (
-            f"You have solid options for everyday errands on foot — "
-            f"{lead['nearest_name']} is {lead['nearest_time']} min away, "
-            f"with {also_clause} also within walking distance."
-        )
-
-    # All weak
-    if len(weak) == len(dims):
-        # Distinguish "nothing found" from "found but far"
-        has_any = any(d["places"] for d in weak)
-        all_labels = _join_labels([d["label_plural"] for d in weak], "or")
-        if not has_any:
-            return (
-                f"We didn't find {all_labels} "
-                f"within reach of this address."
-            )
-        all_labels_and = _join_labels([d["label_plural"] for d in weak])
-        return (
-            f"Everyday errands would likely mean driving — "
-            f"{all_labels_and} are all a fair distance from this address."
-        )
-
-    # Mixed: at least one strong and at least one weak
-    if strong and weak:
-        lead = strong[0]
-        # Defensive: exclude lead from weak in case classification changes
-        other_weak = [d for d in weak if d is not lead]
-        worst = other_weak[0] if other_weak else None
-        if not worst:
-            return None
-        # Lead with strength
-        parts = [
-            f"{lead['nearest_name']} is just {lead['nearest_time']} min on foot"
-        ]
-        if len(strong) > 1:
-            other = strong[1]
-            parts[0] += f", and {other['label']} options are also close by"
-
-        # Hedge on weakness
-        if not worst["places"]:
-            weakness = f"we didn't find any {worst['label_plural']} nearby"
-        else:
-            weakness = (
-                f"the nearest {worst['label']} option is "
-                f"{worst['nearest_time']} minutes away"
-            )
-
-        return f"{parts[0]}. On the other hand, {weakness}."
-
-    # Strong dims with rest middling (no weak)
-    if strong and not weak:
-        lead = strong[0]
-        # Exclude lead; include any remaining strong dims + all middling
-        rest = list(strong[1:]) + list(middling)
-        other_clause = _join_labels([d["label_plural"] for d in rest])
-        return (
-            f"The {lead['label']} scene is a bright spot here, with "
-            f"{lead['nearest_name']} {lead['nearest_time']} min on foot. "
-            f"{other_clause.capitalize()} are reasonable but not as close."
-        )
-
-    # No strong, mix of middling and weak
-    if not strong and weak:
-        ok = middling[0] if middling else None
-        # Defensive: exclude ok from weak in case classification changes
-        other_weak = [d for d in weak if d is not ok]
-        worst = other_weak[0] if other_weak else None
-        if ok and worst:
-            if not worst["places"]:
-                weakness = f"we didn't find any {worst['label_plural']} nearby"
-            else:
-                weakness = (
-                    f"{worst['label']} options are more of a trek at "
-                    f"{worst['nearest_time']} minutes"
-                )
-            return (
-                f"{ok['nearest_name']} is {ok['nearest_time']} min away for "
-                f"{ok['label_plural']}, but {weakness}."
-            )
-        return None
-
-    # All middling — nothing exceptional, nothing terrible
-    if len(middling) == len(dims):
-        all_labels = _join_labels([d["label_plural"] for d in middling])
-        return (
-            f"You have options for {all_labels} within reach, though "
-            f"none are especially close. A short walk or bike ride covers "
-            f"the basics."
-        )
-
-    return None
-
-
-def _insight_getting_around(
-    urban: dict | None,
-    transit: dict | None,
-    walk_scores: dict | None,
-    freq_label: str,
-    tier2: dict,
-    weather: dict | None = None,
-) -> str | None:
-    """Generate a plain-English insight for the Getting Around section."""
-    # If we have no transit data at all, return None rather than guessing.
-    # This avoids false "transit is limited" on old snapshots that simply
-    # didn't store transit fields.
-    has_data = (
-        urban is not None
-        or transit is not None
-    )
-    if not has_data:
-        return None
-
-    score = tier2.get("Getting Around", {}).get("points", 0)
-    primary = (urban or {}).get("primary_transit")
-    hub = (urban or {}).get("major_hub")
-    ws = walk_scores or {}
-
-    parts = []
-
-    # Rail station path
-    if primary and primary.get("name"):
-        station = primary["name"]
-        walk_min = primary.get("walk_time_min", "?")
-
-        if score >= 7:
-            part = f"{station} is {walk_min} minutes on foot"
-            if freq_label:
-                part += f" with {freq_label.lower()}"
-            parts.append(part)
-            if hub and hub.get("travel_time_min"):
-                parts.append(
-                    f"You have a direct line into {hub['name']} — "
-                    f"about {hub['travel_time_min']} minutes door to door"
-                )
-        elif score >= 4:
-            part = f"{station} is {walk_min} minutes on foot"
-            if freq_label:
-                part += f", but service runs at {freq_label.lower()}"
-            parts.append(part)
-            parts.append(
-                "For regular commuting, factor in wait times or have a "
-                "backup option"
-            )
-        else:
-            parts.append(
-                f"The nearest transit option is {station}, "
-                f"{walk_min} minutes on foot"
-            )
-            if freq_label:
-                parts[-1] += f" with {freq_label.lower()}"
-            parts.append(
-                "Getting around would likely mean driving for most trips"
-            )
-
-    # Bus-only fallback
-    elif transit and transit.get("primary_stop"):
-        stop = transit["primary_stop"]
-        walk_min = transit.get("walk_minutes")
-        freq_bucket = transit.get("frequency_bucket", "")
-
-        part = f"The nearest transit is the {stop} bus stop"
-        if walk_min is not None:
-            part += f", {walk_min} minutes on foot"
-        if freq_bucket:
-            part += f" with {freq_bucket.lower()} frequency service"
-        parts.append(part)
-
-        if score < 4:
-            parts.append(
-                "Bus service alone is unlikely to cover daily commuting "
-                "needs — plan on driving or rideshare for most trips"
-            )
-
-    # No transit at all
-    else:
-        parts.append(
-            "Transit options are limited here. Getting around would "
-            "likely mean driving or rideshare for most trips"
-        )
-
-    # Bike note
-    if ws.get("bike_score") is not None and ws["bike_score"] >= 70:
-        parts.append(
-            "Biking is a practical option — the area scores well for "
-            "bike infrastructure"
-        )
-
-    # Walk Score description
-    if ws.get("walk_description"):
-        desc = ws["walk_description"]
-        # Only add if it provides real info (not "Car-Dependent" when
-        # we already said driving is needed)
-        if score >= 4:
-            parts.append(f"The area is rated \"{desc}\" for walkability")
-
-    # Weather context — append 0-2 sentences when climate materially
-    # affects the walkability/transit story (NES-32).
-    weather_sentence = _weather_context(weather)
-    if weather_sentence:
-        parts.append(weather_sentence)
-
-    if not parts:
-        return None
-
-    return ". ".join(parts) + "."
-
-
-# Month name lookup for weather context sentences
-_MONTH_NAMES = [
-    "", "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-]
-
-
-def _snow_months(monthly: list[dict]) -> str:
-    """Identify the contiguous winter months with meaningful snowfall.
-
-    Returns a human-readable range like "December through March".
-    """
-    snow_months = [
-        m["month"] for m in monthly
-        if m.get("avg_snowfall_in", 0) >= 1.0
-    ]
-    if not snow_months:
-        return "winter"
-
-    # Winter-centered sort: July=0 … June=11.  This keeps winter months
-    # (Oct–Mar) contiguous so first/last gives the correct range.
-    ordered = sorted(snow_months, key=lambda m: (m - 7) % 12)
-    return f"{_MONTH_NAMES[ordered[0]]} through {_MONTH_NAMES[ordered[-1]]}"
-
-
-def _hot_months(monthly: list[dict]) -> str:
-    """Identify months where average highs exceed 90 deg F."""
-    hot = [
-        m["month"] for m in monthly
-        if m.get("avg_high_f", 0) >= 90
-    ]
-    if not hot:
-        return "summer"
-    return f"{_MONTH_NAMES[hot[0]]} through {_MONTH_NAMES[hot[-1]]}"
-
-
-def _weather_context(weather: dict | None) -> str | None:
-    """Generate 0-1 weather context sentences for the Getting Around insight.
-
-    Only produces output when climate thresholds are triggered.  Returns
-    None for mild climates.  Combines related triggers (snow + freezing)
-    into a single natural sentence to avoid redundancy.
-    """
-    if not weather:
-        return None
-
-    triggers = weather.get("triggers") or []
-    if not triggers:
-        return None
-
-    monthly = weather.get("monthly") or []
-    sentences = []
-
-    # Snow and freezing often co-occur — combine into one sentence
-    has_snow = "snow" in triggers
-    has_freezing = "freezing" in triggers
-
-    if has_snow and has_freezing:
-        period = _snow_months(monthly)
-        sentences.append(
-            f"This area gets significant snow and freezing temperatures "
-            f"in winter \u2014 expect that commute to feel longer from {period}"
-        )
-    elif has_snow:
-        period = _snow_months(monthly)
-        sentences.append(
-            f"This area gets notable snow in winter \u2014 plan for that "
-            f"walk to feel longer from {period}"
-        )
-    elif has_freezing:
-        sentences.append(
-            "Winters here bring extended freezing temperatures \u2014 "
-            "factor in icy conditions for outdoor commuting"
-        )
-
-    # Extreme heat — independent of snow/cold
-    if "extreme_heat" in triggers:
-        period = _hot_months(monthly)
-        sentences.append(
-            f"Summers are hot \u2014 outdoor walks will be uncomfortable "
-            f"from {period}"
-        )
-
-    # Frequent rain — only if no snow trigger (avoid "it snows AND rains")
-    if "rain" in triggers and not has_snow:
-        sentences.append(
-            "This area sees frequent rain year-round \u2014 keep that in "
-            "mind for daily walks and transit waits"
-        )
-
-    if not sentences:
-        return None
-
-    # Return at most 2 sentences, joined naturally
-    return ". ".join(sentences[:2])
-
-
-def _insight_parks(green_escape: dict | None, tier2: dict) -> str | None:
-    """Generate a plain-English insight for the Parks & Green Space section."""
-    if not green_escape:
-        return None
-
-    score = tier2.get("Parks & Green Space", {}).get("points", 0)
-    best = green_escape.get("best_daily_park")
-    nearby = green_escape.get("nearby_green_spaces") or []
-
-    if not best or not best.get("name"):
-        return "No parks or green spaces were found within walking distance of this address."
-
-    name = best["name"]
-    walk_min = best.get("walk_time_min")
-
-    # Build nature feature fragments from OSM data
-    nature_bits = []
-    if best.get("osm_enriched"):
-        if best.get("osm_area_sqm"):
-            acres = best["osm_area_sqm"] / 4047
-            if acres >= 5:
-                nature_bits.append(f"roughly {acres:.0f} acres")
-        if best.get("osm_has_trail"):
-            nature_bits.append("trails")
-        elif best.get("osm_path_count") and best["osm_path_count"] >= 3:
-            nature_bits.append(f"{best['osm_path_count']} paths")
-
-    nature_phrase = ""
-    if nature_bits:
-        nature_phrase = f" — {', '.join(nature_bits)}"
-
-    nearby_note = ""
-    if len(nearby) >= 2:
-        nearby_note = f" {len(nearby)} other green spaces nearby give you options too."
-    elif len(nearby) == 1:
-        nearby_note = " There's another green space nearby as well."
-
-    # Strong: close and high-scoring
-    if score >= 7 and walk_min is not None and walk_min <= 15:
-        return (
-            f"{name} is {walk_min} minutes on foot{nature_phrase}. "
-            f"It's the kind of park where you can go for a run, bring "
-            f"kids to play, or walk the dog.{nearby_note}"
-        )
-
-    # Good park but far — only for parks that didn't score high
-    if score < 7 and walk_min is not None and walk_min > 20:
-        return (
-            f"{name} is well-rated and offers real green space"
-            f"{nature_phrase}, but at {walk_min} minutes on foot it's "
-            f"more of a weekend destination than a daily stop."
-            f"{nearby_note}"
-        )
-
-    # Moderate: decent park at moderate distance
-    if score >= 4:
-        time_desc = f"{walk_min} minutes on foot" if walk_min else "a moderate walk"
-        return (
-            f"{name} is {time_desc}{nature_phrase}. "
-            f"Close enough for regular visits, especially on weekends."
-            f"{nearby_note}"
-        )
-
-    # Weak: park exists but scored low
-    time_clause = f" at {walk_min} minutes" if walk_min is not None else " nearby"
-    return (
-        f"Green space is limited near this address. The closest option "
-        f"is {name}{time_clause} — more of a small park than "
-        f"a place for a long walk or active outdoor time."
-    )
-
-
-def _insight_community_profile(
-    demographics: dict | None,
-    persona: dict | None,
-    result_dict: dict,
-) -> str | None:
-    """Generate a persona-aware narrative for the Community Profile section.
-
-    Uses context-not-judgment framing: percentages and county comparisons
-    only, no characterizations of desirability.  Narrative emphasis varies
-    by persona:
-      - balanced: children stats first, then tenure, then commute
-      - commuter/active: commute first, then rent, then children
-      - quiet: tenure first, then children, then commute
-    """
-    if not demographics:
-        return None
-
-    persona_key = (persona or {}).get("key", "balanced")
-    county_name = demographics.get("county_name") or "the county"
-
-    # Extract key stats
-    children_pct = demographics.get("children_pct", 0)
-    owner_pct = demographics.get("owner_pct", 0)
-    renter_pct = demographics.get("renter_pct", 0)
-    county_children_pct = demographics.get("county_children_pct")
-    county_renter_pct = demographics.get("county_renter_pct")
-
-    commute = demographics.get("commute") or {}
-    transit_pct = commute.get("transit_pct", 0)
-    walk_pct = commute.get("walk_pct", 0)
-    bike_pct = commute.get("bike_pct", 0)
-    wfh_pct = commute.get("wfh_pct", 0)
-    drive_pct = commute.get("drive_alone_pct", 0)
-
-    county_commute = demographics.get("county_commute") or {}
-    county_transit_pct = county_commute.get("transit_pct") if county_commute else None
-
-    median_rent = demographics.get("median_rent")
-    county_median_rent = demographics.get("county_median_rent")
-
-    # Build narrative parts per persona ordering
-    parts: list[str] = []
-
-    def _children_sentence() -> str | None:
-        if children_pct <= 0:
-            return None
-        s = f"{children_pct:.0f}% of households in this census tract include children under 18"
-        if county_children_pct is not None:
-            s += f", compared to {county_children_pct:.0f}% across {county_name}"
-        return s
-
-    def _tenure_sentence() -> str | None:
-        if renter_pct <= 0:
-            return None
-        s = f"About {renter_pct:.0f}% of households here rent"
-        if county_renter_pct is not None:
-            s += f" (county average: {county_renter_pct:.0f}%)"
-        return s
-
-    def _tenure_detailed_sentence() -> str:
-        s = f"This tract is {owner_pct:.0f}% owner-occupied and {renter_pct:.0f}% renter-occupied"
-        if county_renter_pct is not None:
-            s += f" (county average: {county_renter_pct:.0f}% renter)"
-        return s
-
-    def _commute_summary() -> str | None:
-        bits = []
-        if drive_pct > 50:
-            bits.append(f"{drive_pct:.0f}% drive alone")
-        if transit_pct >= 5:
-            bits.append(f"{transit_pct:.0f}% use public transit")
-        if walk_pct + bike_pct >= 3:
-            bits.append(f"{walk_pct + bike_pct:.0f}% walk or bike")
-        if wfh_pct >= 5:
-            bits.append(f"{wfh_pct:.0f}% work from home")
-        if not bits:
-            return None
-        return "Among commuters here, " + ", ".join(bits)
-
-    def _transit_comparison() -> str | None:
-        if transit_pct < 10:
-            return None
-        s = f"{transit_pct:.0f}% of residents commute by public transit"
-        if county_transit_pct is not None:
-            s += f", compared to {county_transit_pct:.0f}% countywide"
-        return s
-
-    def _sidewalk_cross_ref() -> str | None:
-        sidewalk = result_dict.get("sidewalk_coverage")
-        if not sidewalk or walk_pct < 3:
-            return None
-        sw_pct = sidewalk.get("sidewalk_pct", 0)
-        if sw_pct < 60:
-            return None
-        return (
-            f"The {walk_pct:.0f}% walk-to-work rate is supported by "
-            f"{sw_pct:.0f}% sidewalk coverage on nearby roads"
-        )
-
-    def _rent_sentence() -> str | None:
-        if median_rent is None:
-            return None
-        s = f"Median rent in this tract is ${median_rent:,}"
-        if county_median_rent is not None:
-            s += f" (county median: ${county_median_rent:,})"
-        return s
-
-    def _wfh_sentence() -> str | None:
-        if wfh_pct < 10:
-            return None
-        return f"A notable {wfh_pct:.0f}% of residents work from home"
-
-    if persona_key in ("commuter", "active"):
-        # Commute first, then rent, then children
-        for fn in (_commute_summary, _sidewalk_cross_ref, _rent_sentence,
-                   _children_sentence, _tenure_sentence):
-            s = fn()
-            if s:
-                parts.append(s)
-    elif persona_key == "quiet":
-        # Tenure first, then children, then commute
-        for fn in (_tenure_detailed_sentence, _children_sentence,
-                   _wfh_sentence, _transit_comparison):
-            s = fn()
-            if s:
-                parts.append(s)
-    else:
-        # Balanced: children first, then tenure, then commute
-        for fn in (_children_sentence, _tenure_sentence,
-                   _transit_comparison, _rent_sentence):
-            s = fn()
-            if s:
-                parts.append(s)
-
-    if not parts:
-        return None
-
-    return ". ".join(parts) + "."
-
-
-def generate_insights(result_dict: dict) -> dict:
-    """Generate plain-English insights for report sections.
-
-    Reads from the serialized result dict so it works for both new
-    evaluations and old snapshots (with graceful fallbacks).
-
-    Returns a dict with keys: your_neighborhood, getting_around, parks,
-    proximity, community_profile.  Each value is a string or None.
-    """
-    tier2 = _tier2_lookup(result_dict)
-    neighborhood = result_dict.get("neighborhood_places") or {}
-    urban = result_dict.get("urban_access")
-    transit = result_dict.get("transit_access")
-    walk_scores = result_dict.get("walk_scores")
-    freq_label = result_dict.get("frequency_label") or ""
-    green_escape = result_dict.get("green_escape")
-    presented = result_dict.get("presented_checks") or []
-    weather = result_dict.get("weather")
-    demographics = result_dict.get("demographics")
-    persona = result_dict.get("persona")
-
-    return {
-        "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
-        "getting_around": _insight_getting_around(
-            urban, transit, walk_scores, freq_label, tier2, weather,
-        ),
-        "parks": _insight_parks(green_escape, tier2),
-        "proximity": proximity_synthesis(presented),
-        "community_profile": _insight_community_profile(
-            demographics, persona, result_dict,
-        ),
-    }
-
-
-def generate_key_finding(result_dict: dict) -> dict:
-    """Classify an evaluation into a finding type with headline and is_revealing flag.
-
-    Checks conditions in priority order — first match wins.
-    Health flags take priority because they're the highest-value finding.
-    Uses tier2_normalized (not final_score) for health flag strength assessment
-    since tier2_normalized reflects amenity/walkability quality independent of
-    the tier1 gate.
-    """
-    presented = result_dict.get("presented_checks") or []
-    tier2_scores = result_dict.get("tier2_scores") or []
-    final_score = result_dict.get("final_score", 0)
-    tier2_norm = result_dict.get("tier2_normalized")
-    if tier2_norm is None:
-        tier2_norm = final_score
-
-    has_confirmed = any(
-        pc.get("result_type") == "CONFIRMED_ISSUE" for pc in presented
-    )
-    has_verification = any(
-        pc.get("result_type") == "VERIFICATION_NEEDED" for pc in presented
-    )
-
-    # 1. health_flag_on_strong_location
-    if has_confirmed and tier2_norm >= 55:
-        return {
-            "type": "health_flag_on_strong_location",
-            "headline": "Proximity concern on an otherwise strong location",
-            "is_revealing": True,
-        }
-
-    # 2. health_flag_on_weak_location
-    if has_confirmed and tier2_norm < 55:
-        return {
-            "type": "health_flag_on_weak_location",
-            "headline": "Proximity concern compounds existing gaps",
-            "is_revealing": False,
-        }
-
-    # 3. verification_needed (no confirmed issues)
-    if has_verification and not has_confirmed:
-        return {
-            "type": "verification_needed",
-            "headline": "Safety data incomplete — verification recommended",
-            "is_revealing": True,
-        }
-
-    # 4. single_dimension_outlier
-    if tier2_scores:
-        fractions = []
-        for s in tier2_scores:
-            max_pts = s.get("max", 0)
-            pts = s.get("points", 0)
-            frac = pts / max_pts if max_pts > 0 else 0.0
-            fractions.append({"name": s.get("name", "Unknown"), "frac": frac})
-
-        weak = [f for f in fractions if f["frac"] <= 0.1]
-        strong = [f for f in fractions if f["frac"] >= 0.6]
-        if len(weak) == 1 and len(strong) >= 3:
-            return {
-                "type": "single_dimension_outlier",
-                "headline": f"Strong location with one notable gap: {weak[0]['name']}",
-                "is_revealing": True,
-            }
-
-    # 5. uniformly_strong
-    has_safety_concern = any(
-        pc.get("result_type") in ("CONFIRMED_ISSUE", "VERIFICATION_NEEDED")
-        for pc in presented
-    )
-    if final_score >= 70 and not has_safety_concern:
-        return {
-            "type": "uniformly_strong",
-            "headline": "Well-rounded location",
-            "is_revealing": False,
-        }
-
-    # 6. car_dependent_with_assets
-    if tier2_scores:
-        zero_dims = [s for s in tier2_scores if s.get("points", 0) == 0]
-        high_dims = [
-            s for s in tier2_scores
-            if (s.get("points", 0) / s.get("max", 1) if s.get("max", 0) > 0 else 0) >= 0.7
-        ]
-        if len(zero_dims) >= 2 and len(high_dims) >= 1:
-            return {
-                "type": "car_dependent_with_assets",
-                "headline": "Car-dependent but has standout qualities",
-                "is_revealing": True,
-            }
-
-    # 7. uniformly_weak
-    if final_score < 40 and not has_confirmed:
-        return {
-            "type": "uniformly_weak",
-            "headline": "Limited walkable access across most dimensions",
-            "is_revealing": False,
-        }
-
-    # 8. neutral (default)
-    return {
-        "type": "neutral",
-        "headline": None,
-        "is_revealing": False,
-    }
-
-
-def generate_summary_narrative(result_dict: dict) -> str:
-    """Generate 2-3 paragraphs of plain-English synthesis for the report header.
-
-    Higher-altitude synthesis — what living here would feel like — not a
-    concatenation of section insights. Reads like a knowledgeable friend
-    describing the address. Returns HTML string (paragraphs wrapped in <p> tags)
-    or empty string if insufficient data.
-    """
-    # Guard: need at least tier2 and basic structure
-    tier2_scores = result_dict.get("tier2_scores") or []
-    if not tier2_scores and not result_dict.get("address"):
-        return ""
-
-    tier2 = _tier2_lookup(result_dict)
-    green = result_dict.get("green_escape") or {}
-    urban = result_dict.get("urban_access") or {}
-    transit = result_dict.get("transit_access") or {}
-    walk_scores = result_dict.get("walk_scores") or {}
-    presented = result_dict.get("presented_checks") or []
-    weather = result_dict.get("weather")
-    persona = result_dict.get("persona") or {}
-    road_noise = result_dict.get("road_noise")
-
-    # Transit
-    transit_walk_min = None
-    transit_name = None
-    transit_drive_min = None
-    primary = urban.get("primary_transit") if urban else None
-    if primary and primary.get("name"):
-        transit_name = primary.get("name")
-        transit_walk_min = primary.get("walk_time_min")
-        transit_drive_min = primary.get("drive_time_min")
-    elif transit and transit.get("primary_stop"):
-        transit_name = transit.get("primary_stop")
-        transit_walk_min = transit.get("walk_minutes")
-
-    # Zero-score dimensions
-    zero_dims = [s["name"] for s in tier2_scores if s.get("points", 0) == 0]
-    zero_count = len(zero_dims)
-
-    DIM_LABELS = {
-        "Parks & Green Space": "parks or green space",
-        "Coffee & Social Spots": "cafés or social spots",
-        "Daily Essentials": "grocery stores",
-        "Fitness & Recreation": "gyms or fitness options",
-        "Road Noise": "road noise",
-        "Getting Around": "transit",
-    }
-
-    # Precompute for persona placement (fold into p1 when p2 has health findings)
-    safety = [c for c in presented if c.get("category") == "SAFETY"]
-    clear = [c for c in safety if c.get("result_type") == "CLEAR"]
-    non_clear = [c for c in safety if c.get("result_type") != "CLEAR"]
-
-    # Strong categories (score >= 7) for urban narrative
-    strong_cats = []
-    for name, label in [
-        ("Coffee & Social Spots", "coffee shops"),
-        ("Daily Essentials", "grocery stores"),
-        ("Fitness & Recreation", "fitness options"),
-    ]:
-        if tier2.get(name, {}).get("points", 0) >= 7:
-            strong_cats.append(label)
-
-    paragraphs = []
-
-    # ── Paragraph 1: What daily life looks like here (3-5 sentences) ──
-    p1_sentences = []
-    best_park = green.get("best_daily_park") if green else None
-    park_walk = best_park.get("walk_time_min") if best_park else None
-    park_name = best_park.get("name") if best_park else None
-
-    # 1. Lead with strongest positive
-    has_strong_lead = False
-    if park_name and park_walk is not None and park_walk <= 10:
-        # Build textured description
-        texture = []
-        if best_park.get("osm_area_sqm"):
-            acres = best_park["osm_area_sqm"] / 4047
-            if acres >= 5:
-                texture.append(f"roughly {acres:.0f} acres")
-            elif acres >= 1:
-                texture.append(f"about {acres:.1f} acres")
-        if best_park.get("osm_has_trail"):
-            texture.append("trails")
-        elif best_park.get("osm_path_count", 0) >= 2:
-            texture.append("paths")
-        nature_tags = best_park.get("osm_nature_tags") or []
-        if any(t in " ".join(nature_tags).lower() for t in ["water", "river", "stream", "wetland", "lake"]):
-            texture.append("water features")
-        if len(texture) >= 2:
-            texture_str = texture[0] + " with " + " and ".join(texture[1:])
-        elif texture:
-            texture_str = texture[0]
-        else:
-            texture_str = "green space"
-        if best_park.get("rating") and best_park.get("user_ratings_total", 0) >= 20:
-            texture_str += f", rated {best_park['rating']:.1f} stars"
-        article = "an" if park_walk in (8, 11, 18) or (80 <= park_walk <= 89) else "a"
-        p1_sentences.append(
-            f"{park_name} is just {article} {park_walk}-minute walk from the front door — "
-            f"{texture_str}."
-        )
-        if texture:
-            p1_sentences.append("That's a genuine asset.")
-        has_strong_lead = True
-    elif walk_scores.get("walk_score") is not None and walk_scores["walk_score"] >= 70:
-        p1_sentences.append("This is a highly walkable location.")
-        has_strong_lead = True
-    elif transit_walk_min is not None and transit_walk_min <= 15 and transit_name:
-        p1_sentences.append(
-            f"You're well-connected to transit — {transit_name} is "
-            f"{transit_walk_min} minutes on foot."
-        )
-        has_strong_lead = True
-
-    # 2. Add daily-life pattern (car-dependent, mixed, highly walkable)
-    car_dependent = (
-        transit_walk_min is not None and transit_walk_min > 30
-        and zero_count >= 2
-    )
-    if car_dependent:
-        if has_strong_lead:
-            p1_sentences.append(
-                "On the other hand, beyond the park, daily life here means driving. "
-                "Grocery stores, cafés, and fitness options are all beyond "
-                "walking distance."
-            )
-        else:
-            p1_sentences.append(
-                "Daily life here means driving. Grocery stores, cafés, and "
-                "fitness options are all beyond walking distance."
-            )
-    elif zero_count >= 3:
-        connector = "That said, " if has_strong_lead else ""
-        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:3]]
-        p1_sentences.append(
-            f"{connector}Daily life here means driving — the nearest "
-            f"{', '.join(gap_labels)} are all beyond comfortable walking distance."
-        )
-    elif zero_count >= 1 and has_strong_lead:
-        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:2]]
-        p1_sentences.append(
-            f"That said, you'll need a car for {', '.join(gap_labels)}."
-        )
-    elif not has_strong_lead and zero_count >= 1:
-        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:3]]
-        p1_sentences.append(
-            f"Daily errands and amenities require a car — no "
-            f"{', '.join(gap_labels)} within walking distance."
-        )
-    elif has_strong_lead and strong_cats:
-        p1_sentences.append(
-            f"Most daily needs are within a short walk, including "
-            f"{', '.join(strong_cats)}."
-        )
-    elif not has_strong_lead and strong_cats:
-        p1_sentences.append(
-            f"This area offers walkable amenities — "
-            f"{', '.join(strong_cats)} are all nearby."
-        )
-
-    # 3. Integrate transit naturally (drive time when walk > 20)
-    if transit_name:
-        if transit_drive_min is not None and (transit_walk_min is None or transit_walk_min > 20):
-            p1_sentences.append(
-                f"The nearest train station ({transit_name}) is about "
-                f"{transit_drive_min} minutes by car rather than a realistic walk."
-            )
-        elif transit_walk_min is not None and transit_walk_min <= 20 and transit_walk_min > 10:
-            p1_sentences.append(
-                f"{transit_name} is {transit_walk_min} minutes on foot."
-            )
-
-    # 4. Persona note at end of p1 when p2 will have health findings (avoids
-    # awkward double-duty in the health paragraph)
-    _persona_note = None
-    if persona.get("key") and persona.get("key") != "balanced":
-        _persona_note = (
-            f"This evaluation is weighted toward {persona.get('label', 'your')} "
-            "priorities — transit and café access are emphasized in the scoring."
-        )
-
-    if p1_sentences:
-        p1_text = " ".join(p1_sentences)
-        # Fold persona into p1 when we'll have health findings in p2
-        if _persona_note and non_clear:
-            p1_text += " " + _persona_note
-            _persona_note = None  # Don't add again in p3
-        paragraphs.append("<p>" + p1_text + "</p>")
-
-    # ── Paragraph 2: What we checked (health proximity, 2-4 sentences) ──
-    p2_sentences = []
-    if not safety:
-        pass
-    elif len(clear) == len(safety):
-        p2_sentences.append(
-            "No environmental or health proximity concerns were detected. "
-            "The address is clear of highway noise corridors, gas stations, "
-            "high-traffic roads, and rail lines."
-        )
-        if road_noise:
-            sev = road_noise.get("severity")
-            if sev in ("QUIET",) or sev is None:
-                p2_sentences.append(
-                    "Road noise levels are estimated to be low."
-                )
-    elif non_clear:
-        confirmed = [c for c in non_clear if c.get("result_type") == "CONFIRMED_ISSUE"]
-        first = confirmed[0] if confirmed else non_clear[0]
-        headline = first.get("headline", first.get("display_name", "A proximity check"))
-        explanation = first.get("explanation", "")
-        check_name = first.get("display_name", first.get("check_id", ""))
-        dist_match = re.search(r"(\d+)\s*ft", headline or "")
-        dist_ft = dist_match.group(1) if dist_match else None
-
-        is_gas = "gas" in (check_name or "").lower() or "gas" in (headline or "").lower()
-        if is_gas and dist_ft:
-            p2_sentences.append(
-                f"However, there is a gas station approximately {dist_ft} feet "
-                "from this address."
-            )
-        elif dist_ft:
-            p2_sentences.append(
-                f"{headline} — about {dist_ft} feet away."
-            )
-        else:
-            p2_sentences.append(f"However, {headline}.")
-
-        if explanation:
-            p2_sentences.append(explanation)
-        elif is_gas:
-            p2_sentences.append(
-                "Research has linked prolonged residential proximity to fuel "
-                "storage with elevated benzene exposure, and several states "
-                "recommend 300-foot or greater setbacks for new residential "
-                "construction. This is worth investigating further, particularly "
-                "if you're considering a long-term stay."
-            )
-
-        if len(non_clear) > 1:
-            others = [c.get("headline", c.get("display_name")) for c in non_clear[1:3]]
-            others_str = "; ".join(o for o in others if o)
-            if others_str:
-                p2_sentences.append(f"Other concerns: {others_str}.")
-
-        if road_noise:
-            sev = road_noise.get("severity")
-            if sev in ("MODERATE", "LOUD", "VERY_LOUD"):
-                label = road_noise.get("severity_label", "elevated road noise")
-                p2_sentences.append(f"Road noise: {label}.")
-
-    if road_noise and not p2_sentences:
-        sev = road_noise.get("severity")
-        if sev in ("MODERATE", "LOUD", "VERY_LOUD"):
-            label = road_noise.get("severity_label", "elevated road noise")
-            p2_sentences.append(f"Road noise: {label}.")
-
-    if p2_sentences:
-        paragraphs.append("<p>" + " ".join(p2_sentences) + "</p>")
-
-    # ── Paragraph 3: Contextual (only if 2+ sentences) ──
-    p3_sentences = []
-    if weather and weather.get("triggers"):
-        triggers = weather.get("triggers") or []
-        monthly = weather.get("monthly") or []
-        if "snow" in triggers or "freezing" in triggers:
-            period = _snow_months(monthly) if monthly else "winter"
-            p3_sentences.append(
-                f"Seasonal weather will affect outdoor activity — expect "
-                f"snow and cold from {period}."
-            )
-        if "extreme_heat" in triggers:
-            period = _hot_months(monthly) if monthly else "summer"
-            p3_sentences.append(
-                f"Summer heat may make walks less comfortable from {period}."
-            )
-    # Persona only in p3 when p2 is all-clear (otherwise already folded into p1)
-    if persona.get("key") and persona.get("key") != "balanced" and not non_clear:
-        p3_sentences.append(
-            f"This evaluation is weighted toward {persona.get('label', 'your')} "
-            "priorities — transit and café access are emphasized in the scoring."
-        )
-
-    # Only render p3 if substantive
-    if len(p3_sentences) >= 2:
-        paragraphs.append("<p>" + " ".join(p3_sentences) + "</p>")
-    elif len(p3_sentences) == 1:
-        paragraphs.append("<p>" + p3_sentences[0] + "</p>")
-
-    if not paragraphs:
-        return ""
-
-    return "\n".join(paragraphs)
-
-
-def _backfill_result(result):
-    """Apply standard backfills to a snapshot result dict. Mutates in place."""
-    if "score_band" not in result or isinstance(result["score_band"], str):
-        result["score_band"] = get_score_band(result.get("final_score", 0))
-    if "dimension_summaries" not in result:
-        result["dimension_summaries"] = generate_dimension_summaries(result)
-
-    _needs_presented = (
-        "presented_checks" not in result
-        or any(
-            "proximity_band" not in pc
-            for pc in (result.get("presented_checks") or [])
-            if pc.get("category") == "SAFETY"
-        )
-    )
-    if _needs_presented and result.get("tier1_checks"):
-        tier1_objs = [
-            Tier1Check(
-                name=c["name"],
-                result=CheckResult(c["result"]),
-                details=c.get("details", ""),
-                required=c.get("required", True),
-            )
-            for c in result["tier1_checks"]
-        ]
-        result["presented_checks"] = present_checks(tier1_objs)
-    if "structured_summary" not in result and result.get("presented_checks"):
-        result["structured_summary"] = generate_structured_summary(
-            result["presented_checks"]
-        )
-    if "persona" not in result:
-        result["persona"] = {
-            "key": "balanced",
-            "label": "Balanced",
-            "description": "Equal weight across all dimensions",
-            "weights": {},
-        }
-
-    if "demographics" not in result:
-        result["demographics"] = None
-
-    if "insights" not in result:
-        result["insights"] = generate_insights(result)
-
-    if "summary_narrative" not in result:
-        result["summary_narrative"] = generate_summary_narrative(result)
-
-    if "key_finding" not in result:
-        result["key_finding"] = generate_key_finding(result)
+        return "Significant daily-life gaps"
 
 
 # ---------------------------------------------------------------------------
@@ -1586,7 +166,6 @@ def _serialize_green_escape(evaluation):
             "rating": p.rating,
             "user_ratings_total": p.user_ratings_total,
             "walk_time_min": p.walk_time_min,
-            "drive_time_min": p.drive_time_min,
             "types_display": p.types_display,
             "daily_walk_value": p.daily_walk_value,
             "criteria_status": p.criteria_status,
@@ -1616,7 +195,6 @@ def _serialize_green_escape(evaluation):
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
-            "drive_time_min": s.drive_time_min,
             "daily_walk_value": s.daily_walk_value,
             "criteria_status": s.criteria_status,
             "criteria_reasons": s.criteria_reasons,
@@ -1631,52 +209,6 @@ def _serialize_green_escape(evaluation):
     }
 
 
-def _serialize_road_noise(assessment):
-    """Serialize RoadNoiseAssessment to template dict.
-
-    Returns None when assessment is absent (old snapshots / Overpass failure),
-    which the template uses to hide the card.
-    """
-    if not assessment:
-        return None
-    return {
-        "worst_road_name": assessment.worst_road_name,
-        "worst_road_ref": assessment.worst_road_ref,
-        "worst_road_type": assessment.worst_road_type,
-        "worst_road_lanes": assessment.worst_road_lanes,
-        "distance_ft": assessment.distance_ft,
-        "estimated_dba": assessment.estimated_dba,
-        "severity": assessment.severity.value if hasattr(assessment.severity, "value") else assessment.severity,
-        "severity_label": assessment.severity_label,
-        "methodology_note": assessment.methodology_note,
-        "all_roads_assessed": assessment.all_roads_assessed,
-    }
-
-
-def _serialize_sidewalk_coverage(assessment):
-    """Serialize SidewalkCoverageAssessment to template dict.
-
-    Returns None when assessment is absent (old snapshots / Overpass failure),
-    which the template uses to hide the card.
-    """
-    if not assessment:
-        return None
-    return {
-        "total_road_segments": assessment.total_road_segments,
-        "roads_with_sidewalk": assessment.roads_with_sidewalk,
-        "roads_without_sidewalk": assessment.roads_without_sidewalk,
-        "roads_untagged": assessment.roads_untagged,
-        "roads_with_cycleway": assessment.roads_with_cycleway,
-        "separate_cycleways": assessment.separate_cycleways,
-        "separate_footways": assessment.separate_footways,
-        "sidewalk_pct": assessment.sidewalk_pct,
-        "cycleway_pct": assessment.cycleway_pct,
-        "data_confidence": assessment.data_confidence,
-        "data_confidence_note": assessment.data_confidence_note,
-        "methodology_note": assessment.methodology_note,
-    }
-
-
 def _serialize_urban_access(urban_access):
     """Serialize UrbanAccessProfile to template dict."""
     if not urban_access:
@@ -1688,13 +220,10 @@ def _serialize_urban_access(urban_access):
         primary_transit = {
             "name": pt.name,
             "mode": pt.mode,
-            "lat": pt.lat,
-            "lng": pt.lng,
             "walk_time_min": pt.walk_time_min,
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,
-            "wheelchair_accessible_entrance": pt.wheelchair_accessible_entrance,
-            "elevator_available": pt.elevator_available,
+            "frequency_class": pt.frequency_class,
         }
 
     major_hub = None
@@ -1707,9 +236,15 @@ def _serialize_urban_access(urban_access):
             "route_summary": mh.route_summary,
         }
 
+    # Engine result (primary hub commute + reachability hubs)
+    engine = None
+    if urban_access.engine_result:
+        engine = urban_access_result_to_dict(urban_access.engine_result)
+
     return {
         "primary_transit": primary_transit,
         "major_hub": major_hub,
+        "engine": engine,
     }
 
 
@@ -1757,25 +292,7 @@ def result_to_dict(result):
             "score_0_10": result.transit_access.score_0_10,
             "reasons": result.transit_access.reasons,
         } if result.transit_access else None,
-        # Unified frequency label — prefer smart heuristic bucket,
-        # fall back to review-count frequency_class.
-        "frequency_label": (
-            f"{result.transit_access.frequency_bucket} frequency"
-            if result.transit_access and result.transit_access.frequency_bucket
-            else (
-                result.urban_access.primary_transit.frequency_class
-                if result.urban_access and result.urban_access.primary_transit
-                   and result.urban_access.primary_transit.frequency_class
-                else ""
-            )
-        ),
         "green_escape": _serialize_green_escape(result.green_escape_evaluation),
-        "road_noise": _serialize_road_noise(
-            getattr(result, "road_noise_assessment", None)
-        ),
-        "sidewalk_coverage": _serialize_sidewalk_coverage(
-            getattr(result, "sidewalk_coverage", None)
-        ),
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
         "tier1_checks": [
@@ -1801,107 +318,11 @@ def result_to_dict(result):
         ],
         "tier3_bonus_reasons": result.tier3_bonus_reasons,
         "final_score": result.final_score,
-        "model_version": getattr(result, "model_version", ""),
-    }
-
-    # Neighborhood places — already plain dicts, pass through as-is
-    output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
-
-    # Base64-encoded neighborhood map PNG
-    output["neighborhood_map"] = result.neighborhood_map_b64
-
-    # Emergency services — informational, not scored (NES-50).
-    # Three states: None = lookup failed (section hidden), [] = searched
-    # but found nothing ("none found" message), [...] = found stations.
-    # Key absent on old snapshots → section hidden via `is defined` guard.
-    output["emergency_services"] = (
-        [
-            {
-                "name": s.name,
-                "type": s.service_type,
-                "drive_time_min": s.drive_time_min,
-                "lat": s.lat,
-                "lng": s.lng,
-            }
-            for s in result.emergency_services
-        ]
-        if result.emergency_services is not None
-        else None
-    )
-
-    # Nearby libraries — informational, not scored (NES-106).
-    # Same three-state convention as emergency_services.
-    output["nearby_libraries"] = (
-        [
-            {
-                "name": lib.name,
-                "distance_ft": lib.distance_ft,
-                "est_walk_min": lib.est_walk_min,
-                "lat": lib.lat,
-                "lng": lib.lng,
-            }
-            for lib in result.nearby_libraries
-        ]
-        if result.nearby_libraries is not None
-        else None
-    )
-    output["library_count"] = result.library_count
-
-    # Nearby pharmacies — informational, not scored (NES-108).
-    # Same three-state convention as emergency_services / libraries.
-    output["nearby_pharmacies"] = (
-        [
-            {
-                "name": pharm.name,
-                "distance_ft": pharm.distance_ft,
-                "est_walk_min": pharm.est_walk_min,
-                "drive_time_min": pharm.drive_time_min,
-                "lat": pharm.lat,
-                "lng": pharm.lng,
-            }
-            for pharm in result.nearby_pharmacies
-        ]
-        if result.nearby_pharmacies is not None
-        else None
-    )
-    output["pharmacy_count"] = result.pharmacy_count
-
-    # Weather climate normals — informational context for insights (NES-32).
-    output["weather"] = _serialize_weather(
-        getattr(result, "weather_summary", None)
-    )
-
-    # Census ACS demographics — informational context (NES-134).
-    output["demographics"] = _serialize_census(
-        getattr(result, "demographics", None)
-    )
-
-    # Presentation layer for the new results UI
-    output["presented_checks"] = present_checks(result.tier1_checks)
-    output["show_score"] = True
-    output["structured_summary"] = generate_structured_summary(
-        output["presented_checks"]
-    )
-
-    # Persona metadata — for result display and snapshot persistence (NES-133)
-    persona_key = getattr(result, "persona", None) or DEFAULT_PERSONA
-    persona_preset = PERSONA_PRESETS.get(persona_key)
-    output["persona"] = {
-        "key": persona_key,
-        "label": persona_preset.label if persona_preset else "Balanced",
-        "description": persona_preset.description if persona_preset else "",
-        "weights": {
-            s["name"]: persona_preset.weights.get(s["name"], 1.0) if persona_preset else 1.0
-            for s in output["tier2_scores"]
-        },
+        "percentile_top": result.percentile_top,
+        "percentile_label": result.percentile_label,
     }
 
     output["verdict"] = generate_verdict(output)
-    output["score_band"] = get_score_band(result.final_score)
-    output["dimension_summaries"] = generate_dimension_summaries(output)
-    output["insights"] = generate_insights(output)
-    output["summary_narrative"] = generate_summary_narrative(output)
-    output["key_finding"] = generate_key_finding(output)
     return output
 
 
@@ -1926,39 +347,27 @@ def _wants_json():
     return "application/json" in accept
 
 
+def _snapshot_ttl_days():
+    """Read SNAPSHOT_TTL_DAYS with safe fallback."""
+    raw = os.environ.get("SNAPSHOT_TTL_DAYS", "90")
+    try:
+        ttl = int(raw)
+        if ttl > 0:
+            return ttl
+    except (TypeError, ValueError):
+        pass
+    logger.warning("Invalid SNAPSHOT_TTL_DAYS=%r. Falling back to 90.", raw)
+    return 90
+
+
 @app.route("/", methods=["GET", "POST"])
-@limiter.limit(RATE_LIMIT_EVAL, methods=["POST"])
 def index():
-    print(f"INDEX ROUTE: LANDING_PREVIEW_SNAPSHOT_ID={LANDING_PREVIEW_SNAPSHOT_ID!r}")
     result = None
     error = None
     error_detail = None  # builder-mode diagnostic
     address = ""
     snapshot_id = None
     request_id = getattr(g, "request_id", "unknown")
-
-    preview_result = None
-    preview_snapshot_id = None
-    if result is None and LANDING_PREVIEW_SNAPSHOT_ID:
-        try:
-            print(f"INDEX_PREVIEW: about to call get_snapshot({LANDING_PREVIEW_SNAPSHOT_ID!r})")
-            snap = get_snapshot(LANDING_PREVIEW_SNAPSHOT_ID)
-            print(f"PREVIEW LOAD: snap={snap is not None}, has_result={snap.get('result') is not None if snap else 'N/A'}, preview_result={preview_result is not None}")
-            if snap and snap.get("result"):
-                _backfill_result(snap["result"])
-                preview_result = snap["result"]
-                preview_snapshot_id = LANDING_PREVIEW_SNAPSHOT_ID
-        except Exception:
-            logger.exception("Failed to load landing preview snapshot")
-
-    # Temporary debug: diagnose landing preview loading
-    snap_status = (snap is not None) if "snap" in dir() else "not reached"
-    logger.info(
-        "Landing preview: env=%s, snap=%s, result=%s",
-        LANDING_PREVIEW_SNAPSHOT_ID,
-        snap_status,
-        preview_result is not None,
-    )
 
     if request.method == "POST":
         address = request.form.get("address", "").strip()
@@ -1975,9 +384,7 @@ def index():
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
-                preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
-                require_payment=REQUIRE_PAYMENT,
             )
 
         config_ok, missing_keys = _check_service_config()
@@ -1997,7 +404,7 @@ def index():
                 "hint": (
                     "For local development: copy .env.example to .env and "
                     "add your keys. For production: set these environment "
-                    "variables in your Railway dashboard."
+                    "variables in your Railway/Render dashboard."
                 ),
             }
             log_event("evaluation_error", visitor_id=g.visitor_id,
@@ -2011,9 +418,7 @@ def index():
                 "index.html", result=result, error=error,
                 error_detail=error_detail,
                 address=address, snapshot_id=snapshot_id,
-                preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
                 is_builder=g.is_builder, request_id=request_id,
-                require_payment=REQUIRE_PAYMENT,
             )
 
         # TODO [PACK_LOGIC]: Check evaluation limits here.
@@ -2023,439 +428,176 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
-        # ---------------------------------------------------------------
-        # Email identity — always required for snapshot ownership.
-        # Builder mode bypasses email requirement.
-        # ---------------------------------------------------------------
-        email = request.form.get("email", "").strip()
-        email_h = None
-        free_tier_used = False
-
-        if not g.is_builder:
-            # Paid path sends payment_token instead of email
-            payment_token = request.form.get("payment_token", "").strip()
-
-            if not email and not payment_token:
-                if _wants_json():
-                    return jsonify({
-                        "error": "Please enter your email address.",
-                        "request_id": request_id,
-                    }), 400
-                error = "Please enter your email address."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
-                )
-
-            if email:
-                # Minimal server-side email format check
-                if "@" not in email or "." not in email.split("@")[-1]:
-                    if _wants_json():
-                        return jsonify({
-                            "error": "Please enter a valid email address.",
-                            "request_id": request_id,
-                        }), 400
-                    error = "Please enter a valid email address."
-                    return render_template(
-                        "index.html", result=result, error=error,
-                        error_detail=error_detail,
-                        address=address, snapshot_id=snapshot_id,
-                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                        is_builder=g.is_builder, request_id=request_id,
-                        require_payment=REQUIRE_PAYMENT,
-                    )
-                email_h = hash_email(email)
-
-        # ---------------------------------------------------------------
-        # Free tier gate — one free evaluation per email (NES-120)
-        # Only enforced when REQUIRE_PAYMENT=true.
-        # ---------------------------------------------------------------
-        if REQUIRE_PAYMENT and not g.is_builder and email_h:
-            payment_token = request.form.get("payment_token", "").strip()
-            if not payment_token:
-                if check_free_tier_used(email_h):
-                    log_event(
-                        "free_tier_exhausted", visitor_id=g.visitor_id,
-                        metadata={"email_hash": email_h[:12], "address": address},
-                    )
-                    if _wants_json():
-                        return jsonify({
-                            "error": "free_tier_exhausted",
-                            "request_id": request_id,
-                        }), 403
-                    error = "You've already used your free evaluation."
-                    return render_template(
-                        "index.html", result=result, error=error,
-                        error_detail=error_detail,
-                        address=address, snapshot_id=snapshot_id,
-                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                        is_builder=g.is_builder, request_id=request_id,
-                        require_payment=REQUIRE_PAYMENT,
-                    )
-                free_tier_used = True
-                logger.info(
-                    "[%s] Free tier claim for email_hash=%s",
-                    request_id, email_h[:12],
-                )
-
-        # ---------------------------------------------------------------
-        # Payment gate — only enforced when REQUIRE_PAYMENT=true
-        # and the request is NOT using the free tier
-        # ---------------------------------------------------------------
-        payment = None  # set if a valid payment is redeemed
-        if REQUIRE_PAYMENT and not g.is_builder and not free_tier_used:
-            payment_token = request.form.get("payment_token", "").strip()
-            if not payment_token:
-                if _wants_json():
-                    return jsonify({
-                        "error": "Payment required",
-                        "requires_payment": True,
-                        "request_id": request_id,
-                    }), 402
-                error = "Payment is required before running an evaluation."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
-                )
-
-            payment = get_payment_by_id(payment_token)
-            if not payment or payment["status"] not in ("paid", "pending", "failed_reissued"):
-                if _wants_json():
-                    return jsonify({
-                        "error": "Invalid or expired payment",
-                        "requires_payment": True,
-                        "request_id": request_id,
-                    }), 402
-                error = "Invalid or expired payment token."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
-                )
-
-            # If status is still 'pending', verify with Stripe directly
-            # (success redirect can arrive before the webhook)
-            if payment["status"] == "pending" and STRIPE_AVAILABLE:
-                try:
-                    session = stripe.checkout.Session.retrieve(
-                        payment["stripe_session_id"]
-                    )
-                    if session.payment_status == "paid":
-                        update_payment_status(payment["id"], "paid")
-                    else:
-                        if _wants_json():
-                            return jsonify({
-                                "error": "Payment not completed",
-                                "requires_payment": True,
-                                "request_id": request_id,
-                            }), 402
-                        error = "Payment has not been completed yet."
-                        return render_template(
-                            "index.html", result=result, error=error,
-                            error_detail=error_detail,
-                            address=address, snapshot_id=snapshot_id,
-                            preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                            is_builder=g.is_builder, request_id=request_id,
-                            require_payment=REQUIRE_PAYMENT,
-                        )
-                except Exception as e:
-                    logger.error(
-                        "[%s] Stripe session verify failed: %s",
-                        request_id, e,
-                    )
-                    if _wants_json():
-                        return jsonify({
-                            "error": "Could not verify payment",
-                            "requires_payment": True,
-                            "request_id": request_id,
-                        }), 402
-                    error = "Could not verify payment status. Please try again."
-                    return render_template(
-                        "index.html", result=result, error=error,
-                        error_detail=error_detail,
-                        address=address, snapshot_id=snapshot_id,
-                        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                        is_builder=g.is_builder, request_id=request_id,
-                        require_payment=REQUIRE_PAYMENT,
-                    )
-            elif payment["status"] == "pending":
-                if _wants_json():
-                    return jsonify({
-                        "error": "Payment not completed",
-                        "requires_payment": True,
-                        "request_id": request_id,
-                    }), 402
-                error = "Payment has not been completed yet."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
-                )
-
-        # Async queue: create job first so redeem_payment can link atomically.
-        # A job with no payment is harmless; a redeemed payment with no job is a lost credit.
-        place_id = request.form.get('place_id', '').strip() or None
-        persona = request.form.get('persona', '').strip() or None
-        if persona and persona not in PERSONA_PRESETS:
-            persona = None  # fall back to balanced
-        job_id = create_job(
-            address, visitor_id=g.visitor_id, request_id=request_id,
-            place_id=place_id, email_hash=email_h, persona=persona,
-            email_raw=email,
-        )
-        logger.info("[%s] Created evaluation job %s for: %s", request_id, job_id, address)
-
-        # Record free tier usage atomically — if a concurrent request with
-        # the same email won the INSERT race, cancel this job.
-        if free_tier_used:
-            if not record_free_tier_usage(email_h, email, job_id):
-                cancel_queued_job(job_id, "free_tier_race_lost")
-                if _wants_json():
-                    return jsonify({
-                        "error": "free_tier_exhausted",
-                        "request_id": request_id,
-                    }), 403
-                error = "You've already used your free evaluation."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
-                )
-            log_event(
-                "free_tier_claimed", visitor_id=g.visitor_id,
-                metadata={"email_hash": email_h[:12], "address": address, "job_id": job_id},
+        api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+        ttl_days = _snapshot_ttl_days()
+        trace_ctx = TraceContext(trace_id=request_id)
+        set_trace(trace_ctx)
+        try:
+            now_utc = datetime.now(timezone.utc)
+            evaluated_at = now_utc.isoformat()
+            geocode_details = GoogleMapsClient(api_key).geocode_details(address)
+            place_id = geocode_details.get("place_id")
+            existing_snapshot = (
+                get_snapshot_by_place_id(place_id) if place_id else None
             )
 
-        if payment is not None:
-            # Redeem the credit (paid -> redeemed) with job_id set atomically
-            if not redeem_payment(payment["id"], job_id=job_id):
-                # Mark orphaned job as failed so the worker won't run a
-                # free evaluation.  Use cancel_queued_job to avoid clobbering
-                # a job the worker may have already claimed.
-                cancel_queued_job(job_id, "payment_already_used")
+            if existing_snapshot and is_snapshot_fresh(existing_snapshot, ttl_days, now_utc):
+                snapshot_id = existing_snapshot["snapshot_id"]
+                trace_summary = trace_ctx.summary_dict()
+                log_event(
+                    "snapshot_reused",
+                    snapshot_id=snapshot_id,
+                    visitor_id=g.visitor_id,
+                    metadata={
+                        "address": address,
+                        "place_id": place_id,
+                        "ttl_days": ttl_days,
+                        "request_id": request_id,
+                        "trace_id": request_id,
+                    },
+                )
+                trace_ctx.log_summary()
                 if _wants_json():
                     return jsonify({
-                        "error": "Payment already used",
-                        "requires_payment": True,
-                        "request_id": request_id,
-                    }), 402
-                error = "This payment has already been used for an evaluation."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                    require_payment=REQUIRE_PAYMENT,
+                        "snapshot_id": snapshot_id,
+                        "redirect_url": f"/s/{snapshot_id}",
+                        "trace_id": request_id,
+                        "trace_summary": trace_summary,
+                    })
+                return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
+
+            if not place_id:
+                logger.warning(
+                    "[%s] Geocode result missing place_id for address=%r",
+                    request_id, address,
                 )
 
-        if _wants_json():
-            return jsonify({"job_id": job_id})
-        # Non-JS form POST: redirect to index with job_id so the page can poll
-        return redirect(url_for("index", job_id=job_id))
+            listing = PropertyListing(address=address)
+            eval_result = evaluate_property(
+                listing,
+                api_key,
+                pre_geocode=geocode_details,
+            )
+            result = result_to_dict(eval_result)
 
-    # Optional: when redirected with ?job_id= after form POST, frontend will poll
-    job_id = request.args.get("job_id")
+            # Persist snapshot — include trace_id in metadata
+            address_norm = (
+                geocode_details.get("formatted_address")
+                or result.get("address")
+                or address
+            )
+            trace_summary = trace_ctx.summary_dict()
+            result["_trace"] = trace_summary
+            if place_id:
+                try:
+                    snapshot_id = save_snapshot_for_place(
+                        place_id=place_id,
+                        address_input=address,
+                        address_norm=address_norm,
+                        evaluated_at=evaluated_at,
+                        result_dict=result,
+                        existing_snapshot_id=(
+                            existing_snapshot["snapshot_id"]
+                            if existing_snapshot else None
+                        ),
+                    )
+                except sqlite3.IntegrityError:
+                    winner = get_snapshot_by_place_id(place_id)
+                    if not winner:
+                        raise
+                    snapshot_id = winner["snapshot_id"]
+            else:
+                snapshot_id = save_snapshot(
+                    address_input=address,
+                    address_norm=address_norm,
+                    result_dict=result,
+                )
+
+            # Log events
+            is_return = check_return_visit(g.visitor_id)
+            log_event("snapshot_created", snapshot_id=snapshot_id,
+                      visitor_id=g.visitor_id,
+                      metadata={"address": address,
+                                "place_id": place_id,
+                                "trace_id": request_id})
+            if is_return:
+                log_event("return_visit", snapshot_id=snapshot_id,
+                          visitor_id=g.visitor_id)
+
+            # Emit the end-of-request summary log line
+            trace_ctx.log_summary()
+
+            logger.info(
+                "[%s] Snapshot %s created for: %s",
+                request_id, snapshot_id, address,
+            )
+
+            # Return JSON for fetch-based clients, HTML for traditional form POST
+            if _wants_json():
+                return jsonify({
+                    "snapshot_id": snapshot_id,
+                    "redirect_url": f"/s/{snapshot_id}",
+                    "trace_id": request_id,
+                    "trace_summary": trace_summary,
+                })
+
+        except Exception as e:
+            trace_ctx.log_summary()
+            logger.exception(
+                "[%s] Evaluation failed for address: %s", request_id, address
+            )
+            log_event("evaluation_error", visitor_id=g.visitor_id,
+                      metadata={"address": address,
+                                "error": str(e),
+                                "request_id": request_id,
+                                "trace_summary": trace_ctx.summary_dict()})
+            error = (
+                "Something went wrong while evaluating this address. "
+                "Please check the address and try again. "
+                "If the problem persists, the address may not be recognized "
+                "by Google Maps. (ref: " + request_id + ")"
+            )
+            error_detail = {
+                "request_id": request_id,
+                "exception": str(e),
+                "traceback": traceback.format_exc(),
+            }
+            if _wants_json():
+                return jsonify({
+                    "error": error,
+                    "request_id": request_id,
+                    "trace_summary": trace_ctx.summary_dict(),
+                }), 500
+        finally:
+            clear_trace()
 
     return render_template(
         "index.html", result=result, error=error,
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
-        job_id=job_id,
-        preview_result=preview_result, preview_snapshot_id=preview_snapshot_id,
         is_builder=g.is_builder, request_id=request_id,
-        require_payment=REQUIRE_PAYMENT,
     )
-
-
-@app.route("/job/<job_id>")
-@limiter.exempt
-def job_status(job_id):
-    """
-    Polling endpoint for async evaluation. Returns JSON:
-    {status, current_stage, snapshot_id?, error?}
-    status: queued | running | done | failed
-    """
-    job = get_job(job_id)
-    if not job:
-        return jsonify({"error": "Job not found"}), 404
-    payload = {
-        "status": job["status"],
-        "current_stage": job["current_stage"],
-    }
-    if job.get("result_snapshot_id"):
-        payload["snapshot_id"] = job["result_snapshot_id"]
-    if job.get("error"):
-        payload["error"] = job["error"]
-    return jsonify(payload)
 
 
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
-    """Public, read-only snapshot page. No auth required.
-
-    NES-132: Preview snapshots show only health/safety checks + road noise.
-    Unlock via payment_token query param (return from Stripe checkout).
-    """
-    print(f"VIEW_SNAPSHOT: looking for {snapshot_id!r}")
+    """Public, read-only snapshot page. No auth required."""
     snapshot = get_snapshot(snapshot_id)
     if not snapshot:
         abort(404)
 
-    # ── NES-132: Preview unlock via payment_token ──
-    payment_token = request.args.get("payment_token", "").strip()
-    is_preview = bool(snapshot.get("is_preview"))
-    payment_pending = False
-
-    if payment_token and is_preview:
-        payment = get_payment_by_id(payment_token)
-        # Verify the payment is linked to THIS snapshot (prevents using
-        # someone else's payment_token to unlock a different snapshot).
-        if (payment
-                and payment["status"] in ("paid", "redeemed")
-                and payment.get("snapshot_id") == snapshot_id):
-            unlock_snapshot(snapshot_id)
-            is_preview = False
-            log_event("preview_unlocked", snapshot_id=snapshot_id,
-                      visitor_id=g.visitor_id,
-                      metadata={"payment_id": payment_token})
-            # Redirect to clean URL (strip payment_token)
-            return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
-        elif (payment
-                and payment["status"] == "pending"
-                and payment.get("snapshot_id") == snapshot_id):
-            # Stripe webhook hasn't fired yet — template will show
-            # "Payment processing..." with auto-refresh polling.
-            payment_pending = True
-
-    # Builder bypass — always show full report
-    if g.is_builder:
-        is_preview = False
-
-    # Track view — skip during payment-pending polling to avoid inflating count
-    if not payment_pending:
-        increment_view_count(snapshot_id)
-        log_event("snapshot_viewed", snapshot_id=snapshot_id,
-                  visitor_id=g.visitor_id)
-
-    result = snapshot["result"]
-    _backfill_result(result)
+    # Track view
+    increment_view_count(snapshot_id)
+    log_event("snapshot_viewed", snapshot_id=snapshot_id,
+              visitor_id=g.visitor_id)
 
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
-        result=result,
+        result=snapshot["result"],
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
-        is_preview=is_preview,
-        payment_pending=payment_pending,
     )
-
-
-@app.route("/compare")
-@limiter.limit("30/minute")
-def compare():
-    """Side-by-side comparison of 2-4 evaluated addresses."""
-    raw_ids = request.args.get("ids", "").strip()
-    if not raw_ids:
-        flash("Select at least two addresses to compare.", "error")
-        return redirect(url_for("index"))
-
-    # Parse and deduplicate, preserving order
-    ids = []
-    for sid in raw_ids.split(","):
-        sid = sid.strip()
-        if sid and sid not in ids:
-            ids.append(sid)
-
-    if len(ids) < 2:
-        flash("Select at least two addresses to compare.", "error")
-        return redirect(url_for("index"))
-    if len(ids) > 4:
-        flash("You can compare up to four addresses at once.", "error")
-        return redirect(url_for("index"))
-
-    # Fetch and prepare each snapshot
-    evaluations = []
-    for sid in ids:
-        snapshot = get_snapshot(sid)
-        if not snapshot:
-            logger.warning("Compare: snapshot %s not found, skipping", sid)
-            continue
-        result = snapshot["result"]
-        _backfill_result(result)
-        evaluations.append({
-            "snapshot_id": sid,
-            "address": result.get("address", snapshot.get("address_norm", "")),
-            "result": result,
-            "final_score": result.get("final_score", 0),
-            "verdict": result.get("verdict", ""),
-            "score_band": result.get("score_band", {}),
-            "is_preview": bool(snapshot.get("is_preview")),
-        })
-
-    if len(evaluations) < 2:
-        flash(
-            "Could not load enough snapshots for comparison. "
-            "Some may have been deleted.",
-            "error",
-        )
-        return redirect(url_for("index"))
-
-    # Determine top-rated for badge (only highlight if one stands above the rest)
-    top_score = max(e["final_score"] for e in evaluations)
-    top_score_unique = sum(
-        1 for e in evaluations if e["final_score"] == top_score
-    ) == 1
-
-    log_event(
-        "compare_viewed",
-        visitor_id=g.visitor_id,
-        metadata={
-            "snapshot_ids": [e["snapshot_id"] for e in evaluations],
-            "count": len(evaluations),
-        },
-    )
-
-    return render_template(
-        "compare.html",
-        evaluations=evaluations,
-        evaluation_count=len(evaluations),
-        top_score=top_score,
-        top_score_unique=top_score_unique,
-        is_builder=g.is_builder,
-    )
-
-
-@app.route("/api/snapshot/<snapshot_id>/status")
-def snapshot_status(snapshot_id):
-    """Lightweight status check for preview unlock polling (NES-132).
-
-    Returns {unlocked: true/false} without loading the full result_json.
-    Used by payment-pending polling to avoid full page reloads that inflate
-    view_count and waste bandwidth.
-    """
-    snapshot = get_snapshot(snapshot_id)
-    if not snapshot:
-        return jsonify({"error": "Snapshot not found"}), 404
-    return jsonify({"unlocked": not bool(snapshot.get("is_preview"))})
 
 
 @app.route("/api/snapshot/<snapshot_id>/json")
@@ -2540,57 +682,7 @@ def export_snapshot_csv(snapshot_id):
     )
 
 
-@app.route("/api/snapshot/<snapshot_id>/og-image.png")
-def snapshot_og_image(snapshot_id):
-    """Serve the OpenGraph preview image for a snapshot.
-
-    Generates on first request via Pillow, then caches in DB.
-    Returns 404 for unknown or preview-mode snapshots.
-    """
-    snapshot = get_snapshot(snapshot_id)
-    if not snapshot:
-        abort(404)
-
-    # No OG image for unpaid preview snapshots
-    if snapshot.get("is_preview"):
-        abort(404)
-
-    # Check DB cache first
-    cached = get_og_image(snapshot_id)
-    if cached:
-        resp = make_response(cached)
-        resp.headers["Content-Type"] = "image/png"
-        resp.headers["Cache-Control"] = "public, max-age=86400"
-        return resp
-
-    # Generate
-    result = snapshot["result"]
-    band_class = ""
-    sb = result.get("score_band")
-    if isinstance(sb, dict):
-        band_class = sb.get("css_class", "")
-
-    png_bytes = generate_og_image(
-        address=result.get("address", snapshot.get("address_input", "")),
-        score=result.get("final_score", 0),
-        verdict=result.get("verdict", ""),
-        band_css_class=band_class,
-    )
-
-    if not png_bytes:
-        abort(500)
-
-    # Cache for next time
-    save_og_image(snapshot_id, png_bytes)
-
-    resp = make_response(png_bytes)
-    resp.headers["Content-Type"] = "image/png"
-    resp.headers["Cache-Control"] = "public, max-age=86400"
-    return resp
-
-
 @app.route("/api/event", methods=["POST"])
-@limiter.limit("30/minute")
 def track_event():
     """Lightweight client-side event tracking endpoint."""
     data = request.get_json(silent=True) or {}
@@ -2629,336 +721,17 @@ def builder_dashboard():
 
 @app.route("/pricing")
 def pricing():
-    return render_template("pricing.html", require_payment=REQUIRE_PAYMENT)
-
-
-@app.route("/privacy")
-def privacy():
-    return render_template("privacy.html")
-
-
-@app.route("/terms")
-def terms():
-    return render_template("terms.html")
-
-
-# ---------------------------------------------------------------------------
-# Magic-link authentication
-# ---------------------------------------------------------------------------
-
-@app.route("/send-magic-link", methods=["POST"])
-@limiter.limit("5/minute")
-def send_magic_link():
-    """Send a magic-link email for authentication.
-
-    Expects form data with 'email'. Generates a token, sends the email via
-    Resend, then persists the token only on successful send (no orphaned
-    tokens on failure).
-    """
-    email = (request.form.get("email") or "").strip().lower()
-    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
-        return jsonify({"error": "Please enter a valid email address."}), 400
-
-    if not RESEND_AVAILABLE or not RESEND_API_KEY:
-        logger.error("[magic-link] Resend not available (installed=%s, key=%s)",
-                      RESEND_AVAILABLE, bool(RESEND_API_KEY))
-        return jsonify({"error": "Email sending is not configured."}), 503
-
-    # Generate token first, but don't persist until send succeeds
-    token = generate_magic_link_token()
-    verify_url = request.host_url.rstrip("/") + f"/auth/verify?token={token}"
-
-    try:
-        resend.api_key = RESEND_API_KEY
-        resend.Emails.send({
-            "from": RESEND_FROM_EMAIL,
-            "to": [email],
-            "subject": "Your NestCheck sign-in link",
-            "html": (
-                f"<p>Click the link below to access your NestCheck reports:</p>"
-                f'<p><a href="{verify_url}">Sign in to NestCheck</a></p>'
-                f"<p>This link expires in 15 minutes.</p>"
-                f"<p>If you didn't request this, you can ignore this email.</p>"
-            ),
-        })
-    except Exception:
-        logger.exception("[magic-link] Failed to send email to %s", email)
-        return jsonify({"error": "Could not send email. Please try again."}), 500
-
-    # Email sent successfully — now persist the token
-    save_magic_link(token, email)
-
-    log_event("magic_link_sent", metadata={"email_hash": hash_email(email)})
-    return jsonify({"ok": True, "message": "Check your email for a sign-in link."})
-
-
-@app.route("/auth/verify")
-def auth_verify():
-    """Verify a magic-link token and set an auth cookie.
-
-    On success, sets a signed cookie and redirects to /my-reports.
-    On failure, renders an error page.
-    """
-    token = request.args.get("token", "")
-    if not token:
-        flash("Invalid or missing link.", "error")
-        return redirect("/")
-
-    email = verify_magic_link(token)
-    if not email:
-        flash("This link has expired or already been used. Please request a new one.", "error")
-        return redirect("/")
-
-    # Flag for _after_request to set the auth cookie
-    g.set_auth_cookie_email = email
-    log_event("magic_link_verified", metadata={"email_hash": hash_email(email)})
-    return redirect("/my-reports")
-
-
-@app.route("/my-reports")
-def my_reports():
-    """Dashboard showing all snapshots for the authenticated user.
-
-    If not authenticated, renders an email entry form that triggers
-    the magic-link flow.
-    """
-    if not g.user_email:
-        return render_template("my_reports.html", authenticated=False, snapshots=[])
-
-    email_h = hash_email(g.user_email)
-    snapshots = get_snapshots_by_email(email_h)
-    return render_template(
-        "my_reports.html",
-        authenticated=True,
-        email=g.user_email,
-        snapshots=snapshots,
-    )
-
-
-@app.route("/auth/logout")
-def auth_logout():
-    """Clear the auth cookie and redirect home."""
-    resp = redirect("/")
-    resp.delete_cookie(_AUTH_COOKIE_NAME)
-    return resp
-
-
-# ---------------------------------------------------------------------------
-# Stripe Checkout — create a checkout session for one evaluation
-# ---------------------------------------------------------------------------
-
-@app.route("/checkout/create", methods=["POST"])
-@limiter.limit("5/minute")
-def create_checkout():
-    """Create a Stripe Checkout session for one evaluation.
-
-    Price is defined by STRIPE_PRICE_ID in Stripe dashboard.
-    Expects form data with 'address'. Returns JSON with 'checkout_url'.
-    The payment_id is embedded in the success_url so the frontend can
-    pass it back to POST / after payment completes.
-
-    NES-132: Also supports preview unlock flow — when 'snapshot_id' is
-    provided, the checkout unlocks an existing preview snapshot instead
-    of creating a new evaluation.
-    """
-    if not REQUIRE_PAYMENT or not STRIPE_AVAILABLE:
-        return jsonify({"error": "Payments not enabled"}), 400
-
-    # NES-132: Preview unlock flow — snapshot_id provided
-    unlock_snapshot_id = request.form.get("snapshot_id", "").strip() or None
-
-    if unlock_snapshot_id:
-        snapshot = get_snapshot(unlock_snapshot_id)
-        if not snapshot or not snapshot.get("is_preview"):
-            return jsonify({"error": "Invalid snapshot for unlock"}), 400
-        address = snapshot["address_input"]
-    else:
-        address = request.form.get("address", "").strip()
-        if not address:
-            return jsonify({"error": "Address required"}), 400
-
-    place_id = request.form.get("place_id", "").strip() or None
-    persona = request.form.get("persona", "").strip() or None
-    checkout_email = request.form.get("email", "").strip() or None
-    if persona and persona not in PERSONA_PRESETS:
-        persona = None
-    visitor_id = getattr(g, "visitor_id", "unknown")
-    payment_id = secrets.token_hex(8)
-
-    if unlock_snapshot_id:
-        # Unlock flow: return to snapshot page after payment
-        success_url = (
-            url_for("view_snapshot", snapshot_id=unlock_snapshot_id, _external=True)
-            + f"?payment_token={payment_id}"
-        )
-        cancel_url = url_for("view_snapshot", snapshot_id=unlock_snapshot_id, _external=True)
-    else:
-        # New eval flow: return to index (existing behavior)
-        success_url = (
-            url_for("index", _external=True)
-            + f"?payment_token={payment_id}&address={_quote_param(address)}"
-        )
-        if place_id:
-            success_url += f"&place_id={_quote_param(place_id)}"
-        if persona:
-            success_url += f"&persona={_quote_param(persona)}"
-        if checkout_email:
-            success_url += f"&email={_quote_param(checkout_email)}"
-        cancel_url = url_for("index", _external=True)
-
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            line_items=[{
-                "price": STRIPE_PRICE_ID,
-                "quantity": 1,
-            }],
-            mode="payment",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            client_reference_id=payment_id,
-            metadata={"address": address, "visitor_id": visitor_id},
-        )
-    except Exception as e:
-        logger.error("Stripe checkout creation failed: %s", e)
-        return jsonify({"error": "Payment system error"}), 500
-
-    create_payment(payment_id, session.id, visitor_id, address,
-                   snapshot_id=unlock_snapshot_id)
-    log_event(
-        "checkout_created",
-        visitor_id=visitor_id,
-        metadata={"payment_id": payment_id, "address": address,
-                   "snapshot_id": unlock_snapshot_id},
-    )
-    return jsonify({"checkout_url": session.url})
-
-
-# ---------------------------------------------------------------------------
-# Stripe Webhook — server-to-server payment confirmation
-# ---------------------------------------------------------------------------
-
-@app.route("/webhook/stripe", methods=["POST"])
-@limiter.exempt
-@csrf.exempt  # Server-to-server; Stripe signs payloads with its own webhook secret.
-def stripe_webhook():
-    """Receive Stripe webhook events (e.g. checkout.session.completed).
-
-    This endpoint is called by Stripe's servers, NOT the user's browser.
-    It must NOT require the nc_vid cookie or any visitor identification.
-    Always returns 200 to acknowledge receipt, except on verification failure.
-    """
-    if not STRIPE_AVAILABLE:
-        return "", 400
-
-    payload = request.get_data()
-    sig_header = request.headers.get("Stripe-Signature", "")
-
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except (ValueError, stripe.error.SignatureVerificationError) as e:
-        logger.warning("Stripe webhook verification failed: %s", e)
-        return "", 400
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        stripe_session_id = session["id"]
-        payment = get_payment_by_session(stripe_session_id)
-        if payment and payment["status"] == "pending":
-            # Atomic: only transitions pending -> paid. If POST / already
-            # verified and redeemed this payment, the WHERE guard prevents
-            # overwriting 'redeemed' back to 'paid' (TOCTOU race).
-            updated = update_payment_status(payment["id"], "paid", expected_status="pending")
-            if updated:
-                logger.info("Payment confirmed via webhook: %s", payment["id"])
-                # NES-132: Auto-unlock preview snapshot if this payment is
-                # for a preview unlock (snapshot_id set at checkout creation).
-                if payment.get("snapshot_id"):
-                    unlock_snapshot(payment["snapshot_id"])
-                    log_event("preview_unlocked_webhook",
-                              snapshot_id=payment["snapshot_id"],
-                              metadata={"payment_id": payment["id"]})
-
-    # Always return 200 to acknowledge receipt — even for event types we don't handle
-    return "", 200
-
-
-@app.route("/robots.txt")
-@limiter.exempt
-def robots_txt():
-    """Serve robots.txt with crawler rules and sitemap location."""
-    sitemap_url = request.host_url.rstrip("/") + "/sitemap.xml"
-    body = (
-        "User-agent: *\n"
-        "Allow: /\n"
-        "\n"
-        "Disallow: /checkout/\n"
-        "Disallow: /webhook/\n"
-        "Disallow: /job/\n"
-        "Disallow: /api/\n"
-        "Disallow: /debug/\n"
-        "Disallow: /builder/\n"
-        "Disallow: /healthz\n"
-        "\n"
-        f"Sitemap: {sitemap_url}\n"
-    )
-    return Response(body, mimetype="text/plain")
-
-
-@app.route("/sitemap.xml")
-@limiter.exempt
-def sitemap_xml():
-    """Generate sitemap.xml with static pages.
-
-    Snapshots are intentionally excluded — they are share-by-link only
-    and including them would make evaluated addresses publicly discoverable.
-    """
-    base = request.host_url.rstrip("/")
-
-    static_pages = ["/", "/pricing", "/privacy", "/terms"]
-    urls = []
-    for path in static_pages:
-        urls.append(f"  <url><loc>{base}{path}</loc></url>")
-
-    xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "\n".join(urls) + "\n"
-        '</urlset>\n'
-    )
-    return Response(xml, mimetype="application/xml")
+    return render_template("pricing.html")
 
 
 @app.route("/healthz")
-@limiter.exempt
 def healthz():
-    """Health-check endpoint with API dependency status.
-
-    Reports config validation and live health of external data sources
-    (Google Maps, Overpass, Open-Meteo). Overall status is 'degraded'
-    when config is missing or any API is down.
-    """
-    from health_monitor import get_status as get_api_health
+    """Lightweight health-check endpoint for monitoring."""
     config_ok, missing = _check_service_config()
-    api_health = get_api_health()
-
-    any_down = any(s.get("status") == "down" for s in api_health.values())
-    overall = "ok" if config_ok and not any_down else "degraded"
-
     return jsonify({
-        "status": overall,
+        "status": "ok" if config_ok else "degraded",
         "missing_keys": missing,
-        "api_health": api_health,
-    }), 200 if overall == "ok" else 503
-
-
-@app.route("/healthz/latest-snapshot")
-@limiter.exempt
-def healthz_latest_snapshot():
-    """Return the most recent snapshot ID for post-deploy smoke tests."""
-    rows = get_recent_snapshots(limit=1)
-    sid = rows[0]["snapshot_id"] if rows else None
-    return jsonify({"snapshot_id": sid})
+    }), 200 if config_ok else 503
 
 
 @app.route("/debug/trace/<snapshot_id>")
@@ -2983,7 +756,6 @@ def debug_trace(snapshot_id):
 
 
 @app.route("/debug/eval", methods=["POST"])
-@limiter.exempt
 def debug_eval():
     """Run an evaluation and return full trace data. Builder-only.
 
@@ -3032,23 +804,9 @@ def debug_eval():
 # Error handlers
 # ---------------------------------------------------------------------------
 
-@app.errorhandler(429)
-def rate_limit_exceeded(e):
-    if _wants_json():
-        return jsonify({
-            "error": "Too many requests. Please wait and try again.",
-        }), 429
-    return render_template("429.html"), 429
-
-
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html"), 404
-
-
-@app.errorhandler(500)
-def internal_error(e):
-    return render_template("500.html"), 500
 
 
 # ---------------------------------------------------------------------------
@@ -3059,20 +817,6 @@ def internal_error(e):
 init_db()
 
 if __name__ == "__main__":
-    # Development: start the async evaluation worker thread in this process
-    from worker import start_worker
-    start_worker()
     port = int(os.environ.get("PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
-if os.environ.get("FLASK_RUN_FROM_CLI") == "true" and os.environ.get("START_WORKER") != "1":
-    logger.warning(
-        "WARNING: No background worker running. Jobs will not process. "
-        "Use gunicorn or set START_WORKER=1."
-    )
-elif os.environ.get("START_WORKER") == "1":
-    try:
-        from worker import start_worker
-        start_worker()
-    except Exception:
-        logger.exception("Failed to start background worker via START_WORKER=1")

@@ -87,6 +87,7 @@ The app will be available at `http://localhost:5001`.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GOOGLE_MAPS_API_KEY` | Yes | Google Maps Platform API key |
+| `SNAPSHOT_TTL_DAYS` | No | Snapshot reuse TTL in days for place-id dedupe (default: 90) |
 | `WALKSCORE_API_KEY` | No | Walk Score API key (for walk/transit/bike scores) |
 | `SECRET_KEY` | Yes (production) | Flask session secret. Required for production; local dev falls back to default when `FLASK_DEBUG=1` |
 | `SENTRY_DSN` | No | Sentry DSN for error tracking. When unset, no errors are reported (silent in local dev) |

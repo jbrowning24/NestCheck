@@ -4,35 +4,34 @@ User is mid-development and thought of a bug/feature/improvement. Capture it fas
 
 ## Your Goal
 
-Create a complete issue with:
-- Clear title
-- TL;DR of what this is about
+Create a complete Linear issue with:
+- Clear, actionable title (verb + noun format)
+- TL;DR (1-2 sentences max)
 - Current state vs expected outcome
-- Relevant files that need touching
-- Risk/notes if applicable
-- Proper type/priority/effort labels
+- Relevant files that likely need changes
+- Type: bug | feature | improvement | tech-debt
+- Priority: urgent | high | normal | low
+- Effort: trivial | small | medium | large
 
 ## How to Get There
 
-**Ask questions** to fill gaps - be concise, respect the user's time. They're mid-flow and want to capture this quickly. Usually need:
-- What's the issue/feature
-- Current behavior vs desired behavior
-- Type (bug/feature/improvement) and priority if not obvious
+**Ask targeted questions** - be concise, respect their flow state:
+- What's happening vs what should happen?
+- Is this blocking anything?
+- Any specific files or areas involved?
 
-Keep questions brief. One message with 2-3 targeted questions beats multiple back-and-forths.
+Keep it to ONE message with 2-3 questions max. Don't interrogate.
 
-**Search for context** only when helpful:
-- Web search for best practices if it's a complex feature
-- Grep codebase to find relevant files
-- Note any risks or dependencies you spot
+**Search for context** only when genuinely helpful:
+- Grep codebase to identify affected files
+- Check for related existing patterns
 
-**Skip what's obvious** - If it's a straightforward bug, don't search web. If type/priority is clear from description, don't ask.
-
-**Keep it fast** - Total exchange under 2min. Be conversational but brief. Get what you need, create ticket, done.
+**Skip what's obvious** - If it's a clear bug, don't ask about priority.
 
 ## Behavior Rules
 
-- Be conversational - ask what makes sense, not a checklist
-- Default priority: normal, effort: medium (ask only if unclear)
-- Max 3 files in context - most relevant only
-- Bullet points over paragraphs
+- Be conversational, not robotic
+- Default: priority=normal, effort=medium (only ask if unclear)
+- Max 3 files in "Affected Areas"
+- Total interaction under 2 minutes
+- After capturing, confirm: "Created issue. Back to what you were doing?"

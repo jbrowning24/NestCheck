@@ -1,0 +1,4 @@
+interface:
+  display_name: "Learning Opportunity"
+  short_description: "Teach concepts during active development"
+  default_prompt: "Use $learning-opportunity to explain this concept in the context of the current code and work."
