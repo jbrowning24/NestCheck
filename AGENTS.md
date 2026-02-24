@@ -41,3 +41,5 @@ Copy `.env.example` to `.env`. The only required variable for full functionality
 - Python packages install to `~/.local/bin` (user install); ensure `$HOME/.local/bin` is on `PATH`.
 - The `BUILDER_MODE=true` env var (set in `.env.example`) enables the `/builder/dashboard` route for analytics.
 - No linter configuration exists in the repo (no flake8/ruff/pylint config files). Code quality checks are informal.
+- Pre-existing template bug: `templates/snapshot.html` references a `snapshot_og_image` Flask endpoint that does not exist in `app.py`. Viewing a snapshot page (`/s/<id>`) crashes with a `BuildError`. The evaluation pipeline itself works correctly — data is saved to the DB and accessible via `/api/snapshot/<id>/json`.
+- Evaluations take 2–3 minutes due to hundreds of real API calls (Google Maps, Overpass, Open-Meteo). The `FLASK_DEBUG=1` auto-reloader is fine for development.
