@@ -1,0 +1,2 @@
+[phases.setup]
+aptPkgs = ["libspatialite-dev", "libsqlite3-mod-spatialite"]
