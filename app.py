@@ -1115,6 +1115,302 @@ def generate_insights(result_dict: dict) -> dict:
     }
 
 
+def generate_summary_narrative(result_dict: dict) -> str:
+    """Generate 2-3 paragraphs of plain-English synthesis for the report header.
+
+    Higher-altitude synthesis — what living here would feel like — not a
+    concatenation of section insights. Reads like a knowledgeable friend
+    describing the address. Returns HTML string (paragraphs wrapped in <p> tags)
+    or empty string if insufficient data.
+    """
+    # Guard: need at least tier2 and basic structure
+    tier2_scores = result_dict.get("tier2_scores") or []
+    if not tier2_scores and not result_dict.get("address"):
+        return ""
+
+    tier2 = _tier2_lookup(result_dict)
+    green = result_dict.get("green_escape") or {}
+    urban = result_dict.get("urban_access") or {}
+    transit = result_dict.get("transit_access") or {}
+    walk_scores = result_dict.get("walk_scores") or {}
+    presented = result_dict.get("presented_checks") or []
+    weather = result_dict.get("weather")
+    persona = result_dict.get("persona") or {}
+    road_noise = result_dict.get("road_noise")
+
+    # Transit
+    transit_walk_min = None
+    transit_name = None
+    transit_drive_min = None
+    primary = urban.get("primary_transit") if urban else None
+    if primary and primary.get("name"):
+        transit_name = primary.get("name")
+        transit_walk_min = primary.get("walk_time_min")
+        transit_drive_min = primary.get("drive_time_min")
+    elif transit and transit.get("primary_stop"):
+        transit_name = transit.get("primary_stop")
+        transit_walk_min = transit.get("walk_minutes")
+
+    # Zero-score dimensions
+    zero_dims = [s["name"] for s in tier2_scores if s.get("points", 0) == 0]
+    zero_count = len(zero_dims)
+
+    DIM_LABELS = {
+        "Parks & Green Space": "parks or green space",
+        "Coffee & Social Spots": "cafés or social spots",
+        "Daily Essentials": "grocery stores",
+        "Fitness & Recreation": "gyms or fitness options",
+        "Road Noise": "road noise",
+        "Getting Around": "transit",
+    }
+
+    # Precompute for persona placement (fold into p1 when p2 has health findings)
+    safety = [c for c in presented if c.get("category") == "SAFETY"]
+    clear = [c for c in safety if c.get("result_type") == "CLEAR"]
+    non_clear = [c for c in safety if c.get("result_type") != "CLEAR"]
+
+    # Strong categories (score >= 7) for urban narrative
+    strong_cats = []
+    for name, label in [
+        ("Coffee & Social Spots", "coffee shops"),
+        ("Daily Essentials", "grocery stores"),
+        ("Fitness & Recreation", "fitness options"),
+    ]:
+        if tier2.get(name, {}).get("points", 0) >= 7:
+            strong_cats.append(label)
+
+    paragraphs = []
+
+    # ── Paragraph 1: What daily life looks like here (3-5 sentences) ──
+    p1_sentences = []
+    best_park = green.get("best_daily_park") if green else None
+    park_walk = best_park.get("walk_time_min") if best_park else None
+    park_name = best_park.get("name") if best_park else None
+
+    # 1. Lead with strongest positive
+    has_strong_lead = False
+    if park_name and park_walk is not None and park_walk <= 10:
+        # Build textured description
+        texture = []
+        if best_park.get("osm_area_sqm"):
+            acres = best_park["osm_area_sqm"] / 4047
+            if acres >= 5:
+                texture.append(f"roughly {acres:.0f} acres")
+            elif acres >= 1:
+                texture.append(f"about {acres:.1f} acres")
+        if best_park.get("osm_has_trail"):
+            texture.append("trails")
+        elif best_park.get("osm_path_count", 0) >= 2:
+            texture.append("paths")
+        nature_tags = best_park.get("osm_nature_tags") or []
+        if any(t in " ".join(nature_tags).lower() for t in ["water", "river", "stream", "wetland", "lake"]):
+            texture.append("water features")
+        if len(texture) >= 2:
+            texture_str = texture[0] + " with " + " and ".join(texture[1:])
+        elif texture:
+            texture_str = texture[0]
+        else:
+            texture_str = "green space"
+        if best_park.get("rating") and best_park.get("user_ratings_total", 0) >= 20:
+            texture_str += f", rated {best_park['rating']:.1f} stars"
+        article = "an" if park_walk in (8, 11, 18) or (80 <= park_walk <= 89) else "a"
+        p1_sentences.append(
+            f"{park_name} is just {article} {park_walk}-minute walk from the front door — "
+            f"{texture_str}."
+        )
+        if texture:
+            p1_sentences.append("That's a genuine asset.")
+        has_strong_lead = True
+    elif walk_scores.get("walk_score") is not None and walk_scores["walk_score"] >= 70:
+        p1_sentences.append("This is a highly walkable location.")
+        has_strong_lead = True
+    elif transit_walk_min is not None and transit_walk_min <= 15 and transit_name:
+        p1_sentences.append(
+            f"You're well-connected to transit — {transit_name} is "
+            f"{transit_walk_min} minutes on foot."
+        )
+        has_strong_lead = True
+
+    # 2. Add daily-life pattern (car-dependent, mixed, highly walkable)
+    car_dependent = (
+        transit_walk_min is not None and transit_walk_min > 30
+        and zero_count >= 2
+    )
+    if car_dependent:
+        if has_strong_lead:
+            p1_sentences.append(
+                "On the other hand, beyond the park, daily life here means driving. "
+                "Grocery stores, cafés, and fitness options are all beyond "
+                "walking distance."
+            )
+        else:
+            p1_sentences.append(
+                "Daily life here means driving. Grocery stores, cafés, and "
+                "fitness options are all beyond walking distance."
+            )
+    elif zero_count >= 3:
+        connector = "That said, " if has_strong_lead else ""
+        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:3]]
+        p1_sentences.append(
+            f"{connector}Daily life here means driving — the nearest "
+            f"{', '.join(gap_labels)} are all beyond comfortable walking distance."
+        )
+    elif zero_count >= 1 and has_strong_lead:
+        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:2]]
+        p1_sentences.append(
+            f"That said, you'll need a car for {', '.join(gap_labels)}."
+        )
+    elif not has_strong_lead and zero_count >= 1:
+        gap_labels = [DIM_LABELS.get(d, d.lower()) for d in zero_dims[:3]]
+        p1_sentences.append(
+            f"Daily errands and amenities require a car — no "
+            f"{', '.join(gap_labels)} within walking distance."
+        )
+    elif has_strong_lead and strong_cats:
+        p1_sentences.append(
+            f"Most daily needs are within a short walk, including "
+            f"{', '.join(strong_cats)}."
+        )
+    elif not has_strong_lead and strong_cats:
+        p1_sentences.append(
+            f"This area offers walkable amenities — "
+            f"{', '.join(strong_cats)} are all nearby."
+        )
+
+    # 3. Integrate transit naturally (drive time when walk > 20)
+    if transit_name:
+        if transit_drive_min is not None and (transit_walk_min is None or transit_walk_min > 20):
+            p1_sentences.append(
+                f"The nearest train station ({transit_name}) is about "
+                f"{transit_drive_min} minutes by car rather than a realistic walk."
+            )
+        elif transit_walk_min is not None and transit_walk_min <= 20 and transit_walk_min > 10:
+            p1_sentences.append(
+                f"{transit_name} is {transit_walk_min} minutes on foot."
+            )
+
+    # 4. Persona note at end of p1 when p2 will have health findings (avoids
+    # awkward double-duty in the health paragraph)
+    _persona_note = None
+    if persona.get("key") and persona.get("key") != "balanced":
+        _persona_note = (
+            f"This evaluation is weighted toward {persona.get('label', 'your')} "
+            "priorities — transit and café access are emphasized in the scoring."
+        )
+
+    if p1_sentences:
+        p1_text = " ".join(p1_sentences)
+        # Fold persona into p1 when we'll have health findings in p2
+        if _persona_note and non_clear:
+            p1_text += " " + _persona_note
+            _persona_note = None  # Don't add again in p3
+        paragraphs.append("<p>" + p1_text + "</p>")
+
+    # ── Paragraph 2: What we checked (health proximity, 2-4 sentences) ──
+    p2_sentences = []
+    if not safety:
+        pass
+    elif len(clear) == len(safety):
+        p2_sentences.append(
+            "No environmental or health proximity concerns were detected. "
+            "The address is clear of highway noise corridors, gas stations, "
+            "high-traffic roads, and rail lines."
+        )
+        if road_noise:
+            sev = road_noise.get("severity")
+            if sev in ("QUIET",) or sev is None:
+                p2_sentences.append(
+                    "Road noise levels are estimated to be low."
+                )
+    elif non_clear:
+        confirmed = [c for c in non_clear if c.get("result_type") == "CONFIRMED_ISSUE"]
+        first = confirmed[0] if confirmed else non_clear[0]
+        headline = first.get("headline", first.get("display_name", "A proximity check"))
+        explanation = first.get("explanation", "")
+        check_name = first.get("display_name", first.get("check_id", ""))
+        dist_match = re.search(r"(\d+)\s*ft", headline or "")
+        dist_ft = dist_match.group(1) if dist_match else None
+
+        is_gas = "gas" in (check_name or "").lower() or "gas" in (headline or "").lower()
+        if is_gas and dist_ft:
+            p2_sentences.append(
+                f"However, there is a gas station approximately {dist_ft} feet "
+                "from this address."
+            )
+        elif dist_ft:
+            p2_sentences.append(
+                f"{headline} — about {dist_ft} feet away."
+            )
+        else:
+            p2_sentences.append(f"However, {headline}.")
+
+        if explanation:
+            p2_sentences.append(explanation)
+        elif is_gas:
+            p2_sentences.append(
+                "Research has linked prolonged residential proximity to fuel "
+                "storage with elevated benzene exposure, and several states "
+                "recommend 300-foot or greater setbacks for new residential "
+                "construction. This is worth investigating further, particularly "
+                "if you're considering a long-term stay."
+            )
+
+        if len(non_clear) > 1:
+            others = [c.get("headline", c.get("display_name")) for c in non_clear[1:3]]
+            others_str = "; ".join(o for o in others if o)
+            if others_str:
+                p2_sentences.append(f"Other concerns: {others_str}.")
+
+        if road_noise:
+            sev = road_noise.get("severity")
+            if sev in ("MODERATE", "LOUD", "VERY_LOUD"):
+                label = road_noise.get("severity_label", "elevated road noise")
+                p2_sentences.append(f"Road noise: {label}.")
+
+    if road_noise and not p2_sentences:
+        sev = road_noise.get("severity")
+        if sev in ("MODERATE", "LOUD", "VERY_LOUD"):
+            label = road_noise.get("severity_label", "elevated road noise")
+            p2_sentences.append(f"Road noise: {label}.")
+
+    if p2_sentences:
+        paragraphs.append("<p>" + " ".join(p2_sentences) + "</p>")
+
+    # ── Paragraph 3: Contextual (only if 2+ sentences) ──
+    p3_sentences = []
+    if weather and weather.get("triggers"):
+        triggers = weather.get("triggers") or []
+        monthly = weather.get("monthly") or []
+        if "snow" in triggers or "freezing" in triggers:
+            period = _snow_months(monthly) if monthly else "winter"
+            p3_sentences.append(
+                f"Seasonal weather will affect outdoor activity — expect "
+                f"snow and cold from {period}."
+            )
+        if "extreme_heat" in triggers:
+            period = _hot_months(monthly) if monthly else "summer"
+            p3_sentences.append(
+                f"Summer heat may make walks less comfortable from {period}."
+            )
+    # Persona only in p3 when p2 is all-clear (otherwise already folded into p1)
+    if persona.get("key") and persona.get("key") != "balanced" and not non_clear:
+        p3_sentences.append(
+            f"This evaluation is weighted toward {persona.get('label', 'your')} "
+            "priorities — transit and café access are emphasized in the scoring."
+        )
+
+    # Only render p3 if substantive
+    if len(p3_sentences) >= 2:
+        paragraphs.append("<p>" + " ".join(p3_sentences) + "</p>")
+    elif len(p3_sentences) == 1:
+        paragraphs.append("<p>" + p3_sentences[0] + "</p>")
+
+    if not paragraphs:
+        return ""
+
+    return "\n".join(paragraphs)
+
+
 def _backfill_result(result):
     """Apply standard backfills to a snapshot result dict. Mutates in place."""
     if "score_band" not in result or isinstance(result["score_band"], str):
@@ -1158,6 +1454,9 @@ def _backfill_result(result):
 
     if "insights" not in result:
         result["insights"] = generate_insights(result)
+
+    if "summary_narrative" not in result:
+        result["summary_narrative"] = generate_summary_narrative(result)
 
 
 # ---------------------------------------------------------------------------
@@ -1446,6 +1745,7 @@ def result_to_dict(result):
                 "name": pharm.name,
                 "distance_ft": pharm.distance_ft,
                 "est_walk_min": pharm.est_walk_min,
+                "drive_time_min": pharm.drive_time_min,
                 "lat": pharm.lat,
                 "lng": pharm.lng,
             }
@@ -1490,6 +1790,7 @@ def result_to_dict(result):
     output["score_band"] = get_score_band(result.final_score)
     output["dimension_summaries"] = generate_dimension_summaries(output)
     output["insights"] = generate_insights(output)
+    output["summary_narrative"] = generate_summary_narrative(output)
     return output
 
 

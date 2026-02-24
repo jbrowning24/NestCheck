@@ -119,6 +119,13 @@
   </div>
   {% endif %}
 
+  {# ── SUMMARY NARRATIVE ─── #}
+  {% if result.summary_narrative is defined and result.summary_narrative %}
+  <div class="summary-narrative" style="margin: 1.5rem 0 2rem; line-height: 1.65; color: #2d2d2d; font-size: 1.05rem; overflow-wrap: break-word;">
+    {{ result.summary_narrative | safe }}
+  </div>
+  {% endif %}
+
   {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
   {% set has_map_data = result.coordinates is defined and result.coordinates
                         and result.neighborhood_places is defined and result.neighborhood_places %}
@@ -169,12 +176,18 @@
 
     {% for key, icon, label in categories %}
       {% set places = result.neighborhood_places[key] | default([]) %}
-      {% if places %}
+      {# Separate normal results from expanded-search (wider radius) results #}
+      {% set normal_places = places | selectattr("expanded_search", "undefined") | list
+         if places else [] %}
+      {% set expanded_places = places | selectattr("expanded_search", "defined")
+         | selectattr("expanded_search") | list if places else [] %}
+
+      {% if normal_places %}
+      {# ── Normal results: places within walking distance ── #}
       <div class="neighborhood-category">
         <div class="category-label">{{ icon }} {{ label }}</div>
         <div class="place-cards">
-          {% for place in places %}
-          {# First place with a review snippet gets headline treatment #}
+          {% for place in normal_places %}
           {% set is_headline = loop.first and place.review_snippet %}
           <div class="place-card{% if is_headline %} place-card--headline{% endif %}">
             <div class="place-name">
@@ -204,10 +217,62 @@
               {% endif %}
             </div>
             {% endif %}
-            <div class="place-time">{{ fmt_time(place.walk_time_min, "walk") }}</div>
+            <div class="place-time">
+              {# Drive/walk display: ≤20 walk only, 21-40 both, >40 drive only #}
+              {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
+                {{ fmt_time(place.drive_time_min, "drive") }}
+              {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
+                {{ fmt_time(place.walk_time_min, "walk") }} · {{ fmt_time(place.drive_time_min, "drive") }}
+              {% else %}
+                {{ fmt_time(place.walk_time_min, "walk") }}
+              {% endif %}
+            </div>
           </div>
           {% endfor %}
         </div>
+      </div>
+
+      {% elif expanded_places and key != "parks" %}
+      {# ── Expanded results: nearest by car when nothing walkable ── #}
+      <div class="neighborhood-category neighborhood-category--expanded">
+        <div class="category-label">{{ icon }} {{ label }}</div>
+        <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
+        <div class="place-cards">
+          {% for place in expanded_places %}
+          <div class="place-card place-card--muted">
+            <div class="place-name">
+              {% if place.place_id %}
+                <a href="https://www.google.com/maps/place/?q=place_id:{{ place.place_id }}"
+                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+              {% elif place.lat and place.lng %}
+                <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+              {% else %}
+                {{ place.name }}
+              {% endif %}
+            </div>
+            <div class="place-meta">
+              {% if place.rating %}
+                <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+              {% endif %}
+            </div>
+            <div class="place-time">
+              {% if place.drive_time_min %}
+                {{ fmt_time(place.drive_time_min, "drive") }}
+              {% else %}
+                Drive time unavailable
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% elif key != "parks" %}
+      {# ── Truly empty: nothing found even at wider radius ── #}
+      <div class="neighborhood-category neighborhood-category--empty">
+        <div class="category-label">{{ icon }} {{ label }}</div>
+        <p class="section-empty">No {{ label | lower }} found within about 10 miles.</p>
       </div>
       {% endif %}
     {% endfor %}
@@ -484,10 +549,18 @@
 
     {% if result.nearby_pharmacies %}
       {% for pharm in result.nearby_pharmacies %}
+      {# Drive/walk display: ≤20 walk only, 21-40 both, >40 drive only #}
+      {% if pharm.drive_time_min and (pharm.est_walk_min or 0) > 40 %}
+        {% set time_val = "~" ~ pharm.drive_time_min ~ " min drive" %}
+      {% elif pharm.drive_time_min and (pharm.est_walk_min or 0) > 20 %}
+        {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk · " ~ pharm.drive_time_min ~ " min drive" %}
+      {% else %}
+        {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk" %}
+      {% endif %}
       {{ data_row(
           name=pharm.name,
           detail="Pharmacy",
-          value="~" ~ pharm.est_walk_min ~ " min walk",
+          value=time_val,
           variant="hub"
       ) }}
       {% endfor %}

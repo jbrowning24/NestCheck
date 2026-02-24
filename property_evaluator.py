@@ -722,12 +722,14 @@ class NearbyPharmacy:
 
     Informational only — not scored.  Walk time is estimated from
     haversine distance at ~3 mph, not Google Distance Matrix.
+    Drive time is fetched via Distance Matrix when est_walk_min > 20.
     """
     name: str               # Pharmacy name (fallback: "Pharmacy")
     distance_ft: int        # Straight-line distance in feet
     est_walk_min: int       # Estimated walk time in minutes (~3 mph)
     lat: float
     lng: float
+    drive_time_min: Optional[int] = None  # Driving time (only for far pharmacies)
 
 
 @dataclass
@@ -1136,6 +1138,126 @@ def _walking_times_batch(
     if hasattr(maps, "walking_times_batch"):
         return maps.walking_times_batch(origin, destinations)
     return [maps.walking_time(origin, d) for d in destinations]
+
+
+# Walk-time threshold above which we also fetch driving times.
+# ≤20 min → walk only; 21-40 → show both; >40 → drive only.
+_DRIVE_TIME_WALK_THRESHOLD = 20
+
+
+def _attach_drive_times(
+    maps: "GoogleMapsClient",
+    origin: Tuple[float, float],
+    places: List[Dict],
+) -> None:
+    """Attach drive_time_min to neighborhood places beyond walking distance.
+
+    Mutates *places* in-place: adds ``drive_time_min`` key for any place
+    whose ``walk_time_min`` exceeds ``_DRIVE_TIME_WALK_THRESHOLD``.
+    Places within walking distance get ``drive_time_min = None``.
+
+    Follows the green-space pattern: batch call, 9999 sentinel → None,
+    graceful degradation on failure (places just keep walk times).
+    """
+    far = [(i, p) for i, p in enumerate(places)
+           if (p.get("walk_time_min") or 0) > _DRIVE_TIME_WALK_THRESHOLD]
+
+    # Default all places to None (no drive time)
+    for p in places:
+        p.setdefault("drive_time_min", None)
+
+    if not far or not hasattr(maps, "driving_times_batch"):
+        return
+
+    destinations = [(p["lat"], p["lng"]) for _, p in far]
+    try:
+        drive_times = maps.driving_times_batch(origin, destinations)
+        if len(drive_times) != len(far):
+            return  # Length mismatch — don't assign partial data
+    except Exception:
+        return  # API failure — graceful degradation, walk times remain
+
+    for (idx, place), dt in zip(far, drive_times):
+        place["drive_time_min"] = dt if dt != 9999 else None
+
+
+# Expanded search radius for categories with zero nearby results (~9.3 mi).
+_EXPANDED_SEARCH_RADIUS_M = 15000
+_EXPANDED_RESULT_CAP = 3
+
+
+def _expanded_search(
+    maps: "GoogleMapsClient",
+    lat: float,
+    lng: float,
+    place_types: List[str],
+    fallback_name: str,
+    keyword: Optional[str] = None,
+) -> List[Dict]:
+    """Search wider radius when a category has zero nearby results.
+
+    Returns up to ``_EXPANDED_RESULT_CAP`` places tagged with
+    ``expanded_search: True`` and drive_time_min only.  These results
+    are informational — they must NOT affect scoring.
+
+    Returns empty list on failure or zero results at wider radius.
+    """
+    try:
+        all_places: List[Dict] = []
+        for ptype in place_types:
+            all_places.extend(
+                maps.places_nearby(lat, lng, ptype,
+                                   radius_meters=_EXPANDED_SEARCH_RADIUS_M,
+                                   keyword=keyword)
+            )
+        all_places = _dedupe_by_place_id(all_places)
+
+        if not all_places:
+            return []
+
+        # Sort by distance (closest first) using haversine
+        for p in all_places:
+            plat = p["geometry"]["location"]["lat"]
+            plng = p["geometry"]["location"]["lng"]
+            p["_dist"] = _haversine_feet(lat, lng, plat, plng)
+        all_places.sort(key=lambda p: p["_dist"])
+
+        selected = all_places[:_EXPANDED_RESULT_CAP]
+
+        # Fetch driving times only — walking is irrelevant at 15km
+        origin = (lat, lng)
+        destinations = [
+            (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
+            for p in selected
+        ]
+        try:
+            drive_times = maps.driving_times_batch(origin, destinations)
+            if len(drive_times) != len(selected):
+                drive_times = [None] * len(selected)
+        except Exception:
+            drive_times = [None] * len(selected)
+
+        results = []
+        for place, dt in zip(selected, drive_times):
+            results.append({
+                "name": place.get("name", fallback_name),
+                "rating": place.get("rating"),
+                "review_count": place.get("user_ratings_total", 0),
+                "walk_time_min": None,
+                "drive_time_min": dt if dt is not None and dt != 9999 else None,
+                "lat": place["geometry"]["location"]["lat"],
+                "lng": place["geometry"]["location"]["lng"],
+                "place_id": place.get("place_id"),
+                "expanded_search": True,
+            })
+        return results
+
+    except Exception:
+        logger.warning(
+            "Expanded search failed for %s; continuing without",
+            fallback_name, exc_info=True,
+        )
+        return []
 
 
 LIBRARY_SEARCH_RADIUS_M = 2000  # ~1.2 mi — tuneable search radius for libraries
@@ -1811,12 +1933,16 @@ def get_pharmacy_proximity(
     overpass: "OverpassClient",
     lat: float,
     lng: float,
+    maps: Optional["GoogleMapsClient"] = None,
 ) -> Optional[Tuple[List[NearbyPharmacy], int]]:
     """Find nearby pharmacies via Overpass (zero Google API cost).
 
     Returns a tuple of (pharmacies, total_count) where pharmacies is capped
     at _PHARMACY_DISPLAY_CAP (3) sorted by distance.  total_count is the
     full count within the search radius for context display.
+
+    When *maps* is provided, pharmacies beyond walking distance
+    (est_walk_min > 20) also get drive_time_min via Distance Matrix.
 
     Returns None on failure, ([], 0) when none found.
     """
@@ -1843,6 +1969,21 @@ def get_pharmacy_proximity(
             )
             for pharm in selected
         ]
+
+        # Fetch driving times for pharmacies beyond walking distance
+        if maps and hasattr(maps, "driving_times_batch"):
+            far = [(i, r) for i, r in enumerate(results)
+                   if r.est_walk_min > _DRIVE_TIME_WALK_THRESHOLD]
+            if far:
+                origin = (lat, lng)
+                destinations = [(r.lat, r.lng) for _, r in far]
+                try:
+                    drive_times = maps.driving_times_batch(origin, destinations)
+                    if len(drive_times) == len(far):
+                        for (idx, pharm), dt in zip(far, drive_times):
+                            pharm.drive_time_min = dt if dt != 9999 else None
+                except Exception:
+                    pass  # Graceful degradation — walk times remain
 
         return (results, total_count)
 
@@ -3342,12 +3483,20 @@ def score_third_place_access(
     _dim_name = "Coffee & Social Spots"
     _cfg = SCORING_MODEL.coffee
 
-    def _empty(details: str) -> Tuple[DimensionResult, List[Dict]]:
+    def _empty(details: str, expanded: Optional[List[Dict]] = None) -> Tuple[DimensionResult, List[Dict]]:
         return (DimensionResult(
             score=0.0, max_score=10.0, name=_dim_name,
             details=details, scoring_inputs={},
             model_version=SCORING_MODEL.version,
-        ), [])
+        ), expanded or [])
+
+    def _try_expanded() -> List[Dict]:
+        """Wider-radius fallback — informational only, does not affect score."""
+        return _expanded_search(
+            maps, lat, lng,
+            place_types=["cafe", "bakery"],
+            fallback_name="Coffee shop",
+        )
 
     try:
         # Reuse pre-fetched places from neighborhood snapshot if available
@@ -3360,7 +3509,8 @@ def score_third_place_access(
             all_places = _dedupe_by_place_id(all_places)
 
         if not all_places:
-            return _empty("No high-quality third places within walking distance")
+            return _empty("No high-quality third places within walking distance",
+                          _try_expanded())
 
         # Filter for third-place quality
         eligible_places = []
@@ -3388,7 +3538,8 @@ def score_third_place_access(
                 eligible_places.append(place)
 
         if not eligible_places:
-            return _empty("No high-quality third places within walking distance")
+            return _empty("No high-quality third places within walking distance",
+                          _try_expanded())
 
         # Find best scoring place (batch walk times)
         destinations = [
@@ -3428,6 +3579,8 @@ def score_third_place_access(
             }
             for _sc, wt, p in scored_places[:5]
         ]
+        # Fetch driving times for places beyond walking distance
+        _attach_drive_times(maps, (lat, lng), neighborhood_places)
         # Sort cards by distance for display (closest first)
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
@@ -3698,12 +3851,20 @@ def score_provisioning_access(
     _dim_name = "Daily Essentials"
     _cfg = SCORING_MODEL.grocery
 
-    def _empty(details: str) -> Tuple[DimensionResult, List[Dict]]:
+    def _empty(details: str, expanded: Optional[List[Dict]] = None) -> Tuple[DimensionResult, List[Dict]]:
         return (DimensionResult(
             score=0.0, max_score=10.0, name=_dim_name,
             details=details, scoring_inputs={},
             model_version=SCORING_MODEL.version,
-        ), [])
+        ), expanded or [])
+
+    def _try_expanded() -> List[Dict]:
+        """Wider-radius fallback — informational only, does not affect score."""
+        return _expanded_search(
+            maps, lat, lng,
+            place_types=["supermarket", "grocery_store"],
+            fallback_name="Grocery store",
+        )
 
     try:
         # Reuse pre-fetched places from neighborhood snapshot if available
@@ -3716,7 +3877,8 @@ def score_provisioning_access(
             all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
-            return _empty("No full-service provisioning options within walking distance")
+            return _empty("No full-service provisioning options within walking distance",
+                          _try_expanded())
 
         # Filter for household provisioning quality
         eligible_stores = []
@@ -3744,7 +3906,8 @@ def score_provisioning_access(
                 eligible_stores.append(store)
 
         if not eligible_stores:
-            return _empty("No full-service provisioning options within walking distance")
+            return _empty("No full-service provisioning options within walking distance",
+                          _try_expanded())
 
         # Find best scoring store (batch walk times)
         store_dests = [
@@ -3784,6 +3947,8 @@ def score_provisioning_access(
             }
             for _sc, wt, s in scored_stores[:5]
         ]
+        # Fetch driving times for stores beyond walking distance
+        _attach_drive_times(maps, (lat, lng), neighborhood_places)
         # Sort cards by distance for display (closest first)
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
@@ -3823,12 +3988,20 @@ def score_fitness_access(
     _dim_name = "Fitness & Recreation"
     _cfg = SCORING_MODEL.fitness
 
-    def _empty(details: str) -> Tuple[DimensionResult, List[Dict]]:
+    def _empty(details: str, expanded: Optional[List[Dict]] = None) -> Tuple[DimensionResult, List[Dict]]:
         return (DimensionResult(
             score=0.0, max_score=10.0, name=_dim_name,
             details=details, scoring_inputs={},
             model_version=SCORING_MODEL.version,
-        ), [])
+        ), expanded or [])
+
+    def _try_expanded() -> List[Dict]:
+        """Wider-radius fallback — informational only, does not affect score."""
+        return _expanded_search(
+            maps, lat, lng,
+            place_types=["gym"],
+            fallback_name="Fitness center",
+        )
 
     try:
         # Search for gyms and fitness centers
@@ -3846,7 +4019,8 @@ def score_fitness_access(
         fitness_places = _dedupe_by_place_id(fitness_places)
 
         if not fitness_places:
-            return _empty("No gyms or fitness centers found within 30 min walk")
+            return _empty("No gyms or fitness centers found within 30 min walk",
+                          _try_expanded())
 
         # Find best scored facility (batch walk times)
         facility_dests = [
@@ -3886,7 +4060,8 @@ def score_fitness_access(
             scored_facilities.append((score, walk_time, facility))
 
         if best_score == 0 and not scored_facilities:
-            return _empty("No gyms or fitness centers found within 30 min walk")
+            return _empty("No gyms or fitness centers found within 30 min walk",
+                          _try_expanded())
 
         # Sort by score desc, then walk time asc; take top 5
         scored_facilities.sort(key=lambda x: (-x[0], x[1]))
@@ -3902,6 +4077,8 @@ def score_fitness_access(
             }
             for _sc, wt, f in scored_facilities[:5]
         ]
+        # Fetch driving times for facilities beyond walking distance
+        _attach_drive_times(maps, (lat, lng), neighborhood_places)
         # Sort cards by distance for display (closest first)
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
@@ -4257,10 +4434,11 @@ def evaluate_property(
             _timed_stage_in_thread, parent_trace,
             "nearby_libraries", get_library_proximity, overpass, lat, lng,
         )
-        # Pharmacy proximity — Overpass only, zero Google API cost (NES-108).
+        # Pharmacy proximity — Overpass discovery + Distance Matrix drive times
+        # for far pharmacies. Uses _threaded_stage so maps → per-thread client.
         futures["nearby_pharmacies"] = pool.submit(
-            _timed_stage_in_thread, parent_trace,
-            "nearby_pharmacies", get_pharmacy_proximity, overpass, lat, lng,
+            _threaded_stage,
+            "nearby_pharmacies", get_pharmacy_proximity, overpass, lat, lng, maps,
         )
         # Road noise — standalone Overpass query, no maps client needed.
         futures["road_noise"] = pool.submit(

@@ -554,6 +554,21 @@
   color: var(--color-text-disabled);
   white-space: nowrap;
 }
+/* Muted card — expanded-search results (nearest by car). */
+.place-card--muted {
+  opacity: 0.75;
+  border-style: dashed;
+}
+.expanded-search-note {
+  font-size: 0.82em;
+  color: var(--color-text-light);
+  margin: 4px 0 8px;
+  font-style: italic;
+}
+.neighborhood-category--empty .section-empty {
+  margin: 4px 0 0;
+  padding-top: 0;
+}
 
 /* --- Share Bar (structural — page-specific overrides in index.css / snapshot.css) --- */
 .share-bar {
