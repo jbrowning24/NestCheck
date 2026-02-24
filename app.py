@@ -9,19 +9,19 @@ from datetime import datetime, timezone
 from functools import wraps
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    make_response, abort, jsonify, g, Response
+    make_response, abort, jsonify, g, Response, flash
 )
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient
 )
-from urban_access import urban_access_result_to_dict
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
+    get_snapshots_by_ids,
 )
 
 load_dotenv()
@@ -32,9 +32,21 @@ app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
     os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
     os.environ.get('GOOGLE_MAPS_API_KEY')
 )
+# Keep templates render-safe even if Flask-WTF is unavailable at runtime.
+app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    from flask_wtf.csrf import CSRFProtect, generate_csrf
+except Exception:
+    logger.warning(
+        "Flask-WTF not available; CSRF protection disabled and csrf_token() fallback in use."
+    )
+else:
+    CSRFProtect(app)
+    app.jinja_env.globals["csrf_token"] = generate_csrf
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -240,15 +252,9 @@ def _serialize_urban_access(urban_access):
             "route_summary": mh.route_summary,
         }
 
-    # Engine result (primary hub commute + reachability hubs)
-    engine = None
-    if urban_access.engine_result:
-        engine = urban_access_result_to_dict(urban_access.engine_result)
-
     return {
         "primary_transit": primary_transit,
         "major_hub": major_hub,
-        "engine": engine,
     }
 
 
@@ -683,6 +689,66 @@ def export_snapshot_csv(snapshot_id):
         headers={
             "Content-Disposition": f"attachment; filename=nestcheck-{snapshot_id}.csv"
         },
+    )
+
+
+@app.route("/compare")
+def compare():
+    raw_ids = (request.args.get("ids") or "").strip()
+    if not raw_ids:
+        flash("Select at least two addresses", "error")
+        return redirect(url_for("index"))
+
+    requested_ids = [part.strip() for part in raw_ids.split(",") if part.strip()]
+    deduped_ids = []
+    seen = set()
+    for snapshot_id in requested_ids:
+        if snapshot_id in seen:
+            continue
+        seen.add(snapshot_id)
+        deduped_ids.append(snapshot_id)
+
+    if len(deduped_ids) < 2:
+        flash("Select at least two addresses", "error")
+        return redirect(url_for("index"))
+    if len(deduped_ids) > 4:
+        flash("You can compare up to four", "error")
+        return redirect(url_for("index"))
+
+    snapshots = get_snapshots_by_ids(deduped_ids)
+    if len(snapshots) < 2:
+        flash("Could not load enough snapshots", "error")
+        return redirect(url_for("index"))
+
+    evaluations = []
+    for snapshot in snapshots:
+        result = snapshot.get("result", {})
+        evaluations.append({
+            "snapshot_id": snapshot["snapshot_id"],
+            "result": result,
+            "address": (
+                result.get("address")
+                or snapshot.get("address_norm")
+                or snapshot.get("address_input")
+                or ""
+            ),
+            "final_score": result.get("final_score", snapshot.get("final_score", 0)),
+            "verdict": result.get("verdict", snapshot.get("verdict", "")),
+            "score_band": result.get("score_band"),
+            "is_preview": bool(snapshot.get("is_preview", 0)),
+        })
+
+    top_score = max((e.get("final_score", 0) for e in evaluations), default=0)
+    top_score_unique = (
+        sum(1 for e in evaluations if e.get("final_score", 0) == top_score) == 1
+    )
+
+    return render_template(
+        "compare.html",
+        evaluations=evaluations,
+        evaluation_count=len(evaluations),
+        top_score=top_score,
+        top_score_unique=top_score_unique,
     )
 
 

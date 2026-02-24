@@ -139,6 +139,37 @@ def get_snapshot(snapshot_id):
     return data
 
 
+def get_snapshots_by_ids(snapshot_ids):
+    """
+    Load multiple snapshots by ID in one query.
+
+    Returns a list in the same order as snapshot_ids, skipping IDs not found.
+    """
+    if not snapshot_ids:
+        return []
+
+    placeholders = ",".join(["?"] * len(snapshot_ids))
+    conn = _get_db()
+    rows = conn.execute(
+        f"SELECT * FROM snapshots WHERE snapshot_id IN ({placeholders})",
+        tuple(snapshot_ids),
+    ).fetchall()
+    conn.close()
+
+    by_id = {}
+    for row in rows:
+        data = dict(row)
+        data["result"] = json.loads(data["result_json"])
+        by_id[data["snapshot_id"]] = data
+
+    ordered = []
+    for snapshot_id in snapshot_ids:
+        snap = by_id.get(snapshot_id)
+        if snap:
+            ordered.append(snap)
+    return ordered
+
+
 def increment_view_count(snapshot_id):
     """Bump the view counter for a snapshot."""
     conn = _get_db()

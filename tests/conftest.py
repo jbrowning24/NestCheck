@@ -23,7 +23,10 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("GOOGLE_MAPS_API_KEY", "fake-key-for-tests")
 
 from app import app  # noqa: E402
-from models import init_db, _get_db, _return_conn  # noqa: E402
+from models import init_db, _get_db  # noqa: E402
+
+# Base template expects csrf_token() to exist. Provide a benign test fallback.
+app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
 
 @pytest.fixture(autouse=True)
@@ -35,10 +38,10 @@ def _fresh_db():
     """
     init_db()
     conn = _get_db()
-    for table in ("payments", "evaluation_jobs", "events", "free_tier_usage", "snapshots"):
+    for table in ("events", "snapshots"):
         conn.execute(f"DELETE FROM {table}")
     conn.commit()
-    _return_conn(conn)
+    conn.close()
     yield
 
 
