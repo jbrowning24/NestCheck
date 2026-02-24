@@ -28,9 +28,21 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
+# Keep templates render-safe even if Flask-WTF is unavailable at runtime.
+app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    from flask_wtf.csrf import CSRFProtect, generate_csrf
+except Exception:
+    logger.warning(
+        "Flask-WTF not available; CSRF protection disabled and csrf_token() fallback in use."
+    )
+else:
+    CSRFProtect(app)
+    app.jinja_env.globals["csrf_token"] = generate_csrf
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
