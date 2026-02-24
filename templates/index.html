@@ -387,6 +387,8 @@
             showError(data.error + traceRef, overlay, btn, form);
           } else if (data.job_id) {
             startPolling(data.job_id, overlay, loadingText, loadingSub, btn, form);
+          } else if (data.snapshot_id) {
+            window.location.href = data.redirect_url || ('/s/' + data.snapshot_id);
           } else {
             showError('Unexpected response from server.', overlay, btn, form);
           }
