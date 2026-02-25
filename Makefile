@@ -2,6 +2,10 @@
 # NestCheck Makefile
 # ---------------------------------------------------------------------------
 
+# Lint (ruff)
+lint:
+	ruff check .
+
 # Post-deploy smoke test against production
 smoke:
 	python3 smoke_test.py

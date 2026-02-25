@@ -1,0 +1,16 @@
+# Ruff linter configuration for NestCheck
+# Docs: https://docs.astral.sh/ruff/configuration/
+
+target-version = "py311"
+line-length = 120
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long — existing codebase has many; fix separately
+]
