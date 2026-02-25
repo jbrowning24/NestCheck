@@ -2500,8 +2500,12 @@ def score_provisioning_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score household provisioning store access (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score household provisioning store access (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby stores for the neighborhood display.
+    """
     try:
         # Search for full-service provisioning stores
         all_stores = []
@@ -2509,12 +2513,12 @@ def score_provisioning_access(
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
 
         if not all_stores:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
-            )
+            ), [])
 
         # Filter for household provisioning quality
         eligible_stores = []
@@ -2542,17 +2546,18 @@ def score_provisioning_access(
                 eligible_stores.append(store)
 
         if not eligible_stores:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
-            )
+            ), [])
 
-        # Find best scoring store
+        # Find best scoring store and collect all scored stores
         best_score = 0
         best_store = None
         best_walk_time = 9999
+        scored_stores = []
 
         for store in eligible_stores:
             store_lat = store["geometry"]["location"]["lat"]
@@ -2575,34 +2580,56 @@ def score_provisioning_access(
                 best_store = store
                 best_walk_time = walk_time
 
+            scored_stores.append((score, walk_time, store))
+
+        # Sort by score desc, then walk time asc; take top 5
+        scored_stores.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": s.get("name", "Grocery store"),
+                "rating": s.get("rating"),
+                "review_count": s.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": s["geometry"]["location"]["lat"],
+                "lng": s["geometry"]["location"]["lng"],
+                "place_id": s.get("place_id"),
+            }
+            for _sc, wt, s in scored_stores[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
         # Format details
         name = best_store.get("name", "Provisioning store")
         rating = best_store.get("rating", 0)
         reviews = best_store.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
-        return Tier2Score(
+        return (Tier2Score(
             name="Provisioning",
             points=best_score,
             max_points=10,
             details=details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Provisioning",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def score_fitness_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score fitness/wellness facility access based on rating and distance (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score fitness/wellness facility access based on rating and distance (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby facilities for the neighborhood display.
+    """
     try:
         # Search for gyms and fitness centers
         fitness_places = []
@@ -2618,17 +2645,18 @@ def score_fitness_access(
         fitness_places.extend(yoga)
 
         if not fitness_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
-            )
+            ), [])
 
-        # Find best scored facility
+        # Find best scored facility and collect all scored facilities
         best_score = 0
         best_facility = None
         best_details = ""
+        scored_facilities = []
 
         for facility in fitness_places:
             rating = facility.get("rating", 0)
@@ -2651,28 +2679,54 @@ def score_fitness_access(
                 facility_name = facility.get("name", "Fitness center")
                 best_details = f"{facility_name} ({rating}★) — {walk_time} min walk"
 
-        if best_score == 0:
-            return Tier2Score(
+            scored_facilities.append((score, walk_time, facility))
+
+        if best_score == 0 and not scored_facilities:
+            return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
-            )
+            ), [])
 
-        return Tier2Score(
+        # Sort by score desc, then walk time asc; take top 5
+        scored_facilities.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": f.get("name", "Fitness center"),
+                "rating": f.get("rating"),
+                "review_count": f.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": f["geometry"]["location"]["lat"],
+                "lng": f["geometry"]["location"]["lng"],
+                "place_id": f.get("place_id"),
+            }
+            for _sc, wt, f in scored_facilities[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
+        if best_score == 0:
+            return (Tier2Score(
+                name="Fitness access",
+                points=0,
+                max_points=10,
+                details="No gyms or fitness centers found within 30 min walk"
+            ), neighborhood_places)
+
+        return (Tier2Score(
             name="Fitness access",
             points=best_score,
             max_points=10,
             details=best_details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Fitness access",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
@@ -2905,12 +2959,18 @@ def evaluate_property(
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        result.tier2_scores.append(
-            _timed_stage("score_third_place", score_third_place_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _timed_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _timed_stage("score_fitness", score_fitness_access, maps, lat, lng))
+        _coffee_score, _coffee_places = _timed_stage(
+            "score_third_place", score_third_place_access, maps, lat, lng)
+        result.tier2_scores.append(_coffee_score)
+
+        _grocery_score, _grocery_places = _timed_stage(
+            "score_provisioning", score_provisioning_access, maps, lat, lng)
+        result.tier2_scores.append(_grocery_score)
+
+        _fitness_score, _fitness_places = _timed_stage(
+            "score_fitness", score_fitness_access, maps, lat, lng)
+        result.tier2_scores.append(_fitness_score)
+
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(
             _timed_stage(
@@ -2918,6 +2978,32 @@ def evaluate_property(
                 maps, lat, lng, transit_access=result.transit_access,
             )
         )
+
+        # Assemble neighborhood places from scoring + green escape parks
+        _park_places = []
+        if result.green_escape_evaluation:
+            _all_parks = []
+            if result.green_escape_evaluation.best_daily_park:
+                _all_parks.append(result.green_escape_evaluation.best_daily_park)
+            _all_parks.extend(result.green_escape_evaluation.nearby_green_spaces)
+            for gs in _all_parks[:5]:
+                _park_places.append({
+                    "name": gs.name,
+                    "rating": gs.rating,
+                    "review_count": gs.user_ratings_total,
+                    "walk_time_min": gs.walk_time_min,
+                    "lat": gs.lat,
+                    "lng": gs.lng,
+                    "place_id": gs.place_id,
+                })
+            _park_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
+        result.neighborhood_places = {
+            "coffee": _coffee_places,
+            "grocery": _grocery_places,
+            "fitness": _fitness_places,
+            "parks": _park_places,
+        }
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)

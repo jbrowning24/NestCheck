@@ -154,12 +154,14 @@ body.compare-tray-visible {
     }
     // Dedupe by address: replace older snapshot for the same address
     var norm = normalizeAddress(address);
-    for (var i = 0; i < list.length; i++) {
-      if (normalizeAddress(list[i].address) === norm) {
-        list[i] = {id: id, address: address};
-        saveCompareList(list);
-        renderTray();
-        return true;
+    if (norm) {
+      for (var i = 0; i < list.length; i++) {
+        if (normalizeAddress(list[i].address) === norm) {
+          list[i] = {id: id, address: address};
+          saveCompareList(list);
+          renderTray();
+          return true;
+        }
       }
     }
     if (list.length >= MAX_ITEMS) return false;
@@ -179,6 +181,18 @@ body.compare-tray-visible {
     renderTray();
   }
 
+  function removeFromCompareByAddress(address) {
+    var norm = normalizeAddress(address);
+    if (!norm) return;
+    var list = getCompareList();
+    var newList = [];
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAddress(list[i].address) !== norm) newList.push(list[i]);
+    }
+    saveCompareList(newList);
+    renderTray();
+  }
+
   function clearCompare() {
     saveCompareList([]);
     renderTray();
@@ -188,6 +202,16 @@ body.compare-tray-visible {
     var list = getCompareList();
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) return true;
+    }
+    return false;
+  }
+
+  function isAddressInCompare(address) {
+    var norm = normalizeAddress(address);
+    if (!norm) return false;
+    var list = getCompareList();
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAddress(list[i].address) === norm) return true;
     }
     return false;
   }
@@ -259,7 +283,7 @@ body.compare-tray-visible {
     if (addBtn) {
       var sid = addBtn.dataset.snapshotId;
       var list = getCompareList();
-      if (isInCompare(sid)) {
+      if (isInCompare(sid) || isAddressInCompare(addBtn.dataset.snapshotAddress)) {
         addBtn.textContent = 'Remove from comparison';
         addBtn.classList.add('compare-btn--remove');
         addBtn.classList.remove('compare-btn--full');
@@ -339,6 +363,8 @@ body.compare-tray-visible {
       var address = this.dataset.snapshotAddress;
       if (isInCompare(sid)) {
         removeFromCompare(sid);
+      } else if (isAddressInCompare(address)) {
+        removeFromCompareByAddress(address);
       } else {
         addToCompare(sid, address);
       }

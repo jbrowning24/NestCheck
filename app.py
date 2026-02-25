@@ -397,6 +397,9 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
+    # Neighborhood places — already plain dicts, pass through as-is
+    output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["verdict"] = generate_verdict(output)
     return output
