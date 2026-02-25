@@ -42,6 +42,9 @@ load_dotenv()
 # CONFIGURATION
 # =============================================================================
 
+# Feature gates
+ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "").lower() == "true"
+
 # Health & Safety Thresholds (in feet)
 GAS_STATION_MIN_DISTANCE_FT = 500
 HIGHWAY_MIN_DISTANCE_FT = 500
@@ -2724,11 +2727,14 @@ def evaluate_property(
     except Exception:
         pass
 
-    try:
-        result.child_schooling_snapshot = _timed_stage(
-            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    if ENABLE_SCHOOLS:
+        try:
+            result.child_schooling_snapshot = _timed_stage(
+                "schools", get_child_and_schooling_snapshot, maps, lat, lng)
+        except Exception:
+            pass
+    # When disabled, child_schooling_snapshot stays None (its dataclass
+    # default).  All downstream serialisation already handles None.
 
     try:
         result.urban_access = _timed_stage(
