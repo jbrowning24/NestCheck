@@ -500,6 +500,87 @@ class GoogleMapsClient:
 
         return data.get("results", [])
 
+    def _distance_matrix_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+        mode: str,
+        endpoint_name: str,
+    ) -> List[int]:
+        """Batch Distance Matrix request — shared implementation for walk/drive.
+
+        Accepts up to len(destinations) points.  Chunks into groups of 25
+        (the Google Distance Matrix per-request limit) so callers don't need
+        to worry about the cap.
+
+        Returns a list of travel times in **minutes** (int), one per
+        destination in the same order.  Unreachable destinations get 9999.
+
+        Each chunk is a single traced API call, so 50 destinations = 2 calls
+        instead of 50.
+        """
+        if not destinations:
+            return []
+
+        CHUNK_SIZE = 25
+        all_times: List[int] = []
+        origin_str = f"{origin[0]},{origin[1]}"
+        url = f"{self.base_url}/distancematrix/json"
+
+        for i in range(0, len(destinations), CHUNK_SIZE):
+            chunk = destinations[i : i + CHUNK_SIZE]
+            dest_str = "|".join(f"{d[0]},{d[1]}" for d in chunk)
+            params = {
+                "origins": origin_str,
+                "destinations": dest_str,
+                "mode": mode,
+                "key": self.api_key,
+            }
+            data = self._traced_get(endpoint_name, url, params)
+
+            if data.get("status") != "OK":
+                all_times.extend([9999] * len(chunk))
+                continue
+
+            elements = data.get("rows", [{}])[0].get("elements", [])
+            for j, dest_coord in enumerate(chunk):
+                if j < len(elements) and elements[j].get("status") == "OK":
+                    all_times.append(elements[j]["duration"]["value"] // 60)
+                else:
+                    all_times.append(9999)
+
+        return all_times
+
+    def walking_times_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+    ) -> List[int]:
+        """Batch walking times — 1 API call per 25 destinations instead of 1 each.
+
+        Example: 10 destinations = 1 API call instead of 10.
+        For >25 destinations, automatically chunks into multiple requests of 25.
+
+        Returns list of walk times in minutes (int), 9999 for unreachable.
+        Order matches the input destinations list.
+        """
+        return self._distance_matrix_batch(origin, destinations, "walking", "walking_batch")
+
+    def driving_times_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+    ) -> List[int]:
+        """Batch driving times — 1 API call per 25 destinations instead of 1 each.
+
+        Example: 10 destinations = 1 API call instead of 10.
+        For >25 destinations, automatically chunks into multiple requests of 25.
+
+        Returns list of drive times in minutes (int), 9999 for unreachable.
+        Order matches the input destinations list.
+        """
+        return self._distance_matrix_batch(origin, destinations, "driving", "driving_batch")
+
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
         # Haversine formula
