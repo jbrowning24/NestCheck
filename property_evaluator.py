@@ -60,6 +60,10 @@ FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
 SCHOOL_WALK_MAX_MIN = 30
 
+# Schools evaluation is disabled by default due to high API call volume (~200+ calls).
+# Set ENABLE_SCHOOLS=true in environment to activate.
+ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "").lower() == "true"
+
 # Cost thresholds (monthly cost - rent or estimated mortgage + expenses)
 COST_MAX = 7000
 COST_TARGET = 6500
@@ -2792,11 +2796,12 @@ def evaluate_property(
     except Exception:
         pass
 
-    try:
-        result.child_schooling_snapshot = _timed_stage(
-            "schools", get_child_and_schooling_snapshot, maps, lat, lng)
-    except Exception:
-        pass
+    if ENABLE_SCHOOLS:
+        try:
+            result.child_schooling_snapshot = _timed_stage(
+                "schools", get_child_and_schooling_snapshot, maps, lat, lng)
+        except Exception:
+            pass
 
     try:
         result.urban_access = _timed_stage(
