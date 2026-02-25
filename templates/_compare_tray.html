@@ -142,12 +142,27 @@ body.compare-tray-visible {
     catch(e) {}
   }
 
+  function normalizeAddress(addr) {
+    return (addr || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
   function addToCompare(id, address) {
     var list = getCompareList();
-    if (list.length >= MAX_ITEMS) return false;
+    // Already in list by ID — nothing to do
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) return false;
     }
+    // Dedupe by address: replace older snapshot for the same address
+    var norm = normalizeAddress(address);
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAddress(list[i].address) === norm) {
+        list[i] = {id: id, address: address};
+        saveCompareList(list);
+        renderTray();
+        return true;
+      }
+    }
+    if (list.length >= MAX_ITEMS) return false;
     list.push({id: id, address: address});
     saveCompareList(list);
     renderTray();
