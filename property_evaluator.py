@@ -305,6 +305,9 @@ class EvaluationResult:
     # Keep this from your branch
     tier3_bonus_reasons: List[str] = field(default_factory=list)
 
+    # Neighborhood places surfaced from scoring (Phase 3)
+    neighborhood_places: Optional[Dict[str, list]] = None
+
     # Keep these from main
     final_score: int = 0
     percentile_top: int = 0
@@ -2233,8 +2236,12 @@ def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score third-place access based on third-place quality (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score third-place access based on third-place quality (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby places for the neighborhood display.
+    """
     try:
         # Search for cafes, coffee shops, and bakeries
         all_places = []
@@ -2242,12 +2249,12 @@ def score_third_place_access(
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
 
         if not all_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
-            )
+            ), [])
 
         # Filter for third-place quality
         eligible_places = []
@@ -2275,17 +2282,18 @@ def score_third_place_access(
                 eligible_places.append(place)
 
         if not eligible_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
-            )
+            ), [])
 
-        # Find best scoring place
+        # Find best scoring place and collect all scored places
         best_score = 0
         best_place = None
         best_walk_time = 9999
+        scored_places = []
 
         for place in eligible_places:
             place_lat = place["geometry"]["location"]["lat"]
@@ -2308,26 +2316,44 @@ def score_third_place_access(
                 best_place = place
                 best_walk_time = walk_time
 
+            scored_places.append((score, walk_time, place))
+
+        # Sort by score desc, then walk time asc; take top 5
+        scored_places.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": p.get("name", "Coffee shop"),
+                "rating": p.get("rating"),
+                "review_count": p.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": p["geometry"]["location"]["lat"],
+                "lng": p["geometry"]["location"]["lng"],
+                "place_id": p.get("place_id"),
+            }
+            for _sc, wt, p in scored_places[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
         # Format details
         name = best_place.get("name", "Third place")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
-        return Tier2Score(
+        return (Tier2Score(
             name="Third Place",
             points=best_score,
             max_points=10,
             details=details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Third Place",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def score_cost(cost: Optional[int]) -> Tier2Score:

@@ -613,12 +613,14 @@ def index():
 
             # Return JSON for fetch-based clients, HTML for traditional form POST
             if _wants_json():
-                return jsonify({
+                resp = {
                     "snapshot_id": snapshot_id,
                     "redirect_url": f"/s/{snapshot_id}",
-                    "trace_id": request_id,
-                    "trace_summary": trace_summary,
-                })
+                }
+                if g.is_builder:
+                    resp["trace_id"] = request_id
+                    resp["trace_summary"] = trace_summary
+                return jsonify(resp)
 
         except Exception as e:
             trace_ctx.log_summary()
@@ -642,11 +644,13 @@ def index():
                 "traceback": traceback.format_exc(),
             }
             if _wants_json():
-                return jsonify({
+                resp = {
                     "error": error,
                     "request_id": request_id,
-                    "trace_summary": trace_ctx.summary_dict(),
-                }), 500
+                }
+                if g.is_builder:
+                    resp["trace_summary"] = trace_ctx.summary_dict()
+                return jsonify(resp), 500
         finally:
             clear_trace()
 
@@ -693,6 +697,10 @@ def export_snapshot_json(snapshot_id):
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
+    result = snapshot["result"]
+    if not g.is_builder:
+        result = {k: v for k, v in result.items() if k != "_trace"}
+
     export = {
         "snapshot_id": snapshot_id,
         "address_input": snapshot["address_input"],
@@ -701,7 +709,7 @@ def export_snapshot_json(snapshot_id):
         "verdict": snapshot["verdict"],
         "final_score": snapshot["final_score"],
         "passed_tier1": bool(snapshot["passed_tier1"]),
-        "result": snapshot["result"],
+        "result": result,
     }
     return jsonify(export)
 
