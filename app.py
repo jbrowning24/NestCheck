@@ -166,6 +166,69 @@ def generate_verdict(result_dict):
 
 
 # ---------------------------------------------------------------------------
+# Presentation helpers
+# ---------------------------------------------------------------------------
+
+_SAFETY_CHECK_NAMES = {"Gas station", "Highway", "High-volume road"}
+
+_CLEAR_HEADLINES = {
+    "Gas station": "No gas stations within 500 ft",
+    "Highway": "No highways or major parkways nearby",
+    "High-volume road": "No high-volume roads nearby",
+}
+
+_ISSUE_HEADLINES = {
+    "Gas station": "Gas station within proximity threshold",
+    "Highway": "Highway or major parkway nearby",
+    "High-volume road": "High-volume road nearby",
+}
+
+
+def present_checks(tier1_checks):
+    """Convert raw tier1_check dicts into presentation-layer dicts.
+
+    Each check gets category, result_type, proximity_band, headline,
+    and explanation fields used by the template to render individual
+    items in the Proximity & Environment section.
+    """
+    presented = []
+    for check in tier1_checks:
+        name = check["name"]
+        result = check["result"]  # "PASS", "FAIL", or "UNKNOWN"
+        details = check.get("details", "")
+
+        category = "SAFETY" if name in _SAFETY_CHECK_NAMES else "LIFESTYLE"
+
+        if result == "PASS":
+            result_type = "CLEAR"
+            proximity_band = "NEUTRAL"
+            headline = _CLEAR_HEADLINES.get(name, f"{name} — Clear")
+            explanation = None
+        elif result == "FAIL":
+            result_type = "CONFIRMED_ISSUE"
+            proximity_band = "VERY_CLOSE"
+            headline = _ISSUE_HEADLINES.get(name, f"{name} — Concern detected")
+            explanation = details
+        else:
+            result_type = "VERIFICATION_NEEDED"
+            proximity_band = "NOTABLE"
+            headline = f"{name} — Unable to verify"
+            explanation = details
+
+        presented.append({
+            "name": name,
+            "result": result,
+            "category": category,
+            "result_type": result_type,
+            "proximity_band": proximity_band,
+            "headline": headline,
+            "explanation": explanation,
+        })
+
+    return presented
+
+
+# ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
 
@@ -332,6 +395,7 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
+    output["presented_checks"] = present_checks(output["tier1_checks"])
     output["verdict"] = generate_verdict(output)
     return output
 
@@ -601,10 +665,17 @@ def view_snapshot(snapshot_id):
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
+    # Backfill presented_checks for old snapshots
+    result = snapshot["result"]
+    if "presented_checks" not in result:
+        result["presented_checks"] = present_checks(
+            result.get("tier1_checks", [])
+        )
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
-        result=snapshot["result"],
+        result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
     )
