@@ -21,11 +21,7 @@ The app uses SQLite (auto-created `nestcheck.db`), so no database setup is neede
 pytest tests/ -v
 ```
 
-Tests use mocked APIs and a temporary SQLite DB — no API keys required. Seven test files currently fail to collect due to stale imports from refactored code (`test_census.py`, `test_insights.py`, `test_models.py`, `test_payments.py`, `test_scoring_regression.py`, `test_worker.py`, `test_zillow_graphql.py`). This is a known pre-existing issue. To skip them:
-
-```bash
-pytest tests/ -v --ignore=tests/test_census.py --ignore=tests/test_insights.py --ignore=tests/test_models.py --ignore=tests/test_payments.py --ignore=tests/test_scoring_regression.py --ignore=tests/test_worker.py --ignore=tests/test_zillow_graphql.py
-```
+Tests use mocked APIs and a temporary SQLite DB — no API keys required. All test files collect cleanly. Tests for removed code (job queue, payments, free tier, insights, census cache, Zillow scraping, score bands) are skipped with clear reasons. 24 pre-existing failures remain in `test_health_monitor`, `test_map_generator`, `test_service_errors`, and `test_transit_access` (stale mocks/assertions).
 
 ### Environment variables
 
