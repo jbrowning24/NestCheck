@@ -245,6 +245,7 @@ def _serialize_green_escape(evaluation):
             "rating": p.rating,
             "user_ratings_total": p.user_ratings_total,
             "walk_time_min": p.walk_time_min,
+            "drive_time_min": p.drive_time_min,
             "types_display": p.types_display,
             "daily_walk_value": p.daily_walk_value,
             "criteria_status": p.criteria_status,
@@ -274,6 +275,7 @@ def _serialize_green_escape(evaluation):
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
+            "drive_time_min": s.drive_time_min,
             "daily_walk_value": s.daily_walk_value,
             "criteria_status": s.criteria_status,
             "criteria_reasons": s.criteria_reasons,
@@ -532,12 +534,14 @@ def index():
                 )
                 trace_ctx.log_summary()
                 if _wants_json():
-                    return jsonify({
+                    resp = {
                         "snapshot_id": snapshot_id,
                         "redirect_url": f"/s/{snapshot_id}",
-                        "trace_id": request_id,
-                        "trace_summary": trace_summary,
-                    })
+                    }
+                    if g.is_builder:
+                        resp["trace_id"] = request_id
+                        resp["trace_summary"] = trace_summary
+                    return jsonify(resp)
                 return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
 
             if not place_id:
@@ -561,7 +565,8 @@ def index():
                 or address
             )
             trace_summary = trace_ctx.summary_dict()
-            result["_trace"] = trace_summary
+            if g.is_builder:
+                result["_trace"] = trace_summary
             if place_id:
                 try:
                     snapshot_id = save_snapshot_for_place(
