@@ -600,13 +600,15 @@
   padding-top: 0;
 }
 
-/* --- Share Bar (structural — page-specific overrides in index.css / snapshot.css) --- */
+/* --- Share Bar (base — snapshot.css overrides justify-content) --- */
 .share-bar {
   max-width: 800px;
   padding: 0 var(--space-6);
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  justify-content: flex-end;
+  margin: var(--space-4) auto;
 }
 .share-btn {
   display: inline-flex;

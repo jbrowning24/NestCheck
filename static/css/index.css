@@ -530,12 +530,6 @@
   margin-top: var(--space-6);
 }
 
-/* --- Share Bar (index variant) ------------------------------- */
-.share-bar {
-  margin: 0 auto var(--space-4);
-  justify-content: flex-end;
-}
-
 /* ================================================================
    Responsive — mobile-first, scaling up via min-width queries
    ================================================================ */
