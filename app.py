@@ -169,18 +169,36 @@ def generate_verdict(result_dict):
 # Presentation helpers
 # ---------------------------------------------------------------------------
 
-_SAFETY_CHECK_NAMES = {"Gas station", "Highway", "High-volume road"}
+_SAFETY_CHECK_NAMES = {
+    "Gas station", "Highway", "High-volume road",
+    "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+}
 
 _CLEAR_HEADLINES = {
     "Gas station": "No gas stations within 500 ft",
     "Highway": "No highways or major parkways nearby",
     "High-volume road": "No high-volume roads nearby",
+    "Power lines": "No high-voltage transmission lines within 200 ft",
+    "Electrical substation": "No electrical substations within 300 ft",
+    "Cell tower": "No cell towers within 500 ft",
+    "Industrial zone": "No industrial-zoned land within 500 ft",
 }
 
 _ISSUE_HEADLINES = {
     "Gas station": "Gas station within proximity threshold",
     "Highway": "Highway or major parkway nearby",
     "High-volume road": "High-volume road nearby",
+    "Power lines": "High-voltage transmission line detected nearby",
+    "Electrical substation": "Electrical substation detected nearby",
+    "Cell tower": "Cell tower detected nearby",
+    "Industrial zone": "Industrial-zoned land detected nearby",
+}
+
+_WARNING_HEADLINES = {
+    "Power lines": "High-voltage transmission line detected nearby",
+    "Electrical substation": "Electrical substation detected nearby",
+    "Cell tower": "Cell tower detected nearby",
+    "Industrial zone": "Industrial-zoned land detected nearby",
 }
 
 
@@ -194,7 +212,7 @@ def present_checks(tier1_checks):
     presented = []
     for check in tier1_checks:
         name = check["name"]
-        result = check["result"]  # "PASS", "FAIL", or "UNKNOWN"
+        result = check["result"]  # "PASS", "FAIL", "WARNING", or "UNKNOWN"
         details = check.get("details", "")
 
         category = "SAFETY" if name in _SAFETY_CHECK_NAMES else "LIFESTYLE"
@@ -208,6 +226,11 @@ def present_checks(tier1_checks):
             result_type = "CONFIRMED_ISSUE"
             proximity_band = "VERY_CLOSE"
             headline = _ISSUE_HEADLINES.get(name, f"{name} — Concern detected")
+            explanation = details
+        elif result == "WARNING":
+            result_type = "WARNING_DETECTED"
+            proximity_band = "NOTABLE"
+            headline = _WARNING_HEADLINES.get(name, f"{name} — Warning detected")
             explanation = details
         else:
             result_type = "VERIFICATION_NEEDED"

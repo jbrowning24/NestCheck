@@ -249,6 +249,7 @@
 .proximity-icon { margin-right: var(--space-2); font-weight: 700; }
 .proximity-icon-clear { color: var(--color-pass-text); }
 .proximity-icon-issue { color: var(--color-fail-text); }
+.proximity-icon-warning { color: var(--color-warning-text); }
 .proximity-icon-unverified { color: var(--color-warning-text); }
 .proximity-satellite-link {
   display: inline-block;

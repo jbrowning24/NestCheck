@@ -29,6 +29,8 @@
           <div class="snippet-proximity-headline">
             {% if pc.result_type == 'CONFIRMED_ISSUE' -%}
               <span class="snippet-proximity-icon snippet-proximity-icon--issue">&#10007;</span>
+            {%- elif pc.result_type == 'WARNING_DETECTED' -%}
+              <span class="snippet-proximity-icon snippet-proximity-icon--warning">&#9888;</span>
             {%- else -%}
               <span class="snippet-proximity-icon snippet-proximity-icon--unverified">?</span>
             {%- endif %}

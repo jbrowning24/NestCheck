@@ -47,7 +47,7 @@
 {% block content %}
 
 <!-- LOADING OVERLAY -->
-<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
   <div class="loading-brand">
     <svg class="loading-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8 22 L24 8 L40 22 V40 A2 2 0 0 1 38 42 H10 A2 2 0 0 1 8 40 Z"/>
@@ -75,7 +75,7 @@
 
   <div class="search-section" id="evaluate">
     {% if error %}
-      <div class="error-banner">
+      <div class="error-banner" role="alert">
         <strong>Could not evaluate address</strong>
         {{ error }}
         {% if request_id %}
@@ -92,6 +92,7 @@
     <form method="POST" id="evalForm">
       <input type="hidden" name="place_id" id="place-id-input" value="">
       <div class="search-box">
+        <label for="address-input" class="sr-only">Street address to evaluate</label>
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
 
         {# Persona selector — scoring lens (NES-133) #}
@@ -118,6 +119,7 @@
         </div>
 
         <div class="email-gate" id="emailGate">
+          <label for="email-input" class="sr-only">Email address</label>
           <input type="email" name="email" id="email-input" placeholder="Your email — to access your report later" required>
           <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
         </div>
@@ -171,7 +173,8 @@
 <div class="search-section search-section--result">
   <form method="POST" id="evalForm">
     <div class="search-box">
-      <input type="text" name="address" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+      <label for="address-input-result" class="sr-only">Street address to evaluate</label>
+      <input type="text" name="address" id="address-input-result" placeholder="Enter any U.S. address..." value="{{ address }}" required>
       <button type="submit" id="evalBtn">New evaluation</button>
     </div>
   </form>
@@ -259,6 +262,7 @@
 
     function hideOverlay(overlay) {
       overlay.classList.remove('active');
+      overlay.setAttribute('aria-hidden', 'true');
       var p = document.getElementById('loadingPatience');
       if (p) p.classList.remove('visible');
     }
@@ -272,6 +276,7 @@
 
       var banner = document.createElement('div');
       banner.className = 'error-banner';
+      banner.setAttribute('role', 'alert');
       banner.innerHTML = '<strong>Could not evaluate address</strong><span class="error-msg">' + msg + '</span>';
 
       var retryBtn = document.createElement('button');
@@ -289,6 +294,7 @@
 
     function startPolling(jobId, overlay, loadingText, loadingSub, btn, form) {
       overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
       loadingText.textContent = 'Evaluating this address...';
       loadingSub.textContent = 'Starting...';
       setProgress(2);
@@ -351,6 +357,7 @@
       btn.disabled = true;
       btn.textContent = 'Evaluating...';
       overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
       loadingText.textContent = 'Evaluating this address...';
       loadingSub.textContent = 'Submitting...';
       setProgress(0);
@@ -411,6 +418,7 @@
 
       var banner = document.createElement('div');
       banner.className = 'error-banner';
+      banner.setAttribute('role', 'alert');
       banner.innerHTML =
         '<strong>Free evaluation already used</strong>' +
         '<span class="error-msg">You\u2019ve already used your free evaluation for this email.</span>';
@@ -437,6 +445,7 @@
       btn.disabled = true;
       btn.textContent = 'Redirecting to checkout...';
       overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden', 'false');
       overlay.querySelector('.loading-text').textContent = 'Preparing checkout...';
       loadingSub.textContent = 'Please wait...';
       setProgress(0);
@@ -585,9 +594,12 @@
       var origText = txt.textContent;
       btn.classList.add('copied');
       txt.textContent = 'Copied!';
+      var feedback = document.getElementById('copyFeedback');
+      if (feedback) feedback.textContent = 'Link copied to clipboard';
       setTimeout(function() {
         btn.classList.remove('copied');
         txt.textContent = origText;
+        if (feedback) feedback.textContent = '';
       }, 2000);
 
       // Track share event
@@ -644,7 +656,20 @@
       body.classList.add('collapsed');
       if (icon) icon.classList.remove('is-expanded');
     }
+    var isExpanded = !body.classList.contains('collapsed');
+    el.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
   }
+
+  // Keyboard support for collapsible toggles
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      var toggle = e.target.closest('.collapsible-toggle');
+      if (toggle) {
+        e.preventDefault();
+        toggle.click();
+      }
+    }
+  });
 </script>
 
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}

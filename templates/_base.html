@@ -46,7 +46,9 @@
   {% endif %}
 {% endwith %}
 
-{% block content %}{% endblock %}
+<main id="main-content">
+  {% block content %}{% endblock %}
+</main>
 
 {% block footer %}
 <footer>
@@ -64,10 +66,10 @@
 {% block scripts %}{% endblock %}
 
 <!-- Cookie Consent Banner -->
-<div id="cookie-banner" class="cookie-banner">
+<div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent" aria-modal="false">
     <span>We use a single cookie to track your evaluation requests. No advertising or third-party tracking.</span>
     <a href="/privacy#cookies">Learn More</a>
-    <button onclick="acceptCookies()">Accept</button>
+    <button onclick="acceptCookies()">Accept cookies</button>
 </div>
 <script>
 function acceptCookies() {

@@ -271,6 +271,7 @@
 }
 .snippet-proximity-icon--clear { color: var(--color-pass-text); }
 .snippet-proximity-icon--issue { color: var(--color-fail-text); }
+.snippet-proximity-icon--warning { color: var(--color-warning-text); }
 .snippet-proximity-icon--unverified { color: var(--color-warning-text); }
 .snippet-proximity-detail {
   margin-top: var(--space-4);
