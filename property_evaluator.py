@@ -3171,9 +3171,14 @@ def evaluate_property(
             reserved for future use).
         persona: Optional evaluation persona (reserved for future use).
     """
-    def _notify_stage(name: str) -> None:
+    def _notify(name: str) -> None:
         if on_stage is not None:
             on_stage(name)
+
+    def _staged(stage_name, fn, *args, **kwargs):
+        """Notify the frontend of the current stage, then run _timed_stage."""
+        _notify(stage_name)
+        return _timed_stage(stage_name, fn, *args, **kwargs)
 
     eval_start = time.time()
 
@@ -3182,12 +3187,12 @@ def evaluate_property(
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
-    _notify_stage("geocoding")
     if pre_geocode is not None:
+        _notify("geocode")
         lat = pre_geocode["lat"]
         lng = pre_geocode["lng"]
     else:
-        lat, lng = _timed_stage("geocode", maps.geocode, listing.address)
+        lat, lng = _staged("geocode", maps.geocode, listing.address)
 
     result = EvaluationResult(
         listing=listing,
@@ -3197,9 +3202,8 @@ def evaluate_property(
 
     # --- Optional enrichments (each fails independently) ---
 
-    _notify_stage("enrichments")
     try:
-        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
+        bike_data = _staged("bike_score", get_bike_score, listing.address, lat, lng)
         result.bike_score = bike_data.get("bike_score")
         result.bike_rating = bike_data.get("bike_rating")
         result.bike_metadata = bike_data.get("bike_metadata")
@@ -3207,50 +3211,50 @@ def evaluate_property(
         pass
 
     try:
-        result.neighborhood_snapshot = _timed_stage(
+        result.neighborhood_snapshot = _staged(
             "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
     except Exception:
         pass
 
     if ENABLE_SCHOOLS:
         try:
-            result.child_schooling_snapshot = _timed_stage(
+            result.child_schooling_snapshot = _staged(
                 "schools", get_child_and_schooling_snapshot, maps, lat, lng)
         except Exception:
             pass
 
     try:
-        result.urban_access = _timed_stage(
+        result.urban_access = _staged(
             "urban_access", get_urban_access_profile, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_access = _timed_stage(
+        result.transit_access = _staged(
             "transit_access", evaluate_transit_access, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_space_evaluation = _timed_stage(
+        result.green_space_evaluation = _staged(
             "green_spaces", evaluate_green_spaces, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_escape_evaluation = _timed_stage(
+        result.green_escape_evaluation = _staged(
             "green_escape", evaluate_green_escape, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_score = _timed_stage(
+        result.transit_score = _staged(
             "transit_score", get_transit_score, listing.address, lat, lng)
     except Exception:
         pass
 
     try:
-        result.walk_scores = _timed_stage(
+        result.walk_scores = _staged(
             "walk_scores", get_walk_scores, listing.address, lat, lng)
     except Exception:
         pass
@@ -3259,7 +3263,7 @@ def evaluate_property(
     # TIER 1 CHECKS
     # ===================
 
-    _notify_stage("tier1_checks")
+    _notify("tier1_checks")
     trace = get_trace()
     if trace:
         trace.start_stage("tier1_checks")
@@ -3299,31 +3303,30 @@ def evaluate_property(
     # TIER 2 SCORING
     # ===================
 
-    _notify_stage("tier2_scoring")
     if result.passed_tier1:
         result.tier2_scores.append(
-            _timed_stage(
+            _staged(
                 "score_park_access", score_park_access,
                 maps, lat, lng,
                 green_space_evaluation=result.green_space_evaluation,
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        _coffee_score, _coffee_places = _timed_stage(
+        _coffee_score, _coffee_places = _staged(
             "score_third_place", score_third_place_access, maps, lat, lng)
         result.tier2_scores.append(_coffee_score)
 
-        _grocery_score, _grocery_places = _timed_stage(
+        _grocery_score, _grocery_places = _staged(
             "score_provisioning", score_provisioning_access, maps, lat, lng)
         result.tier2_scores.append(_grocery_score)
 
-        _fitness_score, _fitness_places = _timed_stage(
+        _fitness_score, _fitness_places = _staged(
             "score_fitness", score_fitness_access, maps, lat, lng)
         result.tier2_scores.append(_fitness_score)
 
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(
-            _timed_stage(
+            _staged(
                 "score_transit_access", score_transit_access,
                 maps, lat, lng, transit_access=result.transit_access,
             )
@@ -3366,7 +3369,7 @@ def evaluate_property(
     # TIER 3 BONUSES
     # ===================
 
-    _notify_stage("tier3_bonuses")
+    _notify("tier3_bonuses")
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
@@ -3375,8 +3378,6 @@ def evaluate_property(
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
-
-    _notify_stage("scoring")
 
     if result.tier2_max > 0:
         result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
