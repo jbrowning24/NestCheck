@@ -295,6 +295,31 @@
 }
 .proximity-satellite-link:hover { text-decoration: underline; }
 
+/* --- Health Context (progressive disclosure) --- */
+.health-context-toggle {
+  margin-top: var(--space-sm);
+  gap: var(--space-xs);
+}
+.health-context-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+.health-context-toggle:hover .health-context-label {
+  color: var(--color-text-primary);
+}
+.health-context-body {
+  margin-top: var(--space-xs);
+}
+.health-context-paragraph {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+  margin: var(--space-sm) 0 0;
+}
+.health-context-paragraph:first-child {
+  margin-top: var(--space-xs);
+}
+
 /* --- Verdict Card Proximity Pills --- */
 .verdict-proximity-flags {
   display: flex;
@@ -952,11 +977,37 @@
   line-height: var(--line-height-normal);
 }
 
+.verdict-failed-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  margin-top: var(--space-base);
+  font-family: var(--font-heading);
+}
+
+.verdict-failed-score-num {
+  font-size: 1.6rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-danger-text-dark);
+}
+
+.verdict-failed-score-sep {
+  font-size: var(--font-size-small);
+  color: var(--color-danger-text);
+  opacity: 0.7;
+}
+
+.verdict-failed-score-label {
+  font-size: var(--font-size-body);
+  color: var(--color-danger-text);
+}
+
 .verdict-failed-explanation {
   margin-top: var(--space-sm);
   font-size: var(--font-size-small);
   color: var(--color-danger-text);
   opacity: 0.8;
+  line-height: var(--line-height-normal);
 }
 
 /* Upgrade CTA block */

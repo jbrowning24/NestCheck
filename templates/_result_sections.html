@@ -44,12 +44,28 @@
     </div>
     {% else %}
     {# Disqualified — property failed tier 1 safety checks (NES-164) #}
+    {% set all_safety = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+    {% set clear_safety = all_safety | selectattr('result_type', 'equalto', 'CLEAR') | list %}
     <div class="verdict-failed-banner">
       <div class="verdict-failed-title">Health &amp; Safety Concerns</div>
       {% if result.structured_summary is defined and result.structured_summary %}
         <div class="verdict-failed-summary">{{ result.structured_summary }}</div>
       {% endif %}
-      <div class="verdict-failed-explanation">Detailed scoring is only available for qualifying addresses.</div>
+      {% if all_safety %}
+      <div class="verdict-failed-score">
+        <span class="verdict-failed-score-num">{{ clear_safety | length }}</span>
+        <span class="verdict-failed-score-sep">of</span>
+        <span class="verdict-failed-score-num">{{ all_safety | length }}</span>
+        <span class="verdict-failed-score-label">safety checks clear</span>
+      </div>
+      {% endif %}
+      {% if all_safety %}
+      <div class="verdict-failed-explanation">
+        NestCheck runs {{ all_safety | length }} proximity checks for environmental and health hazards.
+        Addresses must pass all safety checks before walkability, amenities, and lifestyle scoring can proceed.
+        See the detailed results below.
+      </div>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -379,7 +395,8 @@
       </div>
     {% endif %}
 
-    {% if not result.urban_access and not result.transit_access and not has_walk_data %}
+    {% set has_transit_display = (result.urban_access and result.urban_access.primary_transit) or (result.transit_access and result.transit_access.primary_stop) %}
+    {% if not has_transit_display and not has_walk_data %}
       <p class="section-empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="3" width="16" height="16" rx="2"/>
@@ -387,7 +404,7 @@
           <circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/>
           <line x1="12" y1="3" x2="12" y2="11"/>
         </svg>
-        No transit options found near this address.
+        Transit data is not available for this location.
       </p>
     {% endif %}
 
@@ -588,7 +605,7 @@
     {% if safety_items %}
       {% for pc in safety_items %}
         {% set band_class = "proximity-" + pc.proximity_band | lower %}
-        <div class="proximity-item {{ band_class }}">
+        <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
           <div class="proximity-name">
             {% if pc.result_type == "CLEAR" -%}
               <span class="proximity-icon proximity-icon-clear">&#10003;</span>
@@ -609,6 +626,18 @@
             <a class="proximity-satellite-link"
                href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
                target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+          {% endif %}
+          {# Progressive disclosure — expanded health context #}
+          {% if pc.health_context is defined and pc.health_context %}
+            <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+              <span class="collapse-icon health-context-label">&#9654;</span>
+              <span class="health-context-label">Why we check this</span>
+            </div>
+            <div class="collapsible-body collapsed health-context-body">
+              {% for paragraph in pc.health_context %}
+                <p class="health-context-paragraph">{{ paragraph }}</p>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
       {% endfor %}

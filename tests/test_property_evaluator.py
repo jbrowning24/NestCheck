@@ -1,0 +1,597 @@
+"""Tests for property_evaluator.py — Tier 1 checks, helpers, and Tier 2 scoring.
+
+Covers the most critical business logic in the codebase:
+- Distance calculation helpers (pure math, no mocking)
+- Voltage parsing (pure string parsing)
+- Tier 1 safety checks (mocked API clients)
+- Listing requirement checks (no mocking)
+- Tier 2 scoring functions (score_cost is pure; others mock API)
+"""
+
+import math
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from property_evaluator import (
+    CheckResult,
+    EvaluationResult,
+    GreenSpace,
+    GreenSpaceEvaluation,
+    GoogleMapsClient,
+    OverpassClient,
+    PropertyListing,
+    Tier1Check,
+    Tier2Score,
+    TransitAccessResult,
+    _closest_distance_to_way_ft,
+    _coerce_score,
+    _distance_feet,
+    _element_distance_ft,
+    _parse_max_voltage,
+    check_cell_towers,
+    check_gas_stations,
+    check_high_volume_roads,
+    check_highways,
+    check_industrial_zones,
+    check_listing_requirements,
+    check_power_lines,
+    check_substations,
+    score_cost,
+    score_park_access,
+    COST_IDEAL,
+    COST_MAX,
+    COST_TARGET,
+    GAS_STATION_MIN_DISTANCE_FT,
+    MIN_BEDROOMS,
+    MIN_SQFT,
+)
+
+
+# ============================================================================
+# Distance helpers
+# ============================================================================
+
+class TestDistanceFeet:
+    """Haversine distance calculation."""
+
+    def test_same_point_returns_zero(self):
+        assert _distance_feet(40.7128, -74.0060, 40.7128, -74.0060) == 0
+
+    def test_known_distance_roughly_correct(self):
+        # Statue of Liberty to Empire State Building: ~5.1 miles ≈ 26,928 ft
+        statue = (40.6892, -74.0445)
+        empire = (40.7484, -73.9857)
+        dist = _distance_feet(*statue, *empire)
+        assert 25_000 < dist < 30_000
+
+    def test_short_distance(self):
+        # Two points ~100m apart (about 328 ft)
+        lat, lng = 40.7128, -74.0060
+        # ~0.001 degrees latitude ≈ 364 ft
+        dist = _distance_feet(lat, lng, lat + 0.001, lng)
+        assert 300 < dist < 400
+
+    def test_returns_integer(self):
+        result = _distance_feet(40.0, -74.0, 41.0, -73.0)
+        assert isinstance(result, int)
+
+
+class TestClosestDistanceToWay:
+    """Minimum distance from property to a way's resolved nodes."""
+
+    def test_empty_node_list(self):
+        result = _closest_distance_to_way_ft(40.0, -74.0, [], {})
+        assert result == float("inf")
+
+    def test_no_matching_nodes(self):
+        result = _closest_distance_to_way_ft(40.0, -74.0, [1, 2, 3], {})
+        assert result == float("inf")
+
+    def test_single_resolved_node(self):
+        nodes = {10: (40.001, -74.0)}
+        result = _closest_distance_to_way_ft(40.0, -74.0, [10], nodes)
+        assert 300 < result < 400  # ~0.001 deg ≈ 364 ft
+
+    def test_picks_closest_node(self):
+        nodes = {
+            1: (40.01, -74.0),   # ~3,640 ft away
+            2: (40.001, -74.0),  # ~364 ft away (closer)
+        }
+        result = _closest_distance_to_way_ft(40.0, -74.0, [1, 2], nodes)
+        assert 300 < result < 400
+
+    def test_partial_resolution(self):
+        # Only one of two node IDs resolves — should still work
+        nodes = {2: (40.001, -74.0)}
+        result = _closest_distance_to_way_ft(40.0, -74.0, [1, 2], nodes)
+        assert result < float("inf")
+
+
+class TestElementDistanceFt:
+    """Distance from property to an Overpass element (node or way)."""
+
+    def test_node_element(self):
+        el = {"type": "node", "lat": 40.001, "lon": -74.0, "id": 1}
+        dist = _element_distance_ft(40.0, -74.0, el, {})
+        assert 300 < dist < 400
+
+    def test_way_element(self):
+        el = {"type": "way", "id": 1, "nodes": [10]}
+        all_nodes = {10: (40.001, -74.0)}
+        dist = _element_distance_ft(40.0, -74.0, el, all_nodes)
+        assert 300 < dist < 400
+
+    def test_way_with_no_resolvable_nodes(self):
+        el = {"type": "way", "id": 1, "nodes": [99]}
+        dist = _element_distance_ft(40.0, -74.0, el, {})
+        assert dist == float("inf")
+
+    def test_unknown_element_type(self):
+        el = {"type": "relation", "id": 1}
+        dist = _element_distance_ft(40.0, -74.0, el, {})
+        assert dist == float("inf")
+
+    def test_node_missing_lat(self):
+        el = {"type": "node", "id": 1, "lon": -74.0}
+        dist = _element_distance_ft(40.0, -74.0, el, {})
+        assert dist == float("inf")
+
+
+# ============================================================================
+# Voltage parsing
+# ============================================================================
+
+class TestParseMaxVoltage:
+    def test_single_value(self):
+        assert _parse_max_voltage("115000") == 115000
+
+    def test_semicolon_separated(self):
+        assert _parse_max_voltage("115000;230000") == 230000
+
+    def test_empty_string(self):
+        assert _parse_max_voltage("") == 0
+
+    def test_none_like_empty(self):
+        assert _parse_max_voltage("") == 0
+
+    def test_garbage_input(self):
+        assert _parse_max_voltage("not_a_number") == 0
+
+    def test_mixed_valid_and_invalid(self):
+        assert _parse_max_voltage("115000;bad;230000") == 230000
+
+    def test_whitespace_handling(self):
+        assert _parse_max_voltage(" 115000 ; 230000 ") == 230000
+
+
+# ============================================================================
+# _coerce_score
+# ============================================================================
+
+class TestCoerceScore:
+    def test_valid_int(self):
+        assert _coerce_score(75) == 75
+
+    def test_valid_string_int(self):
+        assert _coerce_score("42") == 42
+
+    def test_none_returns_none(self):
+        assert _coerce_score(None) is None
+
+    def test_garbage_returns_none(self):
+        assert _coerce_score("not_a_number") is None
+
+    def test_float_truncates(self):
+        assert _coerce_score(3.9) == 3
+
+
+# ============================================================================
+# Tier 1: check_gas_stations
+# ============================================================================
+
+class TestCheckGasStations:
+    def _make_maps(self, stations, distance):
+        maps = MagicMock(spec=GoogleMapsClient)
+        maps.places_nearby.return_value = stations
+        maps.distance_feet.return_value = distance
+        return maps
+
+    def test_no_stations_pass(self):
+        maps = self._make_maps([], 0)
+        result = check_gas_stations(maps, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_station_far_enough_pass(self):
+        station = {"geometry": {"location": {"lat": 40.01, "lng": -74.0}}, "name": "Shell"}
+        maps = self._make_maps([station], 600)
+        result = check_gas_stations(maps, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+        assert result.value == 600
+
+    def test_station_too_close_fail(self):
+        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "BP"}
+        maps = self._make_maps([station], 300)
+        result = check_gas_stations(maps, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+        assert result.value == 300
+        assert "TOO CLOSE" in result.details
+
+    def test_station_at_boundary_pass(self):
+        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Mobil"}
+        maps = self._make_maps([station], GAS_STATION_MIN_DISTANCE_FT)
+        result = check_gas_stations(maps, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_api_error_returns_unknown(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        maps.places_nearby.side_effect = ValueError("API error")
+        result = check_gas_stations(maps, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+
+# ============================================================================
+# Tier 1: check_highways
+# ============================================================================
+
+class TestCheckHighways:
+    def _make_clients(self, roads):
+        maps = MagicMock(spec=GoogleMapsClient)
+        overpass = MagicMock(spec=OverpassClient)
+        overpass.get_nearby_roads.return_value = roads
+        return maps, overpass
+
+    def test_no_roads_pass(self):
+        maps, overpass = self._make_clients([])
+        result = check_highways(maps, overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_motorway_nearby_fail(self):
+        roads = [{"name": "I-95", "ref": "I-95", "highway_type": "motorway", "lanes": "6"}]
+        maps, overpass = self._make_clients(roads)
+        result = check_highways(maps, overpass, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+        assert "I-95" in result.details
+
+    def test_trunk_road_fail(self):
+        roads = [{"name": "Saw Mill Pkwy", "ref": "", "highway_type": "trunk", "lanes": "4"}]
+        maps, overpass = self._make_clients(roads)
+        result = check_highways(maps, overpass, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+
+    def test_primary_road_does_not_trigger(self):
+        roads = [{"name": "Main St", "ref": "", "highway_type": "primary", "lanes": "2"}]
+        maps, overpass = self._make_clients(roads)
+        result = check_highways(maps, overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_api_error_returns_unknown(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        overpass = MagicMock(spec=OverpassClient)
+        overpass.get_nearby_roads.side_effect = Exception("timeout")
+        result = check_highways(maps, overpass, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+
+# ============================================================================
+# Tier 1: check_high_volume_roads
+# ============================================================================
+
+class TestCheckHighVolumeRoads:
+    def _make_overpass(self, roads):
+        overpass = MagicMock(spec=OverpassClient)
+        overpass.get_nearby_roads.return_value = roads
+        return overpass
+
+    def test_no_roads_pass(self):
+        overpass = self._make_overpass([])
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_primary_road_fail(self):
+        roads = [{"name": "Route 9", "ref": "US 9", "highway_type": "primary", "lanes": "2"}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+
+    def test_secondary_road_fail(self):
+        roads = [{"name": "Central Ave", "ref": "", "highway_type": "secondary", "lanes": "2"}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+
+    def test_four_lane_residential_fail(self):
+        roads = [{"name": "Wide St", "ref": "", "highway_type": "residential", "lanes": "4"}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+
+    def test_two_lane_residential_pass(self):
+        roads = [{"name": "Quiet St", "ref": "", "highway_type": "residential", "lanes": "2"}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_invalid_lanes_value(self):
+        roads = [{"name": "Mystery Rd", "ref": "", "highway_type": "residential", "lanes": "two"}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_empty_lanes_residential_pass(self):
+        roads = [{"name": "Quiet St", "ref": "", "highway_type": "residential", "lanes": ""}]
+        overpass = self._make_overpass(roads)
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_api_error_returns_unknown(self):
+        overpass = MagicMock(spec=OverpassClient)
+        overpass.get_nearby_roads.side_effect = RuntimeError("network")
+        result = check_high_volume_roads(overpass, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+
+# ============================================================================
+# Tier 1: Environmental hazard checks
+# ============================================================================
+
+class TestCheckPowerLines:
+    def test_none_hazard_results_unknown(self):
+        result = check_power_lines(None, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_power_lines_pass(self):
+        hazards = {"power_lines": [], "_all_nodes": {}}
+        result = check_power_lines(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_close_power_line_warning(self):
+        # Node 100 ft away
+        line = {"type": "node", "id": 1, "lat": 40.0003, "lon": -74.0}
+        hazards = {"power_lines": [line], "_all_nodes": {}}
+        result = check_power_lines(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.WARNING
+
+    def test_far_power_line_pass(self):
+        # Node ~1000 ft away
+        line = {"type": "node", "id": 1, "lat": 40.003, "lon": -74.0}
+        hazards = {"power_lines": [line], "_all_nodes": {}}
+        result = check_power_lines(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_required_is_false(self):
+        result = check_power_lines(None, 40.0, -74.0)
+        assert result.required is False
+
+
+class TestCheckSubstations:
+    def test_none_hazard_results_unknown(self):
+        result = check_substations(None, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_substations_pass(self):
+        hazards = {"substations": [], "_all_nodes": {}}
+        result = check_substations(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_close_substation_warning(self):
+        sub = {"type": "node", "id": 1, "lat": 40.0003, "lon": -74.0}
+        hazards = {"substations": [sub], "_all_nodes": {}}
+        result = check_substations(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.WARNING
+
+
+class TestCheckCellTowers:
+    def test_none_hazard_results_unknown(self):
+        result = check_cell_towers(None, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_towers_pass(self):
+        hazards = {"cell_towers": [], "_all_nodes": {}}
+        result = check_cell_towers(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_close_tower_warning(self):
+        tower = {"type": "node", "id": 1, "lat": 40.001, "lon": -74.0}
+        hazards = {"cell_towers": [tower], "_all_nodes": {}}
+        result = check_cell_towers(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.WARNING
+
+
+class TestCheckIndustrialZones:
+    def test_none_hazard_results_unknown(self):
+        result = check_industrial_zones(None, 40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_zones_pass(self):
+        hazards = {"industrial_zones": [], "_all_nodes": {}}
+        result = check_industrial_zones(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_close_zone_warning(self):
+        zone = {"type": "node", "id": 1, "lat": 40.001, "lon": -74.0}
+        hazards = {"industrial_zones": [zone], "_all_nodes": {}}
+        result = check_industrial_zones(hazards, 40.0, -74.0)
+        assert result.result == CheckResult.WARNING
+
+
+# ============================================================================
+# Tier 1: check_listing_requirements
+# ============================================================================
+
+class TestCheckListingRequirements:
+    def _listing(self, **kwargs):
+        defaults = {
+            "address": "123 Test St",
+            "cost": None,
+            "sqft": None,
+            "bedrooms": None,
+            "has_washer_dryer_in_unit": None,
+            "has_central_air": None,
+        }
+        defaults.update(kwargs)
+        return PropertyListing(**defaults)
+
+    def test_all_none_returns_unknown_for_each(self):
+        checks = check_listing_requirements(self._listing())
+        for check in checks:
+            assert check.result == CheckResult.UNKNOWN
+
+    def test_all_passing(self):
+        listing = self._listing(
+            has_washer_dryer_in_unit=True,
+            has_central_air=True,
+            sqft=2000,
+            bedrooms=3,
+            cost=5000,
+        )
+        checks = check_listing_requirements(listing)
+        for check in checks:
+            assert check.result == CheckResult.PASS
+
+    def test_washer_dryer_false_fails(self):
+        listing = self._listing(has_washer_dryer_in_unit=False)
+        checks = check_listing_requirements(listing)
+        wd = next(c for c in checks if c.name == "W/D in unit")
+        assert wd.result == CheckResult.FAIL
+
+    def test_central_air_false_fails(self):
+        listing = self._listing(has_central_air=False)
+        checks = check_listing_requirements(listing)
+        ac = next(c for c in checks if c.name == "Central air")
+        assert ac.result == CheckResult.FAIL
+
+    def test_sqft_below_minimum_fails(self):
+        listing = self._listing(sqft=MIN_SQFT - 1)
+        checks = check_listing_requirements(listing)
+        size = next(c for c in checks if c.name == "Size")
+        assert size.result == CheckResult.FAIL
+
+    def test_sqft_at_minimum_passes(self):
+        listing = self._listing(sqft=MIN_SQFT)
+        checks = check_listing_requirements(listing)
+        size = next(c for c in checks if c.name == "Size")
+        assert size.result == CheckResult.PASS
+
+    def test_bedrooms_below_minimum_fails(self):
+        listing = self._listing(bedrooms=MIN_BEDROOMS - 1)
+        checks = check_listing_requirements(listing)
+        br = next(c for c in checks if c.name == "Bedrooms")
+        assert br.result == CheckResult.FAIL
+
+    def test_bedrooms_at_minimum_passes(self):
+        listing = self._listing(bedrooms=MIN_BEDROOMS)
+        checks = check_listing_requirements(listing)
+        br = next(c for c in checks if c.name == "Bedrooms")
+        assert br.result == CheckResult.PASS
+
+    def test_cost_over_max_fails(self):
+        listing = self._listing(cost=COST_MAX + 1)
+        checks = check_listing_requirements(listing)
+        cost = next(c for c in checks if c.name == "Cost")
+        assert cost.result == CheckResult.FAIL
+
+    def test_cost_at_max_passes(self):
+        listing = self._listing(cost=COST_MAX)
+        checks = check_listing_requirements(listing)
+        cost = next(c for c in checks if c.name == "Cost")
+        assert cost.result == CheckResult.PASS
+
+    def test_returns_five_checks(self):
+        checks = check_listing_requirements(self._listing())
+        assert len(checks) == 5
+
+
+# ============================================================================
+# Tier 2: score_cost (pure function)
+# ============================================================================
+
+class TestScoreCost:
+    def test_none_returns_zero(self):
+        result = score_cost(None)
+        assert result.points == 0
+        assert result.max_points == 10
+
+    def test_under_ideal_max_points(self):
+        result = score_cost(COST_IDEAL - 500)
+        assert result.points == 10
+
+    def test_at_ideal_max_points(self):
+        result = score_cost(COST_IDEAL)
+        assert result.points == 10
+
+    def test_between_ideal_and_target(self):
+        result = score_cost(COST_IDEAL + 100)
+        assert result.points == 6
+
+    def test_at_target(self):
+        result = score_cost(COST_TARGET)
+        assert result.points == 6
+
+    def test_between_target_and_max(self):
+        result = score_cost(COST_TARGET + 100)
+        assert result.points == 0
+
+    def test_at_max(self):
+        result = score_cost(COST_MAX)
+        assert result.points == 0
+
+    def test_over_max(self):
+        result = score_cost(COST_MAX + 1)
+        assert result.points == 0
+        assert "OVER BUDGET" in result.details
+
+    def test_name_is_cost(self):
+        result = score_cost(5000)
+        assert result.name == "Cost"
+
+
+# ============================================================================
+# Tier 2: score_park_access (with green escape evaluation)
+# ============================================================================
+
+class TestScoreParkAccess:
+    def test_no_evaluations_calls_legacy(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        maps.places_nearby.return_value = []
+        result = score_park_access(maps, 40.0, -74.0)
+        assert result.points == 0
+        assert result.max_points == 10
+
+    def test_legacy_with_green_escape(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        green_eval = GreenSpaceEvaluation(
+            green_escape=GreenSpace(
+                place_id="p1",
+                name="Saxon Woods Park",
+                rating=4.5,
+                user_ratings_total=200,
+                walk_time_min=15,
+                types=["park"],
+                types_display="Park",
+            )
+        )
+        result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
+        assert result.points == 10  # walk_time <= 20 min ideal
+
+    def test_legacy_acceptable_walk_time(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        green_eval = GreenSpaceEvaluation(
+            green_escape=GreenSpace(
+                place_id="p1",
+                name="Remote Park",
+                rating=4.5,
+                user_ratings_total=200,
+                walk_time_min=25,
+                types=["park"],
+                types_display="Park",
+            )
+        )
+        result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
+        assert result.points == 6  # walk_time > ideal but within acceptable
+
+    def test_no_green_escape_zero_points(self):
+        maps = MagicMock(spec=GoogleMapsClient)
+        green_eval = GreenSpaceEvaluation(green_escape=None)
+        result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
+        assert result.points == 0

@@ -23,7 +23,7 @@ import logging
 import argparse
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Callable, Optional, List, Tuple, Dict, Any
 from enum import Enum
 import requests
 
@@ -35,8 +35,24 @@ from green_space import (
     GreenEscapeEvaluation,
     evaluate_green_escape,
 )
+from scoring_config import (
+    PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
+    TIER2_NAME_TO_DIMENSION,
+)
 
 load_dotenv()
+
+# Module-level score bands derived from SCORING_MODEL (consumed by tests)
+SCORE_BANDS = [(b.threshold, b.label) for b in SCORING_MODEL.score_bands]
+
+
+def get_score_band(score: int) -> dict:
+    """Return the score band dict for a given 0-100 score."""
+    for band in SCORING_MODEL.score_bands:
+        if score >= band.threshold:
+            return {"label": band.label, "css_class": band.css_class}
+    last = SCORING_MODEL.score_bands[-1]
+    return {"label": last.label, "css_class": last.css_class}
 
 # =============================================================================
 # CONFIGURATION
@@ -129,6 +145,14 @@ SUPPORTING_GREEN_SPACE_TYPES = {"park", "playground"}
 # High-volume road detection is done via OSM tags (highway type, lane count)
 # No hardcoded road names needed - works anywhere in the US
 
+
+
+# =============================================================================
+# EXCEPTIONS
+# =============================================================================
+
+class OverpassUnavailableError(Exception):
+    """Raised when the Overpass API is temporarily unreachable or returns errors."""
 
 
 # =============================================================================
@@ -314,6 +338,9 @@ class EvaluationResult:
 
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
+
+    # Scoring lens / persona applied during aggregation (NES-133)
+    persona: Optional[PersonaPreset] = None
 
     # Keep these from main
     final_score: int = 0
@@ -647,21 +674,39 @@ class OverpassClient:
         self.session = requests.Session()
         self.session.trust_env = False
 
+    MAX_RETRIES = 2
+
     def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
-        """POST request with automatic trace recording."""
-        t0 = time.time()
-        response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
-        elapsed_ms = int((time.time() - t0) * 1000)
-        data = response.json()
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint=endpoint_name,
-                elapsed_ms=elapsed_ms,
-                status_code=response.status_code,
-            )
-        return data
+        """POST request with automatic trace recording and retry on transient errors."""
+        last_exc: Optional[Exception] = None
+        for attempt in range(1 + self.MAX_RETRIES):
+            try:
+                t0 = time.time()
+                response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
+                elapsed_ms = int((time.time() - t0) * 1000)
+                trace = get_trace()
+                if trace:
+                    trace.record_api_call(
+                        service="overpass",
+                        endpoint=endpoint_name,
+                        elapsed_ms=elapsed_ms,
+                        status_code=response.status_code,
+                    )
+                if response.status_code == 429 or response.status_code >= 500:
+                    raise requests.HTTPError(
+                        f"Overpass returned HTTP {response.status_code}", response=response
+                    )
+                response.raise_for_status()
+                data = response.json()
+                return data
+            except (requests.RequestException, ValueError) as exc:
+                last_exc = exc
+                if attempt < self.MAX_RETRIES:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+        raise OverpassUnavailableError(
+            "Road-data service temporarily unavailable"
+        ) from last_exc
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
@@ -921,30 +966,37 @@ def check_gas_stations(
                 value=min_distance
             )
     except Exception as e:
+        logger.warning("Gas station check failed: %s", e)
         return Tier1Check(
             name="Gas station",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Could not reach mapping service to verify this check"
         )
 
 
 def check_highways(
     maps: GoogleMapsClient,
     overpass: OverpassClient,
-    lat: float, 
-    lng: float
+    lat: float,
+    lng: float,
+    roads: Optional[List[Dict]] = None,
 ) -> Tier1Check:
-    """Check distance to highways and major parkways"""
+    """Check distance to highways and major parkways.
+
+    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
+    a duplicate API call when the same data is needed by
+    ``check_high_volume_roads`` too.
+    """
     try:
-        # Use Overpass to find major roads nearby
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
-        
+        if roads is None:
+            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+
         # Filter for highways (motorway, trunk)
         highways_nearby = [
-            r for r in roads 
+            r for r in roads
             if r["highway_type"] in ["motorway", "trunk"]
         ]
-        
+
         if not highways_nearby:
             return Tier1Check(
                 name="Highway",
@@ -952,7 +1004,7 @@ def check_highways(
                 details="No highways within 500 feet",
                 value=None
             )
-        
+
         # Found highways nearby - this is a fail
         highway_names = [r["name"] or r["ref"] or "Unnamed highway" for r in highways_nearby]
         return Tier1Check(
@@ -961,23 +1013,36 @@ def check_highways(
             details=f"TOO CLOSE to: {', '.join(set(highway_names))}",
             value=0
         )
-        
-    except Exception as e:
+
+    except OverpassUnavailableError:
         return Tier1Check(
             name="Highway",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Road-data service temporarily unavailable; please try again shortly"
+        )
+    except Exception as e:
+        logger.warning("Highway check failed: %s", e)
+        return Tier1Check(
+            name="Highway",
+            result=CheckResult.UNKNOWN,
+            details="Could not reach road-data service to verify this check"
         )
 
 
 def check_high_volume_roads(
     overpass: OverpassClient,
     lat: float,
-    lng: float
+    lng: float,
+    roads: Optional[List[Dict]] = None,
 ) -> Tier1Check:
-    """Check distance to high-volume roads (4+ lanes or primary/secondary classification)"""
+    """Check distance to high-volume roads (4+ lanes or primary/secondary classification).
+
+    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
+    a duplicate API call.
+    """
     try:
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+        if roads is None:
+            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
 
         problem_roads = []
         for road in roads:
@@ -996,7 +1061,7 @@ def check_high_volume_roads(
 
             if has_many_lanes or is_primary:
                 problem_roads.append(road.get("name") or road.get("ref") or "Unnamed road")
-        
+
         if not problem_roads:
             return Tier1Check(
                 name="High-volume road",
@@ -1004,19 +1069,26 @@ def check_high_volume_roads(
                 details="No high-volume roads within 500 feet",
                 value=None
             )
-        
+
         return Tier1Check(
             name="High-volume road",
             result=CheckResult.FAIL,
             details=f"TOO CLOSE to: {', '.join(set(problem_roads))}",
             value=0
         )
-        
-    except Exception as e:
+
+    except OverpassUnavailableError:
         return Tier1Check(
             name="High-volume road",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Road-data service temporarily unavailable; please try again shortly"
+        )
+    except Exception as e:
+        logger.warning("High-volume road check failed: %s", e)
+        return Tier1Check(
+            name="High-volume road",
+            result=CheckResult.UNKNOWN,
+            details="Could not reach road-data service to verify this check"
         )
 
 
@@ -3154,14 +3226,39 @@ def evaluate_property(
     listing: PropertyListing,
     api_key: str,
     pre_geocode: Optional[Dict[str, Any]] = None,
+    on_stage: Optional[Callable[[str], None]] = None,
+    place_id: Optional[str] = None,
+    persona: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
     Each enrichment stage is wrapped in try/except so that a single
     failing API call (timeout, quota, etc.) degrades gracefully
     instead of aborting the whole evaluation.
+
+    Args:
+        on_stage: Optional callback invoked with stage name as evaluation
+            progresses, used by the worker to update job status in the DB.
+        place_id: Optional Google place_id (unused in evaluation itself,
+            reserved for future use).
+        persona: Optional persona key (e.g. "active", "commuter", "quiet").
+            Determines dimension weights used for score aggregation.
+            Defaults to "balanced" (equal weights).
     """
+    def _notify(name: str) -> None:
+        if on_stage is not None:
+            on_stage(name)
+
+    def _staged(stage_name, fn, *args, **kwargs):
+        """Notify the frontend of the current stage, then run _timed_stage."""
+        _notify(stage_name)
+        return _timed_stage(stage_name, fn, *args, **kwargs)
+
     eval_start = time.time()
+
+    # Resolve persona preset for weighted scoring
+    persona_preset = PERSONA_PRESETS.get(persona or DEFAULT_PERSONA,
+                                         PERSONA_PRESETS[DEFAULT_PERSONA])
 
     maps = GoogleMapsClient(api_key)
     overpass = OverpassClient()
@@ -3169,21 +3266,23 @@ def evaluate_property(
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
     if pre_geocode is not None:
+        _notify("geocode")
         lat = pre_geocode["lat"]
         lng = pre_geocode["lng"]
     else:
-        lat, lng = _timed_stage("geocode", maps.geocode, listing.address)
+        lat, lng = _staged("geocode", maps.geocode, listing.address)
 
     result = EvaluationResult(
         listing=listing,
         lat=lat,
-        lng=lng
+        lng=lng,
+        persona=persona_preset,
     )
 
     # --- Optional enrichments (each fails independently) ---
 
     try:
-        bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
+        bike_data = _staged("bike_score", get_bike_score, listing.address, lat, lng)
         result.bike_score = bike_data.get("bike_score")
         result.bike_rating = bike_data.get("bike_rating")
         result.bike_metadata = bike_data.get("bike_metadata")
@@ -3191,50 +3290,50 @@ def evaluate_property(
         pass
 
     try:
-        result.neighborhood_snapshot = _timed_stage(
+        result.neighborhood_snapshot = _staged(
             "neighborhood", get_neighborhood_snapshot, maps, lat, lng)
     except Exception:
         pass
 
     if ENABLE_SCHOOLS:
         try:
-            result.child_schooling_snapshot = _timed_stage(
+            result.child_schooling_snapshot = _staged(
                 "schools", get_child_and_schooling_snapshot, maps, lat, lng)
         except Exception:
             pass
 
     try:
-        result.urban_access = _timed_stage(
+        result.urban_access = _staged(
             "urban_access", get_urban_access_profile, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_access = _timed_stage(
+        result.transit_access = _staged(
             "transit_access", evaluate_transit_access, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_space_evaluation = _timed_stage(
+        result.green_space_evaluation = _staged(
             "green_spaces", evaluate_green_spaces, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.green_escape_evaluation = _timed_stage(
+        result.green_escape_evaluation = _staged(
             "green_escape", evaluate_green_escape, maps, lat, lng)
     except Exception:
         pass
 
     try:
-        result.transit_score = _timed_stage(
+        result.transit_score = _staged(
             "transit_score", get_transit_score, listing.address, lat, lng)
     except Exception:
         pass
 
     try:
-        result.walk_scores = _timed_stage(
+        result.walk_scores = _staged(
             "walk_scores", get_walk_scores, listing.address, lat, lng)
     except Exception:
         pass
@@ -3243,6 +3342,7 @@ def evaluate_property(
     # TIER 1 CHECKS
     # ===================
 
+    _notify("tier1_checks")
     trace = get_trace()
     if trace:
         trace.start_stage("tier1_checks")
@@ -3250,8 +3350,27 @@ def evaluate_property(
 
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
-    result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
-    result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
+
+    # Fetch road data once for both highway + high-volume road checks
+    _nearby_roads: Optional[List[Dict]] = None
+    _road_fetch_error: Optional[str] = None
+    try:
+        _nearby_roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+    except OverpassUnavailableError:
+        logger.warning("Overpass road query unavailable")
+        _road_fetch_error = "Road-data service temporarily unavailable; please try again shortly"
+    except Exception as exc:
+        logger.warning("Overpass road query failed: %s", exc)
+        _road_fetch_error = "Could not reach road-data service to verify this check"
+
+    if _road_fetch_error:
+        result.tier1_checks.append(Tier1Check(
+            name="Highway", result=CheckResult.UNKNOWN, details=_road_fetch_error))
+        result.tier1_checks.append(Tier1Check(
+            name="High-volume road", result=CheckResult.UNKNOWN, details=_road_fetch_error))
+    else:
+        result.tier1_checks.append(check_highways(maps, overpass, lat, lng, roads=_nearby_roads))
+        result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng, roads=_nearby_roads))
 
     # Environmental health proximity checks (NES-57)
     try:
@@ -3284,28 +3403,28 @@ def evaluate_property(
 
     if result.passed_tier1:
         result.tier2_scores.append(
-            _timed_stage(
+            _staged(
                 "score_park_access", score_park_access,
                 maps, lat, lng,
                 green_space_evaluation=result.green_space_evaluation,
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        _coffee_score, _coffee_places = _timed_stage(
+        _coffee_score, _coffee_places = _staged(
             "score_third_place", score_third_place_access, maps, lat, lng)
         result.tier2_scores.append(_coffee_score)
 
-        _grocery_score, _grocery_places = _timed_stage(
+        _grocery_score, _grocery_places = _staged(
             "score_provisioning", score_provisioning_access, maps, lat, lng)
         result.tier2_scores.append(_grocery_score)
 
-        _fitness_score, _fitness_places = _timed_stage(
+        _fitness_score, _fitness_places = _staged(
             "score_fitness", score_fitness_access, maps, lat, lng)
         result.tier2_scores.append(_fitness_score)
 
         result.tier2_scores.append(score_cost(listing.cost))
         result.tier2_scores.append(
-            _timed_stage(
+            _staged(
                 "score_transit_access", score_transit_access,
                 maps, lat, lng, transit_access=result.transit_access,
             )
@@ -3337,10 +3456,24 @@ def evaluate_property(
             "parks": _park_places,
         }
 
+        # Raw unweighted totals (for display / backward compat)
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
-        if result.tier2_max > 0:
-            result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
+
+        # Weighted normalization using persona lens.
+        # Map internal Tier2Score names to persona dimension names so
+        # weights resolve correctly (e.g. "Third Place" -> "Coffee & Social Spots").
+        _weights = persona_preset.weights
+        _weighted_total = sum(
+            s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
+            for s in result.tier2_scores
+        )
+        _weighted_max = sum(
+            s.max_points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
+            for s in result.tier2_scores
+        )
+        if _weighted_max > 0:
+            result.tier2_normalized = int(_weighted_total / _weighted_max * 100 + 0.5)
         else:
             result.tier2_normalized = 0
 
@@ -3348,6 +3481,7 @@ def evaluate_property(
     # TIER 3 BONUSES
     # ===================
 
+    _notify("tier3_bonuses")
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
@@ -3356,11 +3490,6 @@ def evaluate_property(
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
-
-    if result.tier2_max > 0:
-        result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
-    else:
-        result.tier2_normalized = 0
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)
