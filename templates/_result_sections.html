@@ -379,7 +379,8 @@
       </div>
     {% endif %}
 
-    {% if not result.urban_access and not result.transit_access and not has_walk_data %}
+    {% set has_transit_display = (result.urban_access and result.urban_access.primary_transit) or (result.transit_access and result.transit_access.primary_stop) %}
+    {% if not has_transit_display and not has_walk_data %}
       <p class="section-empty">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="4" y="3" width="16" height="16" rx="2"/>
@@ -387,7 +388,7 @@
           <circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/>
           <line x1="12" y1="3" x2="12" y2="11"/>
         </svg>
-        No transit options found near this address.
+        Transit data is not available for this location.
       </p>
     {% endif %}
 
