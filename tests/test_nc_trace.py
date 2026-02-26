@@ -142,6 +142,7 @@ class TestSummary:
         assert s["stages_errored"] == 0
         assert s["total_api_calls"] == 0
         assert s["total_elapsed_ms"] >= 0
+        assert s["calls"] == []
 
     def test_partial_outcome(self):
         ctx = TraceContext(trace_id="test-1")
@@ -177,6 +178,30 @@ class TestSummary:
         ctx = TraceContext(trace_id="test-1")
         s = ctx.summary_dict()
         assert "model_version" not in s
+
+    def test_calls_included_in_summary(self):
+        ctx = TraceContext(trace_id="test-1")
+        ctx.start_stage("geocode")
+        ctx.record_api_call("google_maps", "geocode", 120, 200, "OK")
+        ctx.end_stage()
+
+        s = ctx.summary_dict()
+        assert len(s["calls"]) == 1
+        call = s["calls"][0]
+        assert call["service"] == "google_maps"
+        assert call["endpoint"] == "geocode"
+        assert call["stage"] == "geocode"
+        assert call["elapsed_ms"] == 120
+        assert call["status_code"] == 200
+
+    def test_calls_capped_at_max(self):
+        ctx = TraceContext(trace_id="test-1")
+        for i in range(600):
+            ctx.record_api_call("svc", f"ep_{i}", 1, 200)
+
+        s = ctx.summary_dict()
+        assert s["total_api_calls"] == 600
+        assert len(s["calls"]) == TraceContext.MAX_CALL_RECORDS
 
 
 # =========================================================================
