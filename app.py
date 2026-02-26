@@ -22,6 +22,7 @@ from models import (
     get_recent_events, get_recent_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
     get_snapshots_by_ids, update_snapshot_email_sent,
+    create_job, get_job,
 )
 
 load_dotenv()
@@ -531,13 +532,11 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
+        # Check for a fresh cached snapshot before queuing a job.
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
         ttl_days = _snapshot_ttl_days()
-        trace_ctx = TraceContext(trace_id=request_id)
-        set_trace(trace_ctx)
         try:
             now_utc = datetime.now(timezone.utc)
-            evaluated_at = now_utc.isoformat()
             geocode_details = GoogleMapsClient(api_key).geocode_details(address)
             place_id = geocode_details.get("place_id")
             existing_snapshot = (
@@ -546,7 +545,6 @@ def index():
 
             if existing_snapshot and is_snapshot_fresh(existing_snapshot, ttl_days, now_utc):
                 snapshot_id = existing_snapshot["snapshot_id"]
-                trace_summary = trace_ctx.summary_dict()
                 log_event(
                     "snapshot_reused",
                     snapshot_id=snapshot_id,
@@ -556,170 +554,75 @@ def index():
                         "place_id": place_id,
                         "ttl_days": ttl_days,
                         "request_id": request_id,
-                        "trace_id": request_id,
                     },
                 )
-                trace_ctx.log_summary()
                 if _wants_json():
-                    resp = {
+                    return jsonify({
                         "snapshot_id": snapshot_id,
                         "redirect_url": f"/s/{snapshot_id}",
-                    }
-                    if g.is_builder:
-                        resp["trace_id"] = request_id
-                        resp["trace_summary"] = trace_summary
-                    return jsonify(resp)
+                    })
                 return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
-
-            if not place_id:
-                logger.warning(
-                    "[%s] Geocode result missing place_id for address=%r",
-                    request_id, address,
-                )
-
-            listing = PropertyListing(address=address)
-            eval_result = evaluate_property(
-                listing,
-                api_key,
-                pre_geocode=geocode_details,
-            )
-            result = result_to_dict(eval_result)
-
-            # Persist snapshot — include trace_id in metadata
-            address_norm = (
-                geocode_details.get("formatted_address")
-                or result.get("address")
-                or address
-            )
-            trace_summary = trace_ctx.summary_dict()
-            if g.is_builder:
-                result["_trace"] = trace_summary
-            if place_id:
-                try:
-                    snapshot_id = save_snapshot_for_place(
-                        place_id=place_id,
-                        address_input=address,
-                        address_norm=address_norm,
-                        evaluated_at=evaluated_at,
-                        result_dict=result,
-                        existing_snapshot_id=(
-                            existing_snapshot["snapshot_id"]
-                            if existing_snapshot else None
-                        ),
-                        email=email,
-                    )
-                except sqlite3.IntegrityError:
-                    winner = get_snapshot_by_place_id(place_id)
-                    if not winner:
-                        raise
-                    snapshot_id = winner["snapshot_id"]
-            else:
-                snapshot_id = save_snapshot(
-                    address_input=address,
-                    address_norm=address_norm,
-                    result_dict=result,
-                    email=email,
-                )
-
-            # Log events
-            is_return = check_return_visit(g.visitor_id)
-            log_event("snapshot_created", snapshot_id=snapshot_id,
-                      visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "place_id": place_id,
-                                "trace_id": request_id})
-            if is_return:
-                log_event("return_visit", snapshot_id=snapshot_id,
-                          visitor_id=g.visitor_id)
-
-            # Send report email if user provided one (never blocks evaluation)
-            if email:
-                try:
-                    from email_service import send_report_email
-
-                    if send_report_email(email, snapshot_id, address):
-                        update_snapshot_email_sent(snapshot_id)
-                        log_event(
-                            "email_sent",
-                            snapshot_id=snapshot_id,
-                            visitor_id=g.visitor_id,
-                            metadata={"address": address, "request_id": request_id},
-                        )
-                    else:
-                        log_event(
-                            "email_failed",
-                            snapshot_id=snapshot_id,
-                            visitor_id=g.visitor_id,
-                            metadata={"address": address, "request_id": request_id},
-                        )
-                except Exception:
-                    logger.exception(
-                        "[%s] Email send failed for snapshot %s", request_id, snapshot_id
-                    )
-                    log_event(
-                        "email_failed",
-                        snapshot_id=snapshot_id,
-                        visitor_id=g.visitor_id,
-                        metadata={"address": address, "request_id": request_id},
-                    )
-
-            # Emit the end-of-request summary log line
-            trace_ctx.log_summary()
-
-            logger.info(
-                "[%s] Snapshot %s created for: %s",
-                request_id, snapshot_id, address,
+        except Exception:
+            # Geocode/cache check failed — continue to queue the job anyway.
+            # The worker will re-geocode from scratch.
+            place_id = None
+            logger.warning(
+                "[%s] Pre-geocode failed; queuing job without place_id",
+                request_id, exc_info=True,
             )
 
-            # Return JSON for fetch-based clients, HTML for traditional form POST
-            if _wants_json():
-                resp = {
-                    "snapshot_id": snapshot_id,
-                    "redirect_url": f"/s/{snapshot_id}",
-                }
-                if g.is_builder:
-                    resp["trace_id"] = request_id
-                    resp["trace_summary"] = trace_summary
-                return jsonify(resp)
+        # Queue the evaluation as an async job so the response returns
+        # immediately. The frontend polls GET /job/<job_id> for progress.
+        persona = request.form.get("persona", "").strip() or None
+        job_id = create_job(
+            address=address,
+            visitor_id=g.visitor_id,
+            request_id=request_id,
+            place_id=place_id,
+            persona=persona,
+            email_raw=email,
+        )
+        logger.info("[%s] Job %s queued for address=%r", request_id, job_id, address)
 
-        except Exception as e:
-            trace_ctx.log_summary()
-            logger.exception(
-                "[%s] Evaluation failed for address: %s", request_id, address
-            )
-            log_event("evaluation_error", visitor_id=g.visitor_id,
-                      metadata={"address": address,
-                                "error": str(e),
-                                "request_id": request_id,
-                                "trace_summary": trace_ctx.summary_dict()})
-            error = (
-                "Something went wrong while evaluating this address. "
-                "Please check the address and try again. "
-                "If the problem persists, the address may not be recognized "
-                "by Google Maps. (ref: " + request_id + ")"
-            )
-            error_detail = {
-                "request_id": request_id,
-                "exception": str(e),
-                "traceback": traceback.format_exc(),
-            }
-            if _wants_json():
-                resp = {
-                    "error": error,
-                    "request_id": request_id,
-                }
-                if g.is_builder:
-                    resp["trace_summary"] = trace_ctx.summary_dict()
-                return jsonify(resp), 500
-        finally:
-            clear_trace()
+        if _wants_json():
+            return jsonify({"job_id": job_id})
+
+        # Non-JS fallback: render the page with the job_id so inline
+        # script can start polling.
+        return render_template(
+            "index.html", result=None, error=None,
+            error_detail=None, address=address,
+            snapshot_id=None, job_id=job_id,
+            is_builder=g.is_builder, request_id=request_id,
+        )
 
     return render_template(
         "index.html", result=result, error=error,
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
+        job_id=None,
         is_builder=g.is_builder, request_id=request_id,
     )
+
+
+@app.route("/job/<job_id>")
+def job_status(job_id):
+    """Poll endpoint for async evaluation jobs.
+
+    Returns JSON: {status, current_stage?, snapshot_id?, error?}
+    """
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    resp = {"status": job["status"]}
+    if job["current_stage"]:
+        resp["current_stage"] = job["current_stage"]
+    if job["snapshot_id"]:
+        resp["snapshot_id"] = job["snapshot_id"]
+    if job["error"]:
+        resp["error"] = job["error"]
+    return jsonify(resp)
 
 
 @app.route("/s/<snapshot_id>")
@@ -1031,6 +934,10 @@ def not_found(e):
 init_db()
 
 if __name__ == "__main__":
+    # Start background evaluation worker for dev server.
+    # In production, gunicorn_config.py post_fork handles this.
+    from worker import start_worker
+    start_worker()
     port = int(os.environ.get("PORT", 5001))
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
