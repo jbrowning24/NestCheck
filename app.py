@@ -21,7 +21,7 @@ from models import (
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
-    get_snapshots_by_ids,
+    get_snapshots_by_ids, update_snapshot_email_sent,
 )
 
 load_dotenv()
@@ -473,6 +473,7 @@ def index():
 
     if request.method == "POST":
         address = request.form.get("address", "").strip()
+        email = request.form.get("email", "").strip() or None
         logger.info(
             "[%s] POST / address=%r builder=%s",
             request_id, address, g.is_builder,
@@ -605,6 +606,7 @@ def index():
                             existing_snapshot["snapshot_id"]
                             if existing_snapshot else None
                         ),
+                        email=email,
                     )
                 except sqlite3.IntegrityError:
                     winner = get_snapshot_by_place_id(place_id)
@@ -616,6 +618,7 @@ def index():
                     address_input=address,
                     address_norm=address_norm,
                     result_dict=result,
+                    email=email,
                 )
 
             # Log events
@@ -628,6 +631,37 @@ def index():
             if is_return:
                 log_event("return_visit", snapshot_id=snapshot_id,
                           visitor_id=g.visitor_id)
+
+            # Send report email if user provided one (never blocks evaluation)
+            if email:
+                try:
+                    from email_service import send_report_email
+
+                    if send_report_email(email, snapshot_id, address):
+                        update_snapshot_email_sent(snapshot_id)
+                        log_event(
+                            "email_sent",
+                            snapshot_id=snapshot_id,
+                            visitor_id=g.visitor_id,
+                            metadata={"address": address, "request_id": request_id},
+                        )
+                    else:
+                        log_event(
+                            "email_failed",
+                            snapshot_id=snapshot_id,
+                            visitor_id=g.visitor_id,
+                            metadata={"address": address, "request_id": request_id},
+                        )
+                except Exception:
+                    logger.exception(
+                        "[%s] Email send failed for snapshot %s", request_id, snapshot_id
+                    )
+                    log_event(
+                        "email_failed",
+                        snapshot_id=snapshot_id,
+                        visitor_id=g.visitor_id,
+                        metadata={"address": address, "request_id": request_id},
+                    )
 
             # Emit the end-of-request summary log line
             trace_ctx.log_summary()

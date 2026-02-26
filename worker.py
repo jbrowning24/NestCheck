@@ -28,6 +28,7 @@ from models import (
     update_payment_status,
     update_free_tier_snapshot,
     delete_free_tier_usage,
+    update_snapshot_email_sent,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,6 +152,38 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
             email_raw=email_raw,
         )
         complete_job(job_id, snapshot_id)
+
+        # Send report email if user provided one (never blocks worker)
+        if email_raw:
+            try:
+                from email_service import send_report_email
+
+                if send_report_email(email_raw, snapshot_id, address):
+                    update_snapshot_email_sent(snapshot_id)
+                    log_event(
+                        "email_sent",
+                        snapshot_id=snapshot_id,
+                        visitor_id=visitor_id,
+                        metadata={"address": address},
+                    )
+                else:
+                    log_event(
+                        "email_failed",
+                        snapshot_id=snapshot_id,
+                        visitor_id=visitor_id,
+                        metadata={"address": address},
+                    )
+            except Exception:
+                logger.exception(
+                    "[worker] Email send failed for snapshot %s", snapshot_id
+                )
+                log_event(
+                    "email_failed",
+                    snapshot_id=snapshot_id,
+                    visitor_id=visitor_id,
+                    metadata={"address": address},
+                )
+
         if email_hash:
             update_free_tier_snapshot(email_hash, snapshot_id)
         is_return = check_return_visit(visitor_id)

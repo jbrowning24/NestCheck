@@ -73,16 +73,11 @@
 <div class="my-reports">
 
 {% if not authenticated %}
-  {# ---- Unauthenticated: show email entry → magic link ---- #}
+  {# ---- Unauthenticated: magic link coming soon ---- #}
   <div class="auth-prompt">
     <h1>Access Your Reports</h1>
-    <p>Enter the email you used when evaluating an address. We'll send you a sign-in link.</p>
-    <form id="magicLinkForm">
-      <label for="mlEmail" class="sr-only">Email address</label>
-      <input type="email" id="mlEmail" placeholder="you@example.com" required>
-      <button type="submit" id="mlBtn">Send link</button>
-    </form>
-    <p class="auth-sent" id="authSent">Check your inbox for a sign-in link.</p>
+    <p>Sign in with your email to see reports you've evaluated. <strong>Coming soon.</strong></p>
+    <p>For now, use the link we emailed you when you ran an evaluation.</p>
   </div>
 
 {% else %}
@@ -128,50 +123,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function() {
-  var form = document.getElementById('magicLinkForm');
-  if (!form) return;
-
-  function csrfToken() {
-    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-  }
-
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    var btn = document.getElementById('mlBtn');
-    var emailInput = document.getElementById('mlEmail');
-    var email = emailInput.value.trim();
-    if (!email) return;
-
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-
-    var body = new FormData();
-    body.append('email', email);
-
-    fetch('/send-magic-link', {
-      method: 'POST',
-      body: body,
-      headers: { 'X-CSRFToken': csrfToken() }
-    })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.ok) {
-          document.getElementById('authSent').style.display = 'block';
-          form.style.display = 'none';
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Send link';
-          alert(data.error || 'Something went wrong.');
-        }
-      })
-      .catch(function() {
-        btn.disabled = false;
-        btn.textContent = 'Send link';
-        alert('Network error. Please try again.');
-      });
-  });
-})();
-</script>
+{# Magic-link form handler removed — form disabled until /send-magic-link exists #}
 {% endblock %}

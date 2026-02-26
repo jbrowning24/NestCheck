@@ -44,7 +44,9 @@ def init_db():
             final_score     INTEGER,
             passed_tier1    INTEGER NOT NULL DEFAULT 0,
             result_json     TEXT NOT NULL,
-            view_count      INTEGER NOT NULL DEFAULT 0
+            view_count      INTEGER NOT NULL DEFAULT 0,
+            email           TEXT,
+            email_sent_at   TEXT
         );
 
         CREATE TABLE IF NOT EXISTS events (
@@ -82,6 +84,10 @@ def init_db():
         conn.execute("ALTER TABLE snapshots ADD COLUMN place_id TEXT")
     if "evaluated_at" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN evaluated_at TEXT")
+    if "email" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN email TEXT")
+    if "email_sent_at" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN email_sent_at TEXT")
 
     # Legacy rows should be treated as previously evaluated at created_at.
     conn.execute(
@@ -103,12 +109,15 @@ def generate_snapshot_id():
     return uuid.uuid4().hex[:8]
 
 
-def save_snapshot(address_input, address_norm, result_dict):
+def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs):
     """
     Persist an evaluation snapshot. Returns the snapshot_id.
 
     result_dict is the full template-ready dict from result_to_dict().
+    email: optional address to send report link to.
+    **kwargs: accepts is_preview, email_hash, email_raw (from worker) for forward compat.
     """
+    email = email or kwargs.get("email_raw")
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
 
@@ -116,8 +125,8 @@ def save_snapshot(address_input, address_norm, result_dict):
     conn.execute(
         """INSERT INTO snapshots
            (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-            verdict, final_score, passed_tier1, result_json)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            verdict, final_score, passed_tier1, result_json, email)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             snapshot_id,
             address_input,
@@ -129,6 +138,7 @@ def save_snapshot(address_input, address_norm, result_dict):
             result_dict.get("final_score", 0),
             1 if result_dict.get("passed_tier1") else 0,
             json.dumps(result_dict, default=str),
+            email,
         ),
     )
     conn.commit()
@@ -184,6 +194,18 @@ def get_snapshots_by_ids(snapshot_ids):
         if snap:
             ordered.append(snap)
     return ordered
+
+
+def update_snapshot_email_sent(snapshot_id: str) -> None:
+    """Mark that the report email was sent for this snapshot."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        "UPDATE snapshots SET email_sent_at = ? WHERE snapshot_id = ?",
+        (now, snapshot_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def increment_view_count(snapshot_id):
@@ -338,6 +360,7 @@ def save_snapshot_for_place(
     evaluated_at,
     result_dict,
     existing_snapshot_id=None,
+    email=None,
 ):
     """
     Persist a canonical snapshot keyed by place_id.
@@ -356,7 +379,8 @@ def save_snapshot_for_place(
                 """UPDATE snapshots
                    SET address_input = ?, address_norm = ?, place_id = ?,
                        evaluated_at = ?, created_at = ?,
-                       verdict = ?, final_score = ?, passed_tier1 = ?, result_json = ?
+                       verdict = ?, final_score = ?, passed_tier1 = ?, result_json = ?,
+                       email = COALESCE(?, email)
                    WHERE snapshot_id = ?""",
                 (
                     address_input,
@@ -368,6 +392,7 @@ def save_snapshot_for_place(
                     result_dict.get("final_score", 0),
                     1 if result_dict.get("passed_tier1") else 0,
                     json.dumps(result_dict, default=str),
+                    email,
                     existing_snapshot_id,
                 ),
             )
@@ -378,8 +403,8 @@ def save_snapshot_for_place(
         conn.execute(
             """INSERT INTO snapshots
                (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-                verdict, final_score, passed_tier1, result_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                verdict, final_score, passed_tier1, result_json, email)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 snapshot_id,
                 address_input,
@@ -391,6 +416,7 @@ def save_snapshot_for_place(
                 result_dict.get("final_score", 0),
                 1 if result_dict.get("passed_tier1") else 0,
                 json.dumps(result_dict, default=str),
+                email,
             ),
         )
         conn.commit()

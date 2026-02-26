@@ -58,7 +58,7 @@
   border-color: var(--color-accent);
 }
 .search-box input[type="text"] {
-  flex: 1;
+  width: 100%;
   padding: var(--space-base) var(--space-base);
   border: none;
   font-family: var(--font-body);
@@ -541,20 +541,6 @@
   }
   .hero .tagline {
     margin-bottom: var(--space-xl);
-  }
-  .search-box {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .search-box input[type="text"] {
-    flex: 1 1 auto;
-  }
-  .search-box button {
-    width: auto;
-  }
-  .persona-selector {
-    flex: 1 1 100%;
-    order: 1;
   }
   .features {
     grid-template-columns: repeat(2, 1fr);
