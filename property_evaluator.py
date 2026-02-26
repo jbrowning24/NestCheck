@@ -23,7 +23,7 @@ import logging
 import argparse
 import re
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Callable, Optional, List, Tuple, Dict, Any
 from enum import Enum
 import requests
 
@@ -3154,13 +3154,27 @@ def evaluate_property(
     listing: PropertyListing,
     api_key: str,
     pre_geocode: Optional[Dict[str, Any]] = None,
+    on_stage: Optional[Callable[[str], None]] = None,
+    place_id: Optional[str] = None,
+    persona: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
     Each enrichment stage is wrapped in try/except so that a single
     failing API call (timeout, quota, etc.) degrades gracefully
     instead of aborting the whole evaluation.
+
+    Args:
+        on_stage: Optional callback invoked with stage name as evaluation
+            progresses, used by the worker to update job status in the DB.
+        place_id: Optional Google place_id (unused in evaluation itself,
+            reserved for future use).
+        persona: Optional evaluation persona (reserved for future use).
     """
+    def _notify_stage(name: str) -> None:
+        if on_stage is not None:
+            on_stage(name)
+
     eval_start = time.time()
 
     maps = GoogleMapsClient(api_key)
@@ -3168,6 +3182,7 @@ def evaluate_property(
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
+    _notify_stage("geocoding")
     if pre_geocode is not None:
         lat = pre_geocode["lat"]
         lng = pre_geocode["lng"]
@@ -3182,6 +3197,7 @@ def evaluate_property(
 
     # --- Optional enrichments (each fails independently) ---
 
+    _notify_stage("enrichments")
     try:
         bike_data = _timed_stage("bike_score", get_bike_score, listing.address, lat, lng)
         result.bike_score = bike_data.get("bike_score")
@@ -3243,6 +3259,7 @@ def evaluate_property(
     # TIER 1 CHECKS
     # ===================
 
+    _notify_stage("tier1_checks")
     trace = get_trace()
     if trace:
         trace.start_stage("tier1_checks")
@@ -3282,6 +3299,7 @@ def evaluate_property(
     # TIER 2 SCORING
     # ===================
 
+    _notify_stage("tier2_scoring")
     if result.passed_tier1:
         result.tier2_scores.append(
             _timed_stage(
@@ -3348,6 +3366,7 @@ def evaluate_property(
     # TIER 3 BONUSES
     # ===================
 
+    _notify_stage("tier3_bonuses")
     if result.passed_tier1:
         result.tier3_bonuses = calculate_bonuses(listing)
         result.tier3_total = sum(b.points for b in result.tier3_bonuses)
@@ -3356,6 +3375,8 @@ def evaluate_property(
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
+
+    _notify_stage("scoring")
 
     if result.tier2_max > 0:
         result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
