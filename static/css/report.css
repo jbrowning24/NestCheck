@@ -295,6 +295,31 @@
 }
 .proximity-satellite-link:hover { text-decoration: underline; }
 
+/* --- Health Context (progressive disclosure) --- */
+.health-context-toggle {
+  margin-top: var(--space-sm);
+  gap: var(--space-xs);
+}
+.health-context-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+.health-context-toggle:hover .health-context-label {
+  color: var(--color-text-primary);
+}
+.health-context-body {
+  margin-top: var(--space-xs);
+}
+.health-context-paragraph {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+  margin: var(--space-sm) 0 0;
+}
+.health-context-paragraph:first-child {
+  margin-top: var(--space-xs);
+}
+
 /* --- Verdict Card Proximity Pills --- */
 .verdict-proximity-flags {
   display: flex;

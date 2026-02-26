@@ -589,7 +589,7 @@
     {% if safety_items %}
       {% for pc in safety_items %}
         {% set band_class = "proximity-" + pc.proximity_band | lower %}
-        <div class="proximity-item {{ band_class }}">
+        <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
           <div class="proximity-name">
             {% if pc.result_type == "CLEAR" -%}
               <span class="proximity-icon proximity-icon-clear">&#10003;</span>
@@ -610,6 +610,18 @@
             <a class="proximity-satellite-link"
                href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
                target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+          {% endif %}
+          {# Progressive disclosure — expanded health context #}
+          {% if pc.health_context is defined and pc.health_context %}
+            <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+              <span class="collapse-icon health-context-label">&#9654;</span>
+              <span class="health-context-label">Why we check this</span>
+            </div>
+            <div class="collapsible-body collapsed health-context-body">
+              {% for paragraph in pc.health_context %}
+                <p class="health-context-paragraph">{{ paragraph }}</p>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
       {% endfor %}
