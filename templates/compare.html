@@ -45,6 +45,7 @@
   <div class="compare-column">
     {# Column header (visible always; toggles on mobile) #}
     <div class="compare-column-header" role="button" tabindex="0"
+         aria-label="Toggle details for {{ eval.address }}" aria-expanded="true"
          onclick="toggleCompareColumn(this)"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCompareColumn(this);}">
       <h2 class="compare-column-address">{{ eval.address }}</h2>
@@ -89,7 +90,20 @@
       body.classList.add('collapsed');
       if (icon) icon.classList.remove('is-expanded');
     }
+    var isExpanded = !body.classList.contains('collapsed');
+    el.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
   }
+
+  // Keyboard support for collapsible toggles
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      var toggle = e.target.closest('.collapsible-toggle');
+      if (toggle) {
+        e.preventDefault();
+        toggle.click();
+      }
+    }
+  });
 
   function toggleCompareColumn(headerEl) {
     // Only activate on mobile (< 768px)
@@ -103,16 +117,29 @@
       body.classList.add('compare-column--collapsed');
       icon.innerHTML = '&#9654;';
     }
+    var isExpanded = !body.classList.contains('compare-column--collapsed');
+    headerEl.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
   }
 
-  // Auto-collapse all but the first column on mobile
+  // Auto-collapse all but the first column on mobile;
+  // on desktop, remove interactive ARIA attrs since toggle is a no-op
   (function() {
-    if (window.innerWidth >= 768) return;
+    var headers = document.querySelectorAll('.compare-column-header');
     var bodies = document.querySelectorAll('.compare-column-body');
     var icons = document.querySelectorAll('.compare-collapse-icon');
+    if (window.innerWidth >= 768) {
+      for (var i = 0; i < headers.length; i++) {
+        headers[i].removeAttribute('role');
+        headers[i].removeAttribute('tabindex');
+        headers[i].removeAttribute('aria-expanded');
+        if (icons[i]) icons[i].setAttribute('aria-hidden', 'true');
+      }
+      return;
+    }
     for (var i = 1; i < bodies.length; i++) {
       bodies[i].classList.add('compare-column--collapsed');
       if (icons[i]) icons[i].innerHTML = '&#9654;';
+      if (headers[i]) headers[i].setAttribute('aria-expanded', 'false');
     }
   })();
 </script>

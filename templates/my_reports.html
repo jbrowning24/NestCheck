@@ -78,6 +78,7 @@
     <h1>Access Your Reports</h1>
     <p>Enter the email you used when evaluating an address. We'll send you a sign-in link.</p>
     <form id="magicLinkForm">
+      <label for="mlEmail" class="sr-only">Email address</label>
       <input type="email" id="mlEmail" placeholder="you@example.com" required>
       <button type="submit" id="mlBtn">Send link</button>
     </form>
@@ -101,7 +102,8 @@
     <li class="report-item">
       <input type="checkbox" class="compare-checkbox"
              data-snapshot-id="{{ s.snapshot_id | e }}"
-             data-snapshot-address="{{ (s.address_norm or s.address_input) | e }}">
+             data-snapshot-address="{{ (s.address_norm or s.address_input) | e }}"
+             aria-label="Select {{ (s.address_norm or s.address_input) | e }} for comparison">
       <a href="/s/{{ s.snapshot_id }}">
         <div class="report-address">{{ s.address_norm or s.address_input }}</div>
         <div class="report-meta">

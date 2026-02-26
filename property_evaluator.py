@@ -50,6 +50,12 @@ GAS_STATION_MIN_DISTANCE_FT = 500
 HIGHWAY_MIN_DISTANCE_FT = 500
 HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = 500
 
+# Environmental Health Warning Thresholds (in feet)
+POWER_LINE_WARNING_DISTANCE_FT = 200
+SUBSTATION_WARNING_DISTANCE_FT = 300
+CELL_TOWER_WARNING_DISTANCE_FT = 500
+INDUSTRIAL_ZONE_WARNING_DISTANCE_FT = 500
+
 # Walking time thresholds (in minutes)
 PARK_WALK_IDEAL_MIN = 20
 PARK_WALK_ACCEPTABLE_MIN = 30
@@ -62,6 +68,10 @@ PROVISIONING_WALK_ACCEPTABLE_MIN = 30
 FITNESS_WALK_IDEAL_MIN = 15
 FITNESS_WALK_ACCEPTABLE_MIN = 30
 SCHOOL_WALK_MAX_MIN = 30
+
+# Schools evaluation is disabled by default due to high API call volume (~200+ calls).
+# Set ENABLE_SCHOOLS=true in environment to activate.
+ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "").lower() == "true"
 
 # Cost thresholds (monthly cost - rent or estimated mortgage + expenses)
 COST_MAX = 7000
@@ -131,6 +141,7 @@ SUPPORTING_GREEN_SPACE_TYPES = {"park", "playground"}
 class CheckResult(Enum):
     PASS = "PASS"
     FAIL = "FAIL"
+    WARNING = "WARNING"
     UNKNOWN = "UNKNOWN"
 
 
@@ -304,11 +315,51 @@ class EvaluationResult:
     # Keep this from your branch
     tier3_bonus_reasons: List[str] = field(default_factory=list)
 
+    # Neighborhood places surfaced from scoring (Phase 3)
+    neighborhood_places: Optional[Dict[str, list]] = None
+
     # Keep these from main
     final_score: int = 0
     percentile_top: int = 0
     percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
+
+
+# =============================================================================
+# DISTANCE HELPERS
+# =============================================================================
+
+def _distance_feet(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
+    """Haversine straight-line distance between two points, in feet."""
+    R = 20902231  # Earth's radius in feet
+    rlat1, rlon1 = math.radians(lat1), math.radians(lng1)
+    rlat2, rlon2 = math.radians(lat2), math.radians(lng2)
+    dlat = rlat2 - rlat1
+    dlon = rlon2 - rlon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    return int(R * c)
+
+
+def _closest_distance_to_way_ft(
+    prop_lat: float, prop_lng: float, way_node_ids: List[int], all_nodes: Dict[int, Tuple[float, float]]
+) -> float:
+    """Minimum distance in feet from property to any resolved node of a way.
+
+    *way_node_ids* is the ``nodes`` list from the Overpass way element.
+    *all_nodes* maps node-ID → (lat, lon) for every ``type=node`` element in
+    the Overpass response.  Returns ``float('inf')`` when no nodes can be
+    resolved (prevents false-positive warnings).
+    """
+    min_dist = float("inf")
+    for nid in way_node_ids:
+        coords = all_nodes.get(nid)
+        if coords is None:
+            continue
+        d = _distance_feet(prop_lat, prop_lng, coords[0], coords[1])
+        if d < min_dist:
+            min_dist = d
+    return min_dist
 
 
 # =============================================================================
@@ -503,20 +554,90 @@ class GoogleMapsClient:
 
         return data.get("results", [])
 
+    def _distance_matrix_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+        mode: str,
+        endpoint_name: str,
+    ) -> List[int]:
+        """Batch Distance Matrix request — shared implementation for walk/drive.
+
+        Accepts up to len(destinations) points.  Chunks into groups of 25
+        (the Google Distance Matrix per-request limit) so callers don't need
+        to worry about the cap.
+
+        Returns a list of travel times in **minutes** (int), one per
+        destination in the same order.  Unreachable destinations get 9999.
+
+        Each chunk is a single traced API call, so 50 destinations = 2 calls
+        instead of 50.
+        """
+        if not destinations:
+            return []
+
+        CHUNK_SIZE = 25
+        all_times: List[int] = []
+        origin_str = f"{origin[0]},{origin[1]}"
+        url = f"{self.base_url}/distancematrix/json"
+
+        for i in range(0, len(destinations), CHUNK_SIZE):
+            chunk = destinations[i : i + CHUNK_SIZE]
+            dest_str = "|".join(f"{d[0]},{d[1]}" for d in chunk)
+            params = {
+                "origins": origin_str,
+                "destinations": dest_str,
+                "mode": mode,
+                "key": self.api_key,
+            }
+            data = self._traced_get(endpoint_name, url, params)
+
+            if data.get("status") != "OK":
+                all_times.extend([9999] * len(chunk))
+                continue
+
+            elements = data.get("rows", [{}])[0].get("elements", [])
+            for j, dest_coord in enumerate(chunk):
+                if j < len(elements) and elements[j].get("status") == "OK":
+                    all_times.append(elements[j]["duration"]["value"] // 60)
+                else:
+                    all_times.append(9999)
+
+        return all_times
+
+    def walking_times_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+    ) -> List[int]:
+        """Batch walking times — 1 API call per 25 destinations instead of 1 each.
+
+        Example: 10 destinations = 1 API call instead of 10.
+        For >25 destinations, automatically chunks into multiple requests of 25.
+
+        Returns list of walk times in minutes (int), 9999 for unreachable.
+        Order matches the input destinations list.
+        """
+        return self._distance_matrix_batch(origin, destinations, "walking", "walking_batch")
+
+    def driving_times_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+    ) -> List[int]:
+        """Batch driving times — 1 API call per 25 destinations instead of 1 each.
+
+        Example: 10 destinations = 1 API call instead of 10.
+        For >25 destinations, automatically chunks into multiple requests of 25.
+
+        Returns list of drive times in minutes (int), 9999 for unreachable.
+        Order matches the input destinations list.
+        """
+        return self._distance_matrix_batch(origin, destinations, "driving", "driving_batch")
+
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
-        # Haversine formula
-        R = 20902231  # Earth's radius in feet
-        lat1, lon1 = math.radians(origin[0]), math.radians(origin[1])
-        lat2, lon2 = math.radians(dest[0]), math.radians(dest[1])
-        
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        
-        a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-        c = 2 * math.asin(math.sqrt(a))
-        
-        return int(R * c)
+        return _distance_feet(origin[0], origin[1], dest[0], dest[1])
 
 
 class OverpassClient:
@@ -900,6 +1021,293 @@ def check_high_volume_roads(
             result=CheckResult.UNKNOWN,
             details=f"Error checking: {str(e)}"
         )
+
+
+# =============================================================================
+# ENVIRONMENTAL HEALTH PROXIMITY CHECKS (NES-57)
+# =============================================================================
+
+def _parse_max_voltage(voltage_str: str) -> int:
+    """Parse an OSM voltage tag, returning the maximum value in volts.
+
+    The tag may be a single number (``"115000"``), semicolon-separated for
+    multi-circuit lines (``"115000;230000"``), or absent/empty.
+    Returns 0 on any parse failure so the element is excluded rather than
+    producing a false positive.
+    """
+    if not voltage_str:
+        return 0
+    max_v = 0
+    for part in voltage_str.split(";"):
+        part = part.strip()
+        try:
+            v = int(part)
+            if v > max_v:
+                max_v = v
+        except (ValueError, TypeError):
+            continue
+    return max_v
+
+
+def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, List[Dict]]]:
+    """Query Overpass for environmental health hazards near a property.
+
+    Makes a single Overpass API call through the shared rate-limited HTTP
+    layer (overpass_http) and categorises the results into four buckets:
+    power_lines, substations, cell_towers, industrial_zones.
+
+    Returns None on any failure so check functions can fall back to UNKNOWN.
+    """
+    query = f"""
+    [out:json][timeout:25];
+    (
+      way["power"="line"](around:200,{lat},{lng});
+      node["power"="substation"](around:200,{lat},{lng});
+      way["power"="substation"](around:200,{lat},{lng});
+      node["man_made"="mast"]["communication:mobile_phone"="yes"](around:200,{lat},{lng});
+      node["man_made"="tower"]["tower:type"="communication"](around:200,{lat},{lng});
+      node["man_made"="communications_tower"](around:200,{lat},{lng});
+      way["landuse"="industrial"](around:200,{lat},{lng});
+    );
+    out body;
+    >;
+    out skel qt;
+    """
+
+    try:
+        from overpass_http import (
+            OverpassQueryError as _HTTPQueryError,
+            OverpassRateLimitError as _HTTPRateLimitError,
+            overpass_query as _overpass_http_query,
+        )
+        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25)
+    except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
+        logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
+        return None
+
+    elements = data.get("elements", [])
+
+    # Build a node-ID → (lat, lon) lookup for resolving way child nodes
+    all_nodes: Dict[int, Tuple[float, float]] = {}
+    for el in elements:
+        if el.get("type") == "node" and "lat" in el and "lon" in el:
+            all_nodes[el["id"]] = (el["lat"], el["lon"])
+
+    result: Dict[str, List[Dict]] = {
+        "power_lines": [],
+        "substations": [],
+        "cell_towers": [],
+        "industrial_zones": [],
+    }
+
+    for el in elements:
+        tags = el.get("tags")
+        if not tags:
+            continue
+
+        # Power lines — high-voltage only (≥69kV)
+        if tags.get("power") == "line":
+            voltage = _parse_max_voltage(tags.get("voltage", ""))
+            if voltage >= 69000:
+                result["power_lines"].append(el)
+            continue
+
+        # Electrical substations
+        if tags.get("power") == "substation":
+            result["substations"].append(el)
+            continue
+
+        # Cell towers / communication masts
+        man_made = tags.get("man_made", "")
+        if man_made == "mast" and tags.get("communication:mobile_phone") == "yes":
+            result["cell_towers"].append(el)
+            continue
+        if man_made == "tower" and tags.get("tower:type") == "communication":
+            result["cell_towers"].append(el)
+            continue
+        if man_made == "communications_tower":
+            result["cell_towers"].append(el)
+            continue
+
+        # Industrial zones
+        if tags.get("landuse") == "industrial":
+            result["industrial_zones"].append(el)
+            continue
+
+    # Attach the node lookup so check functions can resolve way geometry
+    result["_all_nodes"] = all_nodes  # type: ignore[assignment]
+
+    return result
+
+
+def _element_distance_ft(
+    prop_lat: float, prop_lng: float, el: Dict, all_nodes: Dict[int, Tuple[float, float]]
+) -> float:
+    """Distance in feet from property to an Overpass element (node or way)."""
+    if el.get("type") == "node" and "lat" in el and "lon" in el:
+        return float(_distance_feet(prop_lat, prop_lng, el["lat"], el["lon"]))
+    if el.get("type") == "way" and "nodes" in el:
+        return _closest_distance_to_way_ft(prop_lat, prop_lng, el["nodes"], all_nodes)
+    return float("inf")
+
+
+def check_power_lines(
+    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+) -> Tier1Check:
+    """Check proximity to high-voltage transmission lines (≥69kV)."""
+    if hazard_results is None:
+        return Tier1Check(
+            name="Power lines",
+            result=CheckResult.UNKNOWN,
+            details="Unable to query environmental data",
+            required=False,
+        )
+
+    all_nodes = hazard_results.get("_all_nodes", {})
+    min_dist = float("inf")
+    for el in hazard_results.get("power_lines", []):
+        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        if d < min_dist:
+            min_dist = d
+
+    if min_dist <= POWER_LINE_WARNING_DISTANCE_FT:
+        return Tier1Check(
+            name="Power lines",
+            result=CheckResult.WARNING,
+            details=(
+                f"High-voltage transmission line (\u226569kV) detected within {round(min_dist):,} ft. "
+                "Research associates proximity to high-voltage lines with elevated EMF exposure, "
+                "though evidence is classified as moderate-contested (IARC Group 2B)."
+            ),
+            value=round(min_dist),
+            required=False,
+        )
+
+    return Tier1Check(
+        name="Power lines",
+        result=CheckResult.PASS,
+        details="No high-voltage transmission lines detected within 200 ft",
+        required=False,
+    )
+
+
+def check_substations(
+    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+) -> Tier1Check:
+    """Check proximity to electrical substations."""
+    if hazard_results is None:
+        return Tier1Check(
+            name="Electrical substation",
+            result=CheckResult.UNKNOWN,
+            details="Unable to query environmental data",
+            required=False,
+        )
+
+    all_nodes = hazard_results.get("_all_nodes", {})
+    min_dist = float("inf")
+    for el in hazard_results.get("substations", []):
+        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        if d < min_dist:
+            min_dist = d
+
+    if min_dist <= SUBSTATION_WARNING_DISTANCE_FT:
+        return Tier1Check(
+            name="Electrical substation",
+            result=CheckResult.WARNING,
+            details=(
+                f"Electrical substation detected within {round(min_dist):,} ft. "
+                "Substations concentrate electromagnetic fields from the surrounding transmission network."
+            ),
+            value=round(min_dist),
+            required=False,
+        )
+
+    return Tier1Check(
+        name="Electrical substation",
+        result=CheckResult.PASS,
+        details="No electrical substations detected within 300 ft",
+        required=False,
+    )
+
+
+def check_cell_towers(
+    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+) -> Tier1Check:
+    """Check proximity to cell/communication towers."""
+    if hazard_results is None:
+        return Tier1Check(
+            name="Cell tower",
+            result=CheckResult.UNKNOWN,
+            details="Unable to query environmental data",
+            required=False,
+        )
+
+    all_nodes = hazard_results.get("_all_nodes", {})
+    min_dist = float("inf")
+    for el in hazard_results.get("cell_towers", []):
+        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        if d < min_dist:
+            min_dist = d
+
+    if min_dist <= CELL_TOWER_WARNING_DISTANCE_FT:
+        return Tier1Check(
+            name="Cell tower",
+            result=CheckResult.WARNING,
+            details=(
+                f"Cell tower detected within {round(min_dist):,} ft. "
+                "RF exposure from cell towers is typically well below regulatory limits; "
+                "IARC classifies RF fields as Group 2B (possibly carcinogenic) based on limited evidence."
+            ),
+            value=round(min_dist),
+            required=False,
+        )
+
+    return Tier1Check(
+        name="Cell tower",
+        result=CheckResult.PASS,
+        details="No cell towers detected within 500 ft",
+        required=False,
+    )
+
+
+def check_industrial_zones(
+    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+) -> Tier1Check:
+    """Check proximity to industrial-zoned land."""
+    if hazard_results is None:
+        return Tier1Check(
+            name="Industrial zone",
+            result=CheckResult.UNKNOWN,
+            details="Unable to query environmental data",
+            required=False,
+        )
+
+    all_nodes = hazard_results.get("_all_nodes", {})
+    min_dist = float("inf")
+    for el in hazard_results.get("industrial_zones", []):
+        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        if d < min_dist:
+            min_dist = d
+
+    if min_dist <= INDUSTRIAL_ZONE_WARNING_DISTANCE_FT:
+        return Tier1Check(
+            name="Industrial zone",
+            result=CheckResult.WARNING,
+            details=(
+                f"Industrial-zoned land detected within {round(min_dist):,} ft. "
+                "Verify the nature of nearby facilities \u2014 industrial zones may include "
+                "manufacturing, warehousing, or chemical processing."
+            ),
+            value=round(min_dist),
+            required=False,
+        )
+
+    return Tier1Check(
+        name="Industrial zone",
+        result=CheckResult.PASS,
+        details="No industrial-zoned land detected within 500 ft",
+        required=False,
+    )
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -2151,8 +2559,12 @@ def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score third-place access based on third-place quality (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score third-place access based on third-place quality (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby places for the neighborhood display.
+    """
     try:
         # Search for cafes, coffee shops, and bakeries
         all_places = []
@@ -2160,12 +2572,12 @@ def score_third_place_access(
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
 
         if not all_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
-            )
+            ), [])
 
         # Filter for third-place quality
         eligible_places = []
@@ -2193,17 +2605,18 @@ def score_third_place_access(
                 eligible_places.append(place)
 
         if not eligible_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
                 details="No high-quality third places within walking distance"
-            )
+            ), [])
 
-        # Find best scoring place
+        # Find best scoring place and collect all scored places
         best_score = 0
         best_place = None
         best_walk_time = 9999
+        scored_places = []
 
         for place in eligible_places:
             place_lat = place["geometry"]["location"]["lat"]
@@ -2226,26 +2639,44 @@ def score_third_place_access(
                 best_place = place
                 best_walk_time = walk_time
 
+            scored_places.append((score, walk_time, place))
+
+        # Sort by score desc, then walk time asc; take top 5
+        scored_places.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": p.get("name", "Coffee shop"),
+                "rating": p.get("rating"),
+                "review_count": p.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": p["geometry"]["location"]["lat"],
+                "lng": p["geometry"]["location"]["lng"],
+                "place_id": p.get("place_id"),
+            }
+            for _sc, wt, p in scored_places[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
         # Format details
         name = best_place.get("name", "Third place")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
-        return Tier2Score(
+        return (Tier2Score(
             name="Third Place",
             points=best_score,
             max_points=10,
             details=details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Third Place",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def score_cost(cost: Optional[int]) -> Tier2Score:
@@ -2405,8 +2836,12 @@ def score_provisioning_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score household provisioning store access (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score household provisioning store access (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby stores for the neighborhood display.
+    """
     try:
         # Search for full-service provisioning stores
         all_stores = []
@@ -2414,12 +2849,12 @@ def score_provisioning_access(
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
 
         if not all_stores:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
-            )
+            ), [])
 
         # Filter for household provisioning quality
         eligible_stores = []
@@ -2447,17 +2882,18 @@ def score_provisioning_access(
                 eligible_stores.append(store)
 
         if not eligible_stores:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
                 details="No full-service provisioning options within walking distance"
-            )
+            ), [])
 
-        # Find best scoring store
+        # Find best scoring store and collect all scored stores
         best_score = 0
         best_store = None
         best_walk_time = 9999
+        scored_stores = []
 
         for store in eligible_stores:
             store_lat = store["geometry"]["location"]["lat"]
@@ -2480,34 +2916,56 @@ def score_provisioning_access(
                 best_store = store
                 best_walk_time = walk_time
 
+            scored_stores.append((score, walk_time, store))
+
+        # Sort by score desc, then walk time asc; take top 5
+        scored_stores.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": s.get("name", "Grocery store"),
+                "rating": s.get("rating"),
+                "review_count": s.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": s["geometry"]["location"]["lat"],
+                "lng": s["geometry"]["location"]["lng"],
+                "place_id": s.get("place_id"),
+            }
+            for _sc, wt, s in scored_stores[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
         # Format details
         name = best_store.get("name", "Provisioning store")
         rating = best_store.get("rating", 0)
         reviews = best_store.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
-        return Tier2Score(
+        return (Tier2Score(
             name="Provisioning",
             points=best_score,
             max_points=10,
             details=details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Provisioning",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def score_fitness_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tier2Score:
-    """Score fitness/wellness facility access based on rating and distance (0-10 points)"""
+) -> Tuple[Tier2Score, list]:
+    """Score fitness/wellness facility access based on rating and distance (0-10 points).
+
+    Returns (Tier2Score, places_list) where places_list contains up to 5
+    nearby facilities for the neighborhood display.
+    """
     try:
         # Search for gyms and fitness centers
         fitness_places = []
@@ -2523,17 +2981,18 @@ def score_fitness_access(
         fitness_places.extend(yoga)
 
         if not fitness_places:
-            return Tier2Score(
+            return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
-            )
+            ), [])
 
-        # Find best scored facility
+        # Find best scored facility and collect all scored facilities
         best_score = 0
         best_facility = None
         best_details = ""
+        scored_facilities = []
 
         for facility in fitness_places:
             rating = facility.get("rating", 0)
@@ -2556,28 +3015,54 @@ def score_fitness_access(
                 facility_name = facility.get("name", "Fitness center")
                 best_details = f"{facility_name} ({rating}★) — {walk_time} min walk"
 
-        if best_score == 0:
-            return Tier2Score(
+            scored_facilities.append((score, walk_time, facility))
+
+        if best_score == 0 and not scored_facilities:
+            return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
                 details="No gyms or fitness centers found within 30 min walk"
-            )
+            ), [])
 
-        return Tier2Score(
+        # Sort by score desc, then walk time asc; take top 5
+        scored_facilities.sort(key=lambda x: (-x[0], x[1]))
+        neighborhood_places = [
+            {
+                "name": f.get("name", "Fitness center"),
+                "rating": f.get("rating"),
+                "review_count": f.get("user_ratings_total", 0),
+                "walk_time_min": wt,
+                "lat": f["geometry"]["location"]["lat"],
+                "lng": f["geometry"]["location"]["lng"],
+                "place_id": f.get("place_id"),
+            }
+            for _sc, wt, f in scored_facilities[:5]
+        ]
+        neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
+        if best_score == 0:
+            return (Tier2Score(
+                name="Fitness access",
+                points=0,
+                max_points=10,
+                details="No gyms or fitness centers found within 30 min walk"
+            ), neighborhood_places)
+
+        return (Tier2Score(
             name="Fitness access",
             points=best_score,
             max_points=10,
             details=best_details
-        )
+        ), neighborhood_places)
 
     except Exception as e:
-        return Tier2Score(
+        return (Tier2Score(
             name="Fitness access",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}"
-        )
+        ), [])
 
 
 def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
@@ -2786,6 +3271,18 @@ def evaluate_property(
     result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
     result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
 
+    # Environmental health proximity checks (NES-57)
+    try:
+        env_hazards = _query_environmental_hazards(lat, lng)
+    except Exception as e:
+        logger.warning("Environmental hazard query failed: %s", e)
+        env_hazards = None
+
+    result.tier1_checks.append(check_power_lines(env_hazards, lat, lng))
+    result.tier1_checks.append(check_substations(env_hazards, lat, lng))
+    result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
+    result.tier1_checks.append(check_industrial_zones(env_hazards, lat, lng))
+
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
 
@@ -2812,12 +3309,18 @@ def evaluate_property(
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        result.tier2_scores.append(
-            _timed_stage("score_third_place", score_third_place_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _timed_stage("score_provisioning", score_provisioning_access, maps, lat, lng))
-        result.tier2_scores.append(
-            _timed_stage("score_fitness", score_fitness_access, maps, lat, lng))
+        _coffee_score, _coffee_places = _timed_stage(
+            "score_third_place", score_third_place_access, maps, lat, lng)
+        result.tier2_scores.append(_coffee_score)
+
+        _grocery_score, _grocery_places = _timed_stage(
+            "score_provisioning", score_provisioning_access, maps, lat, lng)
+        result.tier2_scores.append(_grocery_score)
+
+        _fitness_score, _fitness_places = _timed_stage(
+            "score_fitness", score_fitness_access, maps, lat, lng)
+        result.tier2_scores.append(_fitness_score)
+
         result.tier2_scores.append(score_cost(listing.cost))
         # Pass pre-computed urban_access data to avoid redundant
         # find_primary_transit / determine_major_hub API calls.
@@ -2831,6 +3334,32 @@ def evaluate_property(
                 pre_major_hub=_ua.major_hub if _ua else None,
             )
         )
+
+        # Assemble neighborhood places from scoring + green escape parks
+        _park_places = []
+        if result.green_escape_evaluation:
+            _all_parks = []
+            if result.green_escape_evaluation.best_daily_park:
+                _all_parks.append(result.green_escape_evaluation.best_daily_park)
+            _all_parks.extend(result.green_escape_evaluation.nearby_green_spaces)
+            for gs in _all_parks[:5]:
+                _park_places.append({
+                    "name": gs.name,
+                    "rating": gs.rating,
+                    "review_count": gs.user_ratings_total,
+                    "walk_time_min": gs.walk_time_min,
+                    "lat": gs.lat,
+                    "lng": gs.lng,
+                    "place_id": gs.place_id,
+                })
+            _park_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
+        result.neighborhood_places = {
+            "coffee": _coffee_places,
+            "grocery": _grocery_places,
+            "fitness": _fitness_places,
+            "parks": _park_places,
+        }
 
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
@@ -2883,7 +3412,7 @@ def format_result(result: EvaluationResult) -> str:
     # Tier 1
     lines.append("\nTIER 1 CHECKS:")
     for check in result.tier1_checks:
-        symbol = "✓" if check.result == CheckResult.PASS else "✗" if check.result == CheckResult.FAIL else "?"
+        symbol = "✓" if check.result == CheckResult.PASS else "✗" if check.result == CheckResult.FAIL else "⚠" if check.result == CheckResult.WARNING else "?"
         lines.append(f"  {symbol} {check.name}: {check.result.value} — {check.details}")
     
     if not result.passed_tier1:

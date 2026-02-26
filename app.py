@@ -166,6 +166,92 @@ def generate_verdict(result_dict):
 
 
 # ---------------------------------------------------------------------------
+# Presentation helpers
+# ---------------------------------------------------------------------------
+
+_SAFETY_CHECK_NAMES = {
+    "Gas station", "Highway", "High-volume road",
+    "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+}
+
+_CLEAR_HEADLINES = {
+    "Gas station": "No gas stations within 500 ft",
+    "Highway": "No highways or major parkways nearby",
+    "High-volume road": "No high-volume roads nearby",
+    "Power lines": "No high-voltage transmission lines within 200 ft",
+    "Electrical substation": "No electrical substations within 300 ft",
+    "Cell tower": "No cell towers within 500 ft",
+    "Industrial zone": "No industrial-zoned land within 500 ft",
+}
+
+_ISSUE_HEADLINES = {
+    "Gas station": "Gas station within proximity threshold",
+    "Highway": "Highway or major parkway nearby",
+    "High-volume road": "High-volume road nearby",
+    "Power lines": "High-voltage transmission line detected nearby",
+    "Electrical substation": "Electrical substation detected nearby",
+    "Cell tower": "Cell tower detected nearby",
+    "Industrial zone": "Industrial-zoned land detected nearby",
+}
+
+_WARNING_HEADLINES = {
+    "Power lines": "High-voltage transmission line detected nearby",
+    "Electrical substation": "Electrical substation detected nearby",
+    "Cell tower": "Cell tower detected nearby",
+    "Industrial zone": "Industrial-zoned land detected nearby",
+}
+
+
+def present_checks(tier1_checks):
+    """Convert raw tier1_check dicts into presentation-layer dicts.
+
+    Each check gets category, result_type, proximity_band, headline,
+    and explanation fields used by the template to render individual
+    items in the Proximity & Environment section.
+    """
+    presented = []
+    for check in tier1_checks:
+        name = check["name"]
+        result = check["result"]  # "PASS", "FAIL", "WARNING", or "UNKNOWN"
+        details = check.get("details", "")
+
+        category = "SAFETY" if name in _SAFETY_CHECK_NAMES else "LIFESTYLE"
+
+        if result == "PASS":
+            result_type = "CLEAR"
+            proximity_band = "NEUTRAL"
+            headline = _CLEAR_HEADLINES.get(name, f"{name} — Clear")
+            explanation = None
+        elif result == "FAIL":
+            result_type = "CONFIRMED_ISSUE"
+            proximity_band = "VERY_CLOSE"
+            headline = _ISSUE_HEADLINES.get(name, f"{name} — Concern detected")
+            explanation = details
+        elif result == "WARNING":
+            result_type = "WARNING_DETECTED"
+            proximity_band = "NOTABLE"
+            headline = _WARNING_HEADLINES.get(name, f"{name} — Warning detected")
+            explanation = details
+        else:
+            result_type = "VERIFICATION_NEEDED"
+            proximity_band = "NOTABLE"
+            headline = f"{name} — Unable to verify"
+            explanation = details
+
+        presented.append({
+            "name": name,
+            "result": result,
+            "category": category,
+            "result_type": result_type,
+            "proximity_band": proximity_band,
+            "headline": headline,
+            "explanation": explanation,
+        })
+
+    return presented
+
+
+# ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
 
@@ -182,6 +268,7 @@ def _serialize_green_escape(evaluation):
             "rating": p.rating,
             "user_ratings_total": p.user_ratings_total,
             "walk_time_min": p.walk_time_min,
+            "drive_time_min": p.drive_time_min,
             "types_display": p.types_display,
             "daily_walk_value": p.daily_walk_value,
             "criteria_status": p.criteria_status,
@@ -211,6 +298,7 @@ def _serialize_green_escape(evaluation):
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
+            "drive_time_min": s.drive_time_min,
             "daily_walk_value": s.daily_walk_value,
             "criteria_status": s.criteria_status,
             "criteria_reasons": s.criteria_reasons,
@@ -332,6 +420,10 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
+    # Neighborhood places — already plain dicts, pass through as-is
+    output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
+    output["presented_checks"] = present_checks(output["tier1_checks"])
     output["verdict"] = generate_verdict(output)
     return output
 
@@ -468,12 +560,14 @@ def index():
                 )
                 trace_ctx.log_summary()
                 if _wants_json():
-                    return jsonify({
+                    resp = {
                         "snapshot_id": snapshot_id,
                         "redirect_url": f"/s/{snapshot_id}",
-                        "trace_id": request_id,
-                        "trace_summary": trace_summary,
-                    })
+                    }
+                    if g.is_builder:
+                        resp["trace_id"] = request_id
+                        resp["trace_summary"] = trace_summary
+                    return jsonify(resp)
                 return redirect(url_for("view_snapshot", snapshot_id=snapshot_id))
 
             if not place_id:
@@ -497,7 +591,8 @@ def index():
                 or address
             )
             trace_summary = trace_ctx.summary_dict()
-            result["_trace"] = trace_summary
+            if g.is_builder:
+                result["_trace"] = trace_summary
             if place_id:
                 try:
                     snapshot_id = save_snapshot_for_place(
@@ -544,12 +639,14 @@ def index():
 
             # Return JSON for fetch-based clients, HTML for traditional form POST
             if _wants_json():
-                return jsonify({
+                resp = {
                     "snapshot_id": snapshot_id,
                     "redirect_url": f"/s/{snapshot_id}",
-                    "trace_id": request_id,
-                    "trace_summary": trace_summary,
-                })
+                }
+                if g.is_builder:
+                    resp["trace_id"] = request_id
+                    resp["trace_summary"] = trace_summary
+                return jsonify(resp)
 
         except Exception as e:
             trace_ctx.log_summary()
@@ -573,11 +670,13 @@ def index():
                 "traceback": traceback.format_exc(),
             }
             if _wants_json():
-                return jsonify({
+                resp = {
                     "error": error,
                     "request_id": request_id,
-                    "trace_summary": trace_ctx.summary_dict(),
-                }), 500
+                }
+                if g.is_builder:
+                    resp["trace_summary"] = trace_ctx.summary_dict()
+                return jsonify(resp), 500
         finally:
             clear_trace()
 
@@ -601,10 +700,17 @@ def view_snapshot(snapshot_id):
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
+    # Backfill presented_checks for old snapshots
+    result = snapshot["result"]
+    if "presented_checks" not in result:
+        result["presented_checks"] = present_checks(
+            result.get("tier1_checks", [])
+        )
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
-        result=snapshot["result"],
+        result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
     )
@@ -617,6 +723,10 @@ def export_snapshot_json(snapshot_id):
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
+    result = snapshot["result"]
+    if not g.is_builder:
+        result = {k: v for k, v in result.items() if k != "_trace"}
+
     export = {
         "snapshot_id": snapshot_id,
         "address_input": snapshot["address_input"],
@@ -625,7 +735,7 @@ def export_snapshot_json(snapshot_id):
         "verdict": snapshot["verdict"],
         "final_score": snapshot["final_score"],
         "passed_tier1": bool(snapshot["passed_tier1"]),
-        "result": snapshot["result"],
+        "result": result,
     }
     return jsonify(export)
 

@@ -10,7 +10,6 @@
 
 /* --- Share Bar (snapshot variant) --- */
 .share-bar {
-  margin: var(--space-5) auto 0;
   justify-content: space-between;
 }
 .snapshot-meta {

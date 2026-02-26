@@ -4,7 +4,8 @@
 {# up to 4 snapshot IDs, syncs with page-level buttons/checkboxes.   #}
 {# ================================================================== #}
 
-<div id="compareTray" class="compare-tray" style="display:none">
+<span id="compareTrayAnnouncer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
+<div id="compareTray" class="compare-tray" style="display:none" role="region" aria-label="Address comparison tray" aria-hidden="true">
   <div class="compare-tray__inner">
     <div class="compare-tray__list" id="compareTrayList"></div>
     <div class="compare-tray__actions">
@@ -142,15 +143,41 @@ body.compare-tray-visible {
     catch(e) {}
   }
 
+  function normalizeAddress(addr) {
+    return (addr || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  function announceTrayUpdate(msg) {
+    var el = document.getElementById('compareTrayAnnouncer');
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(function() { el.textContent = ''; }, 2000);
+  }
+
   function addToCompare(id, address) {
     var list = getCompareList();
-    if (list.length >= MAX_ITEMS) return false;
+    // Already in list by ID — nothing to do
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) return false;
     }
+    // Dedupe by address: replace older snapshot for the same address
+    var norm = normalizeAddress(address);
+    if (norm) {
+      for (var i = 0; i < list.length; i++) {
+        if (normalizeAddress(list[i].address) === norm) {
+          list[i] = {id: id, address: address};
+          saveCompareList(list);
+          renderTray();
+          announceTrayUpdate('Address added to comparison');
+          return true;
+        }
+      }
+    }
+    if (list.length >= MAX_ITEMS) return false;
     list.push({id: id, address: address});
     saveCompareList(list);
     renderTray();
+    announceTrayUpdate('Address added to comparison');
     return true;
   }
 
@@ -162,17 +189,42 @@ body.compare-tray-visible {
     }
     saveCompareList(newList);
     renderTray();
+    announceTrayUpdate('Address removed from comparison');
+  }
+
+  function removeFromCompareByAddress(address) {
+    var norm = normalizeAddress(address);
+    if (!norm) return;
+    var list = getCompareList();
+    var newList = [];
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAddress(list[i].address) !== norm) newList.push(list[i]);
+    }
+    saveCompareList(newList);
+    renderTray();
+    announceTrayUpdate('Address removed from comparison');
   }
 
   function clearCompare() {
     saveCompareList([]);
     renderTray();
+    announceTrayUpdate('Comparison cleared');
   }
 
   function isInCompare(id) {
     var list = getCompareList();
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) return true;
+    }
+    return false;
+  }
+
+  function isAddressInCompare(address) {
+    var norm = normalizeAddress(address);
+    if (!norm) return false;
+    var list = getCompareList();
+    for (var i = 0; i < list.length; i++) {
+      if (normalizeAddress(list[i].address) === norm) return true;
     }
     return false;
   }
@@ -197,12 +249,14 @@ body.compare-tray-visible {
 
     if (list.length === 0) {
       tray.style.display = 'none';
+      tray.setAttribute('aria-hidden', 'true');
       document.body.classList.remove('compare-tray-visible');
       updatePageButtons();
       return;
     }
 
     tray.style.display = '';
+    tray.setAttribute('aria-hidden', 'false');
     document.body.classList.add('compare-tray-visible');
 
     // Build item chips
@@ -213,7 +267,7 @@ body.compare-tray-visible {
       var truncated = addr.length > 30 ? addr.substring(0, 30) + '\u2026' : addr;
       html += '<span class="compare-tray__item">' +
         '<span class="compare-tray__item-address" title="' + escapeAttr(addr) + '">' + escapeHtml(truncated) + '</span>' +
-        '<button class="compare-tray__item-remove" data-id="' + escapeAttr(list[i].id) + '" title="Remove">&times;</button>' +
+        '<button class="compare-tray__item-remove" data-id="' + escapeAttr(list[i].id) + '" title="Remove" aria-label="Remove ' + escapeAttr(addr) + ' from comparison">&times;</button>' +
         '</span>';
     }
     listEl.innerHTML = html;
@@ -230,9 +284,11 @@ body.compare-tray-visible {
     if (list.length >= 2) {
       btn.disabled = false;
       btn.textContent = 'Compare now (' + list.length + ')';
+      btn.setAttribute('aria-label', 'Compare now (' + list.length + ')');
     } else {
       btn.disabled = true;
       btn.textContent = 'Compare now';
+      btn.setAttribute('aria-label', 'Compare now');
     }
 
     updatePageButtons();
@@ -244,7 +300,7 @@ body.compare-tray-visible {
     if (addBtn) {
       var sid = addBtn.dataset.snapshotId;
       var list = getCompareList();
-      if (isInCompare(sid)) {
+      if (isInCompare(sid) || isAddressInCompare(addBtn.dataset.snapshotAddress)) {
         addBtn.textContent = 'Remove from comparison';
         addBtn.classList.add('compare-btn--remove');
         addBtn.classList.remove('compare-btn--full');
@@ -324,6 +380,8 @@ body.compare-tray-visible {
       var address = this.dataset.snapshotAddress;
       if (isInCompare(sid)) {
         removeFromCompare(sid);
+      } else if (isAddressInCompare(address)) {
+        removeFromCompareByAddress(address);
       } else {
         addToCompare(sid, address);
       }

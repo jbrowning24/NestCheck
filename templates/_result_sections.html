@@ -112,7 +112,7 @@
         Every evaluation helps narrow the search — share to keep everyone in the loop.
       {% endif %}
     </div>
-    <button class="share-btn" onclick="(typeof nativeShare==='function' && navigator.share ? nativeShare : copyShareLink)(this)">
+    <button class="share-btn" onclick="(typeof nativeShare==='function' && navigator.share ? nativeShare : copyShareLink)(this)" aria-label="Share this report">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       Share this report
     </button>
@@ -594,6 +594,8 @@
               <span class="proximity-icon proximity-icon-clear">&#10003;</span>
             {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
               <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+            {%- elif pc.result_type == "WARNING_DETECTED" -%}
+              <span class="proximity-icon proximity-icon-warning">&#9888;</span>
             {%- else -%}
               <span class="proximity-icon proximity-icon-unverified">?</span>
             {%- endif %}
@@ -648,7 +650,7 @@
         <div class="proximity-detail road-noise-detail">
           Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
         </div>
-        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)">
+        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
           <span class="collapse-icon road-noise-label">&#9654;</span>
           <span class="road-noise-label">About the estimate</span>
         </div>
@@ -692,7 +694,7 @@
         <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
           Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
         </div>
-        <div class="collapsible-toggle" onclick="toggleSection(this)">
+        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
           <span class="collapse-icon">&#9654;</span>
           <span>About this metric</span>
         </div>
@@ -792,7 +794,7 @@
   {# ── 7. HOW WE SCORE — full report only ─────────────────── #}
   {% if not is_preview %}
   <div id="how-we-score" class="report-section">
-    <div class="collapsible-toggle" onclick="toggleSection(this)">
+    <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
       <h2>How We Score</h2>
       <span class="collapse-icon">&#9654;</span>
     </div>
@@ -852,20 +854,21 @@
     </div>
     {% endif %}
     <div class="share-actions">
-      <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()">
+      <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()" aria-label="Share this report">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         <span>Share</span>
       </button>
-      <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)">
+      <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)" aria-label="Copy report link to clipboard">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
         <span id="shareBtnText">Copy share link</span>
       </button>
-      <button class="share-btn share-btn--secondary" onclick="window.print()">
+      <button class="share-btn share-btn--secondary" onclick="window.print()" aria-label="Save report as PDF">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Save as PDF
       </button>
       <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
       <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
+      <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
       {% if compare_index is not defined %}
       <button class="share-btn share-btn--secondary" id="compareAddBtn"
               data-snapshot-id="{{ snapshot_id | e }}"
