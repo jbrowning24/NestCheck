@@ -132,6 +132,14 @@ SUPPORTING_GREEN_SPACE_TYPES = {"park", "playground"}
 
 
 # =============================================================================
+# EXCEPTIONS
+# =============================================================================
+
+class OverpassUnavailableError(Exception):
+    """Raised when the Overpass API is temporarily unreachable or returns errors."""
+
+
+# =============================================================================
 # DATA CLASSES
 # =============================================================================
 
@@ -647,21 +655,39 @@ class OverpassClient:
         self.session = requests.Session()
         self.session.trust_env = False
 
+    MAX_RETRIES = 2
+
     def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
-        """POST request with automatic trace recording."""
-        t0 = time.time()
-        response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
-        elapsed_ms = int((time.time() - t0) * 1000)
-        data = response.json()
-        trace = get_trace()
-        if trace:
-            trace.record_api_call(
-                service="overpass",
-                endpoint=endpoint_name,
-                elapsed_ms=elapsed_ms,
-                status_code=response.status_code,
-            )
-        return data
+        """POST request with automatic trace recording and retry on transient errors."""
+        last_exc: Optional[Exception] = None
+        for attempt in range(1 + self.MAX_RETRIES):
+            try:
+                t0 = time.time()
+                response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
+                elapsed_ms = int((time.time() - t0) * 1000)
+                trace = get_trace()
+                if trace:
+                    trace.record_api_call(
+                        service="overpass",
+                        endpoint=endpoint_name,
+                        elapsed_ms=elapsed_ms,
+                        status_code=response.status_code,
+                    )
+                if response.status_code == 429 or response.status_code >= 500:
+                    raise requests.HTTPError(
+                        f"Overpass returned HTTP {response.status_code}", response=response
+                    )
+                response.raise_for_status()
+                data = response.json()
+                return data
+            except (requests.RequestException, ValueError) as exc:
+                last_exc = exc
+                if attempt < self.MAX_RETRIES:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+        raise OverpassUnavailableError(
+            "Road-data service temporarily unavailable"
+        ) from last_exc
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
@@ -921,30 +947,37 @@ def check_gas_stations(
                 value=min_distance
             )
     except Exception as e:
+        logger.warning("Gas station check failed: %s", e)
         return Tier1Check(
             name="Gas station",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Could not reach mapping service to verify this check"
         )
 
 
 def check_highways(
     maps: GoogleMapsClient,
     overpass: OverpassClient,
-    lat: float, 
-    lng: float
+    lat: float,
+    lng: float,
+    roads: Optional[List[Dict]] = None,
 ) -> Tier1Check:
-    """Check distance to highways and major parkways"""
+    """Check distance to highways and major parkways.
+
+    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
+    a duplicate API call when the same data is needed by
+    ``check_high_volume_roads`` too.
+    """
     try:
-        # Use Overpass to find major roads nearby
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
-        
+        if roads is None:
+            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+
         # Filter for highways (motorway, trunk)
         highways_nearby = [
-            r for r in roads 
+            r for r in roads
             if r["highway_type"] in ["motorway", "trunk"]
         ]
-        
+
         if not highways_nearby:
             return Tier1Check(
                 name="Highway",
@@ -952,7 +985,7 @@ def check_highways(
                 details="No highways within 500 feet",
                 value=None
             )
-        
+
         # Found highways nearby - this is a fail
         highway_names = [r["name"] or r["ref"] or "Unnamed highway" for r in highways_nearby]
         return Tier1Check(
@@ -961,23 +994,36 @@ def check_highways(
             details=f"TOO CLOSE to: {', '.join(set(highway_names))}",
             value=0
         )
-        
-    except Exception as e:
+
+    except OverpassUnavailableError:
         return Tier1Check(
             name="Highway",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Road-data service temporarily unavailable; please try again shortly"
+        )
+    except Exception as e:
+        logger.warning("Highway check failed: %s", e)
+        return Tier1Check(
+            name="Highway",
+            result=CheckResult.UNKNOWN,
+            details="Could not reach road-data service to verify this check"
         )
 
 
 def check_high_volume_roads(
     overpass: OverpassClient,
     lat: float,
-    lng: float
+    lng: float,
+    roads: Optional[List[Dict]] = None,
 ) -> Tier1Check:
-    """Check distance to high-volume roads (4+ lanes or primary/secondary classification)"""
+    """Check distance to high-volume roads (4+ lanes or primary/secondary classification).
+
+    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
+    a duplicate API call.
+    """
     try:
-        roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+        if roads is None:
+            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
 
         problem_roads = []
         for road in roads:
@@ -996,7 +1042,7 @@ def check_high_volume_roads(
 
             if has_many_lanes or is_primary:
                 problem_roads.append(road.get("name") or road.get("ref") or "Unnamed road")
-        
+
         if not problem_roads:
             return Tier1Check(
                 name="High-volume road",
@@ -1004,19 +1050,26 @@ def check_high_volume_roads(
                 details="No high-volume roads within 500 feet",
                 value=None
             )
-        
+
         return Tier1Check(
             name="High-volume road",
             result=CheckResult.FAIL,
             details=f"TOO CLOSE to: {', '.join(set(problem_roads))}",
             value=0
         )
-        
-    except Exception as e:
+
+    except OverpassUnavailableError:
         return Tier1Check(
             name="High-volume road",
             result=CheckResult.UNKNOWN,
-            details=f"Error checking: {str(e)}"
+            details="Road-data service temporarily unavailable; please try again shortly"
+        )
+    except Exception as e:
+        logger.warning("High-volume road check failed: %s", e)
+        return Tier1Check(
+            name="High-volume road",
+            result=CheckResult.UNKNOWN,
+            details="Could not reach road-data service to verify this check"
         )
 
 
@@ -3271,8 +3324,27 @@ def evaluate_property(
 
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
-    result.tier1_checks.append(check_highways(maps, overpass, lat, lng))
-    result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng))
+
+    # Fetch road data once for both highway + high-volume road checks
+    _nearby_roads: Optional[List[Dict]] = None
+    _road_fetch_error: Optional[str] = None
+    try:
+        _nearby_roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+    except OverpassUnavailableError:
+        logger.warning("Overpass road query unavailable")
+        _road_fetch_error = "Road-data service temporarily unavailable; please try again shortly"
+    except Exception as exc:
+        logger.warning("Overpass road query failed: %s", exc)
+        _road_fetch_error = "Could not reach road-data service to verify this check"
+
+    if _road_fetch_error:
+        result.tier1_checks.append(Tier1Check(
+            name="Highway", result=CheckResult.UNKNOWN, details=_road_fetch_error))
+        result.tier1_checks.append(Tier1Check(
+            name="High-volume road", result=CheckResult.UNKNOWN, details=_road_fetch_error))
+    else:
+        result.tier1_checks.append(check_highways(maps, overpass, lat, lng, roads=_nearby_roads))
+        result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng, roads=_nearby_roads))
 
     # Environmental health proximity checks (NES-57)
     try:
