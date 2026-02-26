@@ -860,8 +860,18 @@ def compare():
         return redirect(url_for("index"))
 
     snapshots = get_snapshots_by_ids(deduped_ids)
+    missing_count = len(deduped_ids) - len(snapshots)
+    if missing_count > 0:
+        logger.warning(
+            "Compare: %d of %d snapshot IDs not found (stale localStorage?)",
+            missing_count, len(deduped_ids),
+        )
     if len(snapshots) < 2:
-        flash("Could not load enough snapshots", "error")
+        flash(
+            "Some saved addresses are no longer available. "
+            "Please re-evaluate them and add to comparison again.",
+            "error",
+        )
         return redirect(url_for("index"))
 
     evaluations = []
@@ -894,6 +904,29 @@ def compare():
         top_score=top_score,
         top_score_unique=top_score_unique,
     )
+
+
+@app.route("/api/snapshots/check", methods=["POST"])
+def check_snapshots():
+    """Validate which snapshot IDs still exist in the database.
+
+    Accepts JSON body: {"ids": ["abc", "def", ...]}
+    Returns: {"valid": ["abc"], "invalid": ["def"]}
+    """
+    data = request.get_json(silent=True) or {}
+    ids = data.get("ids", [])
+    if not isinstance(ids, list) or len(ids) > 10:
+        return jsonify({"error": "ids must be a list of up to 10 strings"}), 400
+    ids = [str(i).strip() for i in ids if isinstance(i, str) and i.strip()]
+    if not ids:
+        return jsonify({"valid": [], "invalid": []})
+
+    existing = get_snapshots_by_ids(ids)
+    found_ids = {s["snapshot_id"] for s in existing}
+    return jsonify({
+        "valid": [i for i in ids if i in found_ids],
+        "invalid": [i for i in ids if i not in found_ids],
+    })
 
 
 @app.route("/api/event", methods=["POST"])

@@ -1,5 +1,6 @@
 """Tests for the /compare route — side-by-side comparison of 2-4 snapshots."""
 
+import json
 import pytest
 
 from models import save_snapshot
@@ -73,12 +74,12 @@ class TestCompareRoute:
         body = resp.data.decode()
         assert "You can compare up to four" in body
 
-    def test_compare_one_valid_one_invalid_renders_valid(self, client, two_snapshots):
+    def test_compare_one_valid_one_invalid_redirects(self, client, two_snapshots):
         id1, _ = two_snapshots
         resp = client.get(f"/compare?ids={id1},nonexistent999", follow_redirects=True)
         # Only one valid — should redirect (need at least 2)
         body = resp.data.decode()
-        assert "Could not load enough snapshots" in body
+        assert "no longer available" in body
 
     def test_compare_deduplicates_ids(self, client, two_snapshots):
         id1, id2 = two_snapshots
@@ -89,3 +90,66 @@ class TestCompareRoute:
         # Should show 2 evaluations (deduped) — both addresses appear once each
         assert "123 First St" in body
         assert "456 Second Ave" in body
+
+    def test_compare_all_stale_ids_shows_helpful_error(self, client):
+        """When all IDs in the compare list are stale (DB wiped), show actionable message."""
+        resp = client.get("/compare?ids=gone1,gone2", follow_redirects=True)
+        body = resp.data.decode()
+        assert "no longer available" in body
+        assert "re-evaluate" in body
+
+    def test_compare_two_valid_one_stale_still_works(self, client, two_snapshots):
+        """If one ID is stale but two are valid, comparison should still render."""
+        id1, id2 = two_snapshots
+        resp = client.get(f"/compare?ids={id1},{id2},gone999")
+        assert resp.status_code == 200
+        body = resp.data.decode()
+        assert "Compare Addresses" in body
+        assert "123 First St" in body
+        assert "456 Second Ave" in body
+
+
+class TestCheckSnapshotsAPI:
+    """Tests for /api/snapshots/check — client-side ID validation."""
+
+    def test_check_returns_valid_and_invalid(self, client, two_snapshots):
+        id1, id2 = two_snapshots
+        resp = client.post(
+            "/api/snapshots/check",
+            data=json.dumps({"ids": [id1, "nonexistent", id2]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert set(data["valid"]) == {id1, id2}
+        assert data["invalid"] == ["nonexistent"]
+
+    def test_check_all_stale(self, client):
+        resp = client.post(
+            "/api/snapshots/check",
+            data=json.dumps({"ids": ["gone1", "gone2"]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["valid"] == []
+        assert set(data["invalid"]) == {"gone1", "gone2"}
+
+    def test_check_empty_list(self, client):
+        resp = client.post(
+            "/api/snapshots/check",
+            data=json.dumps({"ids": []}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["valid"] == []
+        assert data["invalid"] == []
+
+    def test_check_rejects_oversized_list(self, client):
+        resp = client.post(
+            "/api/snapshots/check",
+            data=json.dumps({"ids": [f"id{i}" for i in range(11)]}),
+            content_type="application/json",
+        )
+        assert resp.status_code == 400
