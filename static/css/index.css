@@ -171,6 +171,59 @@
   color: var(--color-text-inverse);
 }
 
+/* --- What We Evaluate --- */
+.whats-included {
+  max-width: 680px;
+  margin: var(--space-2xl) auto 0;
+  padding: 0 var(--space-lg);
+}
+.whats-included__title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+.whats-included__subtitle {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+  line-height: var(--line-height-normal);
+}
+.whats-included__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+.dimension-card {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+.dimension-card__icon {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-sm);
+}
+.dimension-card__title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-xs);
+  color: var(--color-text-primary);
+}
+.dimension-card__desc {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+.dimension-card--safety {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  grid-column: 1 / -1;
+}
+
 /* --- Why Block --- */
 .why-block {
   max-width: 560px;
@@ -541,6 +594,9 @@
   }
   .hero .tagline {
     margin-bottom: var(--space-xl);
+  }
+  .whats-included__grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   .features {
     grid-template-columns: repeat(2, 1fr);

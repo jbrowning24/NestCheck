@@ -56,7 +56,6 @@ nav a.nav-link {
   transition: color var(--transition-fast);
 }
 nav a.nav-link:hover { color: var(--color-text-inverse); }
-nav a.nav-link--builder { color: var(--color-builder-accent); }
 
 /* --- Footer --- */
 footer {

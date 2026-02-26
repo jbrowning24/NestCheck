@@ -40,7 +40,7 @@
 
 {% block nav_links %}
   {% if is_builder %}
-    <a href="/builder/dashboard" class="nav-link nav-link--builder">Dashboard</a>
+    <a href="/builder/dashboard" class="nav-link">Dashboard</a>
   {% endif %}
 {% endblock %}
 
@@ -95,6 +95,13 @@
         <label for="address-input" class="sr-only">Street address to evaluate</label>
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
 
+        <div class="email-gate" id="emailGate">
+          <label for="email-input" class="sr-only">Email address (optional)</label>
+          <input type="email" name="email" id="email-input" placeholder="Your email (optional) — to access your report later">
+          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
+        </div>
+        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
+
         {# Persona selector — scoring lens (NES-133) #}
         <div class="persona-selector" id="personaSelector">
           <label class="persona-label">Scoring lens:</label>
@@ -117,16 +124,52 @@
             </label>
           </div>
         </div>
-
-        <div class="email-gate" id="emailGate">
-          <label for="email-input" class="sr-only">Email address</label>
-          <input type="email" name="email" id="email-input" placeholder="Your email — to access your report later" required>
-          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
-        </div>
-        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
       </div>
     </form>
   </div>
+
+  <section class="whats-included">
+    <h2 class="whats-included__title">What we evaluate</h2>
+    <p class="whats-included__subtitle">Every address is scored across six dimensions, using public data from Google Maps, OpenStreetMap, and federal environmental databases.</p>
+
+    <div class="whats-included__grid">
+      <div class="dimension-card" data-dimension="parks">
+        <div class="dimension-card__icon">🌳</div>
+        <h3 class="dimension-card__title">Parks & Green Space</h3>
+        <p class="dimension-card__desc">Walking distance to a quality park — we look for trails, shade, playgrounds, and size, not just proximity.</p>
+      </div>
+
+      <div class="dimension-card" data-dimension="third-place">
+        <div class="dimension-card__icon">☕</div>
+        <h3 class="dimension-card__title">Coffee & Social Spots</h3>
+        <p class="dimension-card__desc">Your nearest high-rated cafe or bakery — a third place for working, reading, or meeting people.</p>
+      </div>
+
+      <div class="dimension-card" data-dimension="provisioning">
+        <div class="dimension-card__icon">🛒</div>
+        <h3 class="dimension-card__title">Daily Essentials</h3>
+        <p class="dimension-card__desc">Walking distance to a well-reviewed grocery store with real selection.</p>
+      </div>
+
+      <div class="dimension-card" data-dimension="fitness">
+        <div class="dimension-card__icon">💪</div>
+        <h3 class="dimension-card__title">Fitness & Recreation</h3>
+        <p class="dimension-card__desc">Nearest quality gym or fitness center — rated by reviews and distance.</p>
+      </div>
+
+      <div class="dimension-card" data-dimension="transit">
+        <div class="dimension-card__icon">🚇</div>
+        <h3 class="dimension-card__title">Getting Around</h3>
+        <p class="dimension-card__desc">Rail station proximity, service frequency, and travel time to city hubs.</p>
+      </div>
+
+      <div class="dimension-card dimension-card--safety" data-dimension="safety">
+        <div class="dimension-card__icon">🛡️</div>
+        <h3 class="dimension-card__title">Health & Safety Proximity</h3>
+        <p class="dimension-card__desc">We flag what listings won't — nearby highways, gas stations, flood zones, and environmental hazards. These are pass/fail, not traded off against other scores.</p>
+      </div>
+    </div>
+  </section>
 
   <div class="why-block">
     <p><strong>Listings show rooms and photos.</strong> They don't tell you if you can walk to a good park, how far the highway is, or whether there's a decent grocery nearby.</p>
@@ -500,14 +543,8 @@
       var address = form.querySelector('input[name="address"]').value.trim();
       if (!address) return;
 
-      // Email always required for snapshot ownership / My Reports.
       var emailInput = document.getElementById('email-input');
       var email = emailInput ? emailInput.value.trim() : '';
-      if (emailInput && !email) {
-        emailInput.focus();
-        emailInput.reportValidity();
-        return;
-      }
       submitEvaluation(address, null, email);
     });
 
