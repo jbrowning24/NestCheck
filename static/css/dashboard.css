@@ -161,8 +161,8 @@
 }
 
 .badge-return {
-  background: #F5F3FF;
-  color: #6D28D9;
+  background: rgba(109, 40, 217, 0.08);
+  color: var(--color-text-muted);
 }
 
 .badge-error {
@@ -223,12 +223,9 @@
     font-size: var(--font-size-h2);
   }
 
-  .dashboard-card {
-    border-radius: var(--radius-md);
-  }
-
   /* Make tables scroll horizontally on small screens */
   .dashboard-card {
+    border-radius: var(--radius-md);
     overflow-x: auto;
   }
 
