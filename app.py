@@ -185,7 +185,7 @@ def generate_structured_summary(presented_checks):
     if not safety_issues:
         return ""
 
-    issue_names = [pc["headline"] for pc in safety_issues]
+    issue_names = [pc.get("headline", pc.get("name", "Unknown check")) for pc in safety_issues]
 
     count = len(issue_names)
     concern_word = "concern" if count == 1 else "concerns"

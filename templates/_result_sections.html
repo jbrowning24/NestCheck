@@ -59,11 +59,13 @@
         <span class="verdict-failed-score-label">safety checks clear</span>
       </div>
       {% endif %}
+      {% if all_safety %}
       <div class="verdict-failed-explanation">
         NestCheck runs {{ all_safety | length }} proximity checks for environmental and health hazards.
         Addresses must pass all safety checks before walkability, amenities, and lifestyle scoring can proceed.
         See the detailed results below.
       </div>
+      {% endif %}
     </div>
     {% endif %}
 
