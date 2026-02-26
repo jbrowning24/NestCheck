@@ -73,6 +73,26 @@ def init_db():
             summary_json  TEXT NOT NULL,
             created_at    TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS evaluation_jobs (
+            job_id          TEXT PRIMARY KEY,
+            address         TEXT NOT NULL,
+            status          TEXT NOT NULL DEFAULT 'queued',
+            current_stage   TEXT,
+            snapshot_id     TEXT,
+            error           TEXT,
+            visitor_id      TEXT,
+            request_id      TEXT,
+            place_id        TEXT,
+            email_hash      TEXT,
+            persona         TEXT,
+            email_raw       TEXT,
+            created_at      TEXT NOT NULL,
+            started_at      TEXT,
+            completed_at    TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_jobs_status ON evaluation_jobs(status);
     """)
 
     # Migration for pre-place_id databases.
@@ -423,6 +443,150 @@ def save_snapshot_for_place(
         return snapshot_id
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Evaluation job queue
+# ---------------------------------------------------------------------------
+
+def create_job(address: str, visitor_id: str = None, request_id: str = None,
+               place_id: str = None, email_hash: str = None,
+               persona: str = None, email_raw: str = None) -> str:
+    """Insert a new evaluation job and return its job_id."""
+    job_id = uuid.uuid4().hex[:12]
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """INSERT INTO evaluation_jobs
+           (job_id, address, status, visitor_id, request_id, place_id,
+            email_hash, persona, email_raw, created_at)
+           VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)""",
+        (job_id, address, visitor_id, request_id, place_id,
+         email_hash, persona, email_raw, now),
+    )
+    conn.commit()
+    conn.close()
+    return job_id
+
+
+def get_job(job_id: str) -> Optional[dict]:
+    """Return job row as a dict, or None."""
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def claim_next_job() -> Optional[dict]:
+    """Atomically claim the oldest queued job. Returns the job dict or None."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            """SELECT job_id FROM evaluation_jobs
+               WHERE status = 'queued'
+               ORDER BY created_at ASC LIMIT 1"""
+        ).fetchone()
+        if not row:
+            return None
+        job_id = row["job_id"]
+        conn.execute(
+            """UPDATE evaluation_jobs
+               SET status = 'running', started_at = ?
+               WHERE job_id = ? AND status = 'queued'""",
+            (now, job_id),
+        )
+        conn.commit()
+        if conn.total_changes == 0:
+            return None
+        full = conn.execute(
+            "SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)
+        ).fetchone()
+        return dict(full) if full else None
+    finally:
+        conn.close()
+
+
+def update_job_stage(job_id: str, stage: str) -> None:
+    """Update the current_stage for a running job (progress reporting)."""
+    conn = _get_db()
+    conn.execute(
+        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ?",
+        (stage, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def complete_job(job_id: str, snapshot_id: str) -> None:
+    """Mark a job as done with its resulting snapshot_id."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'done', snapshot_id = ?, completed_at = ?
+           WHERE job_id = ?""",
+        (snapshot_id, now, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def fail_job(job_id: str, error: str) -> None:
+    """Mark a job as failed with an error message."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'failed', error = ?, completed_at = ?
+           WHERE job_id = ?""",
+        (error, now, job_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def requeue_stale_running_jobs(max_age_seconds: int = 300) -> int:
+    """Re-queue jobs stuck in 'running' longer than max_age_seconds.
+
+    Returns the number of jobs re-queued.
+    """
+    conn = _get_db()
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(seconds=max_age_seconds)
+    ).isoformat()
+    conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'queued', started_at = NULL, current_stage = NULL
+           WHERE status = 'running' AND started_at < ?""",
+        (cutoff,),
+    )
+    swept = conn.total_changes
+    conn.commit()
+    conn.close()
+    return swept
+
+
+def get_payment_by_job_id(job_id: str) -> Optional[dict]:
+    """Stub for payment lookup — returns None when payments table doesn't exist."""
+    return None
+
+
+def update_payment_status(payment_id: str, status: str) -> None:
+    """Stub for payment status update — no-op when payments table doesn't exist."""
+    pass
+
+
+def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
+    """Stub for free tier tracking — no-op when free_tier table doesn't exist."""
+    pass
+
+
+def delete_free_tier_usage(job_id: str) -> bool:
+    """Stub for free tier reissue — returns False when free_tier table doesn't exist."""
+    return False
 
 
 # ---------------------------------------------------------------------------
