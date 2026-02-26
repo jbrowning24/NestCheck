@@ -21,7 +21,7 @@ from models import (
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
-    get_snapshots_by_ids, update_snapshot_email_sent,
+    get_snapshots_by_ids, check_snapshots_exist, update_snapshot_email_sent,
 )
 
 load_dotenv()
@@ -921,8 +921,7 @@ def check_snapshots():
     if not ids:
         return jsonify({"valid": [], "invalid": []})
 
-    existing = get_snapshots_by_ids(ids)
-    found_ids = {s["snapshot_id"] for s in existing}
+    found_ids = check_snapshots_exist(ids)
     return jsonify({
         "valid": [i for i in ids if i in found_ids],
         "invalid": [i for i in ids if i not in found_ids],

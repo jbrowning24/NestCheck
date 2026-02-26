@@ -196,6 +196,24 @@ def get_snapshots_by_ids(snapshot_ids):
     return ordered
 
 
+def check_snapshots_exist(snapshot_ids):
+    """Check which snapshot IDs exist without loading full result data.
+
+    Returns a set of snapshot IDs that were found in the database.
+    """
+    if not snapshot_ids:
+        return set()
+
+    placeholders = ",".join(["?"] * len(snapshot_ids))
+    conn = _get_db()
+    rows = conn.execute(
+        f"SELECT snapshot_id FROM snapshots WHERE snapshot_id IN ({placeholders})",
+        tuple(snapshot_ids),
+    ).fetchall()
+    conn.close()
+    return {row["snapshot_id"] for row in rows}
+
+
 def update_snapshot_email_sent(snapshot_id: str) -> None:
     """Mark that the report email was sent for this snapshot."""
     now = datetime.now(timezone.utc).isoformat()

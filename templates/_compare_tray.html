@@ -359,6 +359,17 @@ body.compare-tray-visible {
     var list = getCompareList();
     if (list.length < 2) return;
 
+    // Disable buttons to prevent double-click
+    var trayBtnEl = document.getElementById('compareTrayBtn');
+    var selBtnEl = document.getElementById('compareSelectedBtn');
+    if (trayBtnEl) trayBtnEl.disabled = true;
+    if (selBtnEl) selBtnEl.disabled = true;
+
+    function reenableButtons() {
+      if (trayBtnEl) trayBtnEl.disabled = false;
+      if (selBtnEl) selBtnEl.disabled = false;
+    }
+
     var ids = [];
     for (var i = 0; i < list.length; i++) ids.push(list[i].id);
 
@@ -371,13 +382,21 @@ body.compare-tray-visible {
       headers: headers,
       body: JSON.stringify({ ids: ids })
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (!r.ok) throw new Error('check failed');
+      return r.json();
+    })
     .then(function(data) {
       if (data.invalid && data.invalid.length > 0) {
-        // Remove stale entries from localStorage
-        for (var i = 0; i < data.invalid.length; i++) {
-          removeFromCompare(data.invalid[i]);
+        // Batch-remove stale entries from localStorage (single re-render)
+        var invalidSet = {};
+        for (var i = 0; i < data.invalid.length; i++) invalidSet[data.invalid[i]] = true;
+        var cleaned = [];
+        for (var i = 0; i < list.length; i++) {
+          if (!invalidSet[list[i].id]) cleaned.push(list[i]);
         }
+        saveCompareList(cleaned);
+        renderTray();
         announceTrayUpdate(
           data.invalid.length + ' address' +
           (data.invalid.length > 1 ? 'es are' : ' is') +
@@ -395,13 +414,11 @@ body.compare-tray-visible {
         // Not enough valid snapshots — show user-visible message
         announceTrayUpdate('Not enough valid addresses to compare. Please re-evaluate and try again.');
         // Brief visual feedback on the button
-        var btn = document.getElementById('compareTrayBtn');
-        if (btn) {
-          var origText = btn.textContent;
-          btn.textContent = 'Addresses expired — re-evaluate';
-          btn.disabled = true;
+        if (trayBtnEl) {
+          var origText = trayBtnEl.textContent;
+          trayBtnEl.textContent = 'Addresses expired \u2014 re-evaluate';
           setTimeout(function() {
-            btn.textContent = origText;
+            trayBtnEl.textContent = origText;
             renderTray();
           }, 3000);
         }
@@ -409,6 +426,7 @@ body.compare-tray-visible {
     })
     .catch(function() {
       // Validation failed (network error) — fall back to direct navigation
+      reenableButtons();
       var encoded = [];
       for (var i = 0; i < ids.length; i++) encoded.push(encodeURIComponent(ids[i]));
       window.location.href = '/compare?ids=' + encoded.join(',');
