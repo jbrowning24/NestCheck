@@ -237,8 +237,17 @@ def present_checks(tier1_checks):
         else:
             result_type = "VERIFICATION_NEEDED"
             proximity_band = "NOTABLE"
-            headline = f"{name} — Unable to verify"
-            explanation = details
+            headline = f"{name} — Unable to verify automatically"
+            # Show the service-level message if it's user-friendly,
+            # otherwise provide a generic fallback.
+            if details and not details.startswith("Error checking:"):
+                explanation = details
+            else:
+                explanation = (
+                    "The external data source for this check was "
+                    "temporarily unavailable. Use the satellite link "
+                    "below to verify manually."
+                )
 
         presented.append({
             "name": name,
