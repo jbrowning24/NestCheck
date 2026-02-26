@@ -3404,8 +3404,8 @@ def format_result(result: EvaluationResult) -> str:
     lines.append(f"PROPERTY: {result.listing.address}")
     if result.listing.url:
         lines.append(f"LISTING: {result.listing.url}")
-    if result.listing.rent:
-        lines.append(f"RENT: ${result.listing.rent:,}/month")
+    if result.listing.cost:
+        lines.append(f"RENT: ${result.listing.cost:,}/month")
     lines.append(f"COORDINATES: {result.lat:.6f}, {result.lng:.6f}")
     lines.append("=" * 70)
     
