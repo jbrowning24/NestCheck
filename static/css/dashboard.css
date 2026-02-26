@@ -1,0 +1,235 @@
+/* ================================================================
+   dashboard.css — Builder dashboard styles.
+   Uses design tokens from tokens.css for visual consistency
+   with the rest of the site.
+   ================================================================ */
+
+/* --- Page Container --- */
+.dashboard {
+  max-width: 800px;
+  margin: var(--space-xl) auto var(--space-3xl);
+  padding: 0 var(--space-lg);
+}
+
+.dashboard h1 {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard h2 {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: var(--space-xl) 0 var(--space-base);
+}
+
+/* --- Stat Cards Grid --- */
+.dashboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.dashboard-stat {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-base);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.dashboard-stat:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.dashboard-stat .stat-num {
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  line-height: 1.2;
+  margin-bottom: var(--space-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-stat .stat-lbl {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+/* Error stat — red accent instead of blue */
+.dashboard-stat--error .stat-num {
+  color: var(--color-fail);
+}
+
+/* --- Table Card --- */
+.dashboard-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base);
+}
+
+.dashboard-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* --- Tables --- */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+
+.dashboard-table th {
+  text-align: left;
+  padding: var(--space-md) var(--space-base);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 2px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.dashboard-table td {
+  padding: var(--space-md) var(--space-base);
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+.dashboard-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-table tr:hover td {
+  background: var(--color-bg-subtle);
+}
+
+.dashboard-table a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--transition-fast);
+}
+
+.dashboard-table a:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+.dashboard-table .empty-row {
+  text-align: center;
+  color: var(--color-text-faint);
+  padding: var(--space-xl) var(--space-base);
+}
+
+/* --- Event Badges --- */
+.badge-event {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge-created {
+  background: var(--color-info-bg);
+  color: var(--color-accent);
+}
+
+.badge-viewed {
+  background: var(--color-pass-bg);
+  color: var(--color-pass-text);
+}
+
+.badge-shared {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.badge-return {
+  background: rgba(109, 40, 217, 0.08);
+  color: var(--color-text-muted);
+}
+
+.badge-error {
+  background: var(--color-fail-bg);
+  color: var(--color-fail-text);
+}
+
+/* --- Finding Badges --- */
+.badge-finding {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge-revealing {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.badge-normal {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .dashboard-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .dashboard-stat {
+    padding: var(--space-md);
+  }
+
+  .dashboard-stat .stat-num {
+    font-size: var(--font-size-h3);
+  }
+
+  .dashboard-table {
+    font-size: var(--font-size-small);
+  }
+
+  .dashboard-table th,
+  .dashboard-table td {
+    padding: var(--space-sm) var(--space-md);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    padding: 0 var(--space-base);
+  }
+
+  .dashboard h1 {
+    font-size: var(--font-size-h2);
+  }
+
+  /* Make tables scroll horizontally on small screens */
+  .dashboard-card {
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+  }
+
+  .dashboard-table {
+    min-width: 500px;
+  }
+}
