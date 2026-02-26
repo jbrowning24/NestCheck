@@ -15,44 +15,22 @@ from models import (
     generate_snapshot_id,
     save_snapshot,
     get_snapshot,
-    unlock_snapshot,
     increment_view_count,
-    get_og_image,
-    save_og_image,
     log_event,
     check_return_visit,
     get_event_counts,
     get_recent_events,
     get_recent_snapshots,
-    create_job,
-    get_job,
-    claim_next_job,
-    update_job_stage,
-    complete_job,
-    fail_job,
-    cancel_queued_job,
-    requeue_stale_running_jobs,
     overpass_cache_key,
     _check_cache_ttl,
     get_overpass_cache,
     set_overpass_cache,
     get_weather_cache,
     set_weather_cache,
-    create_payment,
-    get_payment_by_session,
-    get_payment_by_id,
-    update_payment_status,
-    redeem_payment,
-    update_payment_job_id,
-    get_payment_by_job_id,
-    hash_email,
-    check_free_tier_used,
-    record_free_tier_usage,
-    delete_free_tier_usage,
-    update_free_tier_snapshot,
     _get_db,
-    _return_conn,
 )
+
+_REMOVED_SKIP = "Function removed from models.py"
 
 
 # =========================================================================
@@ -89,10 +67,10 @@ class TestSaveAndGetSnapshot:
         assert snap["verdict"] == "Great"
         assert snap["final_score"] == 85
         assert snap["passed_tier1"] == 1
-        assert snap["is_preview"] == 0
         assert snap["view_count"] == 0
         assert snap["result"]["final_score"] == 85
 
+    @pytest.mark.skip(reason="is_preview parameter and column removed from save_snapshot/snapshots")
     def test_preview_flag(self):
         result = {"verdict": "OK", "final_score": 50, "passed_tier1": False}
         sid = save_snapshot("1 Elm", "1 Elm St", result, is_preview=True)
@@ -109,6 +87,7 @@ class TestSaveAndGetSnapshot:
         assert snap["address_norm"] == "1 Elm"
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestUnlockSnapshot:
     def test_unlock_preview(self):
         result = {"verdict": "OK", "final_score": 50}
@@ -143,6 +122,7 @@ class TestIncrementViewCount:
         assert snap["view_count"] == 3
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestOgImage:
     def test_save_and_retrieve(self):
         result = {"verdict": "OK", "final_score": 50}
@@ -223,6 +203,7 @@ class TestGetRecentEvents:
 # Job queue lifecycle
 # =========================================================================
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestCreateAndGetJob:
     def test_create_basic(self):
         job_id = create_job("123 Main St")
@@ -254,6 +235,7 @@ class TestCreateAndGetJob:
         assert get_job("nonexistent") is None
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestClaimNextJob:
     def test_claim_oldest_first(self):
         j1 = create_job("first")
@@ -282,6 +264,7 @@ class TestClaimNextJob:
         assert claim_next_job() is None
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestUpdateJobStage:
     def test_updates_stage(self):
         job_id = create_job("123 Main St")
@@ -299,6 +282,7 @@ class TestUpdateJobStage:
         assert job["current_stage"] is None
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestCompleteJob:
     def test_marks_done(self):
         job_id = create_job("123 Main St")
@@ -312,6 +296,7 @@ class TestCompleteJob:
         assert job["current_stage"] is None
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestFailJob:
     def test_marks_failed(self):
         job_id = create_job("123 Main St")
@@ -332,6 +317,7 @@ class TestFailJob:
         assert len(job["error"]) == 2000
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestCancelQueuedJob:
     def test_cancel_queued(self):
         job_id = create_job("123 Main St")
@@ -350,6 +336,7 @@ class TestCancelQueuedJob:
         assert job["status"] == "running"
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestRequeueStaleRunningJobs:
     def test_requeues_old_running_job(self):
         job_id = create_job("123 Main St")
@@ -442,6 +429,7 @@ class TestWeatherCache:
 # Payment operations
 # =========================================================================
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestCreateAndGetPayment:
     def test_create_and_lookup_by_session(self):
         create_payment("pay1", "cs_test_123", "v1", "123 Main St")
@@ -467,6 +455,7 @@ class TestCreateAndGetPayment:
         assert p["snapshot_id"] == "snap1"
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestUpdatePaymentStatus:
     def test_unconditional_update(self):
         create_payment("pay1", "cs1", "v1", "123 Main")
@@ -484,6 +473,7 @@ class TestUpdatePaymentStatus:
         assert update_payment_status("pay1", "paid", expected_status="redeemed") is False
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestRedeemPayment:
     def test_redeem_paid(self):
         create_payment("pay1", "cs1", "v1", "123 Main")
@@ -512,6 +502,7 @@ class TestRedeemPayment:
         assert redeem_payment("pay1", job_id="job2") is True
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestUpdatePaymentJobId:
     def test_links_job(self):
         create_payment("pay1", "cs1", "v1", "123 Main")
@@ -520,6 +511,7 @@ class TestUpdatePaymentJobId:
         assert p["job_id"] == "job1"
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestGetPaymentByJobId:
     def test_lookup(self):
         create_payment("pay1", "cs1", "v1", "123 Main")
@@ -536,6 +528,7 @@ class TestGetPaymentByJobId:
 # Free tier usage
 # =========================================================================
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestHashEmail:
     def test_deterministic(self):
         assert hash_email("test@example.com") == hash_email("test@example.com")
@@ -547,6 +540,7 @@ class TestHashEmail:
         assert hash_email("  test@example.com  ") == hash_email("test@example.com")
 
 
+@pytest.mark.skip(reason=_REMOVED_SKIP)
 class TestFreeTierUsage:
     def test_record_and_check(self):
         eh = hash_email("test@example.com")

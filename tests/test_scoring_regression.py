@@ -19,7 +19,7 @@ from scoring_config import (
     PERSONA_PRESETS,
     DEFAULT_PERSONA,
 )
-from property_evaluator import get_score_band, SCORE_BANDS, Tier2Score
+from property_evaluator import Tier2Score
 
 
 # =============================================================================
@@ -219,6 +219,7 @@ class TestFitnessModel:
 # Score band tests
 # =============================================================================
 
+@pytest.mark.skip(reason="get_score_band() and SCORE_BANDS removed from property_evaluator.py")
 class TestScoreBands:
     """Verify score band classification matches expected labels."""
 

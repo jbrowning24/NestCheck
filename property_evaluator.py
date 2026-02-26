@@ -42,6 +42,9 @@ load_dotenv()
 # CONFIGURATION
 # =============================================================================
 
+# Feature gates
+ENABLE_SCHOOLS = os.environ.get("ENABLE_SCHOOLS", "").lower() == "true"
+
 # Health & Safety Thresholds (in feet)
 GAS_STATION_MIN_DISTANCE_FT = 500
 HIGHWAY_MIN_DISTANCE_FT = 500
@@ -2713,12 +2716,20 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None,
     transit_access: Optional[TransitAccessResult] = None,
+    pre_primary_transit: Optional[PrimaryTransitOption] = None,
+    pre_major_hub: Optional[MajorHubAccess] = None,
 ) -> Tier2Score:
     """Score urban access via rail transit (0-10 points).
 
     When a pre-computed TransitAccessResult is supplied its score is used
     directly for the frequency component (replacing the old review-count
-    proxy).  The hub-travel component is still fetched independently.
+    proxy).
+
+    Deduplication: pre_primary_transit and pre_major_hub accept the values
+    already computed by the urban_access stage (get_urban_access_profile),
+    avoiding ~8-15 redundant API calls.  When not supplied (e.g. urban_access
+    stage failed), the function falls back to calling find_primary_transit()
+    and determine_major_hub() directly.
     """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
@@ -2743,7 +2754,9 @@ def score_transit_access(
         return 0
 
     try:
-        primary_transit = find_primary_transit(maps, lat, lng)
+        # Reuse urban_access stage results when available; fall back to
+        # direct API calls if the stage was skipped or failed.
+        primary_transit = pre_primary_transit or find_primary_transit(maps, lat, lng)
         if not primary_transit:
             return Tier2Score(
                 name="Urban access",
@@ -2752,13 +2765,16 @@ def score_transit_access(
                 details="No rail transit stations found within reach"
             )
 
-        major_hub = determine_major_hub(
-            maps,
-            lat,
-            lng,
-            primary_transit.mode,
-            transit_origin=(primary_transit.lat, primary_transit.lng),
-        )
+        if pre_major_hub is not None:
+            major_hub = pre_major_hub
+        else:
+            major_hub = determine_major_hub(
+                maps,
+                lat,
+                lng,
+                primary_transit.mode,
+                transit_origin=(primary_transit.lat, primary_transit.lng),
+            )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
 
@@ -3202,6 +3218,8 @@ def evaluate_property(
                 "schools", get_child_and_schooling_snapshot, maps, lat, lng)
         except Exception:
             pass
+    # When disabled, child_schooling_snapshot stays None (its dataclass
+    # default).  All downstream serialisation already handles None.
 
     try:
         result.urban_access = _timed_stage(
@@ -3304,10 +3322,16 @@ def evaluate_property(
         result.tier2_scores.append(_fitness_score)
 
         result.tier2_scores.append(score_cost(listing.cost))
+        # Pass pre-computed urban_access data to avoid redundant
+        # find_primary_transit / determine_major_hub API calls.
+        _ua = result.urban_access
         result.tier2_scores.append(
             _timed_stage(
                 "score_transit_access", score_transit_access,
-                maps, lat, lng, transit_access=result.transit_access,
+                maps, lat, lng,
+                transit_access=result.transit_access,
+                pre_primary_transit=_ua.primary_transit if _ua else None,
+                pre_major_hub=_ua.major_hub if _ua else None,
             )
         )
 
@@ -3380,8 +3404,8 @@ def format_result(result: EvaluationResult) -> str:
     lines.append(f"PROPERTY: {result.listing.address}")
     if result.listing.url:
         lines.append(f"LISTING: {result.listing.url}")
-    if result.listing.rent:
-        lines.append(f"RENT: ${result.listing.rent:,}/month")
+    if result.listing.cost:
+        lines.append(f"RENT: ${result.listing.cost:,}/month")
     lines.append(f"COORDINATES: {result.lat:.6f}, {result.lng:.6f}")
     lines.append("=" * 70)
     

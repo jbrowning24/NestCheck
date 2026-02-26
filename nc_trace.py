@@ -156,8 +156,16 @@ class TraceContext:
     # Summary
     # ------------------------------------------------------------------
 
+    # Maximum per-call records persisted in summary_dict to prevent bloat.
+    MAX_CALL_RECORDS = 500
+
     def summary_dict(self) -> Dict[str, Any]:
-        """Return a summary dict suitable for logging and JSON responses."""
+        """Return a summary dict suitable for logging and JSON responses.
+
+        Includes a ``calls`` array with per-call records (capped at
+        MAX_CALL_RECORDS) so API cost regressions can be debugged from
+        saved snapshots without access to stdout logs.
+        """
         total_elapsed = int((time.time() - self.request_start) * 1000)
         completed = [s for s in self.stages if not s.skipped and not s.error_class]
         skipped = [s for s in self.stages if s.skipped]
@@ -172,6 +180,17 @@ class TraceContext:
         else:
             outcome = "success"
 
+        calls = [
+            {
+                "service": c.service,
+                "endpoint": c.endpoint,
+                "stage": c.stage,
+                "elapsed_ms": c.elapsed_ms,
+                "status_code": c.status_code,
+            }
+            for c in self.api_calls[:self.MAX_CALL_RECORDS]
+        ]
+
         result = {
             "trace_id": self.trace_id,
             "total_elapsed_ms": total_elapsed,
@@ -180,6 +199,7 @@ class TraceContext:
             "stages_skipped": len(skipped),
             "stages_errored": len(errored),
             "final_outcome": outcome,
+            "calls": calls,
         }
         if self.model_version:
             result["model_version"] = self.model_version
