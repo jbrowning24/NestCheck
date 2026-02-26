@@ -203,19 +203,270 @@ _WARNING_HEADLINES = {
     "Industrial zone": "Industrial-zoned land detected nearby",
 }
 
+# ---------------------------------------------------------------------------
+# Health-check context copy — expanded "why we check this" content
+# ---------------------------------------------------------------------------
+# Keys: (check_name, result_category) where result_category is one of:
+#   "FAIL", "WARNING", "PASS"
+# Each value is a dict with structured paragraphs for progressive disclosure.
+# Dynamic data (distances, names) is injected at render time via .format().
+
+_HEALTH_CONTEXT = {
+    # ── Gas Station ──────────────────────────────────────────────
+    ("Gas station", "FAIL"): {
+        "why": (
+            "Gas stations emit benzene \u2014 a known human carcinogen "
+            "(classified Group 1 by the International Agency for Research on Cancer) "
+            "\u2014 from underground storage tank vent pipes and during fueling. "
+            "A 2019 study by researchers at Columbia and Johns Hopkins (Hilpert et al.) "
+            "measured vent pipe emissions at a Midwest station and found them roughly "
+            "10 times higher than the estimates California uses to set safety "
+            "regulations. At that station, California\u2019s benzene reference exposure "
+            "level was exceeded at a distance of 160 meters."
+        ),
+        "regulatory": (
+            "California recommends 300-foot setbacks between gas stations and "
+            "sensitive land uses (homes, schools, daycares). Maryland requires "
+            "500 feet. These aren\u2019t arbitrary \u2014 they reflect the distance at "
+            "which benzene concentrations from vent pipes are expected to approach "
+            "safe thresholds under normal conditions."
+        ),
+        "exposure": (
+            "The exposure is chronic, not acute. You won\u2019t smell benzene at "
+            "these concentrations. The health concern is years of low-level chronic "
+            "exposure, which is associated with increased leukemia risk and other "
+            "blood disorders. This is particularly relevant for young children and "
+            "pregnant women."
+        ),
+    },
+    ("Gas station", "PASS"): {
+        "why": (
+            "Gas stations emit benzene, a known carcinogen, from underground "
+            "storage tank vent pipes. Research from Columbia and Johns Hopkins "
+            "found vent pipe emissions significantly higher than previously "
+            "estimated, with California\u2019s benzene safety threshold exceeded "
+            "at 160 meters. Several states mandate 300\u2013500 foot setbacks "
+            "between gas stations and residences. This address clears that buffer."
+        ),
+    },
+    # ── Highway ──────────────────────────────────────────────────
+    ("Highway", "FAIL"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute reviewed "
+            "decades of research and found \u201csufficient\u201d evidence that living near "
+            "high-traffic roads causes asthma aggravation in children and is "
+            "associated with cardiovascular mortality in adults. The CDC has "
+            "documented that roughly 11 million Americans live within 150 meters "
+            "of a major highway \u2014 a zone where traffic-related air pollution "
+            "(fine particulate matter, nitrogen dioxide, ultrafine particles) "
+            "remains significantly elevated above background levels."
+        ),
+        "who": (
+            "Children, older adults, and anyone with pre-existing respiratory or "
+            "cardiovascular conditions face the highest risk. Children breathe "
+            "faster and spend more time outdoors, increasing their cumulative "
+            "exposure. The effects are not immediate \u2014 they compound over months "
+            "and years of residence."
+        ),
+        "distance": (
+            "Peer-reviewed research consistently shows that traffic-related "
+            "pollutant concentrations drop substantially within 150\u2013300 meters "
+            "of a high-traffic road and typically reach background levels by "
+            "300 meters. This address falls within that elevated-risk zone."
+        ),
+    },
+    ("Highway", "PASS"): {
+        "why": (
+            "Living within 150\u2013300 meters of high-traffic roads exposes "
+            "residents to elevated levels of fine particulate matter and "
+            "nitrogen dioxide. The Health Effects Institute found sufficient "
+            "evidence linking this proximity to asthma aggravation and "
+            "cardiovascular effects. This address is outside that "
+            "elevated-risk zone."
+        ),
+    },
+    # ── High-volume road ─────────────────────────────────────────
+    ("High-volume road", "FAIL"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute reviewed "
+            "decades of research and found \u201csufficient\u201d evidence that living near "
+            "high-traffic roads causes asthma aggravation in children and is "
+            "associated with cardiovascular mortality in adults."
+        ),
+        "who": (
+            "Children, older adults, and anyone with pre-existing respiratory or "
+            "cardiovascular conditions face the highest risk. Children breathe "
+            "faster and spend more time outdoors, increasing their cumulative "
+            "exposure. The effects compound over months and years of residence."
+        ),
+        "distance": (
+            "Traffic-related pollutant concentrations drop substantially within "
+            "150\u2013300 meters of a high-traffic road and typically reach background "
+            "levels by 300 meters. This address falls within that elevated-risk zone."
+        ),
+        "invisible": (
+            "This is the kind of proximity risk that doesn\u2019t appear in property "
+            "descriptions, photos, or open house tours. You might notice noise on "
+            "a site visit, but the air quality impact is invisible and cumulative."
+        ),
+    },
+    ("High-volume road", "PASS"): {
+        "why": (
+            "Living within 150\u2013300 meters of high-traffic roads exposes "
+            "residents to elevated levels of fine particulate matter and nitrogen "
+            "dioxide. The Health Effects Institute found sufficient evidence "
+            "linking this proximity to asthma aggravation and cardiovascular "
+            "effects. This address is outside that elevated-risk zone."
+        ),
+    },
+    # ── Power lines ──────────────────────────────────────────────
+    ("Power lines", "WARNING"): {
+        "why": (
+            "High-voltage transmission lines generate electromagnetic fields "
+            "(EMF). In 2002, the International Agency for Research on Cancer "
+            "classified extremely low-frequency EMF as \u201cpossibly carcinogenic\u201d "
+            "(Group 2B), based on a consistent finding of approximately double "
+            "the childhood leukemia risk at exposures above 0.3\u20130.4 microtesla. "
+            "EMF strength drops rapidly with distance: roughly 20 microtesla "
+            "directly beneath high-voltage lines, dropping to about 0.7 "
+            "microtesla at 100 feet and 0.18 microtesla at 200 feet."
+        ),
+        "nuance": (
+            "The scientific evidence here is moderate and contested. The "
+            "epidemiological association with childhood leukemia is consistent "
+            "across studies, but no biophysical mechanism has been confirmed, and "
+            "many health agencies consider the evidence insufficient to establish "
+            "causation. We include this as a warning \u2014 something to be aware of "
+            "\u2014 rather than a disqualifier."
+        ),
+    },
+    ("Power lines", "PASS"): {
+        "why": (
+            "High-voltage power lines generate electromagnetic fields classified "
+            "as \u201cpossibly carcinogenic\u201d by the International Agency for Research "
+            "on Cancer. EMF intensity drops rapidly with distance, reaching "
+            "typical background levels by about 200 feet from the line. This "
+            "address is outside that proximity zone."
+        ),
+    },
+    # ── Electrical substation ────────────────────────────────────
+    ("Electrical substation", "WARNING"): {
+        "why": (
+            "Electrical substations generate localized electromagnetic fields and "
+            "can produce persistent low-frequency noise (the \u201chum\u201d from "
+            "transformers). EMF levels near substations can be comparable to those "
+            "beneath transmission lines and diminish with similar distance profiles."
+        ),
+    },
+    ("Electrical substation", "PASS"): {
+        "why": (
+            "Electrical substations generate localized electromagnetic fields and "
+            "can produce persistent low-frequency noise (the \u201chum\u201d from "
+            "transformers). EMF levels near substations can be comparable to those "
+            "beneath transmission lines and diminish with similar distance "
+            "profiles. This address is well outside the elevated-EMF zone."
+        ),
+    },
+    # ── Cell tower ───────────────────────────────────────────────
+    ("Cell tower", "WARNING"): {
+        "why": (
+            "The International Agency for Research on Cancer classified "
+            "radiofrequency electromagnetic fields as \u201cpossibly carcinogenic\u201d "
+            "(Group 2B) in 2011. However, ground-level RF exposure from cell "
+            "towers is typically hundreds to thousands of times below the limits "
+            "set by the FCC. The primary concerns at close range are more "
+            "practical: potential property value perception and visual impact."
+        ),
+        "nuance": (
+            "The scientific evidence for health effects from cell tower RF "
+            "exposure at residential distances is substantially weaker than for "
+            "the other hazards we evaluate. We include it because proximity to "
+            "cell infrastructure is information some buyers and renters want, but "
+            "we do not weight it as a health disqualifier."
+        ),
+    },
+    ("Cell tower", "PASS"): {
+        "why": (
+            "While health evidence for cell tower RF exposure is limited, "
+            "proximity to cell infrastructure is a factor in property perception "
+            "and visual impact. We check using the FCC\u2019s Antenna Structure "
+            "Registration database, noting that smaller installations may not be "
+            "captured."
+        ),
+    },
+    # ── Industrial zone ──────────────────────────────────────────
+    ("Industrial zone", "WARNING"): {
+        "why": (
+            "Industrial zoning permits land uses that may include manufacturing, "
+            "warehousing, waste processing, and chemical storage. Proximity to "
+            "industrial zones can mean elevated noise levels, truck traffic, and "
+            "potential exposure to airborne pollutants \u2014 even when specific "
+            "facilities haven\u2019t triggered an EPA reporting threshold."
+        ),
+        "practical": (
+            "The current occupant of an industrial-zoned parcel might be benign "
+            "(a self-storage facility, a light manufacturing workshop). But zoning "
+            "tells you what\u2019s permitted, not just what\u2019s there today. An empty "
+            "industrial lot next door could become a distribution center "
+            "generating 24/7 truck traffic without any zoning change required."
+        ),
+    },
+    ("Industrial zone", "PASS"): {
+        "why": (
+            "Industrial zoning permits land uses including manufacturing, "
+            "warehousing, and chemical storage that can generate noise, truck "
+            "traffic, and airborne pollutants. Proximity also matters for future "
+            "development \u2014 industrial zoning determines what could be built, not "
+            "just what\u2019s there today. This address has sufficient buffer from "
+            "industrial-zoned parcels."
+        ),
+    },
+}
+
+
+def _build_health_context(name, result, details, value):
+    """Build the expanded health-context paragraphs for a single check.
+
+    Returns a list of paragraph strings ready for template rendering,
+    or None if no context copy is available for this check.
+    """
+    # Map result strings to the keys used in _HEALTH_CONTEXT
+    if result in ("PASS",):
+        ctx_key = "PASS"
+    elif result in ("FAIL",):
+        ctx_key = "FAIL"
+    elif result in ("WARNING",):
+        ctx_key = "WARNING"
+    else:
+        return None
+
+    template = _HEALTH_CONTEXT.get((name, ctx_key))
+    if not template:
+        return None
+
+    # Return paragraphs in a stable order
+    paragraphs = []
+    for key in ("why", "regulatory", "exposure", "who", "distance",
+                "invisible", "nuance", "practical"):
+        if key in template:
+            paragraphs.append(template[key])
+
+    return paragraphs if paragraphs else None
+
 
 def present_checks(tier1_checks):
     """Convert raw tier1_check dicts into presentation-layer dicts.
 
     Each check gets category, result_type, proximity_band, headline,
-    and explanation fields used by the template to render individual
-    items in the Proximity & Environment section.
+    explanation, and health_context fields used by the template to render
+    individual items in the Proximity & Environment section.
     """
     presented = []
     for check in tier1_checks:
         name = check["name"]
         result = check["result"]  # "PASS", "FAIL", "WARNING", or "UNKNOWN"
         details = check.get("details", "")
+        value = check.get("value")
 
         category = "SAFETY" if name in _SAFETY_CHECK_NAMES else "LIFESTYLE"
 
@@ -249,6 +500,9 @@ def present_checks(tier1_checks):
                     "below to verify manually."
                 )
 
+        # Build expanded context for progressive disclosure
+        health_context = _build_health_context(name, result, details, value)
+
         presented.append({
             "name": name,
             "result": result,
@@ -257,6 +511,7 @@ def present_checks(tier1_checks):
             "proximity_band": proximity_band,
             "headline": headline,
             "explanation": explanation,
+            "health_context": health_context,
         })
 
     return presented
@@ -410,6 +665,7 @@ def result_to_dict(result):
                 "result": c.result.value,
                 "details": c.details,
                 "required": c.required,
+                "value": c.value,
             }
             for c in result.tier1_checks
         ],
