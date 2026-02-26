@@ -360,6 +360,20 @@ PERSONA_PRESETS = {
 
 DEFAULT_PERSONA = "balanced"
 
+# Maps internal Tier2Score names (as produced by the scoring functions in
+# property_evaluator.py) to the user-facing dimension names used as keys
+# in PersonaPreset.weights.  Scores whose name is NOT in this mapping
+# (e.g. "Cost") get a default weight of 1.0 across all personas.
+TIER2_NAME_TO_DIMENSION: Dict[str, str] = {
+    "Primary Green Escape": "Parks & Green Space",
+    "Third Place": "Coffee & Social Spots",
+    "Provisioning": "Daily Essentials",
+    "Fitness access": "Fitness & Recreation",
+    "Urban access": "Getting Around",
+    # "Road Noise" has a persona weight but no Tier2Score yet (config-only).
+    # "Cost" has a Tier2Score but no persona weight (budget is universal).
+}
+
 # Validate all persona weights at import time (ValueError, not assert,
 # so validation is never stripped by python -O).
 for _k, _p in PERSONA_PRESETS.items():
