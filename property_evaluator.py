@@ -37,6 +37,7 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
+    TIER2_NAME_TO_DIMENSION,
 )
 
 load_dotenv()
@@ -3387,14 +3388,16 @@ def evaluate_property(
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
 
-        # Weighted normalization using persona lens
+        # Weighted normalization using persona lens.
+        # Map internal Tier2Score names to persona dimension names so
+        # weights resolve correctly (e.g. "Third Place" -> "Coffee & Social Spots").
         _weights = persona_preset.weights
         _weighted_total = sum(
-            s.points * _weights.get(s.name, 1.0)
+            s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
             for s in result.tier2_scores
         )
         _weighted_max = sum(
-            s.max_points * _weights.get(s.name, 1.0)
+            s.max_points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
             for s in result.tier2_scores
         )
         if _weighted_max > 0:
