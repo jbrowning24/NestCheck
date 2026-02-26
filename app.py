@@ -167,6 +167,39 @@ def generate_verdict(result_dict):
         return "Significant daily-life gaps"
 
 
+def generate_structured_summary(presented_checks):
+    """Build a human-readable summary of why an address failed tier 1.
+
+    Returns a string like "This address has 2 health & safety concerns that
+    prevent full scoring: gas station proximity and high-volume road proximity."
+    Returns empty string if there are no issues.
+    """
+    if not presented_checks:
+        return ""
+
+    safety_issues = [
+        pc for pc in presented_checks
+        if pc.get("category") == "SAFETY"
+        and pc.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+    ]
+    if not safety_issues:
+        return ""
+
+    issue_names = [pc["headline"] for pc in safety_issues]
+
+    count = len(issue_names)
+    concern_word = "concern" if count == 1 else "concerns"
+    verb = "prevents" if count == 1 else "prevent"
+    names_str = issue_names[0] if count == 1 else (
+        ", ".join(issue_names[:-1]) + " and " + issue_names[-1]
+    )
+
+    return (
+        f"This address has {count} health & safety {concern_word} "
+        f"that {verb} full scoring: {names_str}."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Presentation helpers
 # ---------------------------------------------------------------------------
@@ -444,6 +477,7 @@ def result_to_dict(result):
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
     output["presented_checks"] = present_checks(output["tier1_checks"])
+    output["structured_summary"] = generate_structured_summary(output["presented_checks"])
     output["verdict"] = generate_verdict(output)
     return output
 
@@ -661,6 +695,12 @@ def view_snapshot(snapshot_id):
     if "presented_checks" not in result:
         result["presented_checks"] = present_checks(
             result.get("tier1_checks", [])
+        )
+
+    # Backfill structured_summary for old snapshots
+    if "structured_summary" not in result:
+        result["structured_summary"] = generate_structured_summary(
+            result.get("presented_checks", [])
         )
 
     # Backfill persona for old snapshots (NES-133)

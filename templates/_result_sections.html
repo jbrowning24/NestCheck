@@ -44,12 +44,26 @@
     </div>
     {% else %}
     {# Disqualified — property failed tier 1 safety checks (NES-164) #}
+    {% set all_safety = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+    {% set clear_safety = all_safety | selectattr('result_type', 'equalto', 'CLEAR') | list %}
     <div class="verdict-failed-banner">
       <div class="verdict-failed-title">Health &amp; Safety Concerns</div>
       {% if result.structured_summary is defined and result.structured_summary %}
         <div class="verdict-failed-summary">{{ result.structured_summary }}</div>
       {% endif %}
-      <div class="verdict-failed-explanation">Detailed scoring is only available for qualifying addresses.</div>
+      {% if all_safety %}
+      <div class="verdict-failed-score">
+        <span class="verdict-failed-score-num">{{ clear_safety | length }}</span>
+        <span class="verdict-failed-score-sep">of</span>
+        <span class="verdict-failed-score-num">{{ all_safety | length }}</span>
+        <span class="verdict-failed-score-label">safety checks clear</span>
+      </div>
+      {% endif %}
+      <div class="verdict-failed-explanation">
+        NestCheck runs {{ all_safety | length }} proximity checks for environmental and health hazards.
+        Addresses must pass all safety checks before walkability, amenities, and lifestyle scoring can proceed.
+        See the detailed results below.
+      </div>
     </div>
     {% endif %}
 
