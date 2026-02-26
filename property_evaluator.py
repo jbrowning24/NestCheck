@@ -35,8 +35,23 @@ from green_space import (
     GreenEscapeEvaluation,
     evaluate_green_escape,
 )
+from scoring_config import (
+    PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
+)
 
 load_dotenv()
+
+# Module-level score bands derived from SCORING_MODEL (consumed by tests)
+SCORE_BANDS = [(b.threshold, b.label) for b in SCORING_MODEL.score_bands]
+
+
+def get_score_band(score: int) -> dict:
+    """Return the score band dict for a given 0-100 score."""
+    for band in SCORING_MODEL.score_bands:
+        if score >= band.threshold:
+            return {"label": band.label, "css_class": band.css_class}
+    last = SCORING_MODEL.score_bands[-1]
+    return {"label": last.label, "css_class": last.css_class}
 
 # =============================================================================
 # CONFIGURATION
@@ -314,6 +329,9 @@ class EvaluationResult:
 
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
+
+    # Scoring lens / persona applied during aggregation (NES-133)
+    persona: Optional[PersonaPreset] = None
 
     # Keep these from main
     final_score: int = 0
@@ -3169,7 +3187,9 @@ def evaluate_property(
             progresses, used by the worker to update job status in the DB.
         place_id: Optional Google place_id (unused in evaluation itself,
             reserved for future use).
-        persona: Optional evaluation persona (reserved for future use).
+        persona: Optional persona key (e.g. "active", "commuter", "quiet").
+            Determines dimension weights used for score aggregation.
+            Defaults to "balanced" (equal weights).
     """
     def _notify(name: str) -> None:
         if on_stage is not None:
@@ -3181,6 +3201,10 @@ def evaluate_property(
         return _timed_stage(stage_name, fn, *args, **kwargs)
 
     eval_start = time.time()
+
+    # Resolve persona preset for weighted scoring
+    persona_preset = PERSONA_PRESETS.get(persona or DEFAULT_PERSONA,
+                                         PERSONA_PRESETS[DEFAULT_PERSONA])
 
     maps = GoogleMapsClient(api_key)
     overpass = OverpassClient()
@@ -3197,7 +3221,8 @@ def evaluate_property(
     result = EvaluationResult(
         listing=listing,
         lat=lat,
-        lng=lng
+        lng=lng,
+        persona=persona_preset,
     )
 
     # --- Optional enrichments (each fails independently) ---
@@ -3358,10 +3383,22 @@ def evaluate_property(
             "parks": _park_places,
         }
 
+        # Raw unweighted totals (for display / backward compat)
         result.tier2_total = sum(s.points for s in result.tier2_scores)
         result.tier2_max = sum(s.max_points for s in result.tier2_scores)
-        if result.tier2_max > 0:
-            result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
+
+        # Weighted normalization using persona lens
+        _weights = persona_preset.weights
+        _weighted_total = sum(
+            s.points * _weights.get(s.name, 1.0)
+            for s in result.tier2_scores
+        )
+        _weighted_max = sum(
+            s.max_points * _weights.get(s.name, 1.0)
+            for s in result.tier2_scores
+        )
+        if _weighted_max > 0:
+            result.tier2_normalized = int(_weighted_total / _weighted_max * 100 + 0.5)
         else:
             result.tier2_normalized = 0
 
@@ -3378,11 +3415,6 @@ def evaluate_property(
     # ===================
     # FINAL SCORE + PERCENTILE
     # ===================
-
-    if result.tier2_max > 0:
-        result.tier2_normalized = round((result.tier2_total / result.tier2_max) * 100)
-    else:
-        result.tier2_normalized = 0
 
     result.final_score = min(100, result.tier2_normalized + result.tier3_total)
     result.percentile_top, result.percentile_label = estimate_percentile(result.final_score)

@@ -16,6 +16,7 @@ from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient
 )
+from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -421,6 +422,15 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
+    # Persona / scoring lens (NES-133)
+    if result.persona is not None:
+        output["persona"] = {
+            "key": result.persona.key,
+            "label": result.persona.label,
+            "description": result.persona.description,
+            "weights": dict(result.persona.weights),
+        }
+
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
@@ -643,6 +653,16 @@ def view_snapshot(snapshot_id):
         result["presented_checks"] = present_checks(
             result.get("tier1_checks", [])
         )
+
+    # Backfill persona for old snapshots (NES-133)
+    if "persona" not in result:
+        _bp = PERSONA_PRESETS[DEFAULT_PERSONA]
+        result["persona"] = {
+            "key": _bp.key,
+            "label": _bp.label,
+            "description": _bp.description,
+            "weights": dict(_bp.weights),
+        }
 
     return render_template(
         "snapshot.html",
