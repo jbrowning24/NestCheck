@@ -7,25 +7,40 @@
 
 :root {
 
-  /* ---- Colors ------------------------------------------------- */
+  /* ---- Brand -------------------------------------------------- */
+  --color-brand: #0B1D3A;          /* Deep navy — authority, trust */
+  --color-brand-light: #1A3A5C;    /* Lighter navy for hover states */
+  --color-accent: #2563EB;         /* Bright blue — CTAs, links, interactive */
+  --color-accent-hover: #1D4ED8;
 
-  /* Brand */
-  --color-primary: #0f3460;
-  --color-primary-dark: #16213e;
+  /* Map to existing token names */
+  --color-primary: var(--color-accent);
+  --color-primary-dark: var(--color-brand);
+  --color-primary-light: var(--color-brand-light);
 
-  /* Backgrounds */
-  --color-bg: #f0f2f5;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f8f9fb;
+  /* ---- Backgrounds -------------------------------------------- */
+  --color-bg-page: #F8F9FB;        /* Warm off-white, not stark white */
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-subtle: #F1F3F6;      /* Slight contrast for nested elements */
+  --color-bg-nav: #0B1D3A;         /* Dark nav */
 
-  /* Text — 5-step scale (primary → disabled) */
-  --color-text: #1a1a2e;           /* primary text, headings, strong */
-  --color-text-secondary: #475569; /* secondary info, data row names */
-  --color-text-muted: #64748b;     /* supporting text, explanations */
-  --color-text-faint: #94a3b8;     /* metadata, timestamps, footnotes */
-  --color-text-disabled: #b0b8c4;  /* disabled states only */
+  /* Map to existing token names */
+  --color-bg: var(--color-bg-page);
+  --color-surface: var(--color-bg-card);
+  --color-surface-subtle: var(--color-bg-subtle);
 
-  /* Aliases — old token names (backward compat) */
+  /* ---- Text — 5-step scale ------------------------------------ */
+  --color-text-primary: #0F172A;   /* Near-black, high contrast */
+  --color-text-secondary: #475569; /* Descriptions, supporting text */
+  --color-text-muted: #64748b;     /* Supporting text, explanations */
+  --color-text-faint: #94A3B8;     /* Labels, metadata */
+  --color-text-inverse: #FFFFFF;   /* Text on dark backgrounds */
+  --color-text-accent: #2563EB;    /* Links, interactive text */
+  --color-text-disabled: #b0b8c4;  /* Disabled states only */
+
+  /* Map to existing token names */
+  --color-text: var(--color-text-primary);
   --color-text-strong: var(--color-text);
   --color-text-dark: var(--color-text);
   --color-text-heading: var(--color-text-secondary);
@@ -34,57 +49,75 @@
   --color-text-lighter: var(--color-text-faint);
   --color-text-faintest: var(--color-text-faint);
 
-  /* Borders — 2-step scale */
-  --color-border: #e2e8f0;       /* standard borders */
-  --color-border-light: #f0f2f5; /* subtle dividers */
+  /* ---- Borders ------------------------------------------------ */
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+  --color-border-light: #F0F2F5;
 
-  /* Aliases — old token names (backward compat) */
+  /* Aliases */
   --color-border-muted: var(--color-border);
   --color-border-card: var(--color-border-light);
 
-  /* Status: Pass / Good */
-  --color-pass-bg: #d1fae5;
+  /* ---- Status: Pass / Good ------------------------------------ */
+  --color-pass: #16A34A;
+  --color-pass-bg: #F0FDF4;
+  --color-pass-border: #BBF7D0;
   --color-pass-text: #065f46;
 
-  /* Status: Fail / Bad */
-  --color-fail-bg: #fee2e2;
+  /* ---- Status: Fail / Bad ------------------------------------- */
+  --color-fail: #DC2626;
+  --color-fail-bg: #FEF2F2;
+  --color-fail-border: #FECACA;
   --color-fail-text: #991b1b;
 
-  /* Status: Borderline */
+  /* ---- Status: Warning ---------------------------------------- */
+  --color-warning: #D97706;
+  --color-warning-bg: #FFFBEB;
+  --color-warning-border: #FDE68A;
+  --color-warning-surface: #FFFBEB;
+  --color-warning-text: #92400e;
+  --color-warning-text-dark: #78350f;
+
+  /* ---- Status: Info ------------------------------------------- */
+  --color-info: #2563EB;
+  --color-info-bg: #EFF6FF;
+  --color-info-border: #BFDBFE;
+
+  /* ---- Status: Borderline ------------------------------------- */
   --color-borderline-bg: #fff3e0;
   --color-borderline-text: #e65100;
 
-  /* Status: OK / Middling */
+  /* ---- Status: OK / Middling ---------------------------------- */
   --color-ok-bg: #fff3cd;
   --color-ok-text: #856404;
 
-  /* Status: Warning */
-  --color-warning-bg: #fef3c7;
-  --color-warning-text: #92400e;
-  --color-warning-border: #fde68a;
-  --color-warning-surface: #fffbeb;
-  --color-warning-text-dark: #78350f;
-
-  /* Status: Danger / Error */
-  --color-danger: #ef4444;
-  --color-danger-bg: #fef2f2;
-  --color-danger-border: #fca5a5;
+  /* ---- Status: Danger / Error --------------------------------- */
+  --color-danger: #DC2626;
+  --color-danger-bg: #FEF2F2;
+  --color-danger-border: #FECACA;
   --color-danger-text: #991b1b;
   --color-danger-text-dark: #7f1d1d;
 
-  /* Score bands (AQI-inspired) */
-  --band-exceptional:       #059669;
-  --band-exceptional-light: #d1fae5;
-  --band-strong:            #16a34a;
-  --band-strong-light:      #dcfce7;
-  --band-moderate:          #eab308;
-  --band-moderate-light:    #fef9c3;
-  --band-limited:           #f97316;
-  --band-limited-light:     #ffedd5;
-  --band-poor:              #ef4444;
-  --band-poor-light:        #fee2e2;
+  /* ---- Score bands (AQI-inspired, refined) -------------------- */
+  --band-exceptional:       #16A34A;
+  --band-exceptional-light: #F0FDF4;
+  --band-strong:            #65A30D;
+  --band-strong-light:      #F7FEE7;
+  --band-moderate:          #D97706;
+  --band-moderate-light:    #FFFBEB;
+  --band-limited:           #EA580C;
+  --band-limited-light:     #FFF7ED;
+  --band-poor:              #DC2626;
+  --band-poor-light:        #FEF2F2;
 
-  /* Accent */
+  /* New semantic band names (alias) */
+  --color-band-excellent: var(--band-exceptional);
+  --color-band-good: var(--band-strong);
+  --color-band-fair: var(--band-moderate);
+  --color-band-poor: var(--band-limited);
+  --color-band-very-poor: var(--band-poor);
+
+  /* ---- Accent / Misc ------------------------------------------ */
   --color-amber: #d97706;
   --color-amber-border: #f59e0b;
   --color-builder-accent: #fbbf24;
@@ -93,11 +126,95 @@
   --color-disabled-bg: #8899aa;
 
   /* Overlay */
-  --color-overlay-bg: rgba(255, 255, 255, 0.92);
+  --color-overlay-bg: rgba(11, 29, 58, 0.85);
+
+  /* ---- Typography --------------------------------------------- */
+
+  /* Font families */
+  --font-heading: 'DM Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Legacy alias */
+  --font-sans: var(--font-body);
+
+  /* Font sizes — refined scale */
+  --font-size-display: 2.25rem;    /* 36px — hero headline */
+  --font-size-h1: 1.75rem;         /* 28px — page title */
+  --font-size-h2: 1.375rem;        /* 22px — section headers */
+  --font-size-h3: 1.125rem;        /* 18px — subsection headers */
+  --font-size-body: 0.9375rem;     /* 15px — body text */
+  --font-size-small: 0.8125rem;    /* 13px — labels, metadata */
+  --font-size-xs: 0.75rem;         /* 12px — fine print, badges */
+
+  /* Legacy type scale aliases */
+  --text-3xl: var(--font-size-display);
+  --text-2xl: 1.5rem;
+  --text-xl: var(--font-size-h3);
+  --text-lg: 1rem;
+  --text-base: var(--font-size-body);
+  --text-sm: var(--font-size-small);
+  --text-xs: 0.6875rem;
+
+  /* Deep legacy aliases */
+  --font-size-3xl: var(--font-size-display);
+  --font-size-2xl: var(--font-size-display);
+  --font-size-2xl-2: var(--font-size-display);
+  --font-size-xl: var(--font-size-display);
+  --font-size-xl-2: var(--font-size-display);
+  --font-size-lg-2: var(--text-2xl);
+  --font-size-lg: var(--font-size-h3);
+  --font-size-md-3: var(--font-size-h3);
+  --font-size-md-2: var(--font-size-h3);
+  --font-size-md: var(--font-size-body);
+  --font-size-md-sm: var(--font-size-body);
+  --font-size-base: var(--text-lg);
+  --font-size-body-2: var(--font-size-body);
+  --font-size-body-3: var(--font-size-body);
+  --font-size-body-4: var(--font-size-body);
+  --font-size-body-5: var(--font-size-body);
+  --font-size-sm: var(--font-size-small);
+  --font-size-sm-2: var(--font-size-small);
+  --font-size-sm-3: var(--font-size-small);
+  --font-size-xs-2: var(--font-size-small);
+  --font-size-xs-3: var(--text-xs);
+
+  /* Font sizes — pixel-locked (prevent iOS auto-zoom on focus) */
+  --font-size-input: 16px;
+  --font-size-button: 15px;
+  --font-size-cookie: 14px;
+
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Line heights */
+  --line-height-none: 1;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.65;
+  --line-height-loose: 1.7;
+
+  /* Letter spacing */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-wide: 0.03em;
+  --letter-spacing-wider: 0.04em;
 
   /* ---- Spacing ------------------------------------------------ */
-  /* 4px grid — clean scale. Old names aliased for backward compat. */
+  /* 4px grid */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
 
+  /* Legacy numeric scale */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -108,7 +225,7 @@
   --space-10: 40px;
   --space-16: 64px;
 
-  /* Aliases — old token names (backward compat; 16px → --space-4) */
+  /* Aliases — old token names */
   --space-12: var(--space-3);
   --space-14: var(--space-3);
   --space-18: var(--space-4);
@@ -121,86 +238,24 @@
   --space-40: var(--space-10);
   --space-60: var(--space-16);
 
-  /* ---- Typography --------------------------------------------- */
-
-  /* Font family */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-
-  /* Font sizes — 8-step type scale */
-  --text-3xl: 2.25rem;    /* 36px — hero headlines only */
-  --text-2xl: 1.5rem;     /* 24px — score ring value, stat card values */
-  --text-xl: 1.125rem;    /* 18px — section h2, score band label */
-  --text-lg: 1rem;        /* 16px — body text, inputs, prominent data */
-  --text-base: 0.875rem;  /* 14px — data row names, nav links, most UI text */
-  --text-sm: 0.75rem;     /* 12px — category labels, footnotes, subscore labels */
-  --text-xs: 0.6875rem;   /* 11px — pill badges, walkscore labels */
-
-  /* Aliases — old token names mapped to new scale (backward compat) */
-  --font-size-3xl: var(--text-3xl);
-  --font-size-2xl: var(--text-3xl);
-  --font-size-2xl-2: var(--text-3xl);
-  --font-size-xl: var(--text-3xl);
-  --font-size-xl-2: var(--text-3xl);
-  --font-size-lg-2: var(--text-2xl);
-  --font-size-lg: var(--text-xl);
-  --font-size-md-3: var(--text-xl);
-  --font-size-md-2: var(--text-xl);
-  --font-size-md: var(--text-base);
-  --font-size-md-sm: var(--text-base);
-  --font-size-base: var(--text-lg);
-  --font-size-body-2: var(--text-base);
-  --font-size-body-3: var(--text-base);
-  --font-size-body-4: var(--text-base);
-  --font-size-body-5: var(--text-base);
-  --font-size-sm: var(--text-sm);
-  --font-size-sm-2: var(--text-sm);
-  --font-size-sm-3: var(--text-sm);
-  --font-size-xs: var(--text-sm);
-  --font-size-xs-2: var(--text-sm);
-  --font-size-xs-3: var(--text-xs);
-  --font-size-small: var(--text-sm);
-
-  /* Font sizes — pixel-locked (prevent iOS auto-zoom on focus)    */
-  --font-size-input: 16px;     /* search input (iOS requires ≥16px)     */
-  --font-size-button: 15px;    /* search button                         */
-  --font-size-cookie: 14px;    /* cookie banner text                    */
-
-  /* Font weights */
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-
-  /* Line heights */
-  --line-height-none: 1;
-  --line-height-tight: 1.3;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.6;
-  --line-height-loose: 1.7;
-
-  /* Letter spacing */
-  --letter-spacing-tight: -0.02em;
-  --letter-spacing-wide: 0.03em;
-  --letter-spacing-wider: 0.04em;
+  /* ---- Elevation ---------------------------------------------- */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
 
   /* ---- Border Radius ------------------------------------------ */
-
   --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
-  /* ---- Shadows ------------------------------------------------ */
-
-  --shadow-card: 0 1px 6px rgba(0, 0, 0, 0.04);
-  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
 
   /* ---- Transitions -------------------------------------------- */
-
-  --transition-fast: 0.2s ease;
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
 
   /* ---- Breakpoints (reference only) --------------------------- */
   /* CSS custom properties cannot be used in @media queries.
-     Documented here so the canonical values live with the tokens.
      Mobile:  max-width: 640px   — phones
      Tablet:  max-width: 768px   — small tablets, iPad portrait
      Desktop: max-width: 1024px  — large tablets, small desktops

@@ -5,7 +5,7 @@
 
 /* --- Report Container Override --- */
 .report {
-  margin-top: var(--space-4);
+  margin-top: var(--space-base);
 }
 
 /* --- Share Bar (snapshot variant) --- */
@@ -19,67 +19,71 @@
   min-width: 0;
 }
 .snapshot-meta {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
   flex-shrink: 0;
-  margin-right: var(--space-4);
+  margin-right: var(--space-base);
 }
 
 /* --- Data Unavailable --- */
 .data-unavailable {
   color: var(--color-text-faint);
   font-style: italic;
-  font-size: var(--text-base);
-  padding: var(--space-2) 0;
+  font-size: var(--font-size-body);
+  padding: var(--space-sm) 0;
 }
 
 /* --- CTA Banner (snapshot only) --- */
 .snapshot-cta {
-  background: var(--color-surface);
-  border: 2px solid var(--color-primary);
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-accent);
   border-radius: var(--radius-lg);
-  padding: var(--space-6) var(--space-6);
-  margin-bottom: var(--space-6);
+  padding: var(--space-lg) var(--space-lg);
+  margin-bottom: var(--space-lg);
   text-align: center;
 }
 .snapshot-cta h3 {
-  font-size: var(--text-xl);
-  color: var(--color-primary-dark);
-  margin-bottom: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h3);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
 }
 .snapshot-cta p {
-  font-size: var(--text-base);
-  color: var(--color-text-light);
-  margin-bottom: var(--space-3);
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
 }
 .snapshot-cta a {
   display: inline-block;
-  padding: var(--space-2) var(--space-6);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border-radius: var(--radius-md);
-  font-weight: 700;
-  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
   text-decoration: none;
-  transition: background 0.2s;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
-.snapshot-cta a:hover { background: var(--color-primary-dark); }
+.snapshot-cta a:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-card);
+}
 
-/* --- Contextual Share Prompt (NES-123) --- */
+/* --- Contextual Share Prompt --- */
 .share-prompt {
   max-width: 800px;
-  margin: var(--space-4) auto 0;
-  padding: var(--space-4) var(--space-6);
+  margin: var(--space-base) auto 0;
+  padding: var(--space-base) var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-base);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-subtle);
+  background: var(--color-bg-subtle);
 }
 .share-prompt-text {
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
   color: var(--color-text-secondary);
   line-height: var(--line-height-normal);
 }
@@ -92,37 +96,35 @@
 .share-prompt.band-poor        { border-color: var(--band-poor);        background: var(--band-poor-light); }
 
 /* ================================================================
-   Report Layout — Two-column grid with sticky right rail (NES-41)
-   Desktop (≥1200px): main content + 280px rail
+   Report Layout — Two-column grid with sticky right rail
+   Desktop (>= 1200px): main content + 280px rail
    Below 1200px: single column, rail hidden
    ================================================================ */
 
-/* --- Grid Container --- */
 .report-layout {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-lg);
 }
 
-/* --- Rail (hidden by default, shown on desktop) --- */
 .report-layout__rail {
   display: none;
 }
 
 /* --- Mini Score Card (rail) --- */
 .report-rail-score {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-muted);
-  margin-bottom: var(--space-3);
+  padding: var(--space-base);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
 }
 .rail-address {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-3);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,7 +132,7 @@
 .rail-score-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-md);
 }
 .rail-score-ring {
   position: relative;
@@ -139,23 +141,23 @@
   flex-shrink: 0;
 }
 .rail-score-ring .score-ring { width: 100%; height: 100%; }
-.rail-score-ring .score-ring-value { font-size: var(--text-xl); }
-.rail-score-details .score-band { font-size: var(--text-base); }
-.rail-score-details .score-scale { font-size: var(--text-sm); }
+.rail-score-ring .score-ring-value { font-size: var(--font-size-h3); }
+.rail-score-details .score-band { font-size: var(--font-size-body); }
+.rail-score-details .score-scale { font-size: var(--font-size-small); }
 .rail-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
 }
-.rail-flags .verdict-proximity-pill { font-size: var(--text-xs); padding: var(--space-1) var(--space-2); }
+.rail-flags .verdict-proximity-pill { font-size: var(--text-xs); padding: var(--space-xs) var(--space-sm); }
 
 /* --- Rail Map --- */
 .report-rail-map {
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-bottom: var(--space-3);
-  border: 1px solid var(--color-border-muted);
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--color-border);
 }
 .rail-map-leaflet {
   width: 100%;
@@ -164,37 +166,35 @@
 
 /* --- Rail Section Nav --- */
 .report-rail-nav {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-3) 0;
-  border: 1px solid var(--color-border-muted);
+  padding: var(--space-md) 0;
+  border: 1px solid var(--color-border);
 }
 .rail-nav__link {
   display: block;
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-base);
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   text-decoration: none;
   border-left: 3px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
 }
-.rail-nav__link:hover {
-  color: var(--color-primary);
-}
+.rail-nav__link:hover { color: var(--color-accent); }
 .rail-nav__link--active {
-  color: var(--color-primary);
-  font-weight: 600;
-  border-left-color: var(--color-primary);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-semibold);
+  border-left-color: var(--color-accent);
 }
 
 /* ================================================================
-   Desktop — activate rail layout (≥1200px)
+   Desktop — activate rail layout (>= 1200px)
    ================================================================ */
 @media (min-width: 1200px) {
   .report-layout {
     display: grid;
     grid-template-columns: 1fr 280px;
-    gap: var(--space-6);
+    gap: var(--space-lg);
     align-items: start;
   }
   .report-layout__rail {
@@ -205,7 +205,6 @@
     max-height: calc(100vh - 100px);
     overflow-y: auto;
   }
-  /* Hide inline map in main content — it lives in the rail on desktop */
   .report-map-inline {
     display: none;
   }
@@ -215,20 +214,18 @@
    Responsive (snapshot-only)
    ================================================================ */
 
-/* Small tablet — tighten share bar before it stacks at 640px */
 @media (max-width: 768px) {
-  .share-bar { gap: var(--space-3); }
-  .share-bar .share-actions { gap: var(--space-2); }
-  .share-btn { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); }
+  .share-bar { gap: var(--space-md); }
+  .share-bar .share-actions { gap: var(--space-sm); }
+  .share-btn { padding: var(--space-sm) var(--space-md); font-size: var(--font-size-small); }
   .share-dropdown__menu { min-width: 140px; }
 }
 
-/* Phone — stack meta above actions, wrap buttons */
 @media (max-width: 640px) {
   .share-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: var(--space-3);
+    gap: var(--space-md);
   }
   .share-bar .snapshot-meta {
     margin-right: 0;
@@ -239,7 +236,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-2);
+    gap: var(--space-sm);
   }
   .share-btn { justify-content: center; }
   .share-actions__group { justify-content: center; }

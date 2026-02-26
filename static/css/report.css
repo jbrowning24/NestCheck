@@ -4,57 +4,59 @@
    Loaded after base.css.
    ================================================================ */
 
-/* --- Summary Narrative (Phase 2A) --- */
+/* --- Summary Narrative --- */
 .summary-narrative {
-  margin: var(--space-6) 0 var(--space-8);
-  padding: var(--space-5) var(--space-6);
-  font-size: var(--text-lg);
-  line-height: 1.65;
-  color: var(--color-text);
-  background: var(--color-surface);
+  margin: var(--space-lg) 0 var(--space-xl);
+  padding: var(--space-5) var(--space-lg);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-accent);
   overflow-wrap: break-word;
 }
 
 /* --- Report Container --- */
 .report {
   max-width: 800px;
-  margin: var(--space-8) auto var(--space-60);
-  padding: 0 var(--space-6);
+  margin: var(--space-xl) auto var(--space-3xl);
+  padding: 0 var(--space-lg);
 }
 
-/* --- Verdict Header --- */
+/* --- Verdict Card (The Hero Moment) --- */
 .verdict-card {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  margin-bottom: var(--space-6);
-  border: 1px solid var(--color-border-muted);
+  padding: var(--space-xl) var(--space-xl);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevated);
+  position: relative;
 }
 .verdict-address {
-  font-size: var(--text-base);
-  color: var(--color-text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-4);
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-base);
 }
 .score-header {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-base);
   margin-bottom: var(--space-5);
 }
 
-/* SVG Score Ring */
+/* SVG Score Ring — enlarged for hero impact */
 .score-ring-container {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 110px;
+  height: 110px;
   flex-shrink: 0;
 }
 .score-ring { width: 100%; height: 100%; }
-.score-ring-track { stroke: var(--color-border-light); }
+.score-ring-track { stroke: var(--color-border); }
 .score-ring-fill { stroke: var(--color-text-secondary); }
 .score-ring-value {
   position: absolute;
@@ -62,9 +64,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-heading);
   font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--color-text-strong);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
@@ -75,11 +78,12 @@
 .band-limited .score-ring-fill     { stroke: var(--band-limited); }
 .band-poor .score-ring-fill        { stroke: var(--band-poor); }
 
-/* Band label text color */
+/* Band label — pill-shaped badge */
 .score-band {
-  font-size: var(--text-xl);
-  font-weight: 600;
-  color: var(--color-text-heading);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
 .score-band.band-exceptional { color: var(--band-exceptional); }
 .score-band.band-strong      { color: var(--band-strong); }
@@ -88,30 +92,31 @@
 .score-band.band-poor        { color: var(--band-poor); }
 
 .score-scale {
-  font-size: var(--text-sm);
-  color: var(--color-text-faintest);
+  font-size: var(--font-size-small);
+  color: var(--color-text-faint);
 }
 .dimension-list {
-  border-top: 1px solid var(--color-border-light);
-  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-base);
 }
 .dimension-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   min-width: 100px;
   flex-shrink: 0;
 }
 .dimension-score {
-  font-weight: 600;
-  color: var(--color-text-heading);
-  font-size: var(--text-base);
+  font-family: var(--font-heading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
   white-space: nowrap;
 }
 .dimension-bar {
   width: 60px;
   height: 6px;
-  background: var(--color-border-light);
+  background: var(--color-border);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -122,35 +127,42 @@
   width: var(--fill, 0%);
 }
 
-/* --- Report Section --- */
+/* --- Report Section Cards --- */
 .report-section {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-6) var(--space-6);
+  padding: var(--space-lg) var(--space-lg);
   margin-bottom: var(--space-5);
   box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+.report-section:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 .report-section h2 {
-  font-size: var(--text-xl);
-  color: var(--color-primary-dark);
-  margin-bottom: var(--space-4);
-  padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--color-bg);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h2);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-base);
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--color-border);
 }
 .section-empty {
   display: flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--space-md);
   color: var(--color-text-faint);
-  font-size: var(--font-size-body-4);
+  font-size: var(--font-size-body);
   line-height: var(--line-height-normal);
-  padding: var(--space-4) 0;
+  padding: var(--space-base) 0;
 }
 .section-empty svg {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
-  color: var(--color-text-faintest);
+  color: var(--color-text-faint);
 }
 
 /* --- Collapsible Sections --- */
@@ -164,11 +176,11 @@
 .collapsible-toggle h2 { cursor: pointer; flex: 1; }
 .collapse-icon {
   display: inline-block;
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast);
   flex-shrink: 0;
-  margin-left: var(--space-2);
+  margin-left: var(--space-sm);
 }
 .collapse-icon.is-expanded {
   transform: rotate(90deg);
@@ -182,185 +194,197 @@
   max-height: 0;
 }
 
-/* --- Data Row (unified list item — NES-85) ---
-   Three variants: --place (parks), --hub (transit/services), --dimension (scores).
-   Use the data_row macro in _macros.html to render. */
+/* --- Data Row (unified list item) --- */
 .data-row {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border-light);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 .data-row:last-child { border-bottom: none; }
 .data-row__info { flex: 1; }
-.data-row__name { font-weight: 500; font-size: var(--text-base); color: var(--color-text-secondary); }
-.data-row__detail { font-size: var(--text-sm); color: var(--color-text-lighter); margin-top: var(--space-1); }
+.data-row__name {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.data-row__detail {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
 .data-row__right {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding-left: var(--space-4);
+  gap: var(--space-sm);
+  padding-left: var(--space-base);
 }
-.data-row__value { font-weight: 600; color: var(--color-text); font-size: var(--text-base); white-space: nowrap; }
+.data-row__value {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
-/* Variant: place (parks, green spaces — 12px padding, top-aligned) */
-.data-row--place { padding: var(--space-3) 0; align-items: flex-start; }
+/* Variant: place */
+.data-row--place { padding: var(--space-md) 0; align-items: flex-start; }
 
-/* Variant: hub (transit, emergency, libraries — center-aligned) */
+/* Variant: hub */
 .data-row--hub { align-items: center; }
 
-/* Variant: dimension (score breakdown — compact, no border) */
-.data-row--dimension { padding: var(--space-2) 0; align-items: center; gap: var(--space-3); border-bottom: none; }
+/* Variant: dimension */
+.data-row--dimension { padding: var(--space-sm) 0; align-items: center; gap: var(--space-md); border-bottom: none; }
 .data-row--dimension .data-row__name {
   color: var(--color-text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
   min-width: 160px;
   flex-shrink: 0;
 }
 .data-row--dimension .data-row__detail {
-  color: var(--color-text-dim);
-  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
   flex: 1;
 }
 
-/* Modifier: suppress bottom border (e.g., park highlight) */
-.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-1); }
+/* Modifier: suppress bottom border */
+.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-xs); }
 
-/* --- Proximity Band Items --- */
+/* --- Proximity Band Items (health hazard data) --- */
 .proximity-item {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-md) var(--space-base);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-sm);
+  transition: box-shadow var(--transition-fast);
 }
-.proximity-neutral { background: var(--color-surface-subtle); border-left: 3px solid var(--color-border-muted); }
-.proximity-notable { background: var(--color-warning-surface); border-left: 3px solid var(--color-amber-border); }
-.proximity-very_close { background: var(--color-danger-bg); border-left: 3px solid var(--color-danger); }
+.proximity-neutral {
+  background: var(--color-bg-subtle);
+  border-left: 3px solid var(--color-border-strong);
+}
+.proximity-notable {
+  background: var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
+}
+.proximity-very_close {
+  background: var(--color-fail-bg);
+  border-left: 4px solid var(--color-fail);
+}
 .proximity-name {
-  font-weight: 600;
-  font-size: var(--text-base);
-  color: var(--color-text-strong);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
 }
 .proximity-detail {
-  color: var(--color-text-dim);
-  font-size: var(--text-base);
-  margin-top: var(--space-1);
-  line-height: 1.5;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  margin-top: var(--space-xs);
+  line-height: var(--line-height-normal);
 }
-.proximity-icon { margin-right: var(--space-2); font-weight: 700; }
+.proximity-icon { margin-right: var(--space-sm); font-weight: var(--font-weight-bold); }
 .proximity-icon-clear { color: var(--color-pass-text); }
 .proximity-icon-issue { color: var(--color-fail-text); }
 .proximity-icon-warning { color: var(--color-warning-text); }
 .proximity-icon-unverified { color: var(--color-warning-text); }
 .proximity-satellite-link {
   display: inline-block;
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   text-decoration: none;
 }
 .proximity-satellite-link:hover { text-decoration: underline; }
 
-/* --- Verdict Card Proximity Pills (NES-124) --- */
+/* --- Verdict Card Proximity Pills --- */
 .verdict-proximity-flags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 .verdict-proximity-pill {
   display: inline-flex;
   align-items: center;
-  font-size: var(--text-sm);
-  padding: var(--space-1) var(--space-2);
-  border-radius: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-small);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-medium);
 }
 .verdict-proximity-pill.proximity-very_close {
-  background-color: var(--color-danger-bg);
+  background-color: var(--color-fail-bg);
   color: var(--color-danger-text);
 }
 .verdict-proximity-pill.proximity-notable {
-  background-color: var(--color-warning-surface);
+  background-color: var(--color-warning-bg);
   color: var(--color-warning-text);
 }
 .verdict-proximity-pill.proximity-neutral {
-  background-color: var(--color-surface-subtle);
-  color: var(--color-text-dim);
+  background-color: var(--color-bg-subtle);
+  color: var(--color-text-muted);
 }
 
-/* --- Road Noise Card (sub-elements within .proximity-item) --- */
+/* --- Road Noise Card --- */
 .road-noise-detail {
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-small);
   opacity: 0.85;
 }
 .road-noise-toggle {
-  margin-top: var(--space-2);
+  margin-top: var(--space-sm);
 }
 .road-noise-label {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   opacity: 0.7;
 }
 .road-noise-methodology {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   opacity: 0.65;
-  margin-top: var(--space-1);
+  margin-top: var(--space-xs);
 }
 
-/* --- Sidewalk Coverage Card (sub-elements within .proximity-item) --- */
+/* --- Sidewalk Coverage Card --- */
 .sidewalk-confidence {
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
 }
-.sidewalk-confidence-high {
-  color: var(--color-pass-text);
-}
-.sidewalk-confidence-medium {
-  color: var(--color-warning-text);
-}
-.sidewalk-confidence-low {
-  color: var(--color-danger);
-}
+.sidewalk-confidence-high { color: var(--color-pass-text); }
+.sidewalk-confidence-medium { color: var(--color-warning-text); }
+.sidewalk-confidence-low { color: var(--color-danger); }
 
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
   color: var(--color-text-muted);
-  line-height: 1.5;
-  margin-bottom: var(--space-4);
+  line-height: var(--line-height-normal);
+  margin-bottom: var(--space-base);
 }
-/* Insight callout — visually distinct from body text.
-   Primary left accent bar + subtle background sets it apart
-   from proximity items (which use status-colored left borders). */
 .section-insight {
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
   color: var(--color-text-muted);
-  line-height: 1.5;
-  margin-bottom: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-subtle);
-  border-left: 3px solid var(--color-primary);
+  line-height: var(--line-height-normal);
+  margin-bottom: var(--space-base);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-subtle);
+  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-sm);
 }
 .band-table {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   overflow: hidden;
   padding: 0;
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-base);
 }
 .band-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-base);
-  border-bottom: 1px solid var(--color-border-light);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-body);
+  border-bottom: 1px solid var(--color-border);
 }
-.band-row:last-child {
-  border-bottom: none;
-}
+.band-row:last-child { border-bottom: none; }
 .band-dot {
   width: 10px;
   height: 10px;
@@ -373,26 +397,25 @@
 .band-dot.band-limited     { background: var(--band-limited); }
 .band-dot.band-poor        { background: var(--band-poor); }
 .band-range {
-  font-weight: 600;
-  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
   min-width: 60px;
 }
-.band-label {
-  color: var(--color-text-muted);
-}
+.band-label { color: var(--color-text-muted); }
 .scoring-note {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   font-style: italic;
-  margin-top: var(--space-4);
+  margin-top: var(--space-base);
 }
 
 /* --- Missing Info --- */
 .missing-section {
-  background: var(--color-warning-surface);
+  background: var(--color-warning-bg);
   border: 1px solid var(--color-warning-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-lg);
 }
 .missing-section h2 {
   color: var(--color-warning-text);
@@ -401,74 +424,77 @@
 .missing-item {
   display: flex;
   align-items: flex-start;
-  padding: var(--space-2) 0;
-  gap: var(--space-2);
+  padding: var(--space-sm) 0;
+  gap: var(--space-sm);
 }
 .missing-bullet {
   color: var(--color-amber);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   flex-shrink: 0;
 }
-.missing-text { font-size: var(--text-base); color: var(--color-warning-text-dark); }
+.missing-text { font-size: var(--font-size-body); color: var(--color-warning-text-dark); }
 
 /* --- Park Subscores --- */
 .subscore-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
 }
 .subscore-card {
-  background: var(--color-surface-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
 }
 .subscore-label {
-  font-size: var(--text-sm);
-  color: var(--color-text-light);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  font-weight: 600;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-semibold);
 }
 .subscore-label .est { color: var(--color-amber); }
 .subscore-value {
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  font-size: var(--text-lg);
+  font-family: var(--font-heading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-h3);
+  font-variant-numeric: tabular-nums;
 }
 .subscore-reason {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
-  margin-top: var(--space-1);
+  margin-top: var(--space-xs);
 }
 
-/* --- Transit Accessibility (NES-31) --- */
+/* --- Transit Accessibility --- */
 .accessibility-lines {
-  margin-top: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-subtle);
+  margin-top: var(--space-sm);
+  padding: var(--space-md) var(--space-base);
+  background: var(--color-bg-subtle);
   border-radius: var(--radius-sm);
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
 }
-.accessibility-attr { line-height: 1.6; }
+.accessibility-attr { line-height: var(--line-height-relaxed); }
 .accessibility-label { color: var(--color-text-faint); }
 .accessibility-yes { color: var(--color-pass-text); }
 .accessibility-no { color: var(--color-fail-text); }
-.accessibility-unverified { color: var(--color-text-faintest); font-style: italic; }
+.accessibility-unverified { color: var(--color-text-faint); font-style: italic; }
 
 /* --- Walk Score Pills --- */
 .walkscore-row {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-md);
   flex-wrap: wrap;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-light);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
 }
 .walkscore-pill {
   flex: 1;
   min-width: 100px;
-  background: var(--color-surface-subtle);
-  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-subtle);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   text-align: center;
 }
@@ -476,16 +502,18 @@
   font-size: var(--text-xs);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
 .walkscore-pill .ws-value {
+  font-family: var(--font-heading);
   font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--color-primary-dark);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 .walkscore-pill .ws-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-light);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
 }
 
 /* --- Neighborhood Cards --- */
@@ -494,42 +522,43 @@
 }
 .neighborhood-category:last-child { margin-bottom: 0; }
 .category-label {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: var(--space-2);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-semibold);
 }
+
+/* Place cards — horizontal scroll with hover lift */
 .place-cards {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   overflow-x: auto;
-  padding-bottom: var(--space-1);
+  padding-bottom: var(--space-xs);
   -webkit-overflow-scrolling: touch;
 }
-/* Place card — elevated card with hover lift.
-   Hover is progressive enhancement (touch devices see resting state). */
 .place-card {
   flex: 0 0 auto;
   width: 160px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-muted);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-base);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   box-shadow: var(--shadow-card);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 .place-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-card-hover);
 }
 .place-card .place-name {
-  font-weight: 700;
-  font-size: var(--text-base);
-  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
   line-height: var(--line-height-tight);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -540,39 +569,36 @@
   color: inherit;
   text-decoration: none;
 }
-.place-name a:hover {
-  text-decoration: underline;
-}
+.place-name a:hover { text-decoration: underline; }
 .place-card .place-meta {
-  font-size: var(--text-sm);
-  color: var(--color-text-lighter);
-  margin-top: var(--space-1);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
 }
 .place-card .place-rating {
   color: var(--color-amber);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 .place-card .place-reviews {
   color: var(--color-text-disabled);
-  margin-left: var(--space-1);
+  margin-left: var(--space-xs);
 }
 .place-card .place-time {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
   margin-top: auto;
-  padding-top: var(--space-1);
+  padding-top: var(--space-xs);
 }
-/* Headline card — top place per category with review snippet.
-   Wider than compact cards to accommodate the snippet line. */
 .place-card--headline {
   width: 240px;
-  border-color: var(--color-primary-light, var(--color-border-muted));
+  border-color: var(--color-accent);
 }
 .place-snippet {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   font-style: italic;
-  color: var(--color-text-light);
+  color: var(--color-text-muted);
   line-height: var(--line-height-tight);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -581,76 +607,79 @@
 }
 .place-snippet-time {
   font-style: normal;
-  font-size: var(--text-base);
+  font-size: var(--font-size-body);
   color: var(--color-text-disabled);
   white-space: nowrap;
 }
-/* Muted card — expanded-search results (nearest by car). */
 .place-card--muted {
   opacity: 0.75;
   border-style: dashed;
 }
 .expanded-search-note {
-  font-size: var(--text-sm);
-  color: var(--color-text-light);
-  margin: var(--space-1) 0 var(--space-2);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin: var(--space-xs) 0 var(--space-sm);
   font-style: italic;
 }
 .neighborhood-category--empty .section-empty {
-  margin: var(--space-1) 0 0;
+  margin: var(--space-xs) 0 0;
   padding-top: 0;
 }
 
-/* --- Share Bar (base — snapshot.css overrides justify-content) --- */
+/* --- Share Bar --- */
 .share-bar {
   max-width: 800px;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-lg);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-base);
   justify-content: flex-end;
-  margin: var(--space-4) auto;
+  margin: var(--space-base) auto;
 }
 .share-btn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-base);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
   white-space: nowrap;
 }
-.share-btn:hover { background: var(--color-primary-dark); }
+.share-btn:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-card);
+}
 .share-btn.copied { background: var(--color-pass-text); }
 
 /* --- Disclaimer --- */
 .disclaimer {
   max-width: 800px;
-  margin: 0 auto var(--space-10);
-  padding: var(--space-5) var(--space-6);
-  font-size: var(--text-sm);
+  margin: 0 auto var(--space-xl);
+  padding: var(--space-5) var(--space-lg);
+  font-size: var(--font-size-small);
   color: var(--color-text-disabled);
-  line-height: 1.6;
+  line-height: var(--line-height-relaxed);
 }
-.disclaimer strong { color: var(--color-text-lighter); }
+.disclaimer strong { color: var(--color-text-faint); }
 
-/* --- Section Label (small uppercase muted label above a sub-section) --- */
+/* --- Section Label --- */
 .section-label {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: var(--space-2);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
-/* --- Neighborhood map (interactive Leaflet — NES-38) --- */
+/* --- Neighborhood Map --- */
 .map-container {
   padding: 0;
   overflow: hidden;
@@ -660,24 +689,23 @@
   width: 100%;
   height: 400px;
 }
-/* Blend Leaflet's layer control with report design */
 .map-container .leaflet-control-layers {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-body-5);
+  font-family: var(--font-body);
+  font-size: var(--font-size-small);
   border-radius: var(--radius-sm);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 .map-placeholder {
-  background: var(--color-surface-subtle);
+  background: var(--color-bg-subtle);
   min-height: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-8);
-  color: var(--color-text-faintest);
+  gap: var(--space-sm);
+  color: var(--color-text-faint);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-body-4);
+  font-size: var(--font-size-body);
 }
 .map-placeholder svg {
   width: 32px;
@@ -685,89 +713,94 @@
 }
 .hidden { display: none; }
 .text-faint-sm {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
 }
-/* Faint summary line below a list (e.g. library count) */
 .section-footnote {
-  font-size: var(--text-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
-  margin-top: var(--space-2);
+  margin-top: var(--space-sm);
 }
-.park-highlight { margin-bottom: var(--space-4); }
+.park-highlight { margin-bottom: var(--space-base); }
 .text-right { text-align: right; }
 .park-daily-value {
-  font-size: var(--text-sm);
-  color: var(--color-text-light);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 .eval-note {
-  margin: var(--space-1) 0 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-light);
+  margin: var(--space-xs) 0 0;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
 }
 .osm-note {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
 }
 .subsection-divider {
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-light);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
 }
-/* --- Community Profile: Stat Card Grid (NES-134) --- */
+
+/* --- Community Profile: Stat Card Grid --- */
 .stat-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--space-md);
+  margin-bottom: var(--space-base);
 }
 .stat-card {
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-muted);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
+  padding: var(--space-base);
   text-align: center;
 }
 .stat-card__value {
-  font-size: var(--font-size-lg-2);
-  font-weight: 700;
-  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
   line-height: 1.2;
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-xs);
+  font-variant-numeric: tabular-nums;
 }
 .stat-card__label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-muted);
   line-height: 1.4;
 }
 .stat-card__compare {
-  font-size: var(--font-size-sm-2);
+  font-size: var(--font-size-small);
   color: var(--color-text-faint);
-  margin-top: var(--space-2);
+  margin-top: var(--space-sm);
 }
 .community-profile-source {
-  font-size: var(--font-size-sm-2);
+  font-size: var(--font-size-small);
   color: var(--color-text-disabled);
-  margin-top: var(--space-2);
+  margin-top: var(--space-sm);
   text-align: right;
 }
-.place-name--light { font-weight: 500; }
-.badge--inline { margin-left: var(--space-2); }
+.place-name--light { font-weight: var(--font-weight-medium); }
+.badge--inline { margin-left: var(--space-sm); }
 .share-btn--secondary {
   text-decoration: none;
-  background: var(--color-text-heading);
+  background: var(--color-brand);
+}
+.share-btn--secondary:hover {
+  background: var(--color-brand-light);
 }
 .share-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   align-items: center;
 }
 .share-actions__group {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   align-items: center;
 }
 .share-actions__group--primary {
@@ -784,88 +817,85 @@
 }
 .share-dropdown summary::-webkit-details-marker { display: none; }
 .share-dropdown__chevron {
-  margin-left: var(--space-1);
-  transition: transform 0.2s;
+  margin-left: var(--space-xs);
+  transition: transform var(--transition-fast);
 }
 .share-dropdown[open] .share-dropdown__chevron { transform: rotate(180deg); }
 .share-dropdown__menu {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + var(--space-xs));
   left: 0;
   min-width: 160px;
-  padding: var(--space-1);
+  padding: var(--space-xs);
   margin: 0;
   list-style: none;
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-elevated);
   z-index: 50;
 }
 .share-dropdown__item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-sm);
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-base);
-  font-weight: 500;
-  color: var(--color-text);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
   text-decoration: none;
   background: none;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 .share-dropdown__item:hover {
-  background: var(--color-surface-subtle);
+  background: var(--color-bg-subtle);
 }
 .share-dropdown__item:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-/* --- Responsive (shared between index and snapshot) --- */
+/* --- Responsive --- */
 
-/* Large tablet / small desktop */
 @media (max-width: 1024px) {
-  .verdict-card { padding: var(--space-6) var(--space-5); }
-  .report-section { padding: var(--space-5) var(--space-6); }
+  .verdict-card { padding: var(--space-lg) var(--space-5); }
+  .report-section { padding: var(--space-5) var(--space-lg); }
 }
 
-/* Small tablet */
 @media (max-width: 768px) {
   .score-ring-container { width: 80px; height: 80px; }
-  .score-ring-value { font-size: var(--text-xl); }
+  .score-ring-value { font-size: var(--font-size-h3); }
   .dimension-bar { width: 50px; }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
-  .data-row--dimension { gap: var(--space-2); }
+  .data-row--dimension { gap: var(--space-sm); }
   .data-row--dimension .data-row__name { min-width: 140px; }
-  .place-card { width: 150px; padding: var(--space-3); }
+  .place-card { width: 150px; padding: var(--space-md); }
   .place-card--headline { width: 190px; }
-  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
+  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
 }
 
-/* Phone */
 @media (max-width: 640px) {
   .map-leaflet { height: 300px; }
-  .verdict-card { padding: var(--space-5) var(--space-4); }
+  .verdict-card { padding: var(--space-5) var(--space-base); }
+  .verdict-address { font-size: var(--font-size-h3); }
   .score-ring-container { width: 70px; height: 70px; }
   .score-ring-value { font-size: var(--text-lg); }
   .report-section { padding: var(--space-5); }
+  .report-section:hover { transform: none; }
   .subscore-grid { grid-template-columns: 1fr 1fr; }
-  .section-insight { padding: var(--space-2) var(--space-3); }
-  .place-cards { gap: var(--space-2); }
-  .place-card { width: 140px; padding: var(--space-3); }
+  .section-insight { padding: var(--space-sm) var(--space-md); }
+  .place-cards { gap: var(--space-sm); }
+  .place-card { width: 140px; padding: var(--space-md); }
   .place-card--headline { width: 180px; }
-  .stat-card { padding: var(--space-3); }
-  .stat-card__value { font-size: var(--text-xl); }
-  /* Hub: stack vertically on phone */
-  .data-row--hub { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+  .stat-card { padding: var(--space-md); }
+  .stat-card__value { font-size: var(--font-size-h3); }
+  .data-row--hub { flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
   .data-row--hub .data-row__right { padding-left: 0; }
-  /* Dimension: wrap name to full width on phone */
   .data-row--dimension { flex-wrap: wrap; }
   .data-row--dimension .data-row__name { min-width: 100%; }
   .data-row--dimension .data-row__detail { min-width: 0; }
@@ -873,62 +903,58 @@
 }
 
 /* =====================================================
-   NES-132: Preview tier (health disqualifiers as hook)
+   Preview tier (health disqualifiers as hook)
    ===================================================== */
 
-/* Preview verdict card — no score ring, health banner instead */
 .verdict-card--preview {
   text-align: center;
 }
 
 .preview-health-banner {
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-base);
 }
 
 .preview-health-title {
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-2);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
 }
 
 .preview-health-status {
+  font-family: var(--font-heading);
   font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--color-text-heading);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
 }
 
-.preview-status-clear {
-  color: var(--color-pass-text);
-}
+.preview-status-clear { color: var(--color-pass-text); }
+.preview-status-concern { color: var(--color-fail-text); }
 
-.preview-status-concern {
-  color: var(--color-fail-text);
-}
-
-/* Disqualified verdict — failed tier 1 safety checks (NES-164) */
+/* Disqualified verdict */
 .verdict-failed-banner {
-  padding: var(--space-5) var(--space-4);
+  padding: var(--space-5) var(--space-base);
 }
 
 .verdict-failed-title {
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
   color: var(--color-danger-text);
 }
 
 .verdict-failed-summary {
-  margin-top: var(--space-2);
-  font-size: var(--text-base);
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-body);
   color: var(--color-danger-text-dark);
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
 }
 
 .verdict-failed-explanation {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
   color: var(--color-danger-text);
   opacity: 0.8;
 }
@@ -936,22 +962,23 @@
 /* Upgrade CTA block */
 .preview-upgrade-cta {
   text-align: center;
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-xl) var(--space-lg);
   margin: var(--space-5) 0;
-  border: 2px dashed var(--color-border-muted);
+  border: 2px dashed var(--color-border);
   border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  background: var(--color-bg-card);
 }
 
 .preview-upgrade-cta h3 {
-  font-size: var(--text-xl);
-  color: var(--color-text-heading);
-  margin-bottom: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h3);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
 }
 
 .preview-upgrade-cta p {
-  font-size: var(--text-base);
-  color: var(--color-text-light);
+  font-size: var(--font-size-body);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-5);
   max-width: 420px;
   margin-left: auto;
@@ -960,19 +987,20 @@
 
 .preview-unlock-btn {
   display: inline-block;
-  padding: var(--space-3) var(--space-8);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  padding: var(--space-md) var(--space-xl);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-md);
-  font-weight: 700;
-  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-h3);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .preview-unlock-btn:hover {
-  background: var(--color-primary-dark);
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-card);
 }
 
 .preview-unlock-btn:disabled {
@@ -981,40 +1009,36 @@
 }
 
 /* =====================================================
-   NES-133: Persona badge and weight indicators
+   Persona badge and weight indicators
    ===================================================== */
 
 .persona-badge {
   display: inline-block;
-  margin-top: var(--space-2);
-  padding: var(--space-1) var(--space-3);
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
   font-size: var(--font-size-small);
-  color: var(--color-primary);
-  background: var(--color-primary-faint, rgba(37, 99, 235, 0.08));
-  border-radius: var(--radius-full, 9999px);
-  font-weight: 600;
+  color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-semibold);
 }
 
 .dimension-weight-badge {
   font-size: var(--text-xs);
   line-height: 1;
-  margin-left: var(--space-1);
+  margin-left: var(--space-xs);
 }
-.weight-up {
-  color: var(--color-primary, #2563eb);
-}
-.weight-down {
-  color: var(--color-text-muted, #9ca3af);
-}
+.weight-up { color: var(--color-accent); }
+.weight-down { color: var(--color-text-muted); }
 
 .persona-weights-table {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  margin: var(--space-3) 0;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-subtle, #f8fafc);
-  border-radius: var(--radius-md, 8px);
+  gap: var(--space-sm);
+  margin: var(--space-md) 0;
+  padding: var(--space-md) var(--space-base);
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
 }
 .persona-weight-row {
   display: flex;
@@ -1022,47 +1046,35 @@
   align-items: center;
   font-size: var(--font-size-small);
 }
-.pw-dim {
-  color: var(--color-text-secondary);
-}
-.pw-weight {
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-.pw-emphasis {
-  color: var(--color-primary, #2563eb);
-}
-.pw-deemphasis {
-  color: var(--color-text-muted, #9ca3af);
-}
+.pw-dim { color: var(--color-text-secondary); }
+.pw-weight { font-weight: var(--font-weight-semibold); color: var(--color-text-muted); }
+.pw-emphasis { color: var(--color-accent); }
+.pw-deemphasis { color: var(--color-text-muted); }
 
-/* --- Print (shared) --- */
+/* --- Print --- */
 @media print {
   nav, .share-bar, footer { display: none; }
   .cookie-banner { display: none; }
-  body { background: var(--color-surface); }
+  body { background: var(--color-bg-card); }
   .report { margin: 0 auto; }
   .report-section { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  .report-section:hover { transform: none; box-shadow: none; }
   .verdict-card { box-shadow: none; border: 1px solid #ddd; }
   .place-card { box-shadow: none; border: 1px solid #ddd; }
   .preview-upgrade-cta { display: none; }
   .disclaimer { break-inside: avoid; }
-  /* Force collapsed sections open for print */
   .collapsible-body.collapsed { display: block !important; max-height: none !important; }
   .collapsible-toggle .collapse-icon { display: none; }
-  /* Leaflet map: hide interactive controls, preserve rendered tiles */
   .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
-  /* Preserve score ring and status colors in print */
   .score-ring-fill, .verdict-card, .proximity-item { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* NestCheck branding header for PDF */
   body::before {
     content: "NestCheck Property Evaluation";
     display: block;
     text-align: center;
-    font-size: var(--text-sm);
+    font-size: var(--font-size-small);
     color: #888;
-    padding: var(--space-2) 0 var(--space-1);
+    padding: var(--space-sm) 0 var(--space-xs);
     border-bottom: 1px solid #ddd;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-base);
   }
 }

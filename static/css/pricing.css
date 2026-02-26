@@ -5,42 +5,45 @@
 
 .pricing-page {
   max-width: 700px;
-  margin: var(--space-60) auto;
-  padding: 0 var(--space-24);
+  margin: var(--space-3xl) auto;
+  padding: 0 var(--space-lg);
   text-align: center;
 }
 .pricing-page h1 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-primary-dark);
-  margin-bottom: var(--space-12);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
   letter-spacing: var(--letter-spacing-tight);
 }
 .pricing-page .sub {
-  color: var(--color-text-light);
-  font-size: var(--font-size-md);
-  margin-bottom: var(--space-40);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  margin-bottom: var(--space-xl);
 }
 
 .price-card {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-40) var(--space-24);
+  padding: var(--space-xl) var(--space-lg);
   box-shadow: var(--shadow-elevated);
-  border: 2px solid var(--color-primary);
-  margin-bottom: var(--space-32);
+  border: 2px solid var(--color-accent);
+  margin-bottom: var(--space-xl);
 }
 .price-card--free {
   border-color: var(--color-border);
-  padding: var(--space-24);
+  padding: var(--space-lg);
 }
 .price-card--free .price-tag {
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 .price-tag {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-extrabold);
-  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
 }
 .price-tag .per {
   font-size: 0.35em;
@@ -49,34 +52,35 @@
 }
 .price-desc {
   color: var(--color-text-muted);
-  margin: var(--space-12) 0 var(--space-24);
-  font-size: var(--font-size-base);
+  margin: var(--space-md) 0 var(--space-lg);
+  font-size: var(--font-size-body);
 }
 .price-features {
   list-style: none;
   text-align: left;
   max-width: 380px;
-  margin: 0 auto var(--space-28);
+  margin: 0 auto var(--space-lg);
 }
 .price-features li {
-  padding: var(--space-8) 0;
-  border-bottom: 1px solid var(--color-border-light);
-  font-size: var(--font-size-body-4);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-body);
   color: var(--color-text-muted);
 }
 .price-features li::before {
   content: "\2713";
-  color: var(--color-primary);
+  color: var(--color-accent);
   font-weight: var(--font-weight-bold);
-  margin-right: var(--space-10);
+  margin-right: var(--space-md);
 }
 .price-btn {
   display: inline-block;
-  padding: var(--space-4) var(--space-40);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  padding: var(--space-base) var(--space-xl);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-bold);
   text-decoration: none;
   transition:
@@ -85,45 +89,47 @@
     transform var(--transition-fast);
 }
 .price-btn:hover {
-  background: var(--color-primary-dark);
-  box-shadow: var(--shadow-elevated);
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-1px);
 }
 
 .cta-flow {
-  margin-top: var(--space-20);
-  font-size: var(--font-size-body-5);
+  margin-top: var(--space-5);
+  font-size: var(--font-size-body);
   color: var(--color-text-faint);
 }
 .cta-flow strong { color: var(--color-text-muted); }
 
 .coming-soon {
-  background: var(--color-surface);
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--space-24);
-  margin-bottom: var(--space-20);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-5);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-accent);
   text-align: left;
 }
 .coming-soon h3 {
-  font-size: var(--font-size-md);
-  color: var(--color-primary-dark);
-  margin-bottom: var(--space-6);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
 }
 .coming-soon p {
-  color: var(--color-text-lighter);
-  font-size: var(--font-size-body-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
   line-height: var(--line-height-relaxed);
 }
 
 .pricing-page .note {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-small);
   color: var(--color-text-disabled);
-  margin-top: var(--space-30);
+  margin-top: var(--space-xl);
 }
 
 /* Pricing page needs extra spacing above footer */
 footer {
-  margin-top: var(--space-60);
+  margin-top: var(--space-3xl);
 }
