@@ -95,13 +95,6 @@
         <label for="address-input" class="sr-only">Street address to evaluate</label>
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
 
-        <div class="email-gate" id="emailGate">
-          <label for="email-input" class="sr-only">Email address (optional)</label>
-          <input type="email" name="email" id="email-input" placeholder="Your email (optional) — to access your report later">
-          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
-        </div>
-        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
-
         {# Persona selector — scoring lens (NES-133) #}
         <div class="persona-selector" id="personaSelector">
           <label class="persona-label">Scoring lens:</label>
@@ -124,6 +117,13 @@
             </label>
           </div>
         </div>
+
+        <div class="email-gate" id="emailGate">
+          <label for="email-input" class="sr-only">Email address (optional)</label>
+          <input type="email" name="email" id="email-input" placeholder="Your email (optional) — to access your report later">
+          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
+        </div>
+        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
       </div>
     </form>
   </div>
