@@ -854,26 +854,40 @@
     </div>
     {% endif %}
     <div class="share-actions">
-      <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()" aria-label="Share this report">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-        <span>Share</span>
-      </button>
-      <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)" aria-label="Copy report link to clipboard">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span id="shareBtnText">Copy share link</span>
-      </button>
-      <button class="share-btn share-btn--secondary" onclick="window.print()" aria-label="Save report as PDF">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Save as PDF
-      </button>
-      <a href="/api/snapshot/{{ snapshot_id }}/json" class="share-btn share-btn--secondary">JSON</a>
-      <a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-btn share-btn--secondary">CSV</a>
-      <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
+      <div class="share-actions__group share-actions__group--primary">
+        <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()" aria-label="Share this report">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          <span>Share</span>
+        </button>
+        <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)" aria-label="Copy report link to clipboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span id="shareBtnText">Copy link</span>
+        </button>
+      </div>
+      <details class="share-dropdown">
+        <summary class="share-btn share-btn--secondary" aria-haspopup="menu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export</span>
+          <svg class="share-dropdown__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <ul class="share-dropdown__menu" role="menu">
+          <li role="none"><button type="button" class="share-dropdown__item" role="menuitem" onclick="window.print(); this.closest('details').removeAttribute('open')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Save as PDF
+          </button></li>
+          <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/json" class="share-dropdown__item" role="menuitem">JSON</a></li>
+          <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-dropdown__item" role="menuitem">CSV</a></li>
+        </ul>
+      </details>
       {% if compare_index is not defined %}
       <button class="share-btn share-btn--secondary" id="compareAddBtn"
               data-snapshot-id="{{ snapshot_id | e }}"
-              data-snapshot-address="{{ result.address | e }}">Add to comparison</button>
+              data-snapshot-address="{{ result.address | e }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Add to comparison</span>
+      </button>
       {% endif %}
+      <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
     </div>
   </div>
   {% endif %}

@@ -205,7 +205,7 @@ class TestSnapshotView:
         assert resp.status_code == 200
         body = resp.data.decode()
         assert "123 Test St" in body
-        assert "Copy share link" in body
+        assert "Copy link" in body
 
     def test_snapshot_page_has_export_links(self, client_with_snapshot):
         client, snapshot_id = client_with_snapshot

@@ -11,10 +11,18 @@
 /* --- Share Bar (snapshot variant) --- */
 .share-bar {
   justify-content: space-between;
+  align-items: center;
+}
+.share-bar .share-actions {
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
 }
 .snapshot-meta {
   font-size: var(--text-sm);
   color: var(--color-text-faint);
+  flex-shrink: 0;
+  margin-right: var(--space-4);
 }
 
 /* --- Data Unavailable --- */
@@ -209,14 +217,35 @@
 
 /* Small tablet — tighten share bar before it stacks at 640px */
 @media (max-width: 768px) {
-  .share-bar { gap: var(--space-2); }
-  .share-btn { padding: var(--space-2) var(--space-3); font-size: var(--text-base); }
+  .share-bar { gap: var(--space-3); }
+  .share-bar .share-actions { gap: var(--space-2); }
+  .share-btn { padding: var(--space-2) var(--space-3); font-size: var(--text-sm); }
+  .share-dropdown__menu { min-width: 140px; }
 }
 
-/* Phone */
+/* Phone — stack meta above actions, wrap buttons */
 @media (max-width: 640px) {
-  .share-bar { flex-direction: column; align-items: stretch; }
+  .share-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .share-bar .snapshot-meta {
+    margin-right: 0;
+    order: -1;
+    text-align: center;
+  }
+  .share-bar .share-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+  }
   .share-btn { justify-content: center; }
+  .share-actions__group { justify-content: center; }
+  .share-dropdown { width: 100%; }
+  .share-dropdown summary { justify-content: center; width: 100%; }
+  .share-dropdown__menu { left: 50%; transform: translateX(-50%); }
   .share-prompt { flex-direction: column; text-align: center; }
 }
 

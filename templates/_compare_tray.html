@@ -298,22 +298,23 @@ body.compare-tray-visible {
     // Update "Add to comparison" button on snapshot/result pages
     var addBtn = document.getElementById('compareAddBtn');
     if (addBtn) {
+      var label = addBtn.querySelector('span');
       var sid = addBtn.dataset.snapshotId;
       var list = getCompareList();
       if (isInCompare(sid) || isAddressInCompare(addBtn.dataset.snapshotAddress)) {
-        addBtn.textContent = 'Remove from comparison';
+        if (label) label.textContent = 'Remove from comparison';
         addBtn.classList.add('compare-btn--remove');
         addBtn.classList.remove('compare-btn--full');
         addBtn.disabled = false;
         addBtn.title = '';
       } else if (list.length >= MAX_ITEMS) {
-        addBtn.textContent = 'Add to comparison';
+        if (label) label.textContent = 'Add to comparison';
         addBtn.classList.remove('compare-btn--remove');
         addBtn.classList.add('compare-btn--full');
         addBtn.disabled = true;
         addBtn.title = 'Maximum 4 addresses';
       } else {
-        addBtn.textContent = 'Add to comparison';
+        if (label) label.textContent = 'Add to comparison';
         addBtn.classList.remove('compare-btn--remove', 'compare-btn--full');
         addBtn.disabled = false;
         addBtn.title = '';
