@@ -354,15 +354,92 @@ body.compare-tray-visible {
 
   // -- Bind event handlers --
 
+  // Validate snapshot IDs still exist, prune stale entries, then navigate.
+  function validateAndCompare() {
+    var list = getCompareList();
+    if (list.length < 2) return;
+
+    // Disable buttons to prevent double-click
+    var trayBtnEl = document.getElementById('compareTrayBtn');
+    var selBtnEl = document.getElementById('compareSelectedBtn');
+    if (trayBtnEl) trayBtnEl.disabled = true;
+    if (selBtnEl) selBtnEl.disabled = true;
+
+    function reenableButtons() {
+      if (trayBtnEl) trayBtnEl.disabled = false;
+      if (selBtnEl) selBtnEl.disabled = false;
+    }
+
+    var ids = [];
+    for (var i = 0; i < list.length; i++) ids.push(list[i].id);
+
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var headers = { 'Content-Type': 'application/json' };
+    if (csrfMeta) headers['X-CSRFToken'] = csrfMeta.getAttribute('content');
+
+    fetch('/api/snapshots/check', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ ids: ids })
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('check failed');
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.invalid && data.invalid.length > 0) {
+        // Batch-remove stale entries from localStorage (single re-render)
+        var invalidSet = {};
+        for (var i = 0; i < data.invalid.length; i++) invalidSet[data.invalid[i]] = true;
+        var cleaned = [];
+        for (var i = 0; i < list.length; i++) {
+          if (!invalidSet[list[i].id]) cleaned.push(list[i]);
+        }
+        saveCompareList(cleaned);
+        renderTray();
+        announceTrayUpdate(
+          data.invalid.length + ' address' +
+          (data.invalid.length > 1 ? 'es are' : ' is') +
+          ' no longer available and ' +
+          (data.invalid.length > 1 ? 'have' : 'has') +
+          ' been removed'
+        );
+      }
+      var validIds = data.valid || [];
+      if (validIds.length >= 2) {
+        var encoded = [];
+        for (var i = 0; i < validIds.length; i++) encoded.push(encodeURIComponent(validIds[i]));
+        window.location.href = '/compare?ids=' + encoded.join(',');
+      } else {
+        // Not enough valid snapshots — show user-visible message
+        announceTrayUpdate('Not enough valid addresses to compare. Please re-evaluate and try again.');
+        // Brief visual feedback on the button
+        if (trayBtnEl) {
+          var origText = trayBtnEl.textContent;
+          trayBtnEl.textContent = 'Addresses expired \u2014 re-evaluate';
+          setTimeout(function() {
+            trayBtnEl.textContent = origText;
+            renderTray();
+          }, 3000);
+        }
+      }
+    })
+    .catch(function() {
+      // Validation failed (network error) — fall back to direct navigation
+      reenableButtons();
+      var encoded = [];
+      for (var i = 0; i < ids.length; i++) encoded.push(encodeURIComponent(ids[i]));
+      window.location.href = '/compare?ids=' + encoded.join(',');
+    });
+  }
+
   // Tray "Compare now" button
   var trayBtn = document.getElementById('compareTrayBtn');
   if (trayBtn) {
     trayBtn.addEventListener('click', function() {
       var list = getCompareList();
       if (list.length >= 2) {
-        var ids = [];
-        for (var i = 0; i < list.length; i++) ids.push(encodeURIComponent(list[i].id));
-        window.location.href = '/compare?ids=' + ids.join(',');
+        validateAndCompare();
       }
     });
   }
@@ -412,9 +489,7 @@ body.compare-tray-visible {
     compareSelectedBtn.addEventListener('click', function() {
       var list = getCompareList();
       if (list.length >= 2) {
-        var ids = [];
-        for (var i = 0; i < list.length; i++) ids.push(encodeURIComponent(list[i].id));
-        window.location.href = '/compare?ids=' + ids.join(',');
+        validateAndCompare();
       }
     });
   }
