@@ -19,7 +19,7 @@
 
     {# ── Health Proximity Highlights ── #}
     {% set safety_checks = (preview_result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
-    {% set concerns = safety_checks | selectattr('result_type', 'ne', 'CLEAR') | list %}
+    {% set concerns = safety_checks | selectattr('result_type', 'ne', 'CLEAR') | selectattr('is_grouped', 'ne', true) | list %}
 
     <div class="snippet-proximity">
       <div class="snippet-section-label">Health &amp; Safety</div>

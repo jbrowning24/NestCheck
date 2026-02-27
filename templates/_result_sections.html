@@ -604,6 +604,24 @@
     {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
     {% if safety_items %}
       {% for pc in safety_items %}
+        {% if pc.is_grouped | default(false) %}
+        <div class="proximity-item proximity-notable proximity-grouped">
+          <div class="proximity-name">
+            <span class="proximity-icon proximity-icon-unverified">?</span>
+            {{ pc.headline }}
+          </div>
+          <div class="proximity-explanation">{{ pc.explanation }}</div>
+          <div class="proximity-grouped-checks">
+            We check for: {{ pc.grouped_checks | join(', ') }}
+          </div>
+          {% if result.coordinates is defined and result.coordinates %}
+            <a class="proximity-satellite-link"
+               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
+               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+          {% endif %}
+        </div>
+        {% else %}
+        {# --- Existing individual check rendering --- #}
         {% set band_class = "proximity-" + pc.proximity_band | lower %}
         <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
           <div class="proximity-name">
@@ -640,6 +658,7 @@
             </div>
           {% endif %}
         </div>
+        {% endif %}
       {% endfor %}
     {% else %}
       <div class="proximity-item proximity-neutral">

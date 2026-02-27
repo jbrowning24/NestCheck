@@ -266,6 +266,13 @@
   background: var(--color-warning-bg);
   border-left: 4px solid var(--color-warning);
 }
+/* Grouped unavailable notice */
+.proximity-grouped .proximity-grouped-checks {
+  font-size: 0.85em;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
 .proximity-very_close {
   background: var(--color-fail-bg);
   border-left: 4px solid var(--color-fail);

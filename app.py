@@ -6,6 +6,7 @@ import uuid
 import sqlite3
 import traceback
 from datetime import datetime, timezone
+from collections import defaultdict
 from functools import wraps
 from flask import (
     Flask, request, render_template, redirect, url_for,
@@ -207,6 +208,29 @@ def generate_structured_summary(presented_checks):
 _SAFETY_CHECK_NAMES = {
     "Gas station", "Highway", "High-volume road",
     "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+}
+
+_CHECK_SOURCE_GROUP = {
+    "Gas station": "google_places",
+    "Highway": "road",
+    "High-volume road": "road",
+    "Power lines": "environmental",
+    "Electrical substation": "environmental",
+    "Cell tower": "environmental",
+    "Industrial zone": "environmental",
+}
+
+_SOURCE_GROUP_LABELS = {
+    "road": {
+        "label": "Road proximity",
+        "checks": ["Highway", "High-volume road"],
+        "explanation": "Road-data service temporarily unavailable; please try again shortly",
+    },
+    "environmental": {
+        "label": "Environmental proximity",
+        "checks": ["Power lines", "Electrical substation", "Cell tower", "Industrial zone"],
+        "explanation": "Environmental data service temporarily unavailable; please try again shortly",
+    },
 }
 
 _CLEAR_HEADLINES = {
@@ -547,7 +571,39 @@ def present_checks(tier1_checks):
             "health_context": health_context,
         })
 
-    return presented
+    # --- Collapse groups where ALL checks are VERIFICATION_NEEDED ---
+    groups = defaultdict(list)
+    for item in presented:
+        sg = _CHECK_SOURCE_GROUP.get(item["name"])
+        if sg:
+            groups[sg].append(item)
+
+    collapsed = []
+    collapsed_groups = set()
+    for item in presented:
+        sg = _CHECK_SOURCE_GROUP.get(item["name"])
+        if sg and sg in _SOURCE_GROUP_LABELS:
+            group_items = groups[sg]
+            all_unverified = all(i["result_type"] == "VERIFICATION_NEEDED" for i in group_items)
+            if all_unverified:
+                if sg not in collapsed_groups:
+                    collapsed_groups.add(sg)
+                    meta = _SOURCE_GROUP_LABELS[sg]
+                    collapsed.append({
+                        "name": meta["label"],
+                        "result": "UNKNOWN",
+                        "category": "SAFETY",
+                        "result_type": "VERIFICATION_NEEDED",
+                        "proximity_band": "NOTABLE",
+                        "headline": f"{meta['label']} — Unable to verify automatically",
+                        "explanation": meta["explanation"],
+                        "is_grouped": True,
+                        "grouped_checks": meta["checks"],
+                    })
+                continue
+        collapsed.append(item)
+
+    return collapsed
 
 
 # ---------------------------------------------------------------------------
