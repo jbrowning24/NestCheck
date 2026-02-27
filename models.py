@@ -13,7 +13,7 @@ import logging
 import uuid
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -664,6 +664,30 @@ def get_overpass_cache(cache_key: str, ttl_days: Optional[int] = None) -> Option
             conn.close()
     except Exception:
         logger.warning("Overpass cache lookup failed", exc_info=True)
+        return None
+
+
+def get_overpass_cache_stale(cache_key: str) -> Optional[Tuple[str, Optional[str]]]:
+    """Return cached data regardless of TTL expiration.
+
+    Returns (json_text, created_at_iso) if entry exists, None if no entry at all.
+    Used as fallback when Overpass API is unreachable and fresh cache has expired.
+    """
+    try:
+        conn = _get_db()
+        try:
+            row = conn.execute(
+                """SELECT response_json, created_at FROM overpass_cache
+                   WHERE cache_key = ?""",
+                (cache_key,),
+            ).fetchone()
+            if not row:
+                return None
+            return (row["response_json"], row["created_at"])
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Overpass stale cache lookup failed", exc_info=True)
         return None
 
 
