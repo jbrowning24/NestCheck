@@ -236,4 +236,6 @@ class TestModuleLevelFunction:
         result = overpass_query("[out:json];", caller="test", timeout=10)
 
         assert result == {"elements": []}
-        mock_client.query.assert_called_once_with("[out:json];", caller="test", timeout=10)
+        mock_client.query.assert_called_once_with(
+            "[out:json];", caller="test", timeout=10, ttl_days=None
+        )

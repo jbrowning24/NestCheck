@@ -667,46 +667,8 @@ class GoogleMapsClient:
 class OverpassClient:
     """Client for OpenStreetMap Overpass API - for road data"""
 
-    DEFAULT_TIMEOUT = 25
-
     def __init__(self):
-        self.base_url = "https://overpass-api.de/api/interpreter"
-        self.session = requests.Session()
-        self.session.trust_env = False
-
-    MAX_RETRIES = 2
-
-    def _traced_post(self, endpoint_name: str, url: str, data_payload: dict) -> dict:
-        """POST request with automatic trace recording and retry on transient errors."""
-        last_exc: Optional[Exception] = None
-        for attempt in range(1 + self.MAX_RETRIES):
-            try:
-                t0 = time.time()
-                response = self.session.post(url, data=data_payload, timeout=self.DEFAULT_TIMEOUT)
-                elapsed_ms = int((time.time() - t0) * 1000)
-                trace = get_trace()
-                if trace:
-                    trace.record_api_call(
-                        service="overpass",
-                        endpoint=endpoint_name,
-                        elapsed_ms=elapsed_ms,
-                        status_code=response.status_code,
-                    )
-                if response.status_code == 429 or response.status_code >= 500:
-                    raise requests.HTTPError(
-                        f"Overpass returned HTTP {response.status_code}", response=response
-                    )
-                response.raise_for_status()
-                data = response.json()
-                return data
-            except (requests.RequestException, ValueError) as exc:
-                last_exc = exc
-                if attempt < self.MAX_RETRIES:
-                    time.sleep(1.5 * (attempt + 1))
-                    continue
-        raise OverpassUnavailableError(
-            "Road-data service temporarily unavailable"
-        ) from last_exc
+        pass
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
         """Get roads within radius of a point"""
@@ -719,7 +681,17 @@ class OverpassClient:
         >;
         out skel qt;
         """
-        data = self._traced_post("get_nearby_roads", self.base_url, {"data": query})
+        try:
+            from overpass_http import (
+                OverpassQueryError as _HTTPQueryError,
+                OverpassRateLimitError as _HTTPRateLimitError,
+                overpass_query,
+            )
+            data = overpass_query(query, caller="get_nearby_roads", timeout=25, ttl_days=30)
+        except (_HTTPRateLimitError, _HTTPQueryError) as e:
+            raise OverpassUnavailableError(
+                "Road-data service temporarily unavailable"
+            ) from e
         
         roads = []
         for element in data.get("elements", []):
@@ -1149,7 +1121,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
             OverpassRateLimitError as _HTTPRateLimitError,
             overpass_query as _overpass_http_query,
         )
-        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25)
+        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25, ttl_days=14)
     except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
         logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
         return None

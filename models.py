@@ -639,11 +639,12 @@ def _check_cache_ttl(created_str, ttl_days: int) -> bool:
         return True  # Can't parse → return data anyway
 
 
-def get_overpass_cache(cache_key: str) -> Optional[str]:
+def get_overpass_cache(cache_key: str, ttl_days: Optional[int] = None) -> Optional[str]:
     """Look up a cached Overpass response by key.
 
     Returns the raw JSON string if found and younger than TTL, else None.
     Cache errors are swallowed so they never break an evaluation.
+    ttl_days: override TTL for this lookup; if None, uses _OVERPASS_CACHE_TTL_DAYS.
     """
     try:
         conn = _get_db()
@@ -655,7 +656,8 @@ def get_overpass_cache(cache_key: str) -> Optional[str]:
             ).fetchone()
             if not row:
                 return None
-            if not _check_cache_ttl(row["created_at"], _OVERPASS_CACHE_TTL_DAYS):
+            effective_ttl = ttl_days if ttl_days is not None else _OVERPASS_CACHE_TTL_DAYS
+            if not _check_cache_ttl(row["created_at"], effective_ttl):
                 return None
             return row["response_json"]
         finally:

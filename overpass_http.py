@@ -64,6 +64,7 @@ class OverpassHTTPClient:
         overpass_ql: str,
         caller: str = "unknown",
         timeout: Optional[int] = None,
+        ttl_days: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Execute an Overpass QL query with cache-first, rate-limited HTTP.
@@ -73,6 +74,7 @@ class OverpassHTTPClient:
             caller: Identifier for trace attribution (e.g., "green_escape",
                     "road_noise", "overpass_client.get_nearby_roads").
             timeout: HTTP timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+            ttl_days: Cache TTL in days for this lookup; None uses default (7 days).
 
         Returns:
             Parsed JSON response dict from Overpass.
@@ -89,7 +91,7 @@ class OverpassHTTPClient:
         # --- Cache check (no lock needed, no rate limiter engagement) ---
         cache_key = overpass_cache_key(overpass_ql)
         try:
-            cached = get_overpass_cache(cache_key)
+            cached = get_overpass_cache(cache_key, ttl_days=ttl_days)
         except Exception:
             logger.warning(
                 "Overpass cache read failed for key, falling through to HTTP",
@@ -370,6 +372,7 @@ def overpass_query(
     overpass_ql: str,
     caller: str = "unknown",
     timeout: Optional[int] = None,
+    ttl_days: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Module-level convenience function. All Overpass calls should use this."""
-    return _client.query(overpass_ql, caller=caller, timeout=timeout)
+    return _client.query(overpass_ql, caller=caller, timeout=timeout, ttl_days=ttl_days)
