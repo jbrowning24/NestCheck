@@ -42,6 +42,13 @@
         <div class="score-scale">out of 100</div>
       </div>
     </div>
+    {# NES-189: Aggregate data confidence note — only shown for non-HIGH #}
+    {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'HIGH' %}
+    <div class="confidence-summary confidence-{{ result.data_confidence_summary.level | lower }}">
+      <span class="confidence-summary-icon">&#9432;</span>
+      {{ result.data_confidence_summary.note }}
+    </div>
+    {% endif %}
     {% else %}
     {# Disqualified — property failed tier 1 safety checks (NES-164) #}
     {% set all_safety = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
@@ -89,6 +96,12 @@
             <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
           {% elif dim_weight < 1.0 %}
             <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+          {% endif %}
+          {# NES-189: Data confidence badge — hidden for HIGH (default) #}
+          {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence != 'HIGH' %}
+            <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">
+              {% if dim.data_confidence == 'MEDIUM' %}Limited data{% else %}Sparse data{% endif %}
+            </span>
           {% endif %}
           <div class="dimension-bar">
             <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>

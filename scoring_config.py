@@ -82,6 +82,9 @@ class DimensionResult:
     scoring_inputs: dict      # e.g. {"walk_time_min": 18, "rating": 4.3}
     subscores: Optional[dict] = None  # e.g. {"proximity": 7.2, "quality": 0.8} for fitness
     model_version: str = ""
+    # Data confidence indicator (NES-189).  "HIGH" / "MEDIUM" / "LOW" with note.
+    data_confidence: Optional[str] = None
+    data_confidence_note: Optional[str] = None
 
     # Aliases so consumers that read Tier2Score attributes still work.
     # Uses floor(x + 0.5) instead of Python's round() to avoid banker's

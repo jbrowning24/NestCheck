@@ -185,6 +185,10 @@ class Tier2Score:
     points: int
     max_points: int
     details: str
+    # Data confidence indicator (NES-189).  Mirrors the sidewalk_coverage
+    # pattern: "HIGH" / "MEDIUM" / "LOW" with an explanatory note.
+    data_confidence: Optional[str] = None
+    data_confidence_note: Optional[str] = None
 
 
 @dataclass
@@ -3143,6 +3147,147 @@ def is_quality_park(place: Dict, maps: GoogleMapsClient) -> Tuple[bool, str]:
     return False, f"{name} - insufficient data ({rating}★, {reviews} reviews)"
 
 
+# =============================================================================
+# DATA CONFIDENCE CLASSIFIERS (NES-189)
+#
+# Each classifier returns (level, note) where level is "HIGH" / "MEDIUM" /
+# "LOW" and note explains why.  Mirrors the sidewalk_coverage.py pattern.
+# =============================================================================
+
+# -- Thresholds for Google Places dimensions (coffee, grocery, fitness) ------
+_PLACES_HIGH_COUNT = 3       # eligible places for HIGH
+_PLACES_HIGH_REVIEWS = 100   # best place review count for HIGH
+_PLACES_MED_REVIEWS = 30     # best place review count for MEDIUM
+
+
+def _classify_places_confidence(
+    eligible_count: int,
+    best_review_count: int,
+) -> tuple:
+    """Classify data confidence for a Google Places-backed dimension.
+
+    Signals used:
+      - eligible_count: how many places passed quality filters
+      - best_review_count: user_ratings_total on the highest-scoring place
+
+    Returns (level, note) tuple.
+    """
+    if eligible_count == 0:
+        return "LOW", "No eligible places found in search area"
+
+    if eligible_count >= _PLACES_HIGH_COUNT and best_review_count >= _PLACES_HIGH_REVIEWS:
+        return "HIGH", (
+            f"{eligible_count} places found, best has {best_review_count} reviews"
+        )
+
+    if best_review_count >= _PLACES_MED_REVIEWS:
+        return "MEDIUM", (
+            f"{eligible_count} place{'s' if eligible_count != 1 else ''} found, "
+            f"best has {best_review_count} reviews"
+        )
+
+    return "LOW", (
+        f"Only {eligible_count} place{'s' if eligible_count != 1 else ''} found "
+        f"with limited review data ({best_review_count} reviews)"
+    )
+
+
+def _classify_transit_confidence(
+    transit_access: Optional["TransitAccessResult"],
+    urban_access: Optional["UrbanAccessProfile"],
+) -> tuple:
+    """Classify data confidence for the transit / getting-around dimension.
+
+    Signals used:
+      - Whether a primary transit stop was found
+      - OSM node density (nearby_node_count on TransitAccessResult)
+      - Whether walk time was successfully computed
+
+    Returns (level, note) tuple.
+    """
+    has_walk_time = False
+    node_count = 0
+
+    if urban_access and urban_access.primary_transit:
+        has_walk_time = urban_access.primary_transit.walk_time_min is not None
+
+    if transit_access:
+        node_count = transit_access.nearby_node_count or 0
+        if not has_walk_time and transit_access.walk_minutes is not None:
+            has_walk_time = True
+
+    if not has_walk_time and node_count == 0:
+        return "LOW", "No transit data available for this location"
+
+    if has_walk_time and node_count >= 10:
+        return "HIGH", (
+            f"Walk time computed, {node_count} transit nodes in area"
+        )
+
+    if has_walk_time:
+        return "MEDIUM", (
+            "Walk time computed but limited transit frequency data"
+        )
+
+    return "LOW", "Transit stop detected but walk time could not be computed"
+
+
+def _classify_park_confidence(
+    green_escape_eval: Optional["GreenEscapeEvaluation"],
+) -> tuple:
+    """Classify data confidence for the parks / green-space dimension.
+
+    Signals used:
+      - Whether a best_daily_park was found
+      - OSM enrichment status (measured vs. estimated acreage)
+      - Review count on the best park
+
+    Returns (level, note) tuple.
+    """
+    if not green_escape_eval or not green_escape_eval.best_daily_park:
+        return "LOW", "No green spaces found in search area"
+
+    best = green_escape_eval.best_daily_park
+    reviews = best.user_ratings_total or 0
+    osm_enriched = best.osm_enriched if hasattr(best, "osm_enriched") else False
+
+    # Check if size/loop subscore is estimated (not OSM-measured)
+    has_estimates = False
+    if hasattr(best, "subscores") and best.subscores:
+        has_estimates = any(
+            getattr(ss, "is_estimate", False) for ss in best.subscores
+        )
+
+    if osm_enriched and reviews >= 100 and not has_estimates:
+        return "HIGH", (
+            f"OSM-verified boundaries, {reviews} reviews"
+        )
+
+    if reviews >= 30 or osm_enriched:
+        note_parts = []
+        if has_estimates:
+            note_parts.append("some metrics estimated")
+        if reviews < 100:
+            note_parts.append(f"{reviews} reviews")
+        return "MEDIUM", " — ".join(note_parts) if note_parts else "Partial data"
+
+    return "LOW", (
+        f"Limited data: {reviews} reviews, "
+        f"{'no OSM boundaries' if not osm_enriched else 'estimated metrics'}"
+    )
+
+
+def _classify_cost_confidence(cost: Optional[int]) -> tuple:
+    """Classify data confidence for the cost dimension.
+
+    Simply: HIGH if the user provided a cost, LOW if not.
+    Returns (level, note) tuple.
+    """
+    if cost is not None:
+        return "HIGH", "Monthly cost provided by user"
+    return "LOW", "Monthly cost not specified — score reflects missing data"
+
+
 def score_park_access(
     maps: GoogleMapsClient,
     lat: float,
@@ -3159,12 +3304,16 @@ def score_park_access(
         # New engine path
         if green_escape_evaluation is not None:
             best = green_escape_evaluation.best_daily_park
+            conf, conf_note = _classify_park_confidence(green_escape_evaluation)
+
             if not best:
                 return Tier2Score(
                     name="Primary Green Escape",
                     points=0,
                     max_points=10,
                     details="No green spaces found within walking distance",
+                    data_confidence=conf,
+                    data_confidence_note=conf_note,
                 )
 
             # Use the daily walk value score directly (already 0–10)
@@ -3180,9 +3329,11 @@ def score_park_access(
                 points=points,
                 max_points=10,
                 details=details,
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             )
 
-        # Legacy path
+        # Legacy path — no confidence data available (old GreenSpaceEvaluation)
         evaluation = green_space_evaluation or evaluate_green_spaces(maps, lat, lng)
         green_escape = evaluation.green_escape
 
@@ -3191,7 +3342,9 @@ def score_park_access(
                 name="Primary Green Escape",
                 points=0,
                 max_points=10,
-                details="No primary green escape within a 30-minute walk"
+                details="No primary green escape within a 30-minute walk",
+                data_confidence="LOW",
+                data_confidence_note="No green spaces found in search area",
             )
 
         if green_escape.walk_time_min <= PARK_WALK_IDEAL_MIN:
@@ -3208,7 +3361,9 @@ def score_park_access(
             name="Primary Green Escape",
             points=points,
             max_points=10,
-            details=details
+            details=details,
+            data_confidence="MEDIUM",
+            data_confidence_note="Legacy scoring path — limited quality signals",
         )
 
     except Exception as e:
@@ -3216,7 +3371,9 @@ def score_park_access(
             name="Primary Green Escape",
             points=0,
             max_points=10,
-            details=f"Error: {str(e)}"
+            details=f"Error: {str(e)}",
+            data_confidence="LOW",
+            data_confidence_note="Scoring failed due to an error",
         )
 
 
@@ -3239,11 +3396,14 @@ def score_third_place_access(
         all_places = _dedupe_by_place_id(all_places)
 
         if not all_places:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality third places within walking distance"
+                details="No high-quality third places within walking distance",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Filter for third-place quality
@@ -3272,11 +3432,14 @@ def score_third_place_access(
                 eligible_places.append(place)
 
         if not eligible_places:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Third Place",
                 points=0,
                 max_points=10,
-                details="No high-quality third places within walking distance"
+                details="No high-quality third places within walking distance",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Batch walking times — 1 API call per 25 places instead of 1 each
@@ -3333,11 +3496,18 @@ def score_third_place_access(
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
+        # Data confidence (NES-189)
+        conf, conf_note = _classify_places_confidence(
+            len(eligible_places), reviews,
+        )
+
         return (Tier2Score(
             name="Third Place",
             points=best_score,
             max_points=10,
-            details=details
+            details=details,
+            data_confidence=conf,
+            data_confidence_note=conf_note,
         ), neighborhood_places)
 
     except Exception as e:
@@ -3345,18 +3515,24 @@ def score_third_place_access(
             name="Third Place",
             points=0,
             max_points=10,
-            details=f"Error: {str(e)}"
+            details=f"Error: {str(e)}",
+            data_confidence="LOW",
+            data_confidence_note="Scoring failed due to an error",
         ), [])
 
 
 def score_cost(cost: Optional[int]) -> Tier2Score:
     """Score based on monthly cost (0-10 points)"""
+    conf, conf_note = _classify_cost_confidence(cost)
+
     if cost is None:
         return Tier2Score(
             name="Cost",
             points=0,
             max_points=10,
-            details="Monthly cost not specified"
+            details="Monthly cost not specified",
+            data_confidence=conf,
+            data_confidence_note=conf_note,
         )
 
     if cost <= COST_IDEAL:
@@ -3376,7 +3552,9 @@ def score_cost(cost: Optional[int]) -> Tier2Score:
         name="Cost",
         points=points,
         max_points=10,
-        details=details
+        details=details,
+        data_confidence=conf,
+        data_confidence_note=conf_note,
     )
 
 
@@ -3433,12 +3611,17 @@ def score_transit_access(
                 transit_origin=(primary_transit.lat, primary_transit.lng) if primary_transit else None,
             ) if primary_transit else None
 
+        # Data confidence (NES-189)
+        conf, conf_note = _classify_transit_confidence(transit_access, urban_access)
+
         if not primary_transit:
             return Tier2Score(
                 name="Urban access",
                 points=0,
                 max_points=10,
-                details="No rail transit stations found within reach"
+                details="No rail transit stations found within reach",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
@@ -3485,7 +3668,9 @@ def score_transit_access(
                 f"{drive_note} | "
                 f"Service: {frequency_label} | "
                 f"Hub: {hub_note}"
-            )
+            ),
+            data_confidence=conf,
+            data_confidence_note=conf_note,
         )
 
     except Exception as e:
@@ -3493,7 +3678,9 @@ def score_transit_access(
             name="Urban access",
             points=0,
             max_points=10,
-            details=f"Error: {str(e)}"
+            details=f"Error: {str(e)}",
+            data_confidence="LOW",
+            data_confidence_note="Scoring failed due to an error",
         )
 
 
@@ -3516,11 +3703,14 @@ def score_provisioning_access(
         all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service provisioning options within walking distance"
+                details="No full-service provisioning options within walking distance",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Filter for household provisioning quality
@@ -3549,11 +3739,14 @@ def score_provisioning_access(
                 eligible_stores.append(store)
 
         if not eligible_stores:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Provisioning",
                 points=0,
                 max_points=10,
-                details="No full-service provisioning options within walking distance"
+                details="No full-service provisioning options within walking distance",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Batch walking times — 1 API call per 25 stores instead of 1 each
@@ -3610,11 +3803,18 @@ def score_provisioning_access(
         reviews = best_store.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
+        # Data confidence (NES-189)
+        conf, conf_note = _classify_places_confidence(
+            len(eligible_stores), reviews,
+        )
+
         return (Tier2Score(
             name="Provisioning",
             points=best_score,
             max_points=10,
-            details=details
+            details=details,
+            data_confidence=conf,
+            data_confidence_note=conf_note,
         ), neighborhood_places)
 
     except Exception as e:
@@ -3622,7 +3822,9 @@ def score_provisioning_access(
             name="Provisioning",
             points=0,
             max_points=10,
-            details=f"Error: {str(e)}"
+            details=f"Error: {str(e)}",
+            data_confidence="LOW",
+            data_confidence_note="Scoring failed due to an error",
         ), [])
 
 
@@ -3652,11 +3854,14 @@ def score_fitness_access(
         fitness_places = _dedupe_by_place_id(fitness_places)
 
         if not fitness_places:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
-                details="No gyms or fitness centers found within 30 min walk"
+                details="No gyms or fitness centers found within 30 min walk",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Batch walking times — 1 API call per 25 facilities instead of 1 each
@@ -3693,11 +3898,14 @@ def score_fitness_access(
             scored_facilities.append((score, walk_time, facility))
 
         if best_score == 0 and not scored_facilities:
+            conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
-                details="No gyms or fitness centers found within 30 min walk"
+                details="No gyms or fitness centers found within 30 min walk",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), [])
 
         # Sort by score desc, then walk time asc; take top 5
@@ -3716,19 +3924,31 @@ def score_fitness_access(
         ]
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
+        # Data confidence (NES-189)
+        best_review_count = (
+            best_facility.get("user_ratings_total", 0) if best_facility else 0
+        )
+        conf, conf_note = _classify_places_confidence(
+            len(fitness_places), best_review_count,
+        )
+
         if best_score == 0:
             return (Tier2Score(
                 name="Fitness access",
                 points=0,
                 max_points=10,
-                details="No gyms or fitness centers found within 30 min walk"
+                details="No gyms or fitness centers found within 30 min walk",
+                data_confidence=conf,
+                data_confidence_note=conf_note,
             ), neighborhood_places)
 
         return (Tier2Score(
             name="Fitness access",
             points=best_score,
             max_points=10,
-            details=best_details
+            details=best_details,
+            data_confidence=conf,
+            data_confidence_note=conf_note,
         ), neighborhood_places)
 
     except Exception as e:
@@ -3736,7 +3956,9 @@ def score_fitness_access(
             name="Fitness access",
             points=0,
             max_points=10,
-            details=f"Error: {str(e)}"
+            details=f"Error: {str(e)}",
+            data_confidence="LOW",
+            data_confidence_note="Scoring failed due to an error",
         ), [])
 
 
