@@ -669,7 +669,7 @@ class GoogleMapsClient:
 
 
 class OverpassClient:
-    """Client for OpenStreetMap Overpass API - for road data"""
+    """Client for OpenStreetMap Overpass API - for road data.
 
     def __init__(self):
         pass
@@ -708,7 +708,7 @@ class OverpassClient:
                     "highway_type": element["tags"].get("highway", ""),
                     "lanes": element["tags"].get("lanes", ""),
                 })
-        
+
         return roads
 
 
