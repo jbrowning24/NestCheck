@@ -277,7 +277,7 @@ _SOURCE_GROUP_LABELS = {
 }
 
 _CLEAR_HEADLINES = {
-    "Gas station": "No gas stations within 500 ft",
+    "Gas station": "No gas stations within 500 ft setback",
     "High-traffic road": "No high-traffic roads nearby",
     # Legacy — retained for old snapshots:
     "Highway": "No highways or major parkways nearby",
@@ -299,7 +299,7 @@ _CLEAR_HEADLINES = {
 }
 
 _ISSUE_HEADLINES = {
-    "Gas station": "Gas station within proximity threshold",
+    "Gas station": "Gas station within 300 ft",
     "High-traffic road": "High-traffic road nearby",
     # Legacy — retained for old snapshots:
     "Highway": "Highway or major parkway nearby",
@@ -322,6 +322,7 @@ _ISSUE_HEADLINES = {
 }
 
 _WARNING_HEADLINES = {
+    "Gas station": "Gas station within 300–500 ft",
     "High-traffic road": "High-traffic road in wider area",
     "Power lines": "High-voltage transmission line detected nearby",
     "Electrical substation": "Electrical substation detected nearby",
@@ -360,17 +361,40 @@ _HEALTH_CONTEXT = {
             "level was exceeded at a distance of 160 meters."
         ),
         "regulatory": (
-            "California recommends 300-foot setbacks between gas stations and "
-            "sensitive land uses (homes, schools, daycares). Maryland requires "
-            "500 feet. These aren\u2019t arbitrary \u2014 they reflect the distance at "
-            "which benzene concentrations from vent pipes are expected to approach "
-            "safe thresholds under normal conditions."
+            "This property is within California\u2019s recommended 300-foot setback "
+            "between gas stations and sensitive land uses (homes, schools, daycares). "
+            "Maryland requires 500 feet. These aren\u2019t arbitrary \u2014 they reflect the "
+            "distance at which benzene concentrations from vent pipes are expected to "
+            "approach safe thresholds under normal conditions."
         ),
         "exposure": (
             "The exposure is chronic, not acute. You won\u2019t smell benzene at "
             "these concentrations. The health concern is years of low-level chronic "
             "exposure, which is associated with increased leukemia risk and other "
             "blood disorders. This is particularly relevant for young children and "
+            "pregnant women."
+        ),
+    },
+    ("Gas station", "WARNING"): {
+        "why": (
+            "Gas stations emit benzene \u2014 a known human carcinogen "
+            "(classified Group 1 by the International Agency for Research on Cancer) "
+            "\u2014 from underground storage tank vent pipes and during fueling. "
+            "A 2019 Columbia/Johns Hopkins study (Hilpert et al.) measured vent pipe "
+            "emissions roughly 10 times higher than California\u2019s regulatory estimates."
+        ),
+        "regulatory": (
+            "This property clears California\u2019s recommended 300-foot setback for "
+            "gas stations, but falls within the more conservative 500-foot buffer "
+            "recommended by Maryland and supported by Columbia/Johns Hopkins "
+            "research on benzene vapor dispersion. Health risk at this distance is "
+            "reduced but not eliminated."
+        ),
+        "exposure": (
+            "The exposure is chronic, not acute. You won\u2019t smell benzene at "
+            "these concentrations. The concern is years of low-level exposure, "
+            "which is associated with increased leukemia risk and other blood "
+            "disorders \u2014 particularly relevant for young children and "
             "pregnant women."
         ),
     },

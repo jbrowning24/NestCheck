@@ -44,7 +44,8 @@ from property_evaluator import (
     TRI_FACILITY_WARNING_RADIUS_M,
     COST_MAX,
     COST_TARGET,
-    GAS_STATION_MIN_DISTANCE_FT,
+    GAS_STATION_FAIL_DISTANCE_FT,
+    GAS_STATION_WARN_DISTANCE_FT,
     MIN_BEDROOMS,
     MIN_SQFT,
 )
@@ -193,7 +194,10 @@ class TestCoerceScore:
 # ============================================================================
 
 class TestCheckGasStations:
-    """Tests for check_gas_stations — UST spatial data primary, Google Places fallback."""
+    """Tests for check_gas_stations — two-tier thresholds (FAIL < 300 ft, WARNING 300–500 ft).
+
+    UST spatial data primary path, Google Places fallback.
+    """
 
     def _make_maps(self, stations, distance):
         maps = MagicMock(spec=GoogleMapsClient)
@@ -213,24 +217,42 @@ class TestCheckGasStations:
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
 
-    def test_station_far_enough_pass(self):
+    def test_station_beyond_warn_threshold_pass(self):
         station = {"geometry": {"location": {"lat": 40.01, "lng": -74.0}}, "name": "Shell"}
         maps = self._make_maps([station], 600)
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
         assert result.value == 600
 
-    def test_station_too_close_fail(self):
+    def test_station_within_fail_threshold_fail(self):
+        """Station at 250 ft — inside CA 300 ft setback → FAIL."""
         station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "BP"}
-        maps = self._make_maps([station], 300)
+        maps = self._make_maps([station], 250)
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.FAIL
-        assert result.value == 300
+        assert result.value == 250
         assert "TOO CLOSE" in result.details
 
-    def test_station_at_boundary_pass(self):
+    def test_station_in_warning_band(self):
+        """Station at 350 ft — beyond CA setback, within MD 500 ft → WARNING."""
+        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Sunoco"}
+        maps = self._make_maps([station], 350)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
+        assert result.result == CheckResult.WARNING
+        assert result.value == 350
+        assert "NEARBY" in result.details
+
+    def test_boundary_at_fail_threshold_is_warning(self):
+        """Station at exactly 300 ft — boundary goes to WARNING (not FAIL)."""
         station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Mobil"}
-        maps = self._make_maps([station], GAS_STATION_MIN_DISTANCE_FT)
+        maps = self._make_maps([station], GAS_STATION_FAIL_DISTANCE_FT)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
+        assert result.result == CheckResult.WARNING
+
+    def test_boundary_at_warn_threshold_is_pass(self):
+        """Station at exactly 500 ft — boundary goes to PASS."""
+        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Exxon"}
+        maps = self._make_maps([station], GAS_STATION_WARN_DISTANCE_FT)
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
 
@@ -271,6 +293,7 @@ class TestCheckGasStations:
         assert result.value == 656
 
     def test_spatial_close_facility_fail(self):
+        """Spatial facility at 197 ft — inside 300 ft fail threshold."""
         from spatial_data import FacilityRecord
         facility = FacilityRecord(
             facility_type="ust", name="BP Fuel",
@@ -284,6 +307,23 @@ class TestCheckGasStations:
         result = check_gas_stations(40.0, -74.0, store)
         assert result.result == CheckResult.FAIL
         assert "TOO CLOSE" in result.details
+
+    def test_spatial_warning_band(self):
+        """Spatial facility at 400 ft — between 300 and 500 ft → WARNING."""
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="ust", name="Corner Gas",
+            lat=40.003, lng=-74.0,
+            distance_meters=122.0, distance_feet=400.0,
+            metadata={"open_usts": 1},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [facility]
+        result = check_gas_stations(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+        assert result.value == 400
+        assert "NEARBY" in result.details
 
     def test_spatial_prefers_active_usts(self):
         from spatial_data import FacilityRecord

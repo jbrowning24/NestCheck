@@ -46,7 +46,8 @@ class DimensionConfig:
 @dataclass(frozen=True)
 class Tier1Thresholds:
     """Minimum safe distances for Tier 1 health/safety checks (feet)."""
-    gas_station_ft: int = 500
+    gas_station_fail_ft: int = 300   # hard fail — within CA 300 ft setback
+    gas_station_warn_ft: int = 500   # warning  — within MD 500 ft setback
 
 
 @dataclass(frozen=True)
@@ -274,7 +275,8 @@ SCORING_MODEL = ScoringModel(
     ),
 
     tier1=Tier1Thresholds(
-        gas_station_ft=500,
+        gas_station_fail_ft=300,
+        gas_station_warn_ft=500,
     ),
 
     tier3=Tier3Bonuses(
