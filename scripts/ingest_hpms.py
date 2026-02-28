@@ -8,19 +8,22 @@ Format: ArcGIS REST API with JSON pagination
 Records: ~500K–2M+ nationally across 52 states/territories
 
 This script:
-1. Iterates over 52 per-state FeatureServer endpoints
+1. Iterates over 52 per-state FeatureServer endpoints (50 states + DC + PR)
 2. Converts polyline paths to WKT MULTILINESTRING (same as HIFLD)
 3. Loads into spatial.db as facilities_hpms table
 4. Stores AADT and road metadata for health proximity scoring
 
-Idempotent: drops and recreates the table on each run.
-Run time: 30+ minutes for full national dataset.
+Idempotent: per-state delete + re-insert. Safe to re-run for individual states
+without affecting other states' data.
+
+Run time: ~30+ minutes for full national dataset.
 
 Usage:
-    python scripts/ingest_hpms.py
-    python scripts/ingest_hpms.py --state MA
-    python scripts/ingest_hpms.py --states MA,CA,NY
-    python scripts/ingest_hpms.py --limit 5   # 5 pages per state
+    python scripts/ingest_hpms.py                        # All 52 states/territories
+    python scripts/ingest_hpms.py --states NY,CA,IL      # Partial run
+    python scripts/ingest_hpms.py --dry-run              # Probe all services, no writes
+    python scripts/ingest_hpms.py --dry-run --states NY  # Probe specific states
+    python scripts/ingest_hpms.py --limit 5              # 5 pages per state
 """
 
 import argparse
@@ -47,7 +50,9 @@ logger = logging.getLogger(__name__)
 HPMS_BASE_URL = "https://geo.dot.gov/server/rest/services/Hosted"
 PAGE_SIZE = 2000
 SLEEP_BETWEEN_STATES = 0.75
+REQUEST_TIMEOUT = 60  # seconds per HTTP request
 
+# All 50 states + DC + Puerto Rico
 STATES = [
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
     "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME",
@@ -75,6 +80,10 @@ STATE_TO_SERVICE = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Geometry helpers
+# ---------------------------------------------------------------------------
+
 def _paths_to_multilinestring_wkt(paths: list, decimals: int = 6) -> str | None:
     """
     Convert ArcGIS paths array to MULTILINESTRING WKT.
@@ -98,6 +107,10 @@ def _paths_to_multilinestring_wkt(paths: list, decimals: int = 6) -> str | None:
         return None
 
 
+# ---------------------------------------------------------------------------
+# ArcGIS REST helpers
+# ---------------------------------------------------------------------------
+
 def _state_endpoint(state: str) -> str:
     """Build the query URL for a state (uses full name, e.g. Massachusetts_2018_PR)."""
     service_name = STATE_TO_SERVICE.get(state, state)
@@ -119,7 +132,7 @@ def _probe_aadt_field(state: str) -> str | None:
         "resultRecordCount": 1,
     }
     try:
-        resp = requests.get(url, params=params, timeout=30)
+        resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -142,6 +155,26 @@ def _probe_aadt_field(state: str) -> str | None:
         return None
 
 
+def _query_record_count(state: str) -> int | None:
+    """Query total record count for a state via returnCountOnly (no geometry download)."""
+    url = _state_endpoint(state)
+    params = {
+        "where": "1=1",
+        "returnCountOnly": "true",
+        "f": "json",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        if "error" in data:
+            return None
+        return data.get("count")
+    except Exception:
+        return None
+
+
 def fetch_page(state: str, offset: int, out_fields: str) -> tuple[dict | None, str | None]:
     """
     Fetch one page of HPMS records for a state.
@@ -159,7 +192,7 @@ def fetch_page(state: str, offset: int, out_fields: str) -> tuple[dict | None, s
     }
     for attempt in range(3):
         try:
-            resp = requests.get(url, params=params, timeout=90)
+            resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
             if resp.status_code == 404:
                 return None, "404"
             resp.raise_for_status()
@@ -194,6 +227,10 @@ def fetch_page(state: str, offset: int, out_fields: str) -> tuple[dict | None, s
     return None, "Max retries exceeded"
 
 
+# ---------------------------------------------------------------------------
+# Attribute helpers
+# ---------------------------------------------------------------------------
+
 def _attr(attrs: dict, *keys: str, default=None):
     """Get attribute case-insensitively. Tries exact match then uppercase."""
     for k in keys:
@@ -217,65 +254,109 @@ def _safe_int(val) -> int | None:
         return None
 
 
+# ---------------------------------------------------------------------------
+# Table management (idempotent per-state)
+# ---------------------------------------------------------------------------
+
+def _table_exists(conn, table_name: str) -> bool:
+    """Check if a table exists in the spatial database."""
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _ensure_hpms_table():
+    """Create facilities_hpms table if it doesn't already exist."""
+    conn = _connect()
+    try:
+        exists = _table_exists(conn, "facilities_hpms")
+    finally:
+        conn.close()
+
+    if not exists:
+        create_facility_table("hpms", geometry_type="MULTILINESTRING")
+        logger.info("Created facilities_hpms table")
+    else:
+        logger.info("facilities_hpms table already exists")
+
+
+def _delete_state_data(conn, state: str) -> int:
+    """
+    Delete all existing HPMS segments for a state before re-ingesting.
+    Matches on 'state' field (preferred) or 'state_code' field (legacy compat).
+    """
+    cursor = conn.execute(
+        """DELETE FROM facilities_hpms
+           WHERE json_extract(metadata_json, '$.state') = ?
+              OR json_extract(metadata_json, '$.state_code') = ?""",
+        (state, state),
+    )
+    conn.commit()
+    return cursor.rowcount
+
+
+# ---------------------------------------------------------------------------
+# Per-state ingestion
+# ---------------------------------------------------------------------------
+
 def ingest_state(
     conn,
     state: str,
     limit_pages: int,
-    state_counts: dict,
-    state_errors: dict,
-    state_skipped: dict,
+    results: dict,
     aadt_field_cache: dict,
 ) -> int:
     """
-    Ingest one state. Returns count inserted for this state.
-    Updates state_counts, state_errors, state_skipped in place.
+    Ingest one state. Returns count of segments inserted.
+    Updates results[state] in place with segment count, AADT coverage, and errors.
     """
-    total_for_state = 0
-    skipped_for_state = 0
+    total = 0
+    skipped = 0
+    aadt_non_null = 0
     offset = 0
     page_num = 0
 
-    # Probe for AADT field (cache per state)
+    # Per-state idempotency: clear existing data for this state
+    deleted = _delete_state_data(conn, state)
+    if deleted > 0:
+        logger.info("[%s] Cleared %s existing segments", state, f"{deleted:,}")
+
+    # Probe for AADT field name (varies by state; cached across states)
     if state not in aadt_field_cache:
-        aadt_field = _probe_aadt_field(state)
-        aadt_field_cache[state] = aadt_field
-        if not aadt_field:
+        aadt_field_cache[state] = _probe_aadt_field(state)
+        if not aadt_field_cache[state]:
             logger.warning("[%s] No AADT field found in schema — storing null for aadt", state)
     aadt_field = aadt_field_cache[state]
 
-    out_fields = "*"  # Use * to handle field name variations across states
-
     while True:
         page_num += 1
-        data, err = fetch_page(state, offset, out_fields)
+        data, err = fetch_page(state, offset, "*")
         if err:
-            if err == "404":
-                logger.warning("[%s] Error: 404 — skipping", state)
-                state_errors[state] = "404"
-            else:
-                logger.warning("[%s] Error: %s — skipping", state, err[:80])
-                state_errors[state] = err[:200]
-            state_counts[state] = total_for_state
-            state_skipped[state] = skipped_for_state
-            return total_for_state
+            logger.warning("[%s] Error: %s — skipping", state, err[:80])
+            results[state] = {
+                "segments": total, "aadt_non_null": aadt_non_null,
+                "skipped": skipped, "error": err[:200],
+            }
+            return total
 
         features = data.get("features", [])
         if not features:
             break
 
-        inserted_this_batch = 0
         for feat in features:
             attrs = feat.get("attributes", {})
             geom = feat.get("geometry") or {}
 
             paths = geom.get("paths")
             if not paths:
-                skipped_for_state += 1
+                skipped += 1
                 continue
 
             wkt = _paths_to_multilinestring_wkt(paths)
             if not wkt:
-                skipped_for_state += 1
+                skipped += 1
                 continue
 
             name = _attr(attrs, "ROUTE_ID", "route_id") or "HPMS segment"
@@ -286,11 +367,13 @@ def ingest_state(
 
             aadt_val = None
             if aadt_field:
-                raw = attrs.get(aadt_field)
-                aadt_val = _safe_int(raw)
+                aadt_val = _safe_int(attrs.get(aadt_field))
+            if aadt_val is not None:
+                aadt_non_null += 1
 
             metadata = {
                 "aadt": aadt_val,
+                "state": state,  # 2-letter abbreviation for per-state idempotency
                 "state_code": _attr(attrs, "STATE_CODE", "state_code") or state,
                 "route_id": _attr(attrs, "ROUTE_ID", "route_id") or "",
                 "f_system": _attr(attrs, "F_SYSTEM", "f_system"),
@@ -305,35 +388,157 @@ def ingest_state(
                        VALUES (?, GeomFromText(?, 4326), ?)""",
                     (name, wkt, json.dumps(metadata)),
                 )
-                inserted_this_batch += 1
-                total_for_state += 1
+                total += 1
             except Exception as e:
                 logger.warning("[%s] Insert failed for %s: %s", state, name[:30], e)
-                skipped_for_state += 1
+                skipped += 1
 
         conn.commit()
-        logger.info(
-            "[%s] Fetching... %s segments ingested",
-            state,
-            f"{total_for_state:,}",
-        )
+        logger.info("[%s] Fetching... %s segments ingested", state, f"{total:,}")
 
         if limit_pages and page_num >= limit_pages:
             break
-
         if len(features) < PAGE_SIZE:
             break
-
         offset += PAGE_SIZE
 
-    state_counts[state] = total_for_state
-    state_skipped[state] = skipped_for_state
-    return total_for_state
+    results[state] = {
+        "segments": total, "aadt_non_null": aadt_non_null,
+        "skipped": skipped, "error": None,
+    }
+    return total
 
+
+# ---------------------------------------------------------------------------
+# Dry-run probe
+# ---------------------------------------------------------------------------
+
+def dry_run_state(state: str, aadt_field_cache: dict) -> dict:
+    """
+    Probe a state's HPMS service without writing to the database.
+    Returns dict with estimated_total, sample_aadt_coverage, and error.
+    """
+    # Get total record count via lightweight count-only query
+    total_count = _query_record_count(state)
+
+    # Fetch one page to sample AADT coverage and verify service availability
+    data, err = fetch_page(state, 0, "*")
+    if err:
+        return {
+            "estimated_total": total_count or 0,
+            "sample_aadt_coverage": None,
+            "error": err[:200],
+        }
+
+    features = data.get("features", [])
+    if not features:
+        return {"estimated_total": 0, "sample_aadt_coverage": None, "error": None}
+
+    # Use count query result, or fall back to page size as lower bound
+    if total_count is None:
+        total_count = len(features)
+
+    # Derive AADT field name from the already-fetched features (avoids extra HTTP request)
+    if state not in aadt_field_cache:
+        attrs = features[0].get("attributes", {})
+        aadt_field = None
+        for key in attrs:
+            if key.upper() == "AADT":
+                aadt_field = key
+                break
+        if not aadt_field:
+            for key in attrs:
+                if "AADT" in key.upper():
+                    aadt_field = key
+                    break
+        aadt_field_cache[state] = aadt_field
+    aadt_field = aadt_field_cache[state]
+
+    aadt_non_null = 0
+    for feat in features:
+        if aadt_field:
+            val = _safe_int(feat.get("attributes", {}).get(aadt_field))
+            if val is not None:
+                aadt_non_null += 1
+
+    sample_size = len(features)
+    coverage = (aadt_non_null / sample_size * 100) if sample_size > 0 else None
+
+    return {
+        "estimated_total": total_count,
+        "sample_aadt_coverage": coverage,
+        "error": None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Summary report
+# ---------------------------------------------------------------------------
+
+def _print_summary(states_run: list, results: dict, elapsed: float, dry_run: bool):
+    """Print the formatted summary table to stdout."""
+    mode = "Dry-Run " if dry_run else ""
+    seg_label = "Est. Segments" if dry_run else "Segments"
+    cov_label = "AADT Sample %" if dry_run else "AADT Coverage"
+
+    print(f"\nHPMS {mode}Ingest Summary")
+    print("=" * 65)
+    print(f"{'State':<9}| {seg_label:>13} | {cov_label:>13} | Status")
+    print(f"{'-' * 9}|{'-' * 15}|{'-' * 15}|{'-' * 24}")
+
+    total_segments = 0
+    total_aadt_non_null = 0
+    succeeded = 0
+
+    for state in states_run:
+        r = results.get(state, {})
+        error = r.get("error")
+
+        if dry_run:
+            segments = r.get("estimated_total", 0)
+            coverage = r.get("sample_aadt_coverage")
+        else:
+            segments = r.get("segments", 0)
+            aadt_nn = r.get("aadt_non_null", 0)
+            coverage = (aadt_nn / segments * 100) if segments > 0 else None
+            total_aadt_non_null += aadt_nn
+
+        total_segments += segments
+
+        if error:
+            status = f"FAILED: {error[:35]}"
+            cov_str = "N/A".rjust(13)
+        else:
+            succeeded += 1
+            status = "OK"
+            cov_str = f"{coverage:.1f}%".rjust(13) if coverage is not None else "N/A".rjust(13)
+
+        seg_str = f"{segments:,}".rjust(13)
+        print(f"{state:<9}| {seg_str} | {cov_str} | {status}")
+
+    # Total row
+    print(f"{'-' * 9}|{'-' * 15}|{'-' * 15}|{'-' * 24}")
+
+    if dry_run:
+        total_cov_str = "N/A".rjust(13)
+    else:
+        total_cov = (total_aadt_non_null / total_segments * 100) if total_segments > 0 else 0
+        total_cov_str = f"{total_cov:.1f}%".rjust(13)
+
+    total_seg_str = f"{total_segments:,}".rjust(13)
+    status_str = f"{succeeded}/{len(states_run)} succeeded"
+    print(f"{'TOTAL':<9}| {total_seg_str} | {total_cov_str} | {status_str}")
+    print(f"\nElapsed: {elapsed / 60:.1f} min")
+
+
+# ---------------------------------------------------------------------------
+# Main orchestration
+# ---------------------------------------------------------------------------
 
 def ingest(
     states_filter: list[str] | None = None,
     limit_pages: int = 0,
+    dry_run: bool = False,
     discover: bool = False,
 ):
     """Main ingestion loop."""
@@ -350,7 +555,7 @@ def ingest(
                 "resultRecordCount": 1,
             }
             try:
-                resp = requests.get(url, params=params, timeout=30)
+                resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
                 print(f"[{state}] HTTP {resp.status_code}")
                 if resp.status_code == 200:
                     data = resp.json()
@@ -367,35 +572,45 @@ def ingest(
         return
 
     states_to_run = list(dict.fromkeys(states_filter)) if states_filter else STATES
-    logger.info("Starting HPMS ingestion")
-    logger.info("  States: %s", ", ".join(states_to_run))
+    logger.info("Starting HPMS %s", "dry run" if dry_run else "ingestion")
+    logger.info("  States: %s (%d total)", ", ".join(states_to_run), len(states_to_run))
     if limit_pages:
         logger.info("  LIMIT: %d pages per state (%d records)", limit_pages, limit_pages * PAGE_SIZE)
 
+    aadt_field_cache = {}
+    results = {}
+    t0 = time.time()
+
+    if dry_run:
+        # Probe each state's service without writing to DB
+        for i, state in enumerate(states_to_run):
+            if i > 0:
+                time.sleep(SLEEP_BETWEEN_STATES)
+            logger.info("[%s] Probing service...", state)
+            results[state] = dry_run_state(state, aadt_field_cache)
+            r = results[state]
+            status = "OK" if not r["error"] else f"FAILED: {r['error'][:40]}"
+            logger.info("[%s] %s (est. %s records)", state, status, f"{r['estimated_total']:,}")
+
+        _print_summary(states_to_run, results, time.time() - t0, dry_run=True)
+        return
+
+    # Full ingestion
     init_spatial_db()
-    create_facility_table("hpms", geometry_type="MULTILINESTRING")
-    logger.info("Created facilities_hpms table")
+    _ensure_hpms_table()
 
     conn = _connect()
     total_inserted = 0
-    state_counts = {}
-    state_errors = {}
-    state_skipped = {}
-    aadt_field_cache = {}
-
-    t0 = time.time()
 
     try:
         for i, state in enumerate(states_to_run):
             if i > 0:
                 time.sleep(SLEEP_BETWEEN_STATES)
-            count = ingest_state(
-                conn, state, limit_pages, state_counts, state_errors,
-                state_skipped, aadt_field_cache,
-            )
+            count = ingest_state(conn, state, limit_pages, results, aadt_field_cache)
             total_inserted += count
 
-        failed_states = [s for s in states_to_run if s in state_errors]
+        # Update dataset registry
+        failed_states = [s for s in states_to_run if results.get(s, {}).get("error")]
         notes_parts = [f"states={len(states_to_run)}"]
         if failed_states:
             notes_parts.append(f"failed={','.join(failed_states)}")
@@ -419,31 +634,7 @@ def ingest(
     finally:
         conn.close()
 
-    elapsed = time.time() - t0
-    db_path = (
-        os.path.join(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""), "spatial.db")
-        if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
-        else os.environ.get("NESTCHECK_SPATIAL_DB_PATH", "data/spatial.db")
-    )
-    db_size_mb = os.path.getsize(db_path) / (1024 * 1024) if os.path.exists(db_path) else 0
-
-    total_skipped = sum(state_skipped.values())
-
-    # Summary table
-    logger.info("=" * 60)
-    logger.info("HPMS INGESTION COMPLETE")
-    logger.info("  Total inserted: %s", f"{total_inserted:,}")
-    logger.info("  Total skipped:  %s", f"{total_skipped:,}")
-    logger.info("  Wall-clock:     %.1f min", elapsed / 60)
-    logger.info("  DB size:       %.1f MB", db_size_mb)
-    logger.info("-" * 60)
-    logger.info("Per-state summary:")
-    for state in states_to_run:
-        cnt = state_counts.get(state, 0)
-        err = state_errors.get(state, "")
-        status = f"{cnt:,} segments" if not err else f"ERROR: {err}"
-        logger.info("  [%s] %s", state, status)
-    logger.info("=" * 60)
+    _print_summary(states_to_run, results, time.time() - t0, dry_run=False)
 
 
 def verify():
@@ -473,11 +664,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--states", type=str, default="",
-        help="Comma-separated states (e.g., MA,CA,NY).",
+        help="Comma-separated states (e.g., MA,CA,NY). Default: all 52.",
     )
     parser.add_argument(
         "--limit", type=int, default=0,
         help="Max pages per state (0 = all). Each page = 2000 records.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Probe services and report availability/AADT coverage without writing to DB.",
     )
     parser.add_argument(
         "--discover", action="store_true",
@@ -498,6 +693,6 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True, states_filter=states_filter or ["MA"])
     else:
-        ingest(states_filter=states_filter, limit_pages=args.limit)
+        ingest(states_filter=states_filter, limit_pages=args.limit, dry_run=args.dry_run)
         if args.verify:
             verify()
