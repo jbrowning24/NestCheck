@@ -160,6 +160,10 @@ def ingest(
                 logger.info("Ring count: %d", len(feat["geometry"]["rings"]))
         return
 
+    if not metro and bbox is None:
+        metro = "nyc"
+        logger.info("No --metro or --bbox provided; defaulting to --metro nyc")
+
     if metro:
         metro_key = metro.lower()
         if metro_key not in METRO_BBOXES:
