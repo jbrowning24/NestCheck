@@ -60,7 +60,8 @@ def get_score_band(score: int) -> dict:
 # =============================================================================
 
 # Health & Safety Thresholds (in feet)
-GAS_STATION_MIN_DISTANCE_FT = 500
+GAS_STATION_FAIL_DISTANCE_FT = SCORING_MODEL.tier1.gas_station_fail_ft   # 300
+GAS_STATION_WARN_DISTANCE_FT = SCORING_MODEL.tier1.gas_station_warn_ft   # 500
 HIGHWAY_MIN_DISTANCE_FT = 500
 HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = 500
 
@@ -938,6 +939,45 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "bike_description": bike.get("description"),
     }
 
+def _classify_gas_station_distance(
+    min_distance: int, closest_name: str
+) -> Tier1Check:
+    """Return the appropriate Tier1Check for a gas station at *min_distance* ft.
+
+    Three-tier model:
+      FAIL:    < GAS_STATION_FAIL_DISTANCE_FT  (300 ft — CA setback)
+      WARNING: < GAS_STATION_WARN_DISTANCE_FT  (500 ft — MD setback)
+      PASS:    >= GAS_STATION_WARN_DISTANCE_FT
+    """
+    if min_distance < GAS_STATION_FAIL_DISTANCE_FT:
+        return Tier1Check(
+            name="Gas station",
+            result=CheckResult.FAIL,
+            details=(
+                f"TOO CLOSE: {closest_name} ({min_distance:,} ft "
+                f"< {GAS_STATION_FAIL_DISTANCE_FT} ft)"
+            ),
+            value=min_distance,
+        )
+    if min_distance < GAS_STATION_WARN_DISTANCE_FT:
+        return Tier1Check(
+            name="Gas station",
+            result=CheckResult.WARNING,
+            details=(
+                f"NEARBY: {closest_name} ({min_distance:,} ft — "
+                f"beyond {GAS_STATION_FAIL_DISTANCE_FT} ft CA setback, "
+                f"within {GAS_STATION_WARN_DISTANCE_FT} ft MD setback)"
+            ),
+            value=min_distance,
+        )
+    return Tier1Check(
+        name="Gas station",
+        result=CheckResult.PASS,
+        details=f"Nearest: {closest_name} ({min_distance:,} ft)",
+        value=min_distance,
+    )
+
+
 def check_gas_stations(
     lat: float,
     lng: float,
@@ -951,7 +991,8 @@ def check_gas_stations(
     unavailable.
 
     Thresholds:
-      FAIL:    Nearest facility with active USTs < 500 ft
+      FAIL:    Nearest facility with active USTs < 300 ft  (CA setback)
+      WARNING: Nearest facility 300–499 ft                 (MD setback)
       PASS:    No qualifying facilities within 500 ft
       UNKNOWN: Neither spatial data nor Google Places available
     """
@@ -984,22 +1025,7 @@ def check_gas_stations(
             min_distance = round(nearest.distance_feet)
             closest_name = nearest.name
 
-            if min_distance >= GAS_STATION_MIN_DISTANCE_FT:
-                return Tier1Check(
-                    name="Gas station",
-                    result=CheckResult.PASS,
-                    details=f"Nearest: {closest_name} ({min_distance:,} ft)",
-                    value=min_distance,
-                )
-            return Tier1Check(
-                name="Gas station",
-                result=CheckResult.FAIL,
-                details=(
-                    f"TOO CLOSE: {closest_name} ({min_distance:,} ft "
-                    f"< {GAS_STATION_MIN_DISTANCE_FT} ft)"
-                ),
-                value=min_distance,
-            )
+            return _classify_gas_station_distance(min_distance, closest_name)
         except Exception as e:
             logger.warning("UST spatial gas-station check failed: %s", e)
             # Fall through to Google Places if available
@@ -1035,22 +1061,7 @@ def check_gas_stations(
                 min_distance = dist
                 closest_name = station.get("name", "Unknown")
 
-        if min_distance >= GAS_STATION_MIN_DISTANCE_FT:
-            return Tier1Check(
-                name="Gas station",
-                result=CheckResult.PASS,
-                details=f"Nearest: {closest_name} ({min_distance:,} ft)",
-                value=min_distance,
-            )
-        return Tier1Check(
-            name="Gas station",
-            result=CheckResult.FAIL,
-            details=(
-                f"TOO CLOSE: {closest_name} ({min_distance:,} ft "
-                f"< {GAS_STATION_MIN_DISTANCE_FT} ft)"
-            ),
-            value=min_distance,
-        )
+        return _classify_gas_station_distance(int(min_distance), closest_name)
     except Exception as e:
         logger.warning("Gas station check failed: %s", e)
         return Tier1Check(
