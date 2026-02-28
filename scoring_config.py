@@ -47,8 +47,6 @@ class DimensionConfig:
 class Tier1Thresholds:
     """Minimum safe distances for Tier 1 health/safety checks (feet)."""
     gas_station_ft: int = 500
-    highway_ft: int = 500
-    high_volume_road_ft: int = 500
 
 
 @dataclass(frozen=True)
@@ -277,8 +275,6 @@ SCORING_MODEL = ScoringModel(
 
     tier1=Tier1Thresholds(
         gas_station_ft=500,
-        highway_ft=500,
-        high_volume_road_ft=500,
     ),
 
     tier3=Tier3Bonuses(

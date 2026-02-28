@@ -3381,7 +3381,6 @@ def evaluate_property(
                                          PERSONA_PRESETS[DEFAULT_PERSONA])
 
     maps = GoogleMapsClient(api_key)
-    overpass = OverpassClient()
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.

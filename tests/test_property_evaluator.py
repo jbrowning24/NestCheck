@@ -320,6 +320,139 @@ class TestCheckHighTrafficRoad:
         result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.PASS
 
+    def test_multiple_segments_worst_wins(self):
+        """FAIL zone segment beats WARNING zone segment with higher AADT."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="Local Rd",
+                lat=40.0, lng=-74.0,
+                distance_meters=100.0, distance_feet=100.0 * 3.28084,
+                metadata={"aadt": 40000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="US-1",
+                lat=40.0, lng=-74.0,
+                distance_meters=120.0, distance_feet=120.0 * 3.28084,
+                metadata={"aadt": 60000, "route_id": "US-1"},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="I-95",
+                lat=40.0, lng=-74.0,
+                distance_meters=200.0, distance_feet=200.0 * 3.28084,
+                metadata={"aadt": 80000, "route_id": "I-95"},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.FAIL
+        # Detail references the 60K fail-zone segment, not the 80K warn-zone one
+        assert "60,000" in result.details
+
+    def test_fail_zone_takes_priority_over_warning(self):
+        """FAIL zone hit overrides WARNING zone hit regardless of AADT."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="US-1",
+                lat=40.0, lng=-74.0,
+                distance_meters=140.0, distance_feet=140.0 * 3.28084,
+                metadata={"aadt": 55000, "route_id": "US-1"},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="I-95",
+                lat=40.0, lng=-74.0,
+                distance_meters=250.0, distance_feet=250.0 * 3.28084,
+                metadata={"aadt": 70000, "route_id": "I-95"},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.FAIL
+        assert "55,000" in result.details
+
+    def test_warning_only_no_fail_zone_segments(self):
+        """Segment above threshold in warning band (150-300m) returns WARNING."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="I-287",
+            lat=40.0, lng=-74.0,
+            distance_meters=200.0, distance_feet=200.0 * 3.28084,
+            metadata={"aadt": 65000, "route_id": "I-287"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+        assert "65,000" in result.details
+        assert "656" in result.details  # 200m ≈ 656 ft
+
+    def test_detail_format_named_road(self):
+        """Named road detail: '{name}: {aadt} vehicles/day, {dist} ft away'."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="HPMS segment",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0, distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 75000, "route_id": "I-95"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert "I-95" in result.details
+        assert "75,000" in result.details
+
+    def test_detail_format_anonymous_road(self):
+        """Anonymous road detail: 'Road with {aadt} vehicles/day found ...'."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0, distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 75000, "route_id": "", "route_name": ""},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert "Road with" in result.details
+        assert "75,000" in result.details
+
+    def test_all_segments_below_threshold_returns_pass(self):
+        """Multiple segments all with AADT < 50,000 within fail zone → PASS."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 1",
+                lat=40.0, lng=-74.0,
+                distance_meters=50.0, distance_feet=50.0 * 3.28084,
+                metadata={"aadt": 25000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 2",
+                lat=40.0, lng=-74.0,
+                distance_meters=100.0, distance_feet=100.0 * 3.28084,
+                metadata={"aadt": 35000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 3",
+                lat=40.0, lng=-74.0,
+                distance_meters=140.0, distance_feet=140.0 * 3.28084,
+                metadata={"aadt": 45000, "route_id": ""},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+
 
 # ============================================================================
 # Tier 1: Environmental hazard checks
