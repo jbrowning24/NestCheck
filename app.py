@@ -208,6 +208,7 @@ def generate_structured_summary(presented_checks):
 _SAFETY_CHECK_NAMES = {
     "Gas station", "Highway", "High-volume road",
     "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+    "Flood zone",
 }
 
 _CHECK_SOURCE_GROUP = {
@@ -241,6 +242,7 @@ _CLEAR_HEADLINES = {
     "Electrical substation": "No electrical substations within 300 ft",
     "Cell tower": "No cell towers within 500 ft",
     "Industrial zone": "No industrial-zoned land within 500 ft",
+    "Flood zone": "Not in a FEMA flood zone",
 }
 
 _ISSUE_HEADLINES = {
@@ -251,6 +253,7 @@ _ISSUE_HEADLINES = {
     "Electrical substation": "Electrical substation detected nearby",
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
+    "Flood zone": "Located in a FEMA Special Flood Hazard Area",
 }
 
 _WARNING_HEADLINES = {
@@ -258,6 +261,7 @@ _WARNING_HEADLINES = {
     "Electrical substation": "Electrical substation detected nearby",
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
+    "Flood zone": "In a moderate flood risk area",
 }
 
 # ---------------------------------------------------------------------------

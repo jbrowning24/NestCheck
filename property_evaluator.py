@@ -39,6 +39,7 @@ from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION,
 )
+from spatial_data import SpatialDataStore
 
 load_dotenv()
 
@@ -1349,6 +1350,88 @@ def check_industrial_zones(
         details="No industrial-zoned land detected within 500 ft",
         required=False,
     )
+
+
+def check_flood_zones(lat: float, lng: float) -> Tier1Check:
+    """Check whether the property falls within a FEMA flood zone.
+
+    Queries the local SpatiaLite database (fema_nfhl layer) — no external
+    API calls.  Severity precedence across all overlapping polygons:
+      1. Zone A* / V*  → FAIL  (Special Flood Hazard Area)
+      2. Zone X shaded → WARNING (moderate risk)
+      3. Everything else → PASS
+    Empty results (no data coverage) → UNKNOWN.
+    """
+    _unknown = Tier1Check(
+        name="Flood zone",
+        result=CheckResult.UNKNOWN,
+        details="Flood zone data not available for this area",
+        value=None,
+        required=True,
+    )
+    try:
+        store = SpatialDataStore()
+        polygons = store.point_in_polygons(lat, lng, "fema_nfhl")
+
+        if not polygons:
+            return _unknown
+
+        # Scan all overlapping polygons — highest severity wins.
+        has_high_risk = False
+        high_risk_zone = ""
+        has_moderate_risk = False
+
+        for record in polygons:
+            fld_zone = record.metadata.get("fld_zone", "")
+            zone_subtype = record.metadata.get("zone_subtype", "")
+
+            if fld_zone.startswith("A") or fld_zone.startswith("V"):
+                has_high_risk = True
+                high_risk_zone = fld_zone
+            elif (
+                fld_zone.startswith("X")
+                and zone_subtype
+                and "SHADED" in zone_subtype.upper()
+            ):
+                has_moderate_risk = True
+
+        if has_high_risk:
+            return Tier1Check(
+                name="Flood zone",
+                result=CheckResult.FAIL,
+                details=(
+                    f"Property is in a FEMA Special Flood Hazard Area "
+                    f"(Zone {high_risk_zone})"
+                ),
+                value=high_risk_zone,
+                required=True,
+            )
+
+        if has_moderate_risk:
+            return Tier1Check(
+                name="Flood zone",
+                result=CheckResult.WARNING,
+                details="Property is in a moderate flood risk area (Zone X, shaded)",
+                value="X-shaded",
+                required=True,
+            )
+
+        # No high or moderate risk — property is outside SFHA.
+        display_zone = polygons[0].metadata.get("fld_zone", "X")
+        return Tier1Check(
+            name="Flood zone",
+            result=CheckResult.PASS,
+            details=(
+                f"Not in a FEMA Special Flood Hazard Area "
+                f"(Zone {display_zone})"
+            ),
+            value=display_zone,
+            required=True,
+        )
+
+    except Exception:
+        logger.warning("Flood zone check failed", exc_info=True)
+        return _unknown
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -3355,6 +3438,9 @@ def evaluate_property(
     result.tier1_checks.append(check_substations(env_hazards, lat, lng))
     result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
     result.tier1_checks.append(check_industrial_zones(env_hazards, lat, lng))
+
+    # Flood zone check (local SpatiaLite — no API cost)
+    result.tier1_checks.append(check_flood_zones(lat, lng))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))
