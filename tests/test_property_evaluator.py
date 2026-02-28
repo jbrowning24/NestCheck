@@ -37,6 +37,7 @@ from property_evaluator import (
     check_power_lines,
     check_substations,
     check_superfund_npl,
+    check_tri_facility_proximity,
     score_cost,
     score_park_access,
     COST_IDEAL,
@@ -623,6 +624,101 @@ class TestCheckSuperfundNpl:
             result = check_superfund_npl(40.0, -74.0)
         assert result.result == CheckResult.PASS
         assert "Not within" in result.details
+
+
+# ============================================================================
+# Tier 1: check_tri_facility_proximity
+# ============================================================================
+
+class TestCheckTriFacilityProximity:
+    def test_unavailable_store_returns_unknown(self):
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = False
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.UNKNOWN
+        assert result.name == "TRI facility"
+
+    def test_none_store_returns_unknown(self):
+        result = check_tri_facility_proximity(40.0, -74.0, None)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_facilities_returns_pass(self):
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.return_value = []
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.PASS
+        assert "No EPA TRI facilities" in result.details
+        assert result.required is False
+
+    def test_nearby_facility_returns_warning(self):
+        from spatial_data import FacilityRecord
+
+        facility = FacilityRecord(
+            facility_type="tri",
+            name="ACME Chemical Plant",
+            lat=40.001,
+            lng=-74.0,
+            distance_meters=800.0,
+            distance_feet=2625.0,
+            metadata={
+                "industry_sector": "Chemicals",
+                "total_releases_lb": 15000,
+            },
+        )
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.return_value = [facility]
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.WARNING
+        assert "ACME Chemical Plant" in result.details
+        assert "Chemicals" in result.details
+        assert result.value == 2625
+        assert result.required is False
+
+    def test_multiple_facilities_shows_count(self):
+        from spatial_data import FacilityRecord
+
+        facilities = [
+            FacilityRecord(
+                facility_type="tri",
+                name="Plant A",
+                lat=40.001,
+                lng=-74.0,
+                distance_meters=500.0,
+                distance_feet=1640.0,
+                metadata={"industry_sector": "Chemicals"},
+            ),
+            FacilityRecord(
+                facility_type="tri",
+                name="Plant B",
+                lat=40.002,
+                lng=-74.0,
+                distance_meters=1200.0,
+                distance_feet=3937.0,
+                metadata={"industry_sector": "Petroleum"},
+            ),
+        ]
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.return_value = facilities
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.WARNING
+        assert "2 TRI facilities" in result.details
+
+    def test_exception_returns_unknown(self):
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.side_effect = RuntimeError("DB error")
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_queries_correct_radius_and_type(self):
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.return_value = []
+        check_tri_facility_proximity(40.0, -74.0, mock_store)
+        mock_store.find_facilities_within.assert_called_once_with(40.0, -74.0, 1609, "tri")
 
 
 # ============================================================================

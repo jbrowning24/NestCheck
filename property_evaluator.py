@@ -69,6 +69,7 @@ POWER_LINE_WARNING_DISTANCE_FT = 200
 SUBSTATION_WARNING_DISTANCE_FT = 300
 CELL_TOWER_WARNING_DISTANCE_FT = 500
 INDUSTRIAL_ZONE_WARNING_DISTANCE_FT = 500
+TRI_FACILITY_WARNING_DISTANCE_FT = 5280  # 1 mile — EPA TRI toxic release facilities
 
 # Walking time thresholds (in minutes)
 PARK_WALK_IDEAL_MIN = 20
@@ -687,7 +688,7 @@ class GoogleMapsClient:
 
 
 class OverpassClient:
-    """Client for OpenStreetMap Overpass API - for road data.
+    """Client for OpenStreetMap Overpass API - for road data."""
 
     def __init__(self):
         pass
@@ -1634,6 +1635,83 @@ def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
 
     except Exception:
         logger.warning("Superfund NPL check failed", exc_info=True)
+        return _unknown
+
+
+def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check proximity to EPA Toxic Release Inventory (TRI) facilities.
+
+    Queries the local SpatiaLite database (facilities_tri layer) for TRI
+    reporting facilities within 1 mile of the property.  TRI facilities
+    manufacture, process, or use significant quantities of listed toxic
+    chemicals and are required to report annual releases to the EPA.
+
+    Tier 0 WARNING — nearby TRI facilities indicate potential exposure to
+    toxic air emissions, water discharges, or soil contamination.  This is
+    a proximity warning, not a containment check (unlike Superfund NPL).
+
+    Returns WARNING when the nearest TRI facility is within 1 mile,
+    PASS when none are found within 1 mile, UNKNOWN when data is
+    unavailable.
+    """
+    _unknown = Tier1Check(
+        name="TRI facility",
+        result=CheckResult.UNKNOWN,
+        details="TRI facility data not available for this area",
+        value=None,
+        required=False,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
+    try:
+        # 1 mile ≈ 1609 meters
+        facilities = spatial_store.find_facilities_within(
+            lat, lng, 1609, "tri"
+        )
+
+        if not facilities:
+            return Tier1Check(
+                name="TRI facility",
+                result=CheckResult.PASS,
+                details="No EPA TRI facilities within 1 mile",
+                value=None,
+                required=False,
+            )
+
+        nearest = facilities[0]
+        dist_ft = round(nearest.distance_feet)
+        facility_name = nearest.name or "Unknown facility"
+        industry = nearest.metadata.get("industry_sector", "")
+
+        detail_parts = [
+            f"EPA Toxic Release Inventory facility within {dist_ft:,} ft: "
+            f"{facility_name}."
+        ]
+        if industry:
+            detail_parts.append(f"Industry: {industry}.")
+        detail_parts.append(
+            "TRI facilities report annual releases of toxic chemicals to "
+            "air, water, and land."
+        )
+
+        count = len(facilities)
+        if count > 1:
+            detail_parts.append(
+                f"{count} TRI facilities found within 1 mile."
+            )
+
+        return Tier1Check(
+            name="TRI facility",
+            result=CheckResult.WARNING,
+            details=" ".join(detail_parts),
+            value=dist_ft,
+            required=False,
+        )
+
+    except Exception:
+        logger.warning("TRI facility proximity check failed", exc_info=True)
         return _unknown
 
 
@@ -3633,6 +3711,11 @@ def evaluate_property(
 
     # Superfund NPL containment check (local SpatiaLite — Tier 0 hard fail)
     result.tier1_checks.append(check_superfund_npl(lat, lng))
+
+    # TRI facility proximity check (local SpatiaLite — Tier 0 warning)
+    result.tier1_checks.append(
+        check_tri_facility_proximity(lat, lng, _spatial_store)
+    )
 
     # EJScreen block group environmental indicators (local SpatiaLite — no API cost)
     ejscreen_data = None
