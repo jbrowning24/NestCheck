@@ -193,28 +193,37 @@ class TestCoerceScore:
 # ============================================================================
 
 class TestCheckGasStations:
+    """Tests for check_gas_stations — UST spatial data primary, Google Places fallback."""
+
     def _make_maps(self, stations, distance):
         maps = MagicMock(spec=GoogleMapsClient)
         maps.places_nearby.return_value = stations
         maps.distance_feet.return_value = distance
         return maps
 
+    def _make_unavailable_store(self):
+        store = MagicMock()
+        store.is_available.return_value = False
+        return store
+
+    # --- Google Places fallback (spatial unavailable) ---
+
     def test_no_stations_pass(self):
         maps = self._make_maps([], 0)
-        result = check_gas_stations(maps, 40.0, -74.0)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
 
     def test_station_far_enough_pass(self):
         station = {"geometry": {"location": {"lat": 40.01, "lng": -74.0}}, "name": "Shell"}
         maps = self._make_maps([station], 600)
-        result = check_gas_stations(maps, 40.0, -74.0)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
         assert result.value == 600
 
     def test_station_too_close_fail(self):
         station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "BP"}
         maps = self._make_maps([station], 300)
-        result = check_gas_stations(maps, 40.0, -74.0)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.FAIL
         assert result.value == 300
         assert "TOO CLOSE" in result.details
@@ -222,14 +231,81 @@ class TestCheckGasStations:
     def test_station_at_boundary_pass(self):
         station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Mobil"}
         maps = self._make_maps([station], GAS_STATION_MIN_DISTANCE_FT)
-        result = check_gas_stations(maps, 40.0, -74.0)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
 
     def test_api_error_returns_unknown(self):
         maps = MagicMock(spec=GoogleMapsClient)
         maps.places_nearby.side_effect = ValueError("API error")
-        result = check_gas_stations(maps, 40.0, -74.0)
+        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.UNKNOWN
+
+    def test_no_store_no_maps_returns_unknown(self):
+        result = check_gas_stations(40.0, -74.0, None, None)
+        assert result.result == CheckResult.UNKNOWN
+
+    # --- UST spatial data path ---
+
+    def test_spatial_no_facilities_pass(self):
+        from spatial_data import FacilityRecord
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = []
+        result = check_gas_stations(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+        store.find_facilities_within.assert_called_once_with(40.0, -74.0, 500, "ust")
+
+    def test_spatial_far_facility_pass(self):
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="ust", name="Shell Station",
+            lat=40.01, lng=-74.0,
+            distance_meters=200.0, distance_feet=656.0,
+            metadata={"open_usts": 3},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [facility]
+        result = check_gas_stations(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+        assert result.value == 656
+
+    def test_spatial_close_facility_fail(self):
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="ust", name="BP Fuel",
+            lat=40.001, lng=-74.0,
+            distance_meters=60.0, distance_feet=197.0,
+            metadata={"open_usts": 2},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [facility]
+        result = check_gas_stations(40.0, -74.0, store)
+        assert result.result == CheckResult.FAIL
+        assert "TOO CLOSE" in result.details
+
+    def test_spatial_prefers_active_usts(self):
+        from spatial_data import FacilityRecord
+        closed_near = FacilityRecord(
+            facility_type="ust", name="Old Tank",
+            lat=40.0, lng=-74.0,
+            distance_meters=30.0, distance_feet=98.0,
+            metadata={"open_usts": 0, "closed_usts": 3},
+        )
+        active_far = FacilityRecord(
+            facility_type="ust", name="Active Station",
+            lat=40.01, lng=-74.0,
+            distance_meters=200.0, distance_feet=656.0,
+            metadata={"open_usts": 2},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [closed_near, active_far]
+        result = check_gas_stations(40.0, -74.0, store)
+        # Should use active facility (656 ft), not the closed one (98 ft)
+        assert result.result == CheckResult.PASS
+        assert result.value == 656
 
 
 # ============================================================================
@@ -461,32 +537,81 @@ class TestCheckHighTrafficRoad:
 # ============================================================================
 
 class TestCheckPowerLines:
+    """Tests for check_power_lines — HIFLD spatial data primary, Overpass fallback."""
+
+    def _make_unavailable_store(self):
+        store = MagicMock()
+        store.is_available.return_value = False
+        return store
+
+    # --- Overpass fallback (spatial unavailable) ---
+
     def test_none_hazard_results_unknown(self):
-        result = check_power_lines(None, 40.0, -74.0)
+        result = check_power_lines(40.0, -74.0, self._make_unavailable_store(), None)
         assert result.result == CheckResult.UNKNOWN
 
     def test_no_power_lines_pass(self):
         hazards = {"power_lines": [], "_all_nodes": {}}
-        result = check_power_lines(hazards, 40.0, -74.0)
+        result = check_power_lines(40.0, -74.0, self._make_unavailable_store(), hazards)
         assert result.result == CheckResult.PASS
 
     def test_close_power_line_warning(self):
         # Node 100 ft away
         line = {"type": "node", "id": 1, "lat": 40.0003, "lon": -74.0}
         hazards = {"power_lines": [line], "_all_nodes": {}}
-        result = check_power_lines(hazards, 40.0, -74.0)
+        result = check_power_lines(40.0, -74.0, self._make_unavailable_store(), hazards)
         assert result.result == CheckResult.WARNING
 
     def test_far_power_line_pass(self):
         # Node ~1000 ft away
         line = {"type": "node", "id": 1, "lat": 40.003, "lon": -74.0}
         hazards = {"power_lines": [line], "_all_nodes": {}}
-        result = check_power_lines(hazards, 40.0, -74.0)
+        result = check_power_lines(40.0, -74.0, self._make_unavailable_store(), hazards)
         assert result.result == CheckResult.PASS
 
     def test_required_is_false(self):
-        result = check_power_lines(None, 40.0, -74.0)
+        result = check_power_lines(40.0, -74.0, self._make_unavailable_store(), None)
         assert result.required is False
+
+    # --- HIFLD spatial data path ---
+
+    def test_spatial_no_lines_pass(self):
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = []
+        result = check_power_lines(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+        store.lines_within.assert_called_once_with(40.0, -74.0, 100, "hifld")
+
+    def test_spatial_close_line_warning(self):
+        from spatial_data import FacilityRecord
+        line = FacilityRecord(
+            facility_type="hifld", name="345 kV - ConEd",
+            lat=40.0, lng=-74.0,
+            distance_meters=50.0, distance_feet=164.0,
+            metadata={"voltage": 345, "volt_class": "230-345"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [line]
+        result = check_power_lines(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+        assert "345 kV" in result.details
+        assert result.value == 164
+
+    def test_spatial_far_line_pass(self):
+        from spatial_data import FacilityRecord
+        line = FacilityRecord(
+            facility_type="hifld", name="115 kV - NYSEG",
+            lat=40.0, lng=-74.0,
+            distance_meters=90.0, distance_feet=295.0,
+            metadata={"voltage": 115, "volt_class": "100-161"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [line]
+        result = check_power_lines(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
 
 
 class TestCheckSubstations:
@@ -524,20 +649,69 @@ class TestCheckCellTowers:
 
 
 class TestCheckIndustrialZones:
+    """Tests for check_industrial_zones — TRI spatial data primary, Overpass fallback."""
+
+    def _make_unavailable_store(self):
+        store = MagicMock()
+        store.is_available.return_value = False
+        return store
+
+    # --- Overpass fallback (spatial unavailable) ---
+
     def test_none_hazard_results_unknown(self):
-        result = check_industrial_zones(None, 40.0, -74.0)
+        result = check_industrial_zones(40.0, -74.0, self._make_unavailable_store(), None)
         assert result.result == CheckResult.UNKNOWN
 
     def test_no_zones_pass(self):
         hazards = {"industrial_zones": [], "_all_nodes": {}}
-        result = check_industrial_zones(hazards, 40.0, -74.0)
+        result = check_industrial_zones(40.0, -74.0, self._make_unavailable_store(), hazards)
         assert result.result == CheckResult.PASS
 
     def test_close_zone_warning(self):
         zone = {"type": "node", "id": 1, "lat": 40.001, "lon": -74.0}
         hazards = {"industrial_zones": [zone], "_all_nodes": {}}
-        result = check_industrial_zones(hazards, 40.0, -74.0)
+        result = check_industrial_zones(40.0, -74.0, self._make_unavailable_store(), hazards)
         assert result.result == CheckResult.WARNING
+
+    # --- TRI spatial data path ---
+
+    def test_spatial_no_facilities_pass(self):
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = []
+        result = check_industrial_zones(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+        store.find_facilities_within.assert_called_once_with(40.0, -74.0, 200, "tri")
+
+    def test_spatial_close_facility_warning(self):
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="tri", name="Chemical Corp",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0, distance_feet=328.0,
+            metadata={"industry_sector": "Chemical Manufacturing", "total_releases_lb": 5000},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [facility]
+        result = check_industrial_zones(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+        assert "Chemical Manufacturing" in result.details
+        assert result.value == 328
+
+    def test_spatial_far_facility_pass(self):
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="tri", name="Far Factory",
+            lat=40.01, lng=-74.0,
+            distance_meters=180.0, distance_feet=590.0,
+            metadata={"industry_sector": "Paper Manufacturing"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = [facility]
+        result = check_industrial_zones(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
 
 
 # ============================================================================

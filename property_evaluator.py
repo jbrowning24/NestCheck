@@ -939,24 +939,93 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
     }
 
 def check_gas_stations(
-    maps: GoogleMapsClient, 
-    lat: float, 
-    lng: float
+    lat: float,
+    lng: float,
+    spatial_store,
+    maps: Optional[GoogleMapsClient] = None,
 ) -> Tier1Check:
-    """Check distance to nearest gas station"""
+    """Check distance to nearest gas station / underground storage tank facility.
+
+    Primary: queries local SpatiaLite database for EPA UST Finder records
+    within 500 m.  Falls back to Google Places API when spatial data is
+    unavailable.
+
+    Thresholds:
+      FAIL:    Nearest facility with active USTs < 500 ft
+      PASS:    No qualifying facilities within 500 ft
+      UNKNOWN: Neither spatial data nor Google Places available
+    """
+    # ------------------------------------------------------------------
+    # Primary path: local UST spatial data (zero API cost)
+    # ------------------------------------------------------------------
+    if spatial_store is not None and spatial_store.is_available():
+        try:
+            # Search 500 m (~1,640 ft) to match the old Google Places radius
+            facilities = spatial_store.find_facilities_within(
+                lat, lng, 500, "ust"
+            )
+
+            # Prefer facilities with active (open) USTs — closest first
+            active = [
+                f for f in facilities
+                if (f.metadata.get("open_usts") or 0) > 0
+            ]
+            candidates = active if active else facilities
+
+            if not candidates:
+                return Tier1Check(
+                    name="Gas station",
+                    result=CheckResult.PASS,
+                    details="No underground storage tank facilities within 500 ft",
+                    value=None,
+                )
+
+            nearest = candidates[0]  # already sorted by distance ascending
+            min_distance = round(nearest.distance_feet)
+            closest_name = nearest.name
+
+            if min_distance >= GAS_STATION_MIN_DISTANCE_FT:
+                return Tier1Check(
+                    name="Gas station",
+                    result=CheckResult.PASS,
+                    details=f"Nearest: {closest_name} ({min_distance:,} ft)",
+                    value=min_distance,
+                )
+            return Tier1Check(
+                name="Gas station",
+                result=CheckResult.FAIL,
+                details=(
+                    f"TOO CLOSE: {closest_name} ({min_distance:,} ft "
+                    f"< {GAS_STATION_MIN_DISTANCE_FT} ft)"
+                ),
+                value=min_distance,
+            )
+        except Exception as e:
+            logger.warning("UST spatial gas-station check failed: %s", e)
+            # Fall through to Google Places if available
+
+    # ------------------------------------------------------------------
+    # Fallback: Google Places API
+    # ------------------------------------------------------------------
+    if maps is None:
+        return Tier1Check(
+            name="Gas station",
+            result=CheckResult.UNKNOWN,
+            details="Gas station data not available for this area",
+        )
+
     try:
         stations = maps.places_nearby(lat, lng, "gas_station", radius_meters=500)
-        
+
         if not stations:
             return Tier1Check(
                 name="Gas station",
                 result=CheckResult.PASS,
                 details="No gas stations within 500 feet",
-                value=None
+                value=None,
             )
-        
-        # Find closest
-        min_distance = float('inf')
+
+        min_distance = float("inf")
         closest_name = ""
         for station in stations:
             station_lat = station["geometry"]["location"]["lat"]
@@ -965,27 +1034,29 @@ def check_gas_stations(
             if dist < min_distance:
                 min_distance = dist
                 closest_name = station.get("name", "Unknown")
-        
+
         if min_distance >= GAS_STATION_MIN_DISTANCE_FT:
             return Tier1Check(
                 name="Gas station",
                 result=CheckResult.PASS,
                 details=f"Nearest: {closest_name} ({min_distance:,} ft)",
-                value=min_distance
+                value=min_distance,
             )
-        else:
-            return Tier1Check(
-                name="Gas station",
-                result=CheckResult.FAIL,
-                details=f"TOO CLOSE: {closest_name} ({min_distance:,} ft < {GAS_STATION_MIN_DISTANCE_FT} ft)",
-                value=min_distance
-            )
+        return Tier1Check(
+            name="Gas station",
+            result=CheckResult.FAIL,
+            details=(
+                f"TOO CLOSE: {closest_name} ({min_distance:,} ft "
+                f"< {GAS_STATION_MIN_DISTANCE_FT} ft)"
+            ),
+            value=min_distance,
+        )
     except Exception as e:
         logger.warning("Gas station check failed: %s", e)
         return Tier1Check(
             name="Gas station",
             result=CheckResult.UNKNOWN,
-            details="Could not reach mapping service to verify this check"
+            details="Could not reach mapping service to verify this check",
         )
 
 
@@ -1351,9 +1422,72 @@ def _element_distance_ft(
 
 
 def check_power_lines(
-    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+    lat: float,
+    lng: float,
+    spatial_store,
+    hazard_results: Optional[Dict] = None,
 ) -> Tier1Check:
-    """Check proximity to high-voltage transmission lines (≥69kV)."""
+    """Check proximity to high-voltage transmission lines (≥69kV).
+
+    Primary: queries local SpatiaLite database for HIFLD electric power
+    transmission lines within 100 m (~328 ft).  All HIFLD records are
+    transmission-grade (≥69 kV).  Falls back to Overpass hazard_results
+    when spatial data is unavailable.
+
+    Thresholds:
+      WARNING: Transmission line within 200 ft
+      PASS:    No qualifying lines within 200 ft
+      UNKNOWN: Neither spatial nor Overpass data available
+    """
+    # ------------------------------------------------------------------
+    # Primary path: HIFLD transmission lines (local SpatiaLite)
+    # ------------------------------------------------------------------
+    if spatial_store is not None and spatial_store.is_available():
+        try:
+            # 100 m ≈ 328 ft — comfortably covers the 200 ft threshold
+            lines = spatial_store.lines_within(lat, lng, 100, "hifld")
+
+            if not lines:
+                return Tier1Check(
+                    name="Power lines",
+                    result=CheckResult.PASS,
+                    details="No high-voltage transmission lines detected within 200 ft",
+                    required=False,
+                )
+
+            nearest = lines[0]  # sorted by distance ascending
+            min_dist_ft = round(nearest.distance_feet)
+
+            if min_dist_ft <= POWER_LINE_WARNING_DISTANCE_FT:
+                voltage = nearest.metadata.get("voltage")
+                volt_label = f"{voltage} kV" if voltage else "\u226569 kV"
+                return Tier1Check(
+                    name="Power lines",
+                    result=CheckResult.WARNING,
+                    details=(
+                        f"High-voltage transmission line ({volt_label}) "
+                        f"detected within {min_dist_ft:,} ft. "
+                        "Research associates proximity to high-voltage lines "
+                        "with elevated EMF exposure, though evidence is "
+                        "classified as moderate-contested (IARC Group 2B)."
+                    ),
+                    value=min_dist_ft,
+                    required=False,
+                )
+
+            return Tier1Check(
+                name="Power lines",
+                result=CheckResult.PASS,
+                details="No high-voltage transmission lines detected within 200 ft",
+                required=False,
+            )
+        except Exception as e:
+            logger.warning("HIFLD spatial power-line check failed: %s", e)
+            # Fall through to Overpass fallback
+
+    # ------------------------------------------------------------------
+    # Fallback: Overpass hazard results
+    # ------------------------------------------------------------------
     if hazard_results is None:
         return Tier1Check(
             name="Power lines",
@@ -1365,7 +1499,7 @@ def check_power_lines(
     all_nodes = hazard_results.get("_all_nodes", {})
     min_dist = float("inf")
     for el in hazard_results.get("power_lines", []):
-        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        d = _element_distance_ft(lat, lng, el, all_nodes)
         if d < min_dist:
             min_dist = d
 
@@ -1470,9 +1604,75 @@ def check_cell_towers(
 
 
 def check_industrial_zones(
-    hazard_results: Optional[Dict], prop_lat: float, prop_lng: float
+    lat: float,
+    lng: float,
+    spatial_store,
+    hazard_results: Optional[Dict] = None,
 ) -> Tier1Check:
-    """Check proximity to industrial-zoned land."""
+    """Check proximity to industrial facilities (toxic-releasing).
+
+    Primary: queries local SpatiaLite database for EPA TRI (Toxic Release
+    Inventory) facilities within 200 m (~656 ft).  TRI facilities are
+    confirmed toxic-releasing industrial operations, which is more precise
+    than OSM landuse=industrial.  Falls back to Overpass when spatial
+    data is unavailable.
+
+    Thresholds:
+      WARNING: TRI facility within 500 ft
+      PASS:    No qualifying facilities within 500 ft
+      UNKNOWN: Neither spatial nor Overpass data available
+    """
+    # ------------------------------------------------------------------
+    # Primary path: TRI facilities (local SpatiaLite)
+    # ------------------------------------------------------------------
+    if spatial_store is not None and spatial_store.is_available():
+        try:
+            # 200 m ≈ 656 ft — covers the 500 ft threshold with margin
+            facilities = spatial_store.find_facilities_within(
+                lat, lng, 200, "tri"
+            )
+
+            if not facilities:
+                return Tier1Check(
+                    name="Industrial zone",
+                    result=CheckResult.PASS,
+                    details="No industrial facilities (TRI) detected within 500 ft",
+                    required=False,
+                )
+
+            nearest = facilities[0]  # sorted by distance ascending
+            min_dist_ft = round(nearest.distance_feet)
+
+            if min_dist_ft <= INDUSTRIAL_ZONE_WARNING_DISTANCE_FT:
+                industry = nearest.metadata.get("industry_sector", "")
+                industry_label = f" ({industry})" if industry else ""
+                return Tier1Check(
+                    name="Industrial zone",
+                    result=CheckResult.WARNING,
+                    details=(
+                        f"TRI-reporting facility{industry_label} detected "
+                        f"within {min_dist_ft:,} ft. "
+                        "Verify the nature of nearby facilities \u2014 "
+                        "TRI facilities report toxic chemical releases "
+                        "to air, water, or land."
+                    ),
+                    value=min_dist_ft,
+                    required=False,
+                )
+
+            return Tier1Check(
+                name="Industrial zone",
+                result=CheckResult.PASS,
+                details="No industrial facilities (TRI) detected within 500 ft",
+                required=False,
+            )
+        except Exception as e:
+            logger.warning("TRI spatial industrial check failed: %s", e)
+            # Fall through to Overpass fallback
+
+    # ------------------------------------------------------------------
+    # Fallback: Overpass hazard results
+    # ------------------------------------------------------------------
     if hazard_results is None:
         return Tier1Check(
             name="Industrial zone",
@@ -1484,7 +1684,7 @@ def check_industrial_zones(
     all_nodes = hazard_results.get("_all_nodes", {})
     min_dist = float("inf")
     for el in hazard_results.get("industrial_zones", []):
-        d = _element_distance_ft(prop_lat, prop_lng, el, all_nodes)
+        d = _element_distance_ft(lat, lng, el, all_nodes)
         if d < min_dist:
             min_dist = d
 
@@ -3742,24 +3942,28 @@ def evaluate_property(
         trace.start_stage("tier1_checks")
     _t0_tier1 = time.time()
 
-    # Location-based checks
-    result.tier1_checks.append(check_gas_stations(maps, lat, lng))
+    # Location-based checks (local SpatiaLite where available)
+    _spatial_store = SpatialDataStore()
+
+    # Gas station / UST proximity (UST spatial data → Google Places fallback)
+    result.tier1_checks.append(check_gas_stations(lat, lng, _spatial_store, maps))
 
     # High-traffic road check (HPMS AADT data — local SpatiaLite, no API cost)
-    _spatial_store = SpatialDataStore()
     result.tier1_checks.append(check_high_traffic_road(lat, lng, _spatial_store))
 
-    # Environmental health proximity checks (NES-57)
+    # Power lines (HIFLD spatial data → Overpass fallback)
+    # Industrial zones (TRI spatial data → Overpass fallback)
+    # Substations & cell towers still require Overpass — no local data yet
+    env_hazards = None
     try:
         env_hazards = _query_environmental_hazards(lat, lng)
     except Exception as e:
         logger.warning("Environmental hazard query failed: %s", e)
-        env_hazards = None
 
-    result.tier1_checks.append(check_power_lines(env_hazards, lat, lng))
+    result.tier1_checks.append(check_power_lines(lat, lng, _spatial_store, env_hazards))
     result.tier1_checks.append(check_substations(env_hazards, lat, lng))
     result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
-    result.tier1_checks.append(check_industrial_zones(env_hazards, lat, lng))
+    result.tier1_checks.append(check_industrial_zones(lat, lng, _spatial_store, env_hazards))
 
     # Flood zone check (local SpatiaLite — no API cost)
     result.tier1_checks.append(check_flood_zones(lat, lng))
