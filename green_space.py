@@ -10,6 +10,7 @@ for a 20–30 minute loop every day.
 
 Data sources:
   - Google Places API (nearby search + distance matrix for walk times)
+  - Trust for Public Land ParkServe (authoritative park polygons + acreage)
   - OpenStreetMap Overpass API (geometry/tag enrichment for trails, area, nature)
 
 Limitations:
@@ -29,6 +30,11 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 
 from nc_trace import get_trace
+
+try:
+    from spatial_data import SpatialDataStore
+except ImportError:
+    SpatialDataStore = None
 
 logger = logging.getLogger(__name__)
 
@@ -350,6 +356,132 @@ def _format_types(types: List[str]) -> str:
     return ", ".join(display_types[:3]) if display_types else "Green Space"
 
 
+# =============================================================================
+# PARKSERVE DISCOVERY & MERGE
+# =============================================================================
+
+# Common park name suffixes stripped during dedup normalization
+_PARK_NAME_SUFFIXES = [
+    "recreation area", "rec area", "playground", "preserve",
+    "park", "field", "fields", "green", "commons", "square",
+]
+
+
+def _normalize_park_name(name: str) -> str:
+    """Normalize a park name for dedup matching.
+
+    Lowercases, strips punctuation, removes common suffixes like 'park'.
+    """
+    name = name.lower()
+    name = "".join(c for c in name if c.isalnum() or c.isspace())
+    name = " ".join(name.split())  # collapse whitespace
+    for suffix in _PARK_NAME_SUFFIXES:
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+    return name.strip()
+
+
+def _approx_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Approximate distance in meters using equirectangular projection."""
+    dlat = (lat2 - lat1) * 111320
+    dlng = (lng2 - lng1) * 111320 * math.cos(math.radians((lat1 + lat2) / 2))
+    return math.sqrt(dlat ** 2 + dlng ** 2)
+
+
+def _discover_parkserve_parks(lat: float, lng: float, radius_m: float) -> List[Dict[str, Any]]:
+    """Query ParkServe via SpatialDataStore for parks within radius.
+
+    Returns parks shaped like Google Places dicts so they flow through
+    the existing walk-time and scoring pipeline. Returns empty list
+    if SpatialDataStore is unavailable (no spatial.db, no SpatiaLite).
+    """
+    if SpatialDataStore is None:
+        return []
+
+    try:
+        store = SpatialDataStore()
+        if not store.is_available():
+            return []
+        records = store.find_facilities_within(lat, lng, radius_m, "parkserve")
+    except Exception:
+        logger.debug("ParkServe discovery unavailable", exc_info=True)
+        return []
+
+    parks = []
+    for record in records:
+        if not record.name or not record.name.strip():
+            continue
+        park_id = record.metadata.get("park_id") or record.name
+        parks.append({
+            "place_id": f"parkserve_{park_id}",
+            "name": record.name,
+            "types": ["park"],
+            "rating": None,
+            "user_ratings_total": 0,
+            "geometry": {"location": {"lat": record.lat, "lng": record.lng}},
+            "_parkserve": True,
+            "_parkserve_acres": record.metadata.get("acres"),
+            "_parkserve_type": record.metadata.get("park_type", ""),
+            "_distance_m": record.distance_meters,
+        })
+    return parks
+
+
+def _merge_park_sources(
+    google_parks: List[Dict[str, Any]],
+    parkserve_parks: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Merge ParkServe parks into Google Places results with deduplication.
+
+    Dedup: normalized name match (exact or substring containment) AND
+    centroids within 200 m.  Matched parks get ParkServe metadata merged
+    onto the Google dict.  Unmatched ParkServe parks are appended.
+    """
+    if not parkserve_parks:
+        return google_parks
+
+    result = list(google_parks)  # shallow copy
+
+    for ps_park in parkserve_parks:
+        ps_norm = _normalize_park_name(ps_park["name"])
+        ps_lat = ps_park["geometry"]["location"]["lat"]
+        ps_lng = ps_park["geometry"]["location"]["lng"]
+
+        matched = False
+        for g_park in result:
+            g_lat = g_park.get("geometry", {}).get("location", {}).get("lat")
+            g_lng = g_park.get("geometry", {}).get("location", {}).get("lng")
+            if g_lat is None or g_lng is None:
+                continue
+
+            dist = _approx_distance_m(ps_lat, ps_lng, g_lat, g_lng)
+            if dist > 200:
+                continue
+
+            g_norm = _normalize_park_name(g_park.get("name", ""))
+
+            # Exact normalized match
+            if ps_norm and g_norm and ps_norm == g_norm:
+                matched = True
+            # Substring containment (shorter contained in longer)
+            elif ps_norm and g_norm:
+                shorter = ps_norm if len(ps_norm) <= len(g_norm) else g_norm
+                longer = g_norm if len(ps_norm) <= len(g_norm) else ps_norm
+                if shorter and shorter in longer:
+                    matched = True
+
+            if matched:
+                g_park["_parkserve"] = True
+                g_park["_parkserve_acres"] = ps_park.get("_parkserve_acres")
+                g_park["_parkserve_type"] = ps_park.get("_parkserve_type", "")
+                break
+
+        if not matched:
+            result.append(ps_park)
+
+    return result
+
+
 def find_green_spaces(
     maps_client,
     lat: float,
@@ -426,6 +558,11 @@ def find_green_spaces(
             continue
 
         filtered.append(place)
+
+    # Merge ParkServe parks (authoritative park polygons from Trust for Public Land)
+    parkserve_parks = _discover_parkserve_parks(lat, lng, radius_m)
+    if parkserve_parks:
+        filtered = _merge_park_sources(filtered, parkserve_parks)
 
     # Build list of places with valid coords; sort by straight-line distance and cap
     # to limit Distance Matrix API calls (reduce scope).
@@ -957,17 +1094,28 @@ def _score_walk_time(walk_time_min: int) -> Tuple[float, str]:
         return 0.5, f"{walk_time_min} min walk — too far for daily stroller walks"
 
 
-def _score_size_loop(osm_data: Dict[str, Any], rating: Optional[float], reviews: int, name: str) -> Tuple[float, str, bool]:
+def _score_size_loop(
+    osm_data: Dict[str, Any],
+    rating: Optional[float],
+    reviews: int,
+    name: str,
+    parkserve_acres: Optional[float] = None,
+) -> Tuple[float, str, bool]:
     """
     Size/loop potential subscore (0–3).
-    Uses OSM polygon area + path network when available.
-    Falls back to rating/reviews/name as weak proxy.
+    Prefers ParkServe authoritative acreage, then OSM polygon area + path
+    network when available.  Falls back to rating/reviews/name as weak proxy.
     """
     is_estimate = False
 
-    # OSM-based scoring
-    if osm_data.get("enriched"):
-        area = osm_data.get("area_sqm")
+    # Prefer ParkServe authoritative acreage over OSM bounding-box estimate
+    ps_area_sqm = None
+    if parkserve_acres is not None and parkserve_acres > 0:
+        ps_area_sqm = parkserve_acres * 4047  # 1 acre = 4047 sqm
+
+    # Enriched scoring: ParkServe area and/or OSM path data available
+    if osm_data.get("enriched") or ps_area_sqm is not None:
+        area = ps_area_sqm if ps_area_sqm is not None else osm_data.get("area_sqm")
         paths = osm_data.get("path_count", 0)
         has_trail = osm_data.get("has_trail", False)
 
@@ -977,16 +1125,28 @@ def _score_size_loop(osm_data: Dict[str, Any], rating: Optional[float], reviews:
         # Area scoring
         if area and area >= SIZE_LARGE_SQM:
             size_score = 1.5
-            size_reason = f"~{area / 4047:.0f} acres — large park"
+            if ps_area_sqm is not None:
+                size_reason = f"{parkserve_acres:.0f} acres — large park (ParkServe)"
+            else:
+                size_reason = f"~{area / 4047:.0f} acres — large park"
         elif area and area >= SIZE_MEDIUM_SQM:
             size_score = 1.0
-            size_reason = f"~{area / 4047:.0f} acres — medium park"
+            if ps_area_sqm is not None:
+                size_reason = f"{parkserve_acres:.1f} acres — medium park (ParkServe)"
+            else:
+                size_reason = f"~{area / 4047:.0f} acres — medium park"
         elif area and area >= SIZE_SMALL_SQM:
             size_score = 0.5
-            size_reason = f"~{area / 4047:.0f} acres — small park"
+            if ps_area_sqm is not None:
+                size_reason = f"{parkserve_acres:.1f} acres — small park (ParkServe)"
+            else:
+                size_reason = f"~{area / 4047:.0f} acres — small park"
         else:
             size_score = 0.0
-            size_reason = "area not determined from OSM"
+            if ps_area_sqm is not None:
+                size_reason = f"{parkserve_acres:.1f} acres — pocket park (ParkServe)"
+            else:
+                size_reason = "area not determined from OSM"
 
         # Path/loop scoring
         if has_trail:
@@ -1166,8 +1326,11 @@ def score_green_space(
         osm_data = {}
 
     # Compute subscores
+    parkserve_acres = place.get("_parkserve_acres")
     wt_score, wt_reason = _score_walk_time(walk_time)
-    sz_score, sz_reason, sz_estimate = _score_size_loop(osm_data, rating, reviews, name)
+    sz_score, sz_reason, sz_estimate = _score_size_loop(
+        osm_data, rating, reviews, name, parkserve_acres=parkserve_acres,
+    )
     q_score, q_reason = _score_quality(rating, reviews)
     nf_score, nf_reason = _score_nature_feel(osm_data, name, types)
 
