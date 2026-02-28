@@ -384,6 +384,49 @@
 .sidewalk-confidence-medium { color: var(--color-warning-text); }
 .sidewalk-confidence-low { color: var(--color-danger); }
 
+/* --- NES-189: Data Confidence Badges (dimension-level) --- */
+.confidence-badge {
+  display: inline-block;
+  font-size: var(--text-xs);
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-xs);
+  white-space: nowrap;
+  cursor: help;
+}
+.confidence-medium {
+  color: var(--color-warning-text);
+  background: rgba(217, 119, 6, 0.08);
+}
+.confidence-low {
+  color: var(--color-danger);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+/* --- NES-189: Aggregate confidence note below score ring --- */
+.confidence-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-small);
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+.confidence-summary-icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-base);
+}
+.confidence-summary.confidence-medium {
+  color: var(--color-warning-text);
+  background: rgba(217, 119, 6, 0.06);
+}
+.confidence-summary.confidence-low {
+  color: var(--color-danger);
+  background: rgba(220, 38, 38, 0.06);
+}
+
 /* --- EJScreen Environmental Profile Card --- */
 .ejscreen-indicators {
   display: flex;

@@ -20,7 +20,8 @@ from flask import (
 from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
-    PropertyListing, evaluate_property, CheckResult, GoogleMapsClient
+    PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
+    get_score_band,
 )
 from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
 from models import (
@@ -950,7 +951,13 @@ def result_to_dict(result):
         "tier2_max": result.tier2_max,
         "tier2_normalized": result.tier2_normalized,
         "tier2_scores": [
-            {"name": s.name, "points": s.points, "max": s.max_points, "details": s.details}
+            {
+                "name": s.name, "points": s.points, "max": s.max_points,
+                "details": s.details,
+                # NES-189: per-dimension data confidence
+                "data_confidence": getattr(s, "data_confidence", None),
+                "data_confidence_note": getattr(s, "data_confidence_note", None),
+            }
             for s in result.tier2_scores
         ],
         "tier3_bonus": result.tier3_total,
@@ -982,6 +989,46 @@ def result_to_dict(result):
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["structured_summary"] = generate_structured_summary(output["presented_checks"])
     output["verdict"] = generate_verdict(output)
+
+    # Score band for verdict card colour treatment
+    output["score_band"] = get_score_band(output["final_score"])
+
+    # Dimension summaries — derived from tier2_scores for the verdict card
+    # breakdown.  Each entry carries the confidence indicator (NES-189).
+    output["dimension_summaries"] = [
+        {
+            "name": s["name"],
+            "score": s["points"],
+            "max_score": s["max"],
+            "summary": s["details"],
+            "data_confidence": s.get("data_confidence"),
+            "data_confidence_note": s.get("data_confidence_note"),
+        }
+        for s in output.get("tier2_scores", [])
+    ]
+
+    # NES-189: Aggregate data confidence (weakest-link across dimensions).
+    # Only populated when tier2_scores exist (i.e. passed tier 1).
+    _confidence_levels = [
+        s.get("data_confidence") for s in output.get("tier2_scores", [])
+        if s.get("data_confidence")
+    ]
+    if _confidence_levels:
+        _rank = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
+        _weakest = min(_confidence_levels, key=lambda c: _rank.get(c, 0))
+        _low_dims = [
+            s["name"] for s in output["tier2_scores"]
+            if s.get("data_confidence") in ("LOW", "MEDIUM")
+        ]
+        output["data_confidence_summary"] = {
+            "level": _weakest,
+            "note": (
+                f"Some dimensions have limited data coverage"
+                if _weakest != "HIGH"
+                else "All dimensions have strong data coverage"
+            ),
+            "limited_dimensions": _low_dims,
+        }
     return output
 
 
