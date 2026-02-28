@@ -349,6 +349,9 @@ class EvaluationResult:
     percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
+    # EJScreen block group environmental indicators (NES-EJScreen)
+    ejscreen_profile: Optional[Dict[str, Any]] = None
+
 
 # =============================================================================
 # DISTANCE HELPERS
@@ -1089,6 +1092,123 @@ def _parse_max_voltage(voltage_str: str) -> int:
         except (ValueError, TypeError):
             continue
     return max_v
+
+
+# =============================================================================
+# EJSCREEN BLOCK GROUP DATA (local SpatiaLite — no API cost)
+# =============================================================================
+
+# 12 of 13 EPA EJScreen environmental indicators stored during ingestion.
+# Extreme Heat and Drinking Water require a future ingestion update.
+EJSCREEN_INDICATOR_FIELDS = {
+    "PM25":   "PM2.5 Particulate Matter",
+    "OZONE":  "Ozone",
+    "DSLPM":  "Diesel Particulate Matter",
+    "CANCER": "Air Toxics Cancer Risk",
+    "RESP":   "Air Toxics Respiratory HI",
+    "PTRAF":  "Traffic Proximity",
+    "PNPL":   "Superfund Proximity",
+    "PRMP":   "RMP Facility Proximity",
+    "PTSDF":  "Hazardous Waste Proximity",
+    "UST":    "Underground Storage Tanks",
+    "PWDIS":  "Wastewater Discharge",
+    "LEAD":   "Lead Paint (Pre-1960 Housing)",
+}
+
+# 6 indicators that drive Tier 1 checks: field → (check_name, threshold, label)
+_EJSCREEN_CHECK_INDICATORS = {
+    "PM25":  ("EJScreen PM2.5",           80, "PM2.5 particulate matter"),
+    "CANCER":("EJScreen cancer risk",     80, "air toxics cancer risk"),
+    "DSLPM": ("EJScreen diesel PM",       80, "diesel particulate matter"),
+    "LEAD":  ("EJScreen lead paint",      80, "lead paint indicator (pre-1960 housing)"),
+    "PNPL":  ("EJScreen Superfund",       80, "Superfund site proximity"),
+    "PTSDF": ("EJScreen hazardous waste", 80, "hazardous waste facility proximity"),
+}
+
+
+def _query_ejscreen_block_group(
+    lat: float, lng: float, spatial_store: SpatialDataStore,
+) -> Optional[Dict[str, Any]]:
+    """Query nearest EJScreen block group centroid for environmental indicators.
+
+    Returns dict of indicator percentile values for the nearest census block
+    group within 2 km, or None if no data available. Excludes all demographic
+    fields (DEMOGIDX, PEOPCOLORPCT, LOWINCPCT).
+
+    Zero API calls — pure local SpatiaLite query.
+    """
+    if not spatial_store.is_available():
+        return None
+
+    results = spatial_store.find_facilities_within(lat, lng, 2000, "ejscreen")
+    if not results:
+        return None
+
+    # find_facilities_within() returns results sorted by distance ascending
+    nearest = results[0]
+
+    # Extract only environmental indicator fields
+    indicators = {}
+    for field_name in EJSCREEN_INDICATOR_FIELDS:
+        value = nearest.metadata.get(field_name)
+        if value is not None:
+            try:
+                indicators[field_name] = float(value)
+            except (ValueError, TypeError):
+                pass
+
+    if not indicators:
+        return None
+
+    indicators["_distance_m"] = nearest.distance_meters
+    indicators["_block_group_id"] = nearest.metadata.get("block_group_id", "")
+    return indicators
+
+
+def _check_ejscreen_indicators(
+    ejscreen_data: Optional[Dict[str, Any]],
+    sems_result: Optional[Tier1Check],
+) -> List[Tier1Check]:
+    """Generate Tier 1 checks from EJScreen block group percentile data.
+
+    Each of the 6 check-driving indicators produces a WARNING when the block
+    group percentile >= 80th, PASS otherwise. The Superfund indicator is
+    suppressed when the SEMS containment check already FAILed (dedup).
+    """
+    if ejscreen_data is None:
+        return []
+
+    checks = []
+    for field_name, (check_name, threshold, label) in _EJSCREEN_CHECK_INDICATORS.items():
+        value = ejscreen_data.get(field_name)
+        if value is None:
+            continue
+
+        # Superfund dedup: skip if SEMS already flagged NPL containment
+        if field_name == "PNPL" and sems_result and sems_result.result == CheckResult.FAIL:
+            continue
+
+        if value >= threshold:
+            checks.append(Tier1Check(
+                name=check_name,
+                result=CheckResult.WARNING,
+                details=(
+                    f"Block group ranks in the {value:.0f}th percentile nationally "
+                    f"for {label}. Elevated levels may affect long-term health."
+                ),
+                value=value,
+                required=False,
+            ))
+        else:
+            checks.append(Tier1Check(
+                name=check_name,
+                result=CheckResult.PASS,
+                details=f"Block group ranks in the {value:.0f}th percentile for {label}",
+                value=value,
+                required=False,
+            ))
+
+    return checks
 
 
 def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, List[Dict]]]:
@@ -3491,6 +3611,23 @@ def evaluate_property(
 
     # Superfund NPL containment check (local SpatiaLite — Tier 0 hard fail)
     result.tier1_checks.append(check_superfund_npl(lat, lng))
+
+    # EJScreen block group environmental indicators (local SpatiaLite — no API cost)
+    ejscreen_data = None
+    try:
+        ejscreen_data = _query_ejscreen_block_group(lat, lng, _spatial_store)
+    except Exception as e:
+        logger.warning("EJScreen block group query failed: %s", e)
+
+    if ejscreen_data is not None:
+        result.ejscreen_profile = ejscreen_data
+        # Find SEMS result for Superfund dedup
+        sems_check = next(
+            (c for c in result.tier1_checks if c.name == "Superfund (NPL)"), None,
+        )
+        result.tier1_checks.extend(
+            _check_ejscreen_indicators(ejscreen_data, sems_check)
+        )
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))

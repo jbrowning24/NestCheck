@@ -384,6 +384,51 @@
 .sidewalk-confidence-medium { color: var(--color-warning-text); }
 .sidewalk-confidence-low { color: var(--color-danger); }
 
+/* --- EJScreen Environmental Profile Card --- */
+.ejscreen-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+.ejscreen-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm, 4px);
+  font-size: var(--font-size-small);
+}
+.ejscreen-indicator--low {
+  background: var(--color-pass-bg, #e8f5e9);
+  color: var(--color-pass-text, #2e7d32);
+}
+.ejscreen-indicator--moderate {
+  background: var(--color-neutral-bg, #f5f5f5);
+  color: var(--color-text-muted);
+}
+.ejscreen-indicator--warning {
+  background: var(--color-warning-bg, #fff3e0);
+  color: var(--color-warning-text, #e65100);
+  font-weight: var(--font-weight-semibold);
+}
+.ejscreen-indicator__label {
+  flex: 1;
+}
+.ejscreen-indicator__value {
+  min-width: 3em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ejscreen-indicator__badge {
+  margin-left: var(--space-xs);
+}
+.ejscreen-source {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
+  opacity: 0.65;
+}
+
 /* --- Scoring Explanation / How We Score --- */
 .scoring-explanation {
   font-size: var(--font-size-body);

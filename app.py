@@ -216,6 +216,9 @@ _SAFETY_CHECK_NAMES = {
     "Highway", "High-volume road",
     "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
     "Flood zone",
+    # EJScreen block group indicators
+    "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+    "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
     "Superfund (NPL)",
 }
 
@@ -230,6 +233,13 @@ _CHECK_SOURCE_GROUP = {
     "Cell tower": "environmental",
     "Industrial zone": "environmental",
     "Superfund (NPL)": "epa_sems",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "ejscreen",
+    "EJScreen cancer risk": "ejscreen",
+    "EJScreen diesel PM": "ejscreen",
+    "EJScreen lead paint": "ejscreen",
+    "EJScreen Superfund": "ejscreen",
+    "EJScreen hazardous waste": "ejscreen",
 }
 
 _SOURCE_GROUP_LABELS = {
@@ -249,6 +259,14 @@ _SOURCE_GROUP_LABELS = {
         "checks": ["Superfund (NPL)"],
         "explanation": "Superfund site data not available for this area",
     },
+    "ejscreen": {
+        "label": "EPA EJScreen environmental indicators",
+        "checks": [
+            "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+            "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
+        ],
+        "explanation": "EPA EJScreen data not available for this area",
+    },
 }
 
 _CLEAR_HEADLINES = {
@@ -263,6 +281,13 @@ _CLEAR_HEADLINES = {
     "Industrial zone": "No industrial-zoned land within 500 ft",
     "Flood zone": "Not in a FEMA flood zone",
     "Superfund (NPL)": "Not within an EPA Superfund NPL site",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "Block group below 80th percentile for PM2.5",
+    "EJScreen cancer risk": "Block group below 80th percentile for air toxics cancer risk",
+    "EJScreen diesel PM": "Block group below 80th percentile for diesel PM",
+    "EJScreen lead paint": "Block group below 80th percentile for lead paint indicator",
+    "EJScreen Superfund": "Block group below 80th percentile for Superfund proximity",
+    "EJScreen hazardous waste": "Block group below 80th percentile for hazardous waste proximity",
 }
 
 _ISSUE_HEADLINES = {
@@ -277,6 +302,14 @@ _ISSUE_HEADLINES = {
     "Industrial zone": "Industrial-zoned land detected nearby",
     "Flood zone": "Located in a FEMA Special Flood Hazard Area",
     "Superfund (NPL)": "Property is within an EPA Superfund NPL site",
+    # EJScreen block group indicators (these only produce WARNING, not FAIL,
+    # but registered here for completeness)
+    "EJScreen PM2.5": "Elevated PM2.5 levels in this block group",
+    "EJScreen cancer risk": "Elevated air toxics cancer risk in this block group",
+    "EJScreen diesel PM": "Elevated diesel PM in this block group",
+    "EJScreen lead paint": "Elevated lead paint indicator in this block group",
+    "EJScreen Superfund": "Elevated Superfund proximity in this block group",
+    "EJScreen hazardous waste": "Elevated hazardous waste proximity in this block group",
 }
 
 _WARNING_HEADLINES = {
@@ -286,6 +319,13 @@ _WARNING_HEADLINES = {
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
     "Flood zone": "In a moderate flood risk area",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "Block group in 80th+ percentile for PM2.5",
+    "EJScreen cancer risk": "Block group in 80th+ percentile for air toxics cancer risk",
+    "EJScreen diesel PM": "Block group in 80th+ percentile for diesel PM",
+    "EJScreen lead paint": "Block group in 80th+ percentile for lead paint indicator",
+    "EJScreen Superfund": "Block group in 80th+ percentile for Superfund proximity",
+    "EJScreen hazardous waste": "Block group in 80th+ percentile for hazardous waste proximity",
 }
 
 # ---------------------------------------------------------------------------
@@ -895,6 +935,9 @@ def result_to_dict(result):
 
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
+    # EJScreen block group environmental profile (NES-EJScreen)
+    output["ejscreen_profile"] = result.ejscreen_profile
 
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["structured_summary"] = generate_structured_summary(output["presented_checks"])
