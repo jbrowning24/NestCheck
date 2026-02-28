@@ -31,12 +31,12 @@ from property_evaluator import (
     _parse_max_voltage,
     check_cell_towers,
     check_gas_stations,
-    check_high_volume_roads,
-    check_highways,
+    check_high_traffic_road,
     check_industrial_zones,
     check_listing_requirements,
     check_power_lines,
     check_substations,
+    check_superfund_npl,
     score_cost,
     score_park_access,
     COST_IDEAL,
@@ -231,104 +231,227 @@ class TestCheckGasStations:
 
 
 # ============================================================================
-# Tier 1: check_highways
+# Tier 1: check_high_traffic_road (HPMS AADT — replaces highway + high-volume)
+# Full test suite coming in Phase 4. Basic smoke tests here to ensure the
+# function is importable and handles the UNKNOWN path.
 # ============================================================================
 
-class TestCheckHighways:
-    def _make_clients(self, roads):
-        maps = MagicMock(spec=GoogleMapsClient)
-        overpass = MagicMock(spec=OverpassClient)
-        overpass.get_nearby_roads.return_value = roads
-        return maps, overpass
+class TestCheckHighTrafficRoad:
+    def test_no_spatial_store_returns_unknown(self):
+        result = check_high_traffic_road(40.0, -74.0, None)
+        assert result.result == CheckResult.UNKNOWN
+        assert result.name == "High-traffic road"
 
-    def test_no_roads_pass(self):
-        maps, overpass = self._make_clients([])
-        result = check_highways(maps, overpass, 40.0, -74.0)
+    def test_unavailable_store_returns_unknown(self):
+        store = MagicMock()
+        store.is_available.return_value = False
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_no_segments_returns_pass(self):
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = []
+        result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.PASS
 
-    def test_motorway_nearby_fail(self):
-        roads = [{"name": "I-95", "ref": "I-95", "highway_type": "motorway", "lanes": "6"}]
-        maps, overpass = self._make_clients(roads)
-        result = check_highways(maps, overpass, 40.0, -74.0)
+    def test_high_aadt_within_150m_returns_fail(self):
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms",
+            name="I-95",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0,
+            distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 75000, "route_id": "I-95"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.FAIL
+        assert "75,000" in result.details
+
+    def test_high_aadt_in_warning_band_returns_warning(self):
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms",
+            name="I-95",
+            lat=40.0, lng=-74.0,
+            distance_meters=200.0,
+            distance_feet=200.0 * 3.28084,
+            metadata={"aadt": 60000, "route_id": "I-95"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+
+    def test_null_aadt_excluded(self):
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms",
+            name="Unknown Rd",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0,
+            distance_feet=100.0 * 3.28084,
+            metadata={"aadt": None, "route_id": ""},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+
+    def test_below_threshold_aadt_returns_pass(self):
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms",
+            name="Local Rd",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0,
+            distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 30000, "route_id": ""},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+
+    def test_multiple_segments_worst_wins(self):
+        """FAIL zone segment beats WARNING zone segment with higher AADT."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="Local Rd",
+                lat=40.0, lng=-74.0,
+                distance_meters=100.0, distance_feet=100.0 * 3.28084,
+                metadata={"aadt": 40000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="US-1",
+                lat=40.0, lng=-74.0,
+                distance_meters=120.0, distance_feet=120.0 * 3.28084,
+                metadata={"aadt": 60000, "route_id": "US-1"},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="I-95",
+                lat=40.0, lng=-74.0,
+                distance_meters=200.0, distance_feet=200.0 * 3.28084,
+                metadata={"aadt": 80000, "route_id": "I-95"},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.FAIL
+        # Detail references the 60K fail-zone segment, not the 80K warn-zone one
+        assert "60,000" in result.details
+
+    def test_fail_zone_takes_priority_over_warning(self):
+        """FAIL zone hit overrides WARNING zone hit regardless of AADT."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="US-1",
+                lat=40.0, lng=-74.0,
+                distance_meters=140.0, distance_feet=140.0 * 3.28084,
+                metadata={"aadt": 55000, "route_id": "US-1"},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="I-95",
+                lat=40.0, lng=-74.0,
+                distance_meters=250.0, distance_feet=250.0 * 3.28084,
+                metadata={"aadt": 70000, "route_id": "I-95"},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.FAIL
+        assert "55,000" in result.details
+
+    def test_warning_only_no_fail_zone_segments(self):
+        """Segment above threshold in warning band (150-300m) returns WARNING."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="I-287",
+            lat=40.0, lng=-74.0,
+            distance_meters=200.0, distance_feet=200.0 * 3.28084,
+            metadata={"aadt": 65000, "route_id": "I-287"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.WARNING
+        assert "65,000" in result.details
+        assert "656" in result.details  # 200m ≈ 656 ft
+
+    def test_detail_format_named_road(self):
+        """Named road detail: '{name}: {aadt} vehicles/day, {dist} ft away'."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="HPMS segment",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0, distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 75000, "route_id": "I-95"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
         assert "I-95" in result.details
+        assert "75,000" in result.details
 
-    def test_trunk_road_fail(self):
-        roads = [{"name": "Saw Mill Pkwy", "ref": "", "highway_type": "trunk", "lanes": "4"}]
-        maps, overpass = self._make_clients(roads)
-        result = check_highways(maps, overpass, 40.0, -74.0)
-        assert result.result == CheckResult.FAIL
+    def test_detail_format_anonymous_road(self):
+        """Anonymous road detail: 'Road with {aadt} vehicles/day found ...'."""
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="",
+            lat=40.0, lng=-74.0,
+            distance_meters=100.0, distance_feet=100.0 * 3.28084,
+            metadata={"aadt": 75000, "route_id": "", "route_name": ""},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert "Road with" in result.details
+        assert "75,000" in result.details
 
-    def test_primary_road_does_not_trigger(self):
-        roads = [{"name": "Main St", "ref": "", "highway_type": "primary", "lanes": "2"}]
-        maps, overpass = self._make_clients(roads)
-        result = check_highways(maps, overpass, 40.0, -74.0)
+    def test_all_segments_below_threshold_returns_pass(self):
+        """Multiple segments all with AADT < 50,000 within fail zone → PASS."""
+        from spatial_data import FacilityRecord
+        segments = [
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 1",
+                lat=40.0, lng=-74.0,
+                distance_meters=50.0, distance_feet=50.0 * 3.28084,
+                metadata={"aadt": 25000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 2",
+                lat=40.0, lng=-74.0,
+                distance_meters=100.0, distance_feet=100.0 * 3.28084,
+                metadata={"aadt": 35000, "route_id": ""},
+            ),
+            FacilityRecord(
+                facility_type="hpms", name="County Rd 3",
+                lat=40.0, lng=-74.0,
+                distance_meters=140.0, distance_feet=140.0 * 3.28084,
+                metadata={"aadt": 45000, "route_id": ""},
+            ),
+        ]
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = segments
+        result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.PASS
-
-    def test_api_error_returns_unknown(self):
-        maps = MagicMock(spec=GoogleMapsClient)
-        overpass = MagicMock(spec=OverpassClient)
-        overpass.get_nearby_roads.side_effect = Exception("timeout")
-        result = check_highways(maps, overpass, 40.0, -74.0)
-        assert result.result == CheckResult.UNKNOWN
-
-
-# ============================================================================
-# Tier 1: check_high_volume_roads
-# ============================================================================
-
-class TestCheckHighVolumeRoads:
-    def _make_overpass(self, roads):
-        overpass = MagicMock(spec=OverpassClient)
-        overpass.get_nearby_roads.return_value = roads
-        return overpass
-
-    def test_no_roads_pass(self):
-        overpass = self._make_overpass([])
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.PASS
-
-    def test_primary_road_fail(self):
-        roads = [{"name": "Route 9", "ref": "US 9", "highway_type": "primary", "lanes": "2"}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.FAIL
-
-    def test_secondary_road_fail(self):
-        roads = [{"name": "Central Ave", "ref": "", "highway_type": "secondary", "lanes": "2"}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.FAIL
-
-    def test_four_lane_residential_fail(self):
-        roads = [{"name": "Wide St", "ref": "", "highway_type": "residential", "lanes": "4"}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.FAIL
-
-    def test_two_lane_residential_pass(self):
-        roads = [{"name": "Quiet St", "ref": "", "highway_type": "residential", "lanes": "2"}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.PASS
-
-    def test_invalid_lanes_value(self):
-        roads = [{"name": "Mystery Rd", "ref": "", "highway_type": "residential", "lanes": "two"}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.PASS
-
-    def test_empty_lanes_residential_pass(self):
-        roads = [{"name": "Quiet St", "ref": "", "highway_type": "residential", "lanes": ""}]
-        overpass = self._make_overpass(roads)
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.PASS
-
-    def test_api_error_returns_unknown(self):
-        overpass = MagicMock(spec=OverpassClient)
-        overpass.get_nearby_roads.side_effect = RuntimeError("network")
-        result = check_high_volume_roads(overpass, 40.0, -74.0)
-        assert result.result == CheckResult.UNKNOWN
 
 
 # ============================================================================
@@ -413,6 +536,93 @@ class TestCheckIndustrialZones:
         hazards = {"industrial_zones": [zone], "_all_nodes": {}}
         result = check_industrial_zones(hazards, 40.0, -74.0)
         assert result.result == CheckResult.WARNING
+
+
+# ============================================================================
+# Tier 1: check_superfund_npl
+# ============================================================================
+
+class TestCheckSuperfundNpl:
+    def test_unavailable_store_returns_unknown(self):
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = False
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+        assert result.name == "Superfund (NPL)"
+
+    def test_empty_polygons_returns_unknown(self):
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.point_in_polygons.return_value = []
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.UNKNOWN
+
+    def test_npl_final_site_returns_fail(self):
+        from spatial_data import FacilityRecord
+
+        npl_record = FacilityRecord(
+            facility_type="sems",
+            name="GOWANUS CANAL",
+            lat=40.67,
+            lng=-73.99,
+            distance_meters=0.0,
+            distance_feet=0.0,
+            metadata={"npl_status_code": "F", "site_name": "Gowanus Canal"},
+        )
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.point_in_polygons.return_value = [npl_record]
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+        assert "Gowanus Canal" in result.details
+        assert result.required is True
+
+    def test_npl_proposed_site_returns_fail(self):
+        from spatial_data import FacilityRecord
+
+        npl_record = FacilityRecord(
+            facility_type="sems",
+            name="Proposed Site",
+            lat=40.0,
+            lng=-74.0,
+            distance_meters=0.0,
+            distance_feet=0.0,
+            metadata={"npl_status_code": "P", "site_name": "Proposed NPL Site"},
+        )
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.point_in_polygons.return_value = [npl_record]
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.FAIL
+
+    def test_non_npl_polygon_returns_pass(self):
+        from spatial_data import FacilityRecord
+
+        non_npl_record = FacilityRecord(
+            facility_type="sems",
+            name="Non-NPL Site",
+            lat=40.0,
+            lng=-74.0,
+            distance_meters=0.0,
+            distance_feet=0.0,
+            metadata={"npl_status_code": "N", "site_name": "Not on NPL"},
+        )
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.point_in_polygons.return_value = [non_npl_record]
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.PASS
+        assert "Not within" in result.details
 
 
 # ============================================================================

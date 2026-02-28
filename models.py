@@ -13,7 +13,7 @@ import logging
 import uuid
 import time
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -639,11 +639,12 @@ def _check_cache_ttl(created_str, ttl_days: int) -> bool:
         return True  # Can't parse → return data anyway
 
 
-def get_overpass_cache(cache_key: str) -> Optional[str]:
+def get_overpass_cache(cache_key: str, ttl_days: Optional[int] = None) -> Optional[str]:
     """Look up a cached Overpass response by key.
 
     Returns the raw JSON string if found and younger than TTL, else None.
     Cache errors are swallowed so they never break an evaluation.
+    ttl_days: override TTL for this lookup; if None, uses _OVERPASS_CACHE_TTL_DAYS.
     """
     try:
         conn = _get_db()
@@ -655,13 +656,38 @@ def get_overpass_cache(cache_key: str) -> Optional[str]:
             ).fetchone()
             if not row:
                 return None
-            if not _check_cache_ttl(row["created_at"], _OVERPASS_CACHE_TTL_DAYS):
+            effective_ttl = ttl_days if ttl_days is not None else _OVERPASS_CACHE_TTL_DAYS
+            if not _check_cache_ttl(row["created_at"], effective_ttl):
                 return None
             return row["response_json"]
         finally:
             conn.close()
     except Exception:
         logger.warning("Overpass cache lookup failed", exc_info=True)
+        return None
+
+
+def get_overpass_cache_stale(cache_key: str) -> Optional[Tuple[str, Optional[str]]]:
+    """Return cached data regardless of TTL expiration.
+
+    Returns (json_text, created_at_iso) if entry exists, None if no entry at all.
+    Used as fallback when Overpass API is unreachable and fresh cache has expired.
+    """
+    try:
+        conn = _get_db()
+        try:
+            row = conn.execute(
+                """SELECT response_json, created_at FROM overpass_cache
+                   WHERE cache_key = ?""",
+                (cache_key,),
+            ).fetchone()
+            if not row:
+                return None
+            return (row["response_json"], row["created_at"])
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Overpass stale cache lookup failed", exc_info=True)
         return None
 
 

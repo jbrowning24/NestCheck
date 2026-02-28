@@ -27,7 +27,12 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from models import get_overpass_cache, overpass_cache_key, set_overpass_cache
+from models import (
+    get_overpass_cache,
+    get_overpass_cache_stale,
+    overpass_cache_key,
+    set_overpass_cache,
+)
 from nc_trace import get_trace
 
 logger = logging.getLogger(__name__)
@@ -64,6 +69,7 @@ class OverpassHTTPClient:
         overpass_ql: str,
         caller: str = "unknown",
         timeout: Optional[int] = None,
+        ttl_days: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Execute an Overpass QL query with cache-first, rate-limited HTTP.
@@ -73,6 +79,7 @@ class OverpassHTTPClient:
             caller: Identifier for trace attribution (e.g., "green_escape",
                     "road_noise", "overpass_client.get_nearby_roads").
             timeout: HTTP timeout in seconds. Defaults to DEFAULT_TIMEOUT.
+            ttl_days: Cache TTL in days for this lookup; None uses default (7 days).
 
         Returns:
             Parsed JSON response dict from Overpass.
@@ -89,7 +96,7 @@ class OverpassHTTPClient:
         # --- Cache check (no lock needed, no rate limiter engagement) ---
         cache_key = overpass_cache_key(overpass_ql)
         try:
-            cached = get_overpass_cache(cache_key)
+            cached = get_overpass_cache(cache_key, ttl_days=ttl_days)
         except Exception:
             logger.warning(
                 "Overpass cache read failed for key, falling through to HTTP",
@@ -116,53 +123,64 @@ class OverpassHTTPClient:
                 )
 
         # --- Rate-limited HTTP ---
-        last_exception = None
-        for attempt in range(1 + self.MAX_RETRIES):
-            try:
-                result = self._do_request(overpass_ql, caller, timeout)
-                # Cache on success
+        try:
+            last_exception = None
+            for attempt in range(1 + self.MAX_RETRIES):
                 try:
-                    set_overpass_cache(cache_key, json.dumps(result))
-                except Exception:
-                    logger.warning(
-                        "Failed to write Overpass cache for key %s",
-                        cache_key,
-                        exc_info=True,
-                    )
-                return result
-            except OverpassRateLimitError as e:
-                last_exception = e
-                if attempt < self.MAX_RETRIES:
-                    sleep_time = self.RETRY_BACKOFF[attempt]
-                    logger.info(
-                        "Overpass rate limited (attempt %d/%d), sleeping %ds before retry [caller=%s]",
-                        attempt + 1,
-                        1 + self.MAX_RETRIES,
-                        sleep_time,
-                        caller,
-                    )
-                    time.sleep(sleep_time)
-                    continue
-                raise
-            except OverpassQueryError as e:
-                last_exception = e
-                if attempt < self.MAX_RETRIES and self._is_retryable_error(e):
-                    sleep_time = self.RETRY_BACKOFF[attempt]
-                    logger.info(
-                        "Overpass query error (attempt %d/%d), sleeping %ds before retry [caller=%s]",
-                        attempt + 1,
-                        1 + self.MAX_RETRIES,
-                        sleep_time,
-                        caller,
-                    )
-                    time.sleep(sleep_time)
-                    continue
-                raise
+                    result = self._do_request(overpass_ql, caller, timeout)
+                    # Cache on success
+                    try:
+                        set_overpass_cache(cache_key, json.dumps(result))
+                    except Exception:
+                        logger.warning(
+                            "Failed to write Overpass cache for key %s",
+                            cache_key,
+                            exc_info=True,
+                        )
+                    return result
+                except OverpassRateLimitError as e:
+                    last_exception = e
+                    if attempt < self.MAX_RETRIES:
+                        sleep_time = self.RETRY_BACKOFF[attempt]
+                        logger.info(
+                            "Overpass rate limited (attempt %d/%d), sleeping %ds before retry [caller=%s]",
+                            attempt + 1,
+                            1 + self.MAX_RETRIES,
+                            sleep_time,
+                            caller,
+                        )
+                        time.sleep(sleep_time)
+                        continue
+                    raise
+                except OverpassQueryError as e:
+                    last_exception = e
+                    if attempt < self.MAX_RETRIES and self._is_retryable_error(e):
+                        sleep_time = self.RETRY_BACKOFF[attempt]
+                        logger.info(
+                            "Overpass query error (attempt %d/%d), sleeping %ds before retry [caller=%s]",
+                            attempt + 1,
+                            1 + self.MAX_RETRIES,
+                            sleep_time,
+                            caller,
+                        )
+                        time.sleep(sleep_time)
+                        continue
+                    raise
 
-        # Should not reach here, but safety net
-        raise last_exception or OverpassQueryError(
-            "Overpass query failed after all retries"
-        )
+            # Should not reach here, but safety net
+            raise last_exception or OverpassQueryError(
+                "Overpass query failed after all retries"
+            )
+        except OverpassQueryError as e:
+            if not self._is_retryable_error(e):
+                raise
+            return self._try_stale_fallback(cache_key, caller, e)
+        except (
+            OverpassRateLimitError,
+            requests.exceptions.RequestException,
+            json.JSONDecodeError,
+        ) as e:
+            return self._try_stale_fallback(cache_key, caller, e)
 
     def _do_request(
         self, overpass_ql: str, caller: str, timeout: int
@@ -350,6 +368,41 @@ class OverpassHTTPClient:
             ) from e
 
     @staticmethod
+    def _try_stale_fallback(
+        cache_key: str, caller: str, original_exc: Exception
+    ) -> Dict[str, Any]:
+        """Attempt to serve stale cache after an availability failure.
+
+        Raises the original exception if no usable stale entry exists.
+        """
+        stale = get_overpass_cache_stale(cache_key)
+        if stale is not None:
+            json_text, created_at = stale
+            try:
+                logger.warning(
+                    "Overpass unavailable for %s; serving stale cache from %s",
+                    caller,
+                    created_at,
+                )
+                result = json.loads(json_text)
+                result["_stale"] = True
+                result["_stale_created_at"] = created_at
+                trace = get_trace()
+                if trace:
+                    trace.record_api_call(
+                        service="overpass",
+                        endpoint=caller,
+                        elapsed_ms=0,
+                        status_code=0,
+                        provider_status="stale_cache",
+                    )
+                return result
+            except (json.JSONDecodeError, TypeError):
+                # Corrupted stale cache — fall through to raise original
+                pass
+        raise original_exc
+
+    @staticmethod
     def _is_retryable_error(e: OverpassQueryError) -> bool:
         """5xx errors, timeouts, and server body errors are retryable. 4xx are not."""
         msg = str(e).lower()
@@ -370,6 +423,7 @@ def overpass_query(
     overpass_ql: str,
     caller: str = "unknown",
     timeout: Optional[int] = None,
+    ttl_days: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Module-level convenience function. All Overpass calls should use this."""
-    return _client.query(overpass_ql, caller=caller, timeout=timeout)
+    return _client.query(overpass_ql, caller=caller, timeout=timeout, ttl_days=ttl_days)

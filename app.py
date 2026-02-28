@@ -2,12 +2,17 @@ import os
 import io
 import csv
 import logging
+import shlex
+import subprocess
+import sys
 import uuid
 import sqlite3
 import traceback
 from datetime import datetime, timezone
 from collections import defaultdict
 from functools import wraps
+
+import click
 from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response, flash
@@ -206,21 +211,39 @@ def generate_structured_summary(presented_checks):
 # ---------------------------------------------------------------------------
 
 _SAFETY_CHECK_NAMES = {
-    "Gas station", "Highway", "High-volume road",
+    "Gas station", "High-traffic road",
+    # Legacy names retained for old snapshots:
+    "Highway", "High-volume road",
     "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+    "Flood zone",
+    # EJScreen block group indicators
+    "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+    "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
+    "Superfund (NPL)",
 }
 
 _CHECK_SOURCE_GROUP = {
     "Gas station": "google_places",
+    "High-traffic road": "hpms",
+    # Legacy names retained for old snapshots:
     "Highway": "road",
     "High-volume road": "road",
     "Power lines": "environmental",
     "Electrical substation": "environmental",
     "Cell tower": "environmental",
     "Industrial zone": "environmental",
+    "Superfund (NPL)": "epa_sems",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "ejscreen",
+    "EJScreen cancer risk": "ejscreen",
+    "EJScreen diesel PM": "ejscreen",
+    "EJScreen lead paint": "ejscreen",
+    "EJScreen Superfund": "ejscreen",
+    "EJScreen hazardous waste": "ejscreen",
 }
 
 _SOURCE_GROUP_LABELS = {
+    # Legacy group — only applies to old snapshots with Highway/High-volume road checks
     "road": {
         "label": "Road proximity",
         "checks": ["Highway", "High-volume road"],
@@ -231,33 +254,78 @@ _SOURCE_GROUP_LABELS = {
         "checks": ["Power lines", "Electrical substation", "Cell tower", "Industrial zone"],
         "explanation": "Environmental data service temporarily unavailable; please try again shortly",
     },
+    "epa_sems": {
+        "label": "EPA Superfund",
+        "checks": ["Superfund (NPL)"],
+        "explanation": "Superfund site data not available for this area",
+    },
+    "ejscreen": {
+        "label": "EPA EJScreen environmental indicators",
+        "checks": [
+            "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+            "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
+        ],
+        "explanation": "EPA EJScreen data not available for this area",
+    },
 }
 
 _CLEAR_HEADLINES = {
     "Gas station": "No gas stations within 500 ft",
+    "High-traffic road": "No high-traffic roads nearby",
+    # Legacy — retained for old snapshots:
     "Highway": "No highways or major parkways nearby",
     "High-volume road": "No high-volume roads nearby",
     "Power lines": "No high-voltage transmission lines within 200 ft",
     "Electrical substation": "No electrical substations within 300 ft",
     "Cell tower": "No cell towers within 500 ft",
     "Industrial zone": "No industrial-zoned land within 500 ft",
+    "Flood zone": "Not in a FEMA flood zone",
+    "Superfund (NPL)": "Not within an EPA Superfund NPL site",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "Block group below 80th percentile for PM2.5",
+    "EJScreen cancer risk": "Block group below 80th percentile for air toxics cancer risk",
+    "EJScreen diesel PM": "Block group below 80th percentile for diesel PM",
+    "EJScreen lead paint": "Block group below 80th percentile for lead paint indicator",
+    "EJScreen Superfund": "Block group below 80th percentile for Superfund proximity",
+    "EJScreen hazardous waste": "Block group below 80th percentile for hazardous waste proximity",
 }
 
 _ISSUE_HEADLINES = {
     "Gas station": "Gas station within proximity threshold",
+    "High-traffic road": "High-traffic road nearby",
+    # Legacy — retained for old snapshots:
     "Highway": "Highway or major parkway nearby",
     "High-volume road": "High-volume road nearby",
     "Power lines": "High-voltage transmission line detected nearby",
     "Electrical substation": "Electrical substation detected nearby",
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
+    "Flood zone": "Located in a FEMA Special Flood Hazard Area",
+    "Superfund (NPL)": "Property is within an EPA Superfund NPL site",
+    # EJScreen block group indicators (these only produce WARNING, not FAIL,
+    # but registered here for completeness)
+    "EJScreen PM2.5": "Elevated PM2.5 levels in this block group",
+    "EJScreen cancer risk": "Elevated air toxics cancer risk in this block group",
+    "EJScreen diesel PM": "Elevated diesel PM in this block group",
+    "EJScreen lead paint": "Elevated lead paint indicator in this block group",
+    "EJScreen Superfund": "Elevated Superfund proximity in this block group",
+    "EJScreen hazardous waste": "Elevated hazardous waste proximity in this block group",
 }
 
 _WARNING_HEADLINES = {
+    "High-traffic road": "High-traffic road in wider area",
     "Power lines": "High-voltage transmission line detected nearby",
     "Electrical substation": "Electrical substation detected nearby",
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
+    "Flood zone": "In a moderate flood risk area",
+    # EJScreen block group indicators
+    "EJScreen PM2.5": "Block group in 80th+ percentile for PM2.5",
+    "EJScreen cancer risk": "Block group in 80th+ percentile for air toxics cancer risk",
+    "EJScreen diesel PM": "Block group in 80th+ percentile for diesel PM",
+    "EJScreen lead paint": "Block group in 80th+ percentile for lead paint indicator",
+    "EJScreen Superfund": "Block group in 80th+ percentile for Superfund proximity",
+    "EJScreen hazardous waste": "Block group in 80th+ percentile for hazardous waste proximity",
 }
 
 # ---------------------------------------------------------------------------
@@ -376,6 +444,63 @@ _HEALTH_CONTEXT = {
             "effects. This address is outside that elevated-risk zone."
         ),
     },
+    # ── High-traffic road (HPMS AADT) ────────────────────────────
+    ("High-traffic road", "FAIL"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute reviewed "
+            "decades of research and found \u201csufficient\u201d evidence that living near "
+            "high-traffic roads causes asthma aggravation in children and is "
+            "associated with cardiovascular mortality in adults. The CDC has "
+            "documented that roughly 11 million Americans live within 150 meters "
+            "of a major highway \u2014 a zone where traffic-related air pollution "
+            "(fine particulate matter, nitrogen dioxide, ultrafine particles) "
+            "remains significantly elevated above background levels."
+        ),
+        "who": (
+            "Children, older adults, and anyone with pre-existing respiratory or "
+            "cardiovascular conditions face the highest risk. Children breathe "
+            "faster and spend more time outdoors, increasing their cumulative "
+            "exposure. The effects are not immediate \u2014 they compound over months "
+            "and years of residence."
+        ),
+        "distance": (
+            "This check uses actual traffic counts (Annual Average Daily Traffic) "
+            "from the FHWA Highway Performance Monitoring System, not road "
+            "classification. Research consistently shows that pollutant "
+            "concentrations drop substantially within 150\u2013300 meters of roads "
+            "carrying 50,000+ vehicles per day and reach background levels by "
+            "300 meters. This address falls within that elevated-risk zone."
+        ),
+    },
+    ("High-traffic road", "WARNING"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute found "
+            "\u201csufficient\u201d evidence that living near high-traffic roads causes "
+            "asthma aggravation in children and cardiovascular effects in adults."
+        ),
+        "distance": (
+            "This address is 150\u2013300 meters from a road carrying 50,000+ "
+            "vehicles per day. Pollutant concentrations in this zone are "
+            "diminishing but may still be elevated above background levels, "
+            "according to CDC and HEI research."
+        ),
+        "invisible": (
+            "This is the kind of proximity risk that doesn\u2019t appear in property "
+            "descriptions, photos, or open house tours. You might notice noise on "
+            "a site visit, but the air quality impact is invisible and cumulative."
+        ),
+    },
+    ("High-traffic road", "PASS"): {
+        "why": (
+            "Living within 150\u2013300 meters of roads carrying 50,000+ vehicles "
+            "per day exposes residents to elevated levels of fine particulate "
+            "matter and nitrogen dioxide. The Health Effects Institute found "
+            "sufficient evidence linking this proximity to asthma aggravation "
+            "and cardiovascular effects. This check uses actual traffic counts "
+            "from the FHWA Highway Performance Monitoring System. This address "
+            "is outside the elevated-risk zone."
+        ),
+    },
     # ── Power lines ──────────────────────────────────────────────
     ("Power lines", "WARNING"): {
         "why": (
@@ -476,6 +601,29 @@ _HEALTH_CONTEXT = {
             "development \u2014 industrial zoning determines what could be built, not "
             "just what\u2019s there today. This address has sufficient buffer from "
             "industrial-zoned parcels."
+        ),
+    },
+    # ── Superfund (NPL) ──────────────────────────────────────────
+    ("Superfund (NPL)", "FAIL"): {
+        "why": (
+            "EPA Superfund National Priorities List sites have documented "
+            "contamination linked to cancer, neurological effects, and birth "
+            "defects. Living within the EPA-defined remediation boundary means "
+            "ongoing exposure risk from soil, groundwater, or airborne contaminants "
+            "that persist even after cleanup efforts."
+        ),
+        "who": (
+            "Children, pregnant women, and anyone with compromised immune systems "
+            "face the highest risk. Contaminant effects can be cumulative over "
+            "years of residence and may not appear until long after exposure."
+        ),
+    },
+    ("Superfund (NPL)", "PASS"): {
+        "why": (
+            "EPA Superfund National Priorities List sites contain documented "
+            "hazardous contamination. We check whether an address falls inside "
+            "the EPA-defined remediation boundary of any NPL site. This address "
+            "is outside those boundaries."
         ),
     },
 }
@@ -787,6 +935,9 @@ def result_to_dict(result):
 
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
+    # EJScreen block group environmental profile (NES-EJScreen)
+    output["ejscreen_profile"] = result.ejscreen_profile
 
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["structured_summary"] = generate_structured_summary(output["presented_checks"])
@@ -1328,6 +1479,173 @@ def debug_eval():
         }), 500
     finally:
         clear_trace()
+
+
+# ---------------------------------------------------------------------------
+# Flask CLI — Ingestion management
+# ---------------------------------------------------------------------------
+# Run via:   flask ingest -d sems -d fema -d ust
+# Railway:   railway run flask ingest -d sems -d fema
+# List all:  flask ingest --list
+#
+# Each dataset maps to scripts/ingest_{name}.py. The CLI builds per-script
+# arguments from the generic options below, passing only those the script
+# supports. Scripts run as subprocesses — no import gymnastics needed.
+# DB path: RAILWAY_VOLUME_MOUNT_PATH/spatial.db (prod) or data/spatial.db (local).
+
+# Registry: dataset name → (script filename, set of supported CLI flags).
+# Flags use the Click parameter names from the command below.
+INGEST_REGISTRY = {
+    "ust":         ("ingest_ust.py",         {"state", "limit", "verify"}),
+    "tri":         ("ingest_tri.py",         {"state", "limit", "verify"}),
+    "sems":        ("ingest_sems.py",        {"state", "limit", "verify"}),
+    "hpms":        ("ingest_hpms.py",        {"state", "states", "limit", "dry_run", "verify"}),
+    "fema":        ("ingest_fema.py",        {"metro", "bbox", "limit", "verify"}),
+    "hifld":       ("ingest_hifld.py",       {"limit", "verify"}),
+    "fra":         ("ingest_fra.py",         {"limit", "us_only", "verify"}),
+    "ejscreen":    ("ingest_ejscreen.py",    {"state", "limit", "verify"}),
+    "walkability": ("ingest_walkability.py", {"state", "limit", "verify"}),
+    "nlcd":        ("ingest_nlcd.py",        {"state", "limit", "verify"}),
+    "parkserve":   ("ingest_parkserve.py",   {"state", "limit", "verify"}),
+    "tiger":       ("ingest_tiger.py",       {"state", "county", "bbox", "limit", "verify"}),
+    "census_acs":  ("ingest_census_acs.py",  {"state", "limit", "verify"}),
+}
+
+
+def _build_script_args(dataset, opts):
+    """
+    Build CLI args for a dataset's ingest script.
+
+    Only passes flags the script actually supports (per INGEST_REGISTRY).
+    Value options (--state NY) are skipped when the value is empty/zero.
+    Boolean flags (--verify) are skipped when False.
+    """
+    _, supported = INGEST_REGISTRY[dataset]
+    args = []
+
+    # Value options: (registry key, CLI flag, value)
+    value_opts = [
+        ("state",  "--state",  opts.get("state", "")),
+        ("states", "--states", opts.get("states", "")),
+        ("limit",  "--limit",  str(opts.get("limit", 0)) if opts.get("limit") else ""),
+        ("metro",  "--metro",  opts.get("metro", "")),
+        ("bbox",   "--bbox",   opts.get("bbox", "")),
+        ("county", "--county", opts.get("county", "")),
+    ]
+    for key, flag, value in value_opts:
+        if key in supported and value:
+            args.extend([flag, value])
+
+    # Boolean flags: (registry key, CLI flag, is_set)
+    bool_opts = [
+        ("verify",  "--verify",  opts.get("verify", False)),
+        ("us_only", "--us-only", opts.get("us_only", False)),
+        ("dry_run", "--dry-run", opts.get("dry_run", False)),
+    ]
+    for key, flag, is_set in bool_opts:
+        if key in supported and is_set:
+            args.append(flag)
+
+    return args
+
+
+def _register_ingest_command():
+    """Register the `flask ingest` CLI command. Invoked at module load."""
+
+    @app.cli.command("ingest")
+    @click.option(
+        "--dataset", "-d", "datasets", multiple=True,
+        help=(
+            "Dataset(s) to ingest. Repeat for batch: -d sems -d fema -d ust. "
+            f"Available: {', '.join(sorted(INGEST_REGISTRY))}."
+        ),
+    )
+    @click.option("--list", "list_datasets", is_flag=True,
+                  help="List all available datasets and exit.")
+    @click.option("--state", "-s", default="",
+                  help="Filter to single state (e.g., NY, CA, or FIPS code depending on dataset).")
+    @click.option("--states", default="",
+                  help="HPMS: comma-separated states (e.g., NY,CA,IL). Default: all 52.")
+    @click.option("--metro", "-m", default="",
+                  help="FEMA: predefined metro bbox (nyc, sf, chicago, la, seattle).")
+    @click.option("--bbox", default="",
+                  help="Bounding box: lng_min,lat_min,lng_max,lat_max (FEMA, TIGER).")
+    @click.option("--county", default="",
+                  help="TIGER: county FIPS code (e.g., 061 for Manhattan). Requires --state.")
+    @click.option("--limit", "-l", type=int, default=0,
+                  help="Max records or pages per dataset (0 = no limit).")
+    @click.option("--verify", "-v", is_flag=True,
+                  help="Run verification query after each dataset.")
+    @click.option("--us-only", "us_only", is_flag=True,
+                  help="FRA: filter to US rail lines only.")
+    @click.option("--dry-run", "dry_run", is_flag=True,
+                  help="HPMS: probe services without writing to DB.")
+    def ingest_command(datasets, list_datasets, state, states, metro, bbox,
+                       county, limit, verify, us_only, dry_run):
+        """Ingest spatial datasets into spatial.db."""
+
+        # --list: show registry and exit
+        if list_datasets:
+            click.echo("Available datasets:")
+            for name in sorted(INGEST_REGISTRY):
+                script, supported = INGEST_REGISTRY[name]
+                flags = ", ".join(f"--{f.replace('_', '-')}" for f in sorted(supported))
+                click.echo(f"  {name:<14} {script:<28} [{flags}]")
+            return
+
+        if not datasets:
+            click.echo("No datasets specified. Use -d <name> or --list.", err=True)
+            sys.exit(1)
+
+        # Validate all dataset names upfront
+        for name in datasets:
+            if name not in INGEST_REGISTRY:
+                click.echo(
+                    f"Unknown dataset: {name}. "
+                    f"Available: {', '.join(sorted(INGEST_REGISTRY))}",
+                    err=True,
+                )
+                sys.exit(1)
+
+        # Collect options into a dict for _build_script_args
+        opts = dict(
+            state=state, states=states, metro=metro, bbox=bbox,
+            county=county, limit=limit, verify=verify,
+            us_only=us_only, dry_run=dry_run,
+        )
+
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        scripts_dir = os.path.join(project_root, "scripts")
+        succeeded = []
+        failed = []
+
+        for name in datasets:
+            script_file, _ = INGEST_REGISTRY[name]
+            script_path = os.path.join(scripts_dir, script_file)
+
+            if not os.path.exists(script_path):
+                click.echo(f"Script not found: {script_path}", err=True)
+                sys.exit(1)
+
+            cmd = [sys.executable, script_path] + _build_script_args(name, opts)
+            click.echo(f"[{name}] Running: {shlex.join(cmd)}")
+
+            result = subprocess.run(cmd, cwd=project_root)
+            if result.returncode != 0:
+                click.echo(f"[{name}] FAILED (exit {result.returncode})", err=True)
+                failed.append(name)
+                continue
+            click.echo(f"[{name}] Done.")
+            succeeded.append(name)
+
+        # Summary
+        click.echo(f"\nIngestion complete: {len(succeeded)} succeeded, {len(failed)} failed.")
+        if failed:
+            click.echo(f"Failed: {', '.join(failed)}", err=True)
+            sys.exit(1)
+
+
+_register_ingest_command()
 
 
 # ---------------------------------------------------------------------------

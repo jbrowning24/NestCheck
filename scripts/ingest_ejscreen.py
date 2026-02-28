@@ -127,7 +127,7 @@ def _get_indicator_fields(attrs: dict) -> dict:
     indicators = {}
     # Map common field name patterns to standard names
     field_map = {
-        "PM25": ["PM25", "pm25", "P_PM25", "ACSTOTPOP"],
+        "PM25": ["PM25", "pm25", "P_PM25"],
         "OZONE": ["OZONE", "ozone", "P_OZONE"],
         "DSLPM": ["DSLPM", "dslpm", "P_DSLPM", "DIESEL"],
         "CANCER": ["CANCER", "cancer", "P_CANCER"],

@@ -39,6 +39,7 @@ from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION,
 )
+from spatial_data import SpatialDataStore
 
 load_dotenv()
 
@@ -347,6 +348,9 @@ class EvaluationResult:
     percentile_top: int = 0
     percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
+
+    # EJScreen block group environmental indicators (NES-EJScreen)
+    ejscreen_profile: Optional[Dict[str, Any]] = None
 
 
 # =============================================================================
@@ -667,17 +671,13 @@ class GoogleMapsClient:
 class OverpassClient:
     """Client for OpenStreetMap Overpass API - for road data.
 
-    HTTP layer now delegated to overpass_http; this class retained for
-    interface compatibility.
-    """
-
     def __init__(self):
         pass
 
     def get_nearby_roads(self, lat: float, lng: float, radius_meters: int = 200) -> List[Dict]:
-        """Get roads within radius of a point."""
-        from overpass_http import overpass_query, OverpassQueryError, OverpassRateLimitError
-
+        # DEPRECATED: No longer called by evaluate_property() as of HPMS migration.
+        # Retained temporarily for backward compatibility. Remove in future cleanup.
+        """Get roads within radius of a point"""
         query = f"""
         [out:json][timeout:25];
         (
@@ -688,12 +688,17 @@ class OverpassClient:
         out skel qt;
         """
         try:
-            data = overpass_query(query, caller="get_nearby_roads", timeout=25)
-        except (OverpassQueryError, OverpassRateLimitError) as e:
+            from overpass_http import (
+                OverpassQueryError as _HTTPQueryError,
+                OverpassRateLimitError as _HTTPRateLimitError,
+                overpass_query,
+            )
+            data = overpass_query(query, caller="get_nearby_roads", timeout=25, ttl_days=30)
+        except (_HTTPRateLimitError, _HTTPQueryError) as e:
             raise OverpassUnavailableError(
                 "Road-data service temporarily unavailable"
             ) from e
-
+        
         roads = []
         for element in data.get("elements", []):
             if element["type"] == "way" and "tags" in element:
@@ -947,122 +952,120 @@ def check_gas_stations(
         )
 
 
-def check_highways(
-    maps: GoogleMapsClient,
-    overpass: OverpassClient,
-    lat: float,
-    lng: float,
-    roads: Optional[List[Dict]] = None,
-) -> Tier1Check:
-    """Check distance to highways and major parkways.
+# ---------------------------------------------------------------------------
+# High-traffic road check (HPMS AADT data) — replaces check_highways() and
+# check_high_volume_roads() which used Overpass/OSM road classification as a
+# proxy. This check uses actual measured traffic volume from FHWA HPMS data.
+#
+# Evidence basis: CDC/HEI finding that traffic-related air pollution causes
+# health effects within 150m of roads carrying AADT >= 50,000, diminishing
+# to background levels at 150-300m.
+# ---------------------------------------------------------------------------
 
-    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
-    a duplicate API call when the same data is needed by
-    ``check_high_volume_roads`` too.
+HIGH_TRAFFIC_AADT_THRESHOLD = 50_000   # vehicles/day
+HIGH_TRAFFIC_FAIL_RADIUS_M = 150       # meters — elevated-risk zone
+HIGH_TRAFFIC_WARN_RADIUS_M = 300       # meters — diminishing-risk zone
+
+
+def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check for high-traffic roads using HPMS AADT data.
+
+    Queries the local SpatiaLite database for HPMS road segments within 300m.
+    Uses measured Annual Average Daily Traffic (AADT) counts rather than
+    OSM road classification.
+
+    Thresholds (per CDC/HEI research):
+      FAIL:    AADT >= 50,000 within 150m
+      WARNING: AADT >= 50,000 within 150-300m
+      PASS:    No qualifying segments within 300m
+      UNKNOWN: SpatialDataStore unavailable or no data
     """
-    try:
-        if roads is None:
-            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+    if spatial_store is None or not spatial_store.is_available():
+        return Tier1Check(
+            name="High-traffic road",
+            result=CheckResult.UNKNOWN,
+            details="Traffic volume data not available for this area",
+            value=None,
+        )
 
-        # Filter for highways (motorway, trunk)
-        highways_nearby = [
-            r for r in roads
-            if r["highway_type"] in ["motorway", "trunk"]
+    try:
+        segments = spatial_store.lines_within(
+            lat, lng, HIGH_TRAFFIC_WARN_RADIUS_M, "hpms"
+        )
+
+        # Filter out segments with no AADT data
+        with_aadt = [
+            s for s in segments
+            if s.metadata.get("aadt") is not None
         ]
 
-        if not highways_nearby:
-            return Tier1Check(
-                name="Highway",
-                result=CheckResult.PASS,
-                details="No highways within 500 feet",
-                value=None
-            )
+        # Find highest-AADT segment within the fail radius (150m)
+        fail_candidates = [
+            s for s in with_aadt
+            if s.distance_meters <= HIGH_TRAFFIC_FAIL_RADIUS_M
+            and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
+        ]
 
-        # Found highways nearby - this is a fail
-        highway_names = [r["name"] or r["ref"] or "Unnamed highway" for r in highways_nearby]
+        if fail_candidates:
+            worst = max(fail_candidates, key=lambda s: s.metadata["aadt"])
+            return _high_traffic_result(CheckResult.FAIL, worst)
+
+        # Check warning band (150-300m)
+        warn_candidates = [
+            s for s in with_aadt
+            if s.distance_meters > HIGH_TRAFFIC_FAIL_RADIUS_M
+            and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
+        ]
+
+        if warn_candidates:
+            worst = max(warn_candidates, key=lambda s: s.metadata["aadt"])
+            return _high_traffic_result(CheckResult.WARNING, worst)
+
+        # No high-traffic roads nearby
         return Tier1Check(
-            name="Highway",
-            result=CheckResult.FAIL,
-            details=f"TOO CLOSE to: {', '.join(set(highway_names))}",
-            value=0
+            name="High-traffic road",
+            result=CheckResult.PASS,
+            details="No high-traffic roads within 1,000 ft",
+            value=None,
         )
 
-    except OverpassUnavailableError:
-        return Tier1Check(
-            name="Highway",
-            result=CheckResult.UNKNOWN,
-            details="Road-data service temporarily unavailable; please try again shortly"
-        )
     except Exception as e:
-        logger.warning("Highway check failed: %s", e)
+        logger.warning("High-traffic road check failed: %s", e)
         return Tier1Check(
-            name="Highway",
+            name="High-traffic road",
             result=CheckResult.UNKNOWN,
-            details="Could not reach road-data service to verify this check"
+            details="Could not query traffic volume data",
+            value=None,
         )
 
 
-def check_high_volume_roads(
-    overpass: OverpassClient,
-    lat: float,
-    lng: float,
-    roads: Optional[List[Dict]] = None,
-) -> Tier1Check:
-    """Check distance to high-volume roads (4+ lanes or primary/secondary classification).
+def _high_traffic_result(result: CheckResult, segment) -> Tier1Check:
+    """Build a Tier1Check for a high-traffic road FAIL or WARNING."""
+    aadt = segment.metadata.get("aadt", 0)
+    dist_ft = round(segment.distance_feet)
 
-    *roads* can be pre-fetched via ``overpass.get_nearby_roads()`` to avoid
-    a duplicate API call.
-    """
-    try:
-        if roads is None:
-            roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
+    # Use route_id as fallback when the name is missing or generic
+    road_name = segment.name
+    if not road_name or road_name == "Unknown" or road_name == "HPMS segment":
+        road_name = segment.metadata.get("route_id", "")
+    road_name = road_name.strip() if road_name else ""
 
-        problem_roads = []
-        for road in roads:
-            # Check lane count (if available)
-            lanes = road.get("lanes", "")
-            has_many_lanes = False
-            if lanes:
-                try:
-                    if int(lanes) >= 4:
-                        has_many_lanes = True
-                except ValueError:
-                    pass
+    if road_name:
+        details = f"{road_name}: {aadt:,} vehicles/day, {dist_ft:,} ft away"
+    else:
+        details = f"Road with {aadt:,} vehicles/day found {dist_ft:,} ft away"
 
-            # Primary/secondary roads are typically high-volume
-            is_primary = road["highway_type"] in ["primary", "secondary"]
-
-            if has_many_lanes or is_primary:
-                problem_roads.append(road.get("name") or road.get("ref") or "Unnamed road")
-
-        if not problem_roads:
-            return Tier1Check(
-                name="High-volume road",
-                result=CheckResult.PASS,
-                details="No high-volume roads within 500 feet",
-                value=None
-            )
-
-        return Tier1Check(
-            name="High-volume road",
-            result=CheckResult.FAIL,
-            details=f"TOO CLOSE to: {', '.join(set(problem_roads))}",
-            value=0
-        )
-
-    except OverpassUnavailableError:
-        return Tier1Check(
-            name="High-volume road",
-            result=CheckResult.UNKNOWN,
-            details="Road-data service temporarily unavailable; please try again shortly"
-        )
-    except Exception as e:
-        logger.warning("High-volume road check failed: %s", e)
-        return Tier1Check(
-            name="High-volume road",
-            result=CheckResult.UNKNOWN,
-            details="Could not reach road-data service to verify this check"
-        )
+    return Tier1Check(
+        name="High-traffic road",
+        result=result,
+        details=details,
+        value={
+            "aadt": aadt,
+            "distance_ft": dist_ft,
+            "road_name": road_name or None,
+            "radius_m": round(segment.distance_meters, 1),
+        },
+    )
 
 
 # =============================================================================
@@ -1089,6 +1092,123 @@ def _parse_max_voltage(voltage_str: str) -> int:
         except (ValueError, TypeError):
             continue
     return max_v
+
+
+# =============================================================================
+# EJSCREEN BLOCK GROUP DATA (local SpatiaLite — no API cost)
+# =============================================================================
+
+# 12 of 13 EPA EJScreen environmental indicators stored during ingestion.
+# Extreme Heat and Drinking Water require a future ingestion update.
+EJSCREEN_INDICATOR_FIELDS = {
+    "PM25":   "PM2.5 Particulate Matter",
+    "OZONE":  "Ozone",
+    "DSLPM":  "Diesel Particulate Matter",
+    "CANCER": "Air Toxics Cancer Risk",
+    "RESP":   "Air Toxics Respiratory HI",
+    "PTRAF":  "Traffic Proximity",
+    "PNPL":   "Superfund Proximity",
+    "PRMP":   "RMP Facility Proximity",
+    "PTSDF":  "Hazardous Waste Proximity",
+    "UST":    "Underground Storage Tanks",
+    "PWDIS":  "Wastewater Discharge",
+    "LEAD":   "Lead Paint (Pre-1960 Housing)",
+}
+
+# 6 indicators that drive Tier 1 checks: field → (check_name, threshold, label)
+_EJSCREEN_CHECK_INDICATORS = {
+    "PM25":  ("EJScreen PM2.5",           80, "PM2.5 particulate matter"),
+    "CANCER":("EJScreen cancer risk",     80, "air toxics cancer risk"),
+    "DSLPM": ("EJScreen diesel PM",       80, "diesel particulate matter"),
+    "LEAD":  ("EJScreen lead paint",      80, "lead paint indicator (pre-1960 housing)"),
+    "PNPL":  ("EJScreen Superfund",       80, "Superfund site proximity"),
+    "PTSDF": ("EJScreen hazardous waste", 80, "hazardous waste facility proximity"),
+}
+
+
+def _query_ejscreen_block_group(
+    lat: float, lng: float, spatial_store: SpatialDataStore,
+) -> Optional[Dict[str, Any]]:
+    """Query nearest EJScreen block group centroid for environmental indicators.
+
+    Returns dict of indicator percentile values for the nearest census block
+    group within 2 km, or None if no data available. Excludes all demographic
+    fields (DEMOGIDX, PEOPCOLORPCT, LOWINCPCT).
+
+    Zero API calls — pure local SpatiaLite query.
+    """
+    if not spatial_store.is_available():
+        return None
+
+    results = spatial_store.find_facilities_within(lat, lng, 2000, "ejscreen")
+    if not results:
+        return None
+
+    # find_facilities_within() returns results sorted by distance ascending
+    nearest = results[0]
+
+    # Extract only environmental indicator fields
+    indicators = {}
+    for field_name in EJSCREEN_INDICATOR_FIELDS:
+        value = nearest.metadata.get(field_name)
+        if value is not None:
+            try:
+                indicators[field_name] = float(value)
+            except (ValueError, TypeError):
+                pass
+
+    if not indicators:
+        return None
+
+    indicators["_distance_m"] = nearest.distance_meters
+    indicators["_block_group_id"] = nearest.metadata.get("block_group_id", "")
+    return indicators
+
+
+def _check_ejscreen_indicators(
+    ejscreen_data: Optional[Dict[str, Any]],
+    sems_result: Optional[Tier1Check],
+) -> List[Tier1Check]:
+    """Generate Tier 1 checks from EJScreen block group percentile data.
+
+    Each of the 6 check-driving indicators produces a WARNING when the block
+    group percentile >= 80th, PASS otherwise. The Superfund indicator is
+    suppressed when the SEMS containment check already FAILed (dedup).
+    """
+    if ejscreen_data is None:
+        return []
+
+    checks = []
+    for field_name, (check_name, threshold, label) in _EJSCREEN_CHECK_INDICATORS.items():
+        value = ejscreen_data.get(field_name)
+        if value is None:
+            continue
+
+        # Superfund dedup: skip if SEMS already flagged NPL containment
+        if field_name == "PNPL" and sems_result and sems_result.result == CheckResult.FAIL:
+            continue
+
+        if value >= threshold:
+            checks.append(Tier1Check(
+                name=check_name,
+                result=CheckResult.WARNING,
+                details=(
+                    f"Block group ranks in the {value:.0f}th percentile nationally "
+                    f"for {label}. Elevated levels may affect long-term health."
+                ),
+                value=value,
+                required=False,
+            ))
+        else:
+            checks.append(Tier1Check(
+                name=check_name,
+                result=CheckResult.PASS,
+                details=f"Block group ranks in the {value:.0f}th percentile for {label}",
+                value=value,
+                required=False,
+            ))
+
+    return checks
 
 
 def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, List[Dict]]]:
@@ -1122,7 +1242,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
             OverpassRateLimitError as _HTTPRateLimitError,
             overpass_query as _overpass_http_query,
         )
-        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25)
+        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25, ttl_days=14)
     except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
         logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
         return None
@@ -1350,6 +1470,153 @@ def check_industrial_zones(
         details="No industrial-zoned land detected within 500 ft",
         required=False,
     )
+
+
+def check_flood_zones(lat: float, lng: float) -> Tier1Check:
+    """Check whether the property falls within a FEMA flood zone.
+
+    Queries the local SpatiaLite database (fema_nfhl layer) — no external
+    API calls.  Severity precedence across all overlapping polygons:
+      1. Zone A* / V*  → FAIL  (Special Flood Hazard Area)
+      2. Zone X shaded → WARNING (moderate risk)
+      3. Everything else → PASS
+    Empty results (no data coverage) → UNKNOWN.
+    """
+    _unknown = Tier1Check(
+        name="Flood zone",
+        result=CheckResult.UNKNOWN,
+        details="Flood zone data not available for this area",
+        value=None,
+        required=True,
+    )
+    try:
+        store = SpatialDataStore()
+        polygons = store.point_in_polygons(lat, lng, "fema_nfhl")
+
+        if not polygons:
+            return _unknown
+
+        # Scan all overlapping polygons — highest severity wins.
+        has_high_risk = False
+        high_risk_zone = ""
+        has_moderate_risk = False
+
+        for record in polygons:
+            fld_zone = record.metadata.get("fld_zone", "")
+            zone_subtype = record.metadata.get("zone_subtype", "")
+
+            if fld_zone.startswith("A") or fld_zone.startswith("V"):
+                has_high_risk = True
+                high_risk_zone = fld_zone
+            elif (
+                fld_zone.startswith("X")
+                and zone_subtype
+                and "SHADED" in zone_subtype.upper()
+            ):
+                has_moderate_risk = True
+
+        if has_high_risk:
+            return Tier1Check(
+                name="Flood zone",
+                result=CheckResult.FAIL,
+                details=(
+                    f"Property is in a FEMA Special Flood Hazard Area "
+                    f"(Zone {high_risk_zone})"
+                ),
+                value=high_risk_zone,
+                required=True,
+            )
+
+        if has_moderate_risk:
+            return Tier1Check(
+                name="Flood zone",
+                result=CheckResult.WARNING,
+                details="Property is in a moderate flood risk area (Zone X, shaded)",
+                value="X-shaded",
+                required=True,
+            )
+
+        # No high or moderate risk — property is outside SFHA.
+        display_zone = polygons[0].metadata.get("fld_zone", "X")
+        return Tier1Check(
+            name="Flood zone",
+            result=CheckResult.PASS,
+            details=(
+                f"Not in a FEMA Special Flood Hazard Area "
+                f"(Zone {display_zone})"
+            ),
+            value=display_zone,
+            required=True,
+        )
+
+    except Exception:
+        logger.warning("Flood zone check failed", exc_info=True)
+        return _unknown
+
+
+def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
+    """Check whether the property falls within an EPA Superfund NPL site boundary.
+
+    Queries the local SpatiaLite database (sems layer) via point-in-polygon.
+    Filters to NPL sites only: npl_status_code in ("F", "P") — Final and
+    Proposed National Priorities List. Non-NPL sites are excluded to avoid
+    false positives (EPA-evaluated sites with no further action).
+
+    PRD: Hard fail if within EPA-defined remediation boundary.
+    Empty results (no data) → UNKNOWN.
+
+    Known limitation: NES-173 — multipart polygons with disjoint exterior rings
+    may produce false negatives (missed containment). Most NPL sites have
+    single contiguous boundaries.
+    """
+    _unknown = Tier1Check(
+        name="Superfund (NPL)",
+        result=CheckResult.UNKNOWN,
+        details="Superfund site data not available for this area",
+        value=None,
+        required=True,
+    )
+    try:
+        store = SpatialDataStore()
+        if not store.is_available():
+            return _unknown
+
+        polygons = store.point_in_polygons(lat, lng, "sems")
+        if not polygons:
+            return _unknown
+
+        # Filter to NPL sites only (Final F, Proposed P)
+        npl_sites = [
+            r for r in polygons
+            if r.metadata.get("npl_status_code", "").upper() in ("F", "P")
+        ]
+
+        if npl_sites:
+            site_name = npl_sites[0].metadata.get("site_name", npl_sites[0].name)
+            return Tier1Check(
+                name="Superfund (NPL)",
+                result=CheckResult.FAIL,
+                details=(
+                    f"Property is within EPA Superfund NPL site: {site_name}. "
+                    "Contaminants may pose health risks (cancer, neurological effects)."
+                ),
+                value=site_name,
+                required=True,
+            )
+
+        # Property is inside a Superfund polygon but not NPL-listed (npl_status_code
+        # not F/P, or missing) — treat as pass; only NPL sites cause hard fail.
+        return Tier1Check(
+            name="Superfund (NPL)",
+            result=CheckResult.PASS,
+            details="Not within an EPA Superfund National Priorities List site",
+            value=None,
+            required=True,
+        )
+
+    except Exception:
+        logger.warning("Superfund NPL check failed", exc_info=True)
+        return _unknown
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -3234,7 +3501,6 @@ def evaluate_property(
                                          PERSONA_PRESETS[DEFAULT_PERSONA])
 
     maps = GoogleMapsClient(api_key)
-    overpass = OverpassClient()
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
@@ -3324,26 +3590,9 @@ def evaluate_property(
     # Location-based checks
     result.tier1_checks.append(check_gas_stations(maps, lat, lng))
 
-    # Fetch road data once for both highway + high-volume road checks
-    _nearby_roads: Optional[List[Dict]] = None
-    _road_fetch_error: Optional[str] = None
-    try:
-        _nearby_roads = overpass.get_nearby_roads(lat, lng, radius_meters=200)
-    except OverpassUnavailableError:
-        logger.warning("Overpass road query unavailable")
-        _road_fetch_error = "Road-data service temporarily unavailable; please try again shortly"
-    except Exception as exc:
-        logger.warning("Overpass road query failed: %s", exc)
-        _road_fetch_error = "Could not reach road-data service to verify this check"
-
-    if _road_fetch_error:
-        result.tier1_checks.append(Tier1Check(
-            name="Highway", result=CheckResult.UNKNOWN, details=_road_fetch_error))
-        result.tier1_checks.append(Tier1Check(
-            name="High-volume road", result=CheckResult.UNKNOWN, details=_road_fetch_error))
-    else:
-        result.tier1_checks.append(check_highways(maps, overpass, lat, lng, roads=_nearby_roads))
-        result.tier1_checks.append(check_high_volume_roads(overpass, lat, lng, roads=_nearby_roads))
+    # High-traffic road check (HPMS AADT data — local SpatiaLite, no API cost)
+    _spatial_store = SpatialDataStore()
+    result.tier1_checks.append(check_high_traffic_road(lat, lng, _spatial_store))
 
     # Environmental health proximity checks (NES-57)
     try:
@@ -3356,6 +3605,29 @@ def evaluate_property(
     result.tier1_checks.append(check_substations(env_hazards, lat, lng))
     result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
     result.tier1_checks.append(check_industrial_zones(env_hazards, lat, lng))
+
+    # Flood zone check (local SpatiaLite — no API cost)
+    result.tier1_checks.append(check_flood_zones(lat, lng))
+
+    # Superfund NPL containment check (local SpatiaLite — Tier 0 hard fail)
+    result.tier1_checks.append(check_superfund_npl(lat, lng))
+
+    # EJScreen block group environmental indicators (local SpatiaLite — no API cost)
+    ejscreen_data = None
+    try:
+        ejscreen_data = _query_ejscreen_block_group(lat, lng, _spatial_store)
+    except Exception as e:
+        logger.warning("EJScreen block group query failed: %s", e)
+
+    if ejscreen_data is not None:
+        result.ejscreen_profile = ejscreen_data
+        # Find SEMS result for Superfund dedup
+        sems_check = next(
+            (c for c in result.tier1_checks if c.name == "Superfund (NPL)"), None,
+        )
+        result.tier1_checks.extend(
+            _check_ejscreen_indicators(ejscreen_data, sems_check)
+        )
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))

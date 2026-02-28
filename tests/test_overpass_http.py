@@ -80,8 +80,9 @@ class TestCacheIntegration:
 # =========================================================================
 
 class TestHTTPErrors:
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_429_raises_rate_limit_error(self, mock_cache):
+    def test_429_raises_rate_limit_error(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0  # no retries for this test
 
@@ -90,8 +91,9 @@ class TestHTTPErrors:
             with pytest.raises(OverpassRateLimitError):
                 client.query("test query", caller="test")
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_504_raises_query_error(self, mock_cache):
+    def test_504_raises_query_error(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -100,8 +102,9 @@ class TestHTTPErrors:
             with pytest.raises(OverpassQueryError, match="504"):
                 client.query("test query", caller="test")
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_400_raises_query_error(self, mock_cache):
+    def test_400_raises_query_error(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -110,8 +113,9 @@ class TestHTTPErrors:
             with pytest.raises(OverpassQueryError, match="400"):
                 client.query("test query", caller="test")
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_non_json_response_raises(self, mock_cache):
+    def test_non_json_response_raises(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -120,8 +124,9 @@ class TestHTTPErrors:
             with pytest.raises(OverpassQueryError, match="non-JSON"):
                 client.query("test query", caller="test")
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_timeout_raises_query_error(self, mock_cache):
+    def test_timeout_raises_query_error(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -137,8 +142,9 @@ class TestHTTPErrors:
 # =========================================================================
 
 class TestResponseBodyErrors:
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_rate_limit_in_body(self, mock_cache):
+    def test_rate_limit_in_body(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -148,8 +154,9 @@ class TestResponseBodyErrors:
             with pytest.raises(OverpassRateLimitError):
                 client.query("test query", caller="test")
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
-    def test_runtime_error_in_body(self, mock_cache):
+    def test_runtime_error_in_body(self, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 0
 
@@ -187,15 +194,67 @@ class TestRetryLogic:
         assert call_count == 3
         assert mock_sleep.call_count >= 2  # rate limiter + retry backoff sleeps
 
+    @patch("overpass_http.get_overpass_cache_stale", return_value=None)
     @patch("overpass_http.get_overpass_cache", return_value=None)
     @patch("overpass_http.time.sleep")
-    def test_exhausts_retries_and_raises(self, mock_sleep, mock_cache):
+    def test_exhausts_retries_and_raises(self, mock_sleep, mock_cache, mock_stale):
         client = OverpassHTTPClient()
         client.MAX_RETRIES = 1
 
         mock_resp = _mock_response(429)
         with patch.object(requests.Session, "post", return_value=mock_resp):
             with pytest.raises(OverpassRateLimitError):
+                client.query("test query", caller="test")
+
+    @patch("overpass_http.get_overpass_cache_stale")
+    @patch("overpass_http.get_overpass_cache", return_value=None)
+    @patch("overpass_http.time.sleep")
+    def test_stale_cache_fallback_when_http_fails(self, mock_sleep, mock_cache, mock_stale):
+        """When HTTP fails and no fresh cache, serve stale cache if available."""
+        stale_json = '{"elements": [{"id": 1, "type": "way"}], "version": 0.6}'
+        mock_stale.return_value = (stale_json, "2024-01-15T12:00:00+00:00")
+
+        client = OverpassHTTPClient()
+        client.MAX_RETRIES = 0
+
+        mock_resp = _mock_response(504)
+        with patch.object(requests.Session, "post", return_value=mock_resp):
+            result = client.query("test query", caller="test")
+
+        assert result["elements"] == [{"id": 1, "type": "way"}]
+        assert result["_stale"] is True
+        assert result["_stale_created_at"] == "2024-01-15T12:00:00+00:00"
+
+    @patch("overpass_http.get_overpass_cache_stale")
+    @patch("overpass_http.get_overpass_cache", return_value=None)
+    @patch("overpass_http.time.sleep")
+    def test_400_does_not_fall_back_to_stale_cache(self, mock_sleep, mock_cache, mock_stale):
+        """Non-retryable client errors (400) must propagate, not serve stale data."""
+        mock_stale.return_value = ('{"elements": []}', "2024-01-15T12:00:00+00:00")
+
+        client = OverpassHTTPClient()
+        client.MAX_RETRIES = 0
+
+        mock_resp = _mock_response(400)
+        with patch.object(requests.Session, "post", return_value=mock_resp):
+            with pytest.raises(OverpassQueryError, match="400"):
+                client.query("test query", caller="test")
+
+        mock_stale.assert_not_called()
+
+    @patch("overpass_http.get_overpass_cache_stale")
+    @patch("overpass_http.get_overpass_cache", return_value=None)
+    @patch("overpass_http.time.sleep")
+    def test_corrupted_stale_cache_reraises_original(self, mock_sleep, mock_cache, mock_stale):
+        """Corrupted stale cache entry should re-raise the original HTTP error."""
+        mock_stale.return_value = ("not valid json{{", "2024-01-01T00:00:00+00:00")
+
+        client = OverpassHTTPClient()
+        client.MAX_RETRIES = 0
+
+        mock_resp = _mock_response(504)
+        with patch.object(requests.Session, "post", return_value=mock_resp):
+            with pytest.raises(OverpassQueryError, match="504"):
                 client.query("test query", caller="test")
 
 
@@ -236,4 +295,6 @@ class TestModuleLevelFunction:
         result = overpass_query("[out:json];", caller="test", timeout=10)
 
         assert result == {"elements": []}
-        mock_client.query.assert_called_once_with("[out:json];", caller="test", timeout=10)
+        mock_client.query.assert_called_once_with(
+            "[out:json];", caller="test", timeout=10, ttl_days=None
+        )

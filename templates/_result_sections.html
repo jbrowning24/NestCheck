@@ -752,6 +752,70 @@
       </div>
     {% endif %}
 
+    {# ── EPA Environmental Profile card (EJScreen) ── #}
+    {# Three-state guard: key absent → old snapshot, hide card.           #}
+    {# value=none → no EJScreen data, hide card.                          #}
+    {# value={..} → show card with all indicators.                        #}
+    {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
+      {% set ej = result.ejscreen_profile %}
+      {# Indicator display config: field_key, label, is_check_indicator #}
+      {% set ej_indicators = [
+        ("PM25",   "PM2.5 Particulate Matter",    true),
+        ("OZONE",  "Ozone",                       false),
+        ("DSLPM",  "Diesel Particulate Matter",    true),
+        ("CANCER", "Air Toxics Cancer Risk",       true),
+        ("RESP",   "Air Toxics Respiratory HI",    false),
+        ("PTRAF",  "Traffic Proximity",            false),
+        ("PNPL",   "Superfund Proximity",          true),
+        ("PRMP",   "RMP Facility Proximity",       false),
+        ("PTSDF",  "Hazardous Waste Proximity",    true),
+        ("UST",    "Underground Storage Tanks",    false),
+        ("PWDIS",  "Wastewater Discharge",         false),
+        ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
+      ] %}
+      <div class="proximity-item proximity-neutral" id="ejscreen-profile">
+        <div class="proximity-name">
+          <span class="proximity-icon proximity-icon-clear">&#127758;</span>
+          EPA Environmental Profile
+        </div>
+        <div class="proximity-detail">
+          Census block group indicators from EPA EJScreen (national percentiles)
+        </div>
+        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+          <span class="collapse-icon">&#9654;</span>
+          <span>View all indicators</span>
+        </div>
+        <div class="collapsible-body collapsed">
+          <div class="ejscreen-indicators">
+            {% for field_key, label, is_check in ej_indicators %}
+              {% if ej[field_key] is defined and ej[field_key] is not none %}
+                {% set pct = ej[field_key] %}
+                {% if pct >= 80 %}
+                  {% set indicator_css = "ejscreen-indicator--warning" %}
+                {% elif pct >= 50 %}
+                  {% set indicator_css = "ejscreen-indicator--moderate" %}
+                {% else %}
+                  {% set indicator_css = "ejscreen-indicator--low" %}
+                {% endif %}
+                <div class="ejscreen-indicator {{ indicator_css }}">
+                  <span class="ejscreen-indicator__label">{{ label }}</span>
+                  <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
+                  {% if pct >= 80 %}
+                    <span class="ejscreen-indicator__badge">&#9888;</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <div class="ejscreen-source">
+            Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
+            &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
+            &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   {# ── 6b. COMMUNITY PROFILE — shown in both preview and full (NES-134) ── #}
