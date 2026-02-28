@@ -10,8 +10,6 @@ Tests cover:
   - Serialization in result_to_dict() and aggregate confidence
 """
 
-from dataclasses import dataclass
-from typing import Optional
 from unittest.mock import patch, MagicMock
 
 import pytest

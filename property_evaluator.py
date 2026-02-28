@@ -3485,9 +3485,8 @@ def score_third_place_access(
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         # Data confidence (NES-189)
-        best_review_count = best_place.get("user_ratings_total", 0)
         conf, conf_note = _classify_places_confidence(
-            len(eligible_places), best_review_count,
+            len(eligible_places), reviews,
         )
 
         return (Tier2Score(
@@ -3793,9 +3792,8 @@ def score_provisioning_access(
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         # Data confidence (NES-189)
-        best_review_count = best_store.get("user_ratings_total", 0)
         conf, conf_note = _classify_places_confidence(
-            len(eligible_stores), best_review_count,
+            len(eligible_stores), reviews,
         )
 
         return (Tier2Score(
