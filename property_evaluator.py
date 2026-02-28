@@ -354,6 +354,24 @@ class EvaluationResult:
 
 
 # =============================================================================
+# DEDUPLICATION HELPERS
+# =============================================================================
+
+def _dedupe_by_place_id(places: List[Dict]) -> List[Dict]:
+    """Remove duplicate places by Google place_id, keeping the first occurrence."""
+    seen: set = set()
+    unique: List[Dict] = []
+    for place in places:
+        pid = place.get("place_id")
+        if pid and pid in seen:
+            continue
+        if pid:
+            seen.add(pid)
+        unique.append(place)
+    return unique
+
+
+# =============================================================================
 # DISTANCE HELPERS
 # =============================================================================
 
@@ -1769,6 +1787,7 @@ def get_neighborhood_snapshot(
             places = maps.places_nearby(lat, lng, primary_type, radius_meters=3000)
             if secondary_type:
                 places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
+            places = _dedupe_by_place_id(places)
 
             # Special handling for Provisioning - apply household provisioning filter
             if category == "Provisioning":
@@ -2879,6 +2898,7 @@ def score_third_place_access(
         all_places = []
         all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
+        all_places = _dedupe_by_place_id(all_places)
 
         if not all_places:
             return (Tier2Score(
@@ -3143,6 +3163,7 @@ def score_provisioning_access(
         all_stores = []
         all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
+        all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
             return (Tier2Score(
@@ -3275,6 +3296,7 @@ def score_fitness_access(
         # so we search with keyword instead
         yoga = maps.places_nearby(lat, lng, "gym", radius_meters=2500, keyword="yoga")
         fitness_places.extend(yoga)
+        fitness_places = _dedupe_by_place_id(fitness_places)
 
         if not fitness_places:
             return (Tier2Score(
