@@ -424,6 +424,9 @@ class GoogleMapsClient:
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.session = requests.Session()
         self.session.trust_env = False
+        # Per-evaluation cache for places_nearby — avoids duplicate searches
+        # within the same evaluation run.  Keyed by (lat, lng, type, radius, keyword).
+        self._places_cache: Dict[tuple, List[Dict]] = {}
 
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
@@ -470,14 +473,26 @@ class GoogleMapsClient:
         }
     
     def places_nearby(
-        self, 
-        lat: float, 
-        lng: float, 
+        self,
+        lat: float,
+        lng: float,
         place_type: str,
         radius_meters: int = 2000,
         keyword: Optional[str] = None
     ) -> List[Dict]:
-        """Search for places near a location"""
+        """Search for places near a location.
+
+        Results are cached per-evaluation so repeated identical searches
+        (same coordinates, type, radius, keyword) return instantly without
+        an API call.
+        """
+        cache_key = (round(lat, 6), round(lng, 6), place_type, radius_meters, keyword)
+        if not hasattr(self, "_places_cache"):
+            self._places_cache = {}
+        cached = self._places_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         url = f"{self.base_url}/place/nearbysearch/json"
         params = {
             "location": f"{lat},{lng}",
@@ -493,7 +508,9 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
 
-        return data.get("results", [])
+        results = data.get("results", [])
+        self._places_cache[cache_key] = results
+        return results
     
     def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
         """Get detailed information about a place"""
@@ -687,7 +704,7 @@ class GoogleMapsClient:
 
 
 class OverpassClient:
-    """Client for OpenStreetMap Overpass API - for road data.
+    """Client for OpenStreetMap Overpass API - for road data."""
 
     def __init__(self):
         pass
@@ -1865,13 +1882,15 @@ def get_neighborhood_snapshot(
                     continue
 
             if places:
-                # Find closest
+                # Find closest using batch walking times (1 API call per 25 places)
+                destinations = [
+                    (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
+                    for p in places
+                ]
+                walk_times = maps.walking_times_batch((lat, lng), destinations)
                 best = None
                 best_time = 9999
-                for place in places:
-                    p_lat = place["geometry"]["location"]["lat"]
-                    p_lng = place["geometry"]["location"]["lng"]
-                    walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+                for place, walk_time in zip(places, walk_times):
                     if walk_time < best_time:
                         best_time = walk_time
                         best = place
@@ -2204,21 +2223,29 @@ def find_primary_transit(
         ("light_rail_station", "Light Rail", 1),
     ]
 
-    candidates: List[Tuple[int, int, Dict, str]] = []
+    raw_candidates: List[Tuple[int, Dict, str]] = []
     for place_type, mode, priority in search_types:
         try:
             places = maps.places_nearby(lat, lng, place_type, radius_meters=5000)
         except Exception:
             continue
         for place in places:
-            place_lat = place["geometry"]["location"]["lat"]
-            place_lng = place["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
-            candidates.append((priority, walk_time, place, mode))
+            raw_candidates.append((priority, place, mode))
 
-    if not candidates:
+    if not raw_candidates:
         return None
 
+    # Batch walking times — 1 API call per 25 candidates instead of 1 each
+    destinations = [
+        (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
+        for _, p, _ in raw_candidates
+    ]
+    walk_times = maps.walking_times_batch((lat, lng), destinations)
+
+    candidates: List[Tuple[int, int, Dict, str]] = [
+        (priority, wt, place, mode)
+        for (priority, place, mode), wt in zip(raw_candidates, walk_times)
+    ]
     candidates.sort(key=lambda item: (item[0], item[1]))
     _, walk_time, place, mode = candidates[0]
     place_lat = place["geometry"]["location"]["lat"]
@@ -2538,16 +2565,19 @@ def evaluate_transit_access(
     # ------------------------------------------------------------------
     # 2. Find primary node (closest walkable transit stop)
     # ------------------------------------------------------------------
-    # Compute walk time for each node
-    node_walk_times: List[Tuple[int, Dict]] = []
-    for node in all_nodes:
-        node_lat = node["geometry"]["location"]["lat"]
-        node_lng = node["geometry"]["location"]["lng"]
-        try:
-            wt = maps.walking_time((lat, lng), (node_lat, node_lng))
-        except Exception:
-            wt = 9999
-        node_walk_times.append((wt, node))
+    # Batch walking times — 1 API call per 25 nodes instead of 1 each
+    destinations = [
+        (node["geometry"]["location"]["lat"], node["geometry"]["location"]["lng"])
+        for node in all_nodes
+    ]
+    try:
+        walk_time_results = maps.walking_times_batch((lat, lng), destinations)
+    except Exception:
+        walk_time_results = [9999] * len(all_nodes)
+
+    node_walk_times: List[Tuple[int, Dict]] = [
+        (wt, node) for wt, node in zip(walk_time_results, all_nodes)
+    ]
 
     node_walk_times.sort(key=lambda x: x[0])
     walk_min, primary = node_walk_times[0]
@@ -2717,16 +2747,21 @@ def evaluate_green_spaces(
                 "types": set(place.get("types", [])),
             }
 
+    # Batch walking times — 1 API call per 25 places instead of 1 each
+    entries_list = list(places_by_id.values())
+    destinations = [
+        (e["place"]["geometry"]["location"]["lat"], e["place"]["geometry"]["location"]["lng"])
+        for e in entries_list
+    ]
+    walk_times = maps.walking_times_batch((lat, lng), destinations)
+
     green_spaces: List[GreenSpace] = []
-    for entry in places_by_id.values():
-        place = entry["place"]
-        place_id = place.get("place_id")
-        place_lat = place["geometry"]["location"]["lat"]
-        place_lng = place["geometry"]["location"]["lng"]
-        walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
+    for entry, walk_time in zip(entries_list, walk_times):
         if walk_time > GREEN_SPACE_WALK_MAX_MIN or walk_time == 9999:
             continue
 
+        place = entry["place"]
+        place_id = place.get("place_id")
         types = sorted(entry["types"])
         green_spaces.append(GreenSpace(
             place_id=place_id,
@@ -2895,9 +2930,10 @@ def score_third_place_access(
     """
     try:
         # Search for cafes, coffee shops, and bakeries
+        # Use 3000m radius to share cached results with neighborhood snapshot
         all_places = []
-        all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=2500))
-        all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=2500))
+        all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000))
+        all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=3000))
         all_places = _dedupe_by_place_id(all_places)
 
         if not all_places:
@@ -2941,17 +2977,20 @@ def score_third_place_access(
                 details="No high-quality third places within walking distance"
             ), [])
 
+        # Batch walking times — 1 API call per 25 places instead of 1 each
+        destinations = [
+            (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
+            for p in eligible_places
+        ]
+        walk_times = maps.walking_times_batch((lat, lng), destinations)
+
         # Find best scoring place and collect all scored places
         best_score = 0
         best_place = None
         best_walk_time = 9999
         scored_places = []
 
-        for place in eligible_places:
-            place_lat = place["geometry"]["location"]["lat"]
-            place_lng = place["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (place_lat, place_lng))
-
+        for place, walk_time in zip(eligible_places, walk_times):
             # Score based on walk time
             score = 0
             if walk_time <= 15:
@@ -3045,12 +3084,14 @@ def score_transit_access(
     lng: float,
     transit_keywords: Optional[List[str]] = None,
     transit_access: Optional[TransitAccessResult] = None,
+    urban_access: Optional[UrbanAccessProfile] = None,
 ) -> Tier2Score:
     """Score urban access via rail transit (0-10 points).
 
     When a pre-computed TransitAccessResult is supplied its score is used
     directly for the frequency component (replacing the old review-count
-    proxy).  The hub-travel component is still fetched independently.
+    proxy).  When urban_access is supplied, reuses its primary_transit and
+    major_hub instead of making duplicate API calls.
     """
     def walkability_points(walk_time: int) -> int:
         if walk_time <= 10:
@@ -3075,7 +3116,21 @@ def score_transit_access(
         return 0
 
     try:
-        primary_transit = find_primary_transit(maps, lat, lng)
+        # Reuse cached urban_access results when available to avoid
+        # duplicate find_primary_transit + determine_major_hub API calls
+        if urban_access is not None:
+            primary_transit = urban_access.primary_transit
+            major_hub = urban_access.major_hub
+        else:
+            primary_transit = find_primary_transit(maps, lat, lng)
+            major_hub = determine_major_hub(
+                maps,
+                lat,
+                lng,
+                primary_transit.mode if primary_transit else None,
+                transit_origin=(primary_transit.lat, primary_transit.lng) if primary_transit else None,
+            ) if primary_transit else None
+
         if not primary_transit:
             return Tier2Score(
                 name="Urban access",
@@ -3083,14 +3138,6 @@ def score_transit_access(
                 max_points=10,
                 details="No rail transit stations found within reach"
             )
-
-        major_hub = determine_major_hub(
-            maps,
-            lat,
-            lng,
-            primary_transit.mode,
-            transit_origin=(primary_transit.lat, primary_transit.lng),
-        )
 
         walk_points = walkability_points(primary_transit.walk_time_min)
 
@@ -3160,9 +3207,10 @@ def score_provisioning_access(
     """
     try:
         # Search for full-service provisioning stores
+        # Use 3000m radius to share cached results with neighborhood snapshot
         all_stores = []
-        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=2500))
-        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=2500))
+        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=3000))
+        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=3000))
         all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
@@ -3206,17 +3254,20 @@ def score_provisioning_access(
                 details="No full-service provisioning options within walking distance"
             ), [])
 
+        # Batch walking times — 1 API call per 25 stores instead of 1 each
+        destinations = [
+            (s["geometry"]["location"]["lat"], s["geometry"]["location"]["lng"])
+            for s in eligible_stores
+        ]
+        walk_times = maps.walking_times_batch((lat, lng), destinations)
+
         # Find best scoring store and collect all scored stores
         best_score = 0
         best_store = None
         best_walk_time = 9999
         scored_stores = []
 
-        for store in eligible_stores:
-            store_lat = store["geometry"]["location"]["lat"]
-            store_lng = store["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (store_lat, store_lng))
-
+        for store, walk_time in zip(eligible_stores, walk_times):
             # Score based on walk time
             score = 0
             if walk_time <= 15:
@@ -3288,13 +3339,13 @@ def score_fitness_access(
         fitness_places = []
 
         # Try gym type
-        gyms = maps.places_nearby(lat, lng, "gym", radius_meters=2500)
+        gyms = maps.places_nearby(lat, lng, "gym", radius_meters=3000)
         fitness_places.extend(gyms)
 
         # Try searching for yoga studios using keyword
         # Note: Google Places API may not have "yoga_studio" as a separate type,
         # so we search with keyword instead
-        yoga = maps.places_nearby(lat, lng, "gym", radius_meters=2500, keyword="yoga")
+        yoga = maps.places_nearby(lat, lng, "gym", radius_meters=3000, keyword="yoga")
         fitness_places.extend(yoga)
         fitness_places = _dedupe_by_place_id(fitness_places)
 
@@ -3306,17 +3357,21 @@ def score_fitness_access(
                 details="No gyms or fitness centers found within 30 min walk"
             ), [])
 
+        # Batch walking times — 1 API call per 25 facilities instead of 1 each
+        destinations = [
+            (f["geometry"]["location"]["lat"], f["geometry"]["location"]["lng"])
+            for f in fitness_places
+        ]
+        walk_times = maps.walking_times_batch((lat, lng), destinations)
+
         # Find best scored facility and collect all scored facilities
         best_score = 0
         best_facility = None
         best_details = ""
         scored_facilities = []
 
-        for facility in fitness_places:
+        for facility, walk_time in zip(fitness_places, walk_times):
             rating = facility.get("rating", 0)
-            facility_lat = facility["geometry"]["location"]["lat"]
-            facility_lng = facility["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (facility_lat, facility_lng))
 
             # Score based on rating + distance
             score = 0
@@ -3693,7 +3748,9 @@ def evaluate_property(
         result.tier2_scores.append(
             _staged(
                 "score_transit_access", score_transit_access,
-                maps, lat, lng, transit_access=result.transit_access,
+                maps, lat, lng,
+                transit_access=result.transit_access,
+                urban_access=result.urban_access,
             )
         )
 
