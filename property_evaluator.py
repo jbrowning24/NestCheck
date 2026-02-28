@@ -939,6 +939,7 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
         "bike_description": bike.get("description"),
     }
 
+
 def _classify_gas_station_distance(
     min_distance: int, closest_name: str
 ) -> Tier1Check:
@@ -1061,7 +1062,7 @@ def check_gas_stations(
                 min_distance = dist
                 closest_name = station.get("name", "Unknown")
 
-        return _classify_gas_station_distance(int(min_distance), closest_name)
+        return _classify_gas_station_distance(round(min_distance), closest_name)
     except Exception as e:
         logger.warning("Gas station check failed: %s", e)
         return Tier1Check(
