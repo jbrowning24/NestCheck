@@ -41,6 +41,7 @@ from property_evaluator import (
     score_cost,
     score_park_access,
     COST_IDEAL,
+    TRI_FACILITY_WARNING_RADIUS_M,
     COST_MAX,
     COST_TARGET,
     GAS_STATION_MIN_DISTANCE_FT,
@@ -718,7 +719,7 @@ class TestCheckTriFacilityProximity:
         mock_store.is_available.return_value = True
         mock_store.find_facilities_within.return_value = []
         check_tri_facility_proximity(40.0, -74.0, mock_store)
-        mock_store.find_facilities_within.assert_called_once_with(40.0, -74.0, 1609, "tri")
+        mock_store.find_facilities_within.assert_called_once_with(40.0, -74.0, TRI_FACILITY_WARNING_RADIUS_M, "tri")
 
 
 # ============================================================================

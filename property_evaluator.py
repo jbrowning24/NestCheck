@@ -70,6 +70,7 @@ SUBSTATION_WARNING_DISTANCE_FT = 300
 CELL_TOWER_WARNING_DISTANCE_FT = 500
 INDUSTRIAL_ZONE_WARNING_DISTANCE_FT = 500
 TRI_FACILITY_WARNING_DISTANCE_FT = 5280  # 1 mile — EPA TRI toxic release facilities
+TRI_FACILITY_WARNING_RADIUS_M = round(TRI_FACILITY_WARNING_DISTANCE_FT / 3.28084)  # ≈ 1609m
 
 # Walking time thresholds (in minutes)
 PARK_WALK_IDEAL_MIN = 20
@@ -1666,9 +1667,8 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
         return _unknown
 
     try:
-        # 1 mile ≈ 1609 meters
         facilities = spatial_store.find_facilities_within(
-            lat, lng, 1609, "tri"
+            lat, lng, TRI_FACILITY_WARNING_RADIUS_M, "tri"
         )
 
         if not facilities:
