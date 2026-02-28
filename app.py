@@ -2,12 +2,16 @@ import os
 import io
 import csv
 import logging
+import subprocess
+import sys
 import uuid
 import sqlite3
 import traceback
 from datetime import datetime, timezone
 from collections import defaultdict
 from functools import wraps
+
+import click
 from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response, flash
@@ -206,22 +210,29 @@ def generate_structured_summary(presented_checks):
 # ---------------------------------------------------------------------------
 
 _SAFETY_CHECK_NAMES = {
-    "Gas station", "Highway", "High-volume road",
+    "Gas station", "High-traffic road",
+    # Legacy names retained for old snapshots:
+    "Highway", "High-volume road",
     "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
     "Flood zone",
+    "Superfund (NPL)",
 }
 
 _CHECK_SOURCE_GROUP = {
     "Gas station": "google_places",
+    "High-traffic road": "hpms",
+    # Legacy names retained for old snapshots:
     "Highway": "road",
     "High-volume road": "road",
     "Power lines": "environmental",
     "Electrical substation": "environmental",
     "Cell tower": "environmental",
     "Industrial zone": "environmental",
+    "Superfund (NPL)": "epa_sems",
 }
 
 _SOURCE_GROUP_LABELS = {
+    # Legacy group — only applies to old snapshots with Highway/High-volume road checks
     "road": {
         "label": "Road proximity",
         "checks": ["Highway", "High-volume road"],
@@ -232,10 +243,17 @@ _SOURCE_GROUP_LABELS = {
         "checks": ["Power lines", "Electrical substation", "Cell tower", "Industrial zone"],
         "explanation": "Environmental data service temporarily unavailable; please try again shortly",
     },
+    "epa_sems": {
+        "label": "EPA Superfund",
+        "checks": ["Superfund (NPL)"],
+        "explanation": "Superfund site data not available for this area",
+    },
 }
 
 _CLEAR_HEADLINES = {
     "Gas station": "No gas stations within 500 ft",
+    "High-traffic road": "No high-traffic roads nearby",
+    # Legacy — retained for old snapshots:
     "Highway": "No highways or major parkways nearby",
     "High-volume road": "No high-volume roads nearby",
     "Power lines": "No high-voltage transmission lines within 200 ft",
@@ -243,10 +261,13 @@ _CLEAR_HEADLINES = {
     "Cell tower": "No cell towers within 500 ft",
     "Industrial zone": "No industrial-zoned land within 500 ft",
     "Flood zone": "Not in a FEMA flood zone",
+    "Superfund (NPL)": "Not within an EPA Superfund NPL site",
 }
 
 _ISSUE_HEADLINES = {
     "Gas station": "Gas station within proximity threshold",
+    "High-traffic road": "High-traffic road nearby",
+    # Legacy — retained for old snapshots:
     "Highway": "Highway or major parkway nearby",
     "High-volume road": "High-volume road nearby",
     "Power lines": "High-voltage transmission line detected nearby",
@@ -254,9 +275,11 @@ _ISSUE_HEADLINES = {
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
     "Flood zone": "Located in a FEMA Special Flood Hazard Area",
+    "Superfund (NPL)": "Property is within an EPA Superfund NPL site",
 }
 
 _WARNING_HEADLINES = {
+    "High-traffic road": "High-traffic road in wider area",
     "Power lines": "High-voltage transmission line detected nearby",
     "Electrical substation": "Electrical substation detected nearby",
     "Cell tower": "Cell tower detected nearby",
@@ -380,6 +403,63 @@ _HEALTH_CONTEXT = {
             "effects. This address is outside that elevated-risk zone."
         ),
     },
+    # ── High-traffic road (HPMS AADT) ────────────────────────────
+    ("High-traffic road", "FAIL"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute reviewed "
+            "decades of research and found \u201csufficient\u201d evidence that living near "
+            "high-traffic roads causes asthma aggravation in children and is "
+            "associated with cardiovascular mortality in adults. The CDC has "
+            "documented that roughly 11 million Americans live within 150 meters "
+            "of a major highway \u2014 a zone where traffic-related air pollution "
+            "(fine particulate matter, nitrogen dioxide, ultrafine particles) "
+            "remains significantly elevated above background levels."
+        ),
+        "who": (
+            "Children, older adults, and anyone with pre-existing respiratory or "
+            "cardiovascular conditions face the highest risk. Children breathe "
+            "faster and spend more time outdoors, increasing their cumulative "
+            "exposure. The effects are not immediate \u2014 they compound over months "
+            "and years of residence."
+        ),
+        "distance": (
+            "This check uses actual traffic counts (Annual Average Daily Traffic) "
+            "from the FHWA Highway Performance Monitoring System, not road "
+            "classification. Research consistently shows that pollutant "
+            "concentrations drop substantially within 150\u2013300 meters of roads "
+            "carrying 50,000+ vehicles per day and reach background levels by "
+            "300 meters. This address falls within that elevated-risk zone."
+        ),
+    },
+    ("High-traffic road", "WARNING"): {
+        "why": (
+            "A 2010 expert panel convened by the Health Effects Institute found "
+            "\u201csufficient\u201d evidence that living near high-traffic roads causes "
+            "asthma aggravation in children and cardiovascular effects in adults."
+        ),
+        "distance": (
+            "This address is 150\u2013300 meters from a road carrying 50,000+ "
+            "vehicles per day. Pollutant concentrations in this zone are "
+            "diminishing but may still be elevated above background levels, "
+            "according to CDC and HEI research."
+        ),
+        "invisible": (
+            "This is the kind of proximity risk that doesn\u2019t appear in property "
+            "descriptions, photos, or open house tours. You might notice noise on "
+            "a site visit, but the air quality impact is invisible and cumulative."
+        ),
+    },
+    ("High-traffic road", "PASS"): {
+        "why": (
+            "Living within 150\u2013300 meters of roads carrying 50,000+ vehicles "
+            "per day exposes residents to elevated levels of fine particulate "
+            "matter and nitrogen dioxide. The Health Effects Institute found "
+            "sufficient evidence linking this proximity to asthma aggravation "
+            "and cardiovascular effects. This check uses actual traffic counts "
+            "from the FHWA Highway Performance Monitoring System. This address "
+            "is outside the elevated-risk zone."
+        ),
+    },
     # ── Power lines ──────────────────────────────────────────────
     ("Power lines", "WARNING"): {
         "why": (
@@ -480,6 +560,29 @@ _HEALTH_CONTEXT = {
             "development \u2014 industrial zoning determines what could be built, not "
             "just what\u2019s there today. This address has sufficient buffer from "
             "industrial-zoned parcels."
+        ),
+    },
+    # ── Superfund (NPL) ──────────────────────────────────────────
+    ("Superfund (NPL)", "FAIL"): {
+        "why": (
+            "EPA Superfund National Priorities List sites have documented "
+            "contamination linked to cancer, neurological effects, and birth "
+            "defects. Living within the EPA-defined remediation boundary means "
+            "ongoing exposure risk from soil, groundwater, or airborne contaminants "
+            "that persist even after cleanup efforts."
+        ),
+        "who": (
+            "Children, pregnant women, and anyone with compromised immune systems "
+            "face the highest risk. Contaminant effects can be cumulative over "
+            "years of residence and may not appear until long after exposure."
+        ),
+    },
+    ("Superfund (NPL)", "PASS"): {
+        "why": (
+            "EPA Superfund National Priorities List sites contain documented "
+            "hazardous contamination. We check whether an address falls inside "
+            "the EPA-defined remediation boundary of any NPL site. This address "
+            "is outside those boundaries."
         ),
     },
 }
@@ -1332,6 +1435,97 @@ def debug_eval():
         }), 500
     finally:
         clear_trace()
+
+
+# ---------------------------------------------------------------------------
+# Flask CLI — Ingestion management
+# ---------------------------------------------------------------------------
+# Run via: flask ingest --dataset sems fema
+# Or: railway run flask ingest --dataset sems fema  (on Railway with volume)
+# Uses NESTCHECK_SPATIAL_DB_PATH (local) or RAILWAY_VOLUME_MOUNT_PATH (prod).
+
+
+def _register_ingest_command():
+    """Register the `flask ingest` CLI command. Invoked at module load."""
+    @app.cli.command("ingest")
+    @click.option(
+        "--dataset",
+        "-d",
+        "datasets",
+        multiple=True,
+        required=True,
+        help="Dataset to ingest: sems, fema. Pass multiple for batch (e.g., -d sems -d fema).",
+    )
+    @click.option(
+        "--metro",
+        "-m",
+        default="nyc",
+        help="FEMA: use predefined metro bbox (nyc, sf, chicago, la, seattle). Default: nyc.",
+    )
+    @click.option(
+        "--state",
+        "-s",
+        default="",
+        help="SEMS: filter to single state (e.g., NY, CA). Default: national.",
+    )
+    @click.option(
+        "--limit",
+        "-l",
+        type=int,
+        default=0,
+        help="SEMS: max records. FEMA: max pages (0 = no limit).",
+    )
+    @click.option(
+        "--verify",
+        "-v",
+        is_flag=True,
+        help="Run verification after each dataset.",
+    )
+    def ingest_command(datasets, metro, state, limit, verify):
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        scripts_dir = os.path.join(project_root, "scripts")
+
+        dataset_script = {
+            "sems": "ingest_sems.py",
+            "fema": "ingest_fema.py",
+        }
+
+        for name in datasets:
+            if name not in dataset_script:
+                click.echo(f"Unknown dataset: {name}. Available: sems, fema", err=True)
+                sys.exit(1)
+
+        for name in datasets:
+            script = os.path.join(scripts_dir, dataset_script[name])
+            if not os.path.exists(script):
+                click.echo(f"Script not found: {script}", err=True)
+                sys.exit(1)
+
+            click.echo(f"Ingesting {name}...")
+            cmd = [sys.executable, script]
+            if name == "sems":
+                if state:
+                    cmd.extend(["--state", state])
+                if limit:
+                    cmd.extend(["--limit", str(limit)])
+            elif name == "fema":
+                if metro:
+                    cmd.extend(["--metro", metro])
+                if limit:
+                    cmd.extend(["--limit", str(limit)])
+            if verify:
+                cmd.append("--verify")
+
+            result = subprocess.run(cmd, cwd=project_root)
+            if result.returncode != 0:
+                click.echo(f"Ingest failed for {name} (exit {result.returncode})", err=True)
+                sys.exit(result.returncode)
+            click.echo(f"  {name} done.")
+
+        click.echo("Ingestion complete.")
+
+
+_register_ingest_command()
 
 
 # ---------------------------------------------------------------------------
