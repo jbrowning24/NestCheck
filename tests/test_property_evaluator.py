@@ -821,10 +821,20 @@ class TestCheckTriFacilityProximity:
         mock_store = MagicMock()
         mock_store.is_available.return_value = True
         mock_store.find_facilities_within.return_value = []
+        mock_store.last_query_failed.return_value = False
         result = check_tri_facility_proximity(40.0, -74.0, mock_store)
         assert result.result == CheckResult.PASS
         assert "No EPA TRI facilities" in result.details
         assert result.required is False
+
+    def test_query_failure_returns_unknown(self):
+        mock_store = MagicMock()
+        mock_store.is_available.return_value = True
+        mock_store.find_facilities_within.return_value = []
+        mock_store.last_query_failed.return_value = True
+        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+        assert result.result == CheckResult.UNKNOWN
+        assert "check skipped" in result.details
 
     def test_nearby_facility_returns_warning(self):
         from spatial_data import FacilityRecord

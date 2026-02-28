@@ -1889,6 +1889,18 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
         )
 
         if not facilities:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return Tier1Check(
+                    name="TRI facility",
+                    result=CheckResult.UNKNOWN,
+                    details="Unable to query TRI spatial data; check skipped",
+                    value=None,
+                    required=False,
+                )
             return Tier1Check(
                 name="TRI facility",
                 result=CheckResult.PASS,

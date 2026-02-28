@@ -72,6 +72,11 @@ class SpatialDataStore:
 
     def __init__(self):
         self._available: Optional[bool] = None
+        self._last_query_error: Optional[str] = None
+
+    def last_query_failed(self) -> bool:
+        """Whether the most recent spatial query on this instance failed."""
+        return self._last_query_error is not None
 
     def is_available(self) -> bool:
         """Check if spatial DB exists and SpatiaLite loads.
@@ -184,11 +189,13 @@ class SpatialDataStore:
                             metadata=metadata,
                         )
                     )
+                self._last_query_error = None
                 query_ok = True
                 return results
             finally:
                 conn.close()
         except Exception as e:
+            self._last_query_error = str(e)
             logger.warning("Spatial query failed for %s: %s", facility_type, e)
             return []
         finally:

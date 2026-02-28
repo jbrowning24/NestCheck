@@ -110,6 +110,14 @@ class TestPresentChecks:
         assert p["result_type"] == "WARNING_DETECTED"
         assert p["proximity_band"] == "NOTABLE"
 
+    def test_tri_warning_check(self):
+        checks = [self._check("TRI facility", "WARNING", "Acme (0.42 mi)")]
+        presented = present_checks(checks)
+        p = presented[0]
+        assert p["category"] == "SAFETY"
+        assert p["headline"] == "TRI-reporting facility nearby"
+        assert p["result_type"] == "WARNING_DETECTED"
+
     def test_unknown_check(self):
         checks = [self._check("Cell tower", "UNKNOWN", "Unable to query")]
         presented = present_checks(checks)
@@ -126,6 +134,7 @@ class TestPresentChecks:
         safety_names = [
             "Gas station", "Highway", "High-volume road",
             "Power lines", "Electrical substation", "Cell tower", "Industrial zone",
+            "TRI facility",
         ]
         for name in safety_names:
             checks = [self._check(name, "PASS")]
