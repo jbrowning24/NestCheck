@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import logging
+import shlex
 import subprocess
 import sys
 import uuid
@@ -1440,89 +1441,165 @@ def debug_eval():
 # ---------------------------------------------------------------------------
 # Flask CLI — Ingestion management
 # ---------------------------------------------------------------------------
-# Run via: flask ingest --dataset sems fema
-# Or: railway run flask ingest --dataset sems fema  (on Railway with volume)
-# Uses NESTCHECK_SPATIAL_DB_PATH (local) or RAILWAY_VOLUME_MOUNT_PATH (prod).
+# Run via:   flask ingest -d sems -d fema -d ust
+# Railway:   railway run flask ingest -d sems -d fema
+# List all:  flask ingest --list
+#
+# Each dataset maps to scripts/ingest_{name}.py. The CLI builds per-script
+# arguments from the generic options below, passing only those the script
+# supports. Scripts run as subprocesses — no import gymnastics needed.
+# DB path: RAILWAY_VOLUME_MOUNT_PATH/spatial.db (prod) or data/spatial.db (local).
+
+# Registry: dataset name → (script filename, set of supported CLI flags).
+# Flags use the Click parameter names from the command below.
+INGEST_REGISTRY = {
+    "ust":         ("ingest_ust.py",         {"state", "limit", "verify"}),
+    "tri":         ("ingest_tri.py",         {"state", "limit", "verify"}),
+    "sems":        ("ingest_sems.py",        {"state", "limit", "verify"}),
+    "hpms":        ("ingest_hpms.py",        {"state", "states", "limit", "dry_run", "verify"}),
+    "fema":        ("ingest_fema.py",        {"metro", "bbox", "limit", "verify"}),
+    "hifld":       ("ingest_hifld.py",       {"limit", "verify"}),
+    "fra":         ("ingest_fra.py",         {"limit", "us_only", "verify"}),
+    "ejscreen":    ("ingest_ejscreen.py",    {"state", "limit", "verify"}),
+    "walkability": ("ingest_walkability.py", {"state", "limit", "verify"}),
+    "nlcd":        ("ingest_nlcd.py",        {"state", "limit", "verify"}),
+    "parkserve":   ("ingest_parkserve.py",   {"state", "limit", "verify"}),
+    "tiger":       ("ingest_tiger.py",       {"state", "county", "bbox", "limit", "verify"}),
+    "census_acs":  ("ingest_census_acs.py",  {"state", "limit", "verify"}),
+}
+
+
+def _build_script_args(dataset, opts):
+    """
+    Build CLI args for a dataset's ingest script.
+
+    Only passes flags the script actually supports (per INGEST_REGISTRY).
+    Value options (--state NY) are skipped when the value is empty/zero.
+    Boolean flags (--verify) are skipped when False.
+    """
+    _, supported = INGEST_REGISTRY[dataset]
+    args = []
+
+    # Value options: (registry key, CLI flag, value)
+    value_opts = [
+        ("state",  "--state",  opts.get("state", "")),
+        ("states", "--states", opts.get("states", "")),
+        ("limit",  "--limit",  str(opts.get("limit", 0)) if opts.get("limit") else ""),
+        ("metro",  "--metro",  opts.get("metro", "")),
+        ("bbox",   "--bbox",   opts.get("bbox", "")),
+        ("county", "--county", opts.get("county", "")),
+    ]
+    for key, flag, value in value_opts:
+        if key in supported and value:
+            args.extend([flag, value])
+
+    # Boolean flags: (registry key, CLI flag, is_set)
+    bool_opts = [
+        ("verify",  "--verify",  opts.get("verify", False)),
+        ("us_only", "--us-only", opts.get("us_only", False)),
+        ("dry_run", "--dry-run", opts.get("dry_run", False)),
+    ]
+    for key, flag, is_set in bool_opts:
+        if key in supported and is_set:
+            args.append(flag)
+
+    return args
 
 
 def _register_ingest_command():
     """Register the `flask ingest` CLI command. Invoked at module load."""
+
     @app.cli.command("ingest")
     @click.option(
-        "--dataset",
-        "-d",
-        "datasets",
-        multiple=True,
-        required=True,
-        help="Dataset to ingest: sems, fema. Pass multiple for batch (e.g., -d sems -d fema).",
+        "--dataset", "-d", "datasets", multiple=True,
+        help=(
+            "Dataset(s) to ingest. Repeat for batch: -d sems -d fema -d ust. "
+            f"Available: {', '.join(sorted(INGEST_REGISTRY))}."
+        ),
     )
-    @click.option(
-        "--metro",
-        "-m",
-        default="nyc",
-        help="FEMA: use predefined metro bbox (nyc, sf, chicago, la, seattle). Default: nyc.",
-    )
-    @click.option(
-        "--state",
-        "-s",
-        default="",
-        help="SEMS: filter to single state (e.g., NY, CA). Default: national.",
-    )
-    @click.option(
-        "--limit",
-        "-l",
-        type=int,
-        default=0,
-        help="SEMS: max records. FEMA: max pages (0 = no limit).",
-    )
-    @click.option(
-        "--verify",
-        "-v",
-        is_flag=True,
-        help="Run verification after each dataset.",
-    )
-    def ingest_command(datasets, metro, state, limit, verify):
+    @click.option("--list", "list_datasets", is_flag=True,
+                  help="List all available datasets and exit.")
+    @click.option("--state", "-s", default="",
+                  help="Filter to single state (e.g., NY, CA, or FIPS code depending on dataset).")
+    @click.option("--states", default="",
+                  help="HPMS: comma-separated states (e.g., NY,CA,IL). Default: all 52.")
+    @click.option("--metro", "-m", default="",
+                  help="FEMA: predefined metro bbox (nyc, sf, chicago, la, seattle).")
+    @click.option("--bbox", default="",
+                  help="Bounding box: lng_min,lat_min,lng_max,lat_max (FEMA, TIGER).")
+    @click.option("--county", default="",
+                  help="TIGER: county FIPS code (e.g., 061 for Manhattan). Requires --state.")
+    @click.option("--limit", "-l", type=int, default=0,
+                  help="Max records or pages per dataset (0 = no limit).")
+    @click.option("--verify", "-v", is_flag=True,
+                  help="Run verification query after each dataset.")
+    @click.option("--us-only", "us_only", is_flag=True,
+                  help="FRA: filter to US rail lines only.")
+    @click.option("--dry-run", "dry_run", is_flag=True,
+                  help="HPMS: probe services without writing to DB.")
+    def ingest_command(datasets, list_datasets, state, states, metro, bbox,
+                       county, limit, verify, us_only, dry_run):
+        """Ingest spatial datasets into spatial.db."""
+
+        # --list: show registry and exit
+        if list_datasets:
+            click.echo("Available datasets:")
+            for name in sorted(INGEST_REGISTRY):
+                script, supported = INGEST_REGISTRY[name]
+                flags = ", ".join(f"--{f.replace('_', '-')}" for f in sorted(supported))
+                click.echo(f"  {name:<14} {script:<28} [{flags}]")
+            return
+
+        if not datasets:
+            click.echo("No datasets specified. Use -d <name> or --list.", err=True)
+            sys.exit(1)
+
+        # Validate all dataset names upfront
+        for name in datasets:
+            if name not in INGEST_REGISTRY:
+                click.echo(
+                    f"Unknown dataset: {name}. "
+                    f"Available: {', '.join(sorted(INGEST_REGISTRY))}",
+                    err=True,
+                )
+                sys.exit(1)
+
+        # Collect options into a dict for _build_script_args
+        opts = dict(
+            state=state, states=states, metro=metro, bbox=bbox,
+            county=county, limit=limit, verify=verify,
+            us_only=us_only, dry_run=dry_run,
+        )
+
         project_root = os.path.dirname(os.path.abspath(__file__))
         scripts_dir = os.path.join(project_root, "scripts")
-
-        dataset_script = {
-            "sems": "ingest_sems.py",
-            "fema": "ingest_fema.py",
-        }
+        succeeded = []
+        failed = []
 
         for name in datasets:
-            if name not in dataset_script:
-                click.echo(f"Unknown dataset: {name}. Available: sems, fema", err=True)
+            script_file, _ = INGEST_REGISTRY[name]
+            script_path = os.path.join(scripts_dir, script_file)
+
+            if not os.path.exists(script_path):
+                click.echo(f"Script not found: {script_path}", err=True)
                 sys.exit(1)
 
-        for name in datasets:
-            script = os.path.join(scripts_dir, dataset_script[name])
-            if not os.path.exists(script):
-                click.echo(f"Script not found: {script}", err=True)
-                sys.exit(1)
-
-            click.echo(f"Ingesting {name}...")
-            cmd = [sys.executable, script]
-            if name == "sems":
-                if state:
-                    cmd.extend(["--state", state])
-                if limit:
-                    cmd.extend(["--limit", str(limit)])
-            elif name == "fema":
-                if metro:
-                    cmd.extend(["--metro", metro])
-                if limit:
-                    cmd.extend(["--limit", str(limit)])
-            if verify:
-                cmd.append("--verify")
+            cmd = [sys.executable, script_path] + _build_script_args(name, opts)
+            click.echo(f"[{name}] Running: {shlex.join(cmd)}")
 
             result = subprocess.run(cmd, cwd=project_root)
             if result.returncode != 0:
-                click.echo(f"Ingest failed for {name} (exit {result.returncode})", err=True)
-                sys.exit(result.returncode)
-            click.echo(f"  {name} done.")
+                click.echo(f"[{name}] FAILED (exit {result.returncode})", err=True)
+                failed.append(name)
+                continue
+            click.echo(f"[{name}] Done.")
+            succeeded.append(name)
 
-        click.echo("Ingestion complete.")
+        # Summary
+        click.echo(f"\nIngestion complete: {len(succeeded)} succeeded, {len(failed)} failed.")
+        if failed:
+            click.echo(f"Failed: {', '.join(failed)}", err=True)
+            sys.exit(1)
 
 
 _register_ingest_command()
