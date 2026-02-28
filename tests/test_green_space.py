@@ -25,6 +25,10 @@ from green_space import (
     WALK_TIME_MARGINAL,
     DRIVE_TIME_MAX,
     _cache,
+    _discover_parkserve_parks,
+    _merge_park_sources,
+    _normalize_park_name,
+    _approx_distance_m,
 )
 
 
@@ -597,6 +601,314 @@ class TestDriveTimeBehavior(unittest.TestCase):
         self.assertEqual(len(far), 1,
                          "Far park should be retained when drive time API fails")
         self.assertIsNone(far[0].drive_time_min)
+
+
+class TestParkServeDiscovery(unittest.TestCase):
+    """Tests for ParkServe park discovery and merge with Google Places."""
+
+    def test_discover_parkserve_parks_graceful_fallback(self):
+        """SpatialDataStore failure returns empty list, no crash."""
+        with patch("green_space.SpatialDataStore") as MockStore:
+            MockStore.side_effect = Exception("SpatiaLite not available")
+            result = _discover_parkserve_parks(40.99, -73.78, 2000)
+            self.assertEqual(result, [])
+
+    def test_discover_parkserve_parks_shapes_output(self):
+        """ParkServe records are shaped like Google Places dicts."""
+        from spatial_data import FacilityRecord
+
+        mock_records = [
+            FacilityRecord(
+                facility_type="parkserve",
+                name="Tibbetts Brook Park",
+                lat=40.99,
+                lng=-73.78,
+                distance_meters=500,
+                distance_feet=1640,
+                metadata={"park_id": "NY001", "acres": 15.2, "park_type": "Community Park"},
+            ),
+            FacilityRecord(
+                facility_type="parkserve",
+                name="",  # empty name — should be filtered
+                lat=40.98,
+                lng=-73.77,
+                distance_meters=800,
+                distance_feet=2625,
+                metadata={"park_id": "NY002", "acres": 5.0, "park_type": "Pocket Park"},
+            ),
+        ]
+
+        with patch("green_space.SpatialDataStore") as MockStore:
+            instance = MockStore.return_value
+            instance.is_available.return_value = True
+            instance.find_facilities_within.return_value = mock_records
+
+            result = _discover_parkserve_parks(40.99, -73.78, 2000)
+
+        # Empty-name record filtered out
+        self.assertEqual(len(result), 1)
+        park = result[0]
+
+        # Verify shape matches Google Places dict
+        self.assertEqual(park["place_id"], "parkserve_NY001")
+        self.assertEqual(park["name"], "Tibbetts Brook Park")
+        self.assertEqual(park["types"], ["park"])
+        self.assertIsNone(park["rating"])
+        self.assertEqual(park["user_ratings_total"], 0)
+        self.assertEqual(park["geometry"]["location"]["lat"], 40.99)
+        self.assertEqual(park["geometry"]["location"]["lng"], -73.78)
+        self.assertTrue(park["_parkserve"])
+        self.assertEqual(park["_parkserve_acres"], 15.2)
+        self.assertEqual(park["_parkserve_type"], "Community Park")
+
+    def test_merge_dedup_exact_name(self):
+        """Google + ParkServe parks with same name within 200m are merged."""
+        google_parks = [
+            {
+                "place_id": "g1",
+                "name": "Riverside Park",
+                "types": ["park"],
+                "rating": 4.5,
+                "user_ratings_total": 300,
+                "geometry": {"location": {"lat": 40.9, "lng": -73.8}},
+            }
+        ]
+        parkserve_parks = [
+            {
+                "place_id": "parkserve_ps1",
+                "name": "Riverside Park",
+                "types": ["park"],
+                "rating": None,
+                "user_ratings_total": 0,
+                "geometry": {"location": {"lat": 40.9001, "lng": -73.8001}},
+                "_parkserve": True,
+                "_parkserve_acres": 15,
+                "_parkserve_type": "Community Park",
+            }
+        ]
+        merged = _merge_park_sources(google_parks, parkserve_parks)
+        self.assertEqual(len(merged), 1)
+        # Google rating preserved
+        self.assertEqual(merged[0]["rating"], 4.5)
+        self.assertEqual(merged[0]["user_ratings_total"], 300)
+        self.assertEqual(merged[0]["place_id"], "g1")
+        # ParkServe data merged in
+        self.assertTrue(merged[0]["_parkserve"])
+        self.assertEqual(merged[0]["_parkserve_acres"], 15)
+
+    def test_merge_dedup_substring(self):
+        """Substring name match within 200m triggers merge."""
+        google_parks = [
+            {
+                "place_id": "g1",
+                "name": "Tibbetts Brook Park",
+                "types": ["park"],
+                "rating": 4.2,
+                "user_ratings_total": 150,
+                "geometry": {"location": {"lat": 40.9, "lng": -73.8}},
+            }
+        ]
+        parkserve_parks = [
+            {
+                "place_id": "parkserve_ps1",
+                "name": "Tibbetts Brook",
+                "types": ["park"],
+                "rating": None,
+                "user_ratings_total": 0,
+                "geometry": {"location": {"lat": 40.9001, "lng": -73.8001}},
+                "_parkserve": True,
+                "_parkserve_acres": 8,
+                "_parkserve_type": "Community Park",
+            }
+        ]
+        merged = _merge_park_sources(google_parks, parkserve_parks)
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0]["rating"], 4.2)
+        self.assertEqual(merged[0]["_parkserve_acres"], 8)
+
+    def test_merge_no_match_adds_park(self):
+        """ParkServe park far from any Google park is added as new entry."""
+        google_parks = [
+            {
+                "place_id": "g1",
+                "name": "Central Park",
+                "types": ["park"],
+                "rating": 4.8,
+                "user_ratings_total": 5000,
+                "geometry": {"location": {"lat": 40.78, "lng": -73.96}},
+            }
+        ]
+        parkserve_parks = [
+            {
+                "place_id": "parkserve_ps1",
+                "name": "Hidden Gem Nature Preserve",
+                "types": ["park"],
+                "rating": None,
+                "user_ratings_total": 0,
+                "geometry": {"location": {"lat": 40.79, "lng": -73.95}},
+                "_parkserve": True,
+                "_parkserve_acres": 25,
+                "_parkserve_type": "Nature Preserve",
+            }
+        ]
+        merged = _merge_park_sources(google_parks, parkserve_parks)
+        self.assertEqual(len(merged), 2)
+        names = [p["name"] for p in merged]
+        self.assertIn("Central Park", names)
+        self.assertIn("Hidden Gem Nature Preserve", names)
+
+    def test_merge_short_name_no_false_positive(self):
+        """Short normalized names (<4 chars) must not substring-match."""
+        # "Oak Park" normalizes to "oak" (3 chars) — should NOT match
+        # "Red Oak Nature Preserve" which normalizes to "red oak nature"
+        google_parks = [
+            {
+                "place_id": "g1",
+                "name": "Red Oak Nature Preserve",
+                "types": ["park"],
+                "rating": 4.0,
+                "user_ratings_total": 50,
+                "geometry": {"location": {"lat": 40.9, "lng": -73.8}},
+            }
+        ]
+        parkserve_parks = [
+            {
+                "place_id": "parkserve_ps1",
+                "name": "Oak Park",
+                "types": ["park"],
+                "rating": None,
+                "user_ratings_total": 0,
+                "geometry": {"location": {"lat": 40.9001, "lng": -73.8001}},
+                "_parkserve": True,
+                "_parkserve_acres": 3,
+                "_parkserve_type": "Mini Park",
+            }
+        ]
+        merged = _merge_park_sources(google_parks, parkserve_parks)
+        # Should NOT merge — "oak" is too short for substring match
+        self.assertEqual(len(merged), 2)
+
+
+class TestParkServeSizeScoring(unittest.TestCase):
+    """Tests for ParkServe acreage integration in size/loop scoring."""
+
+    def test_score_size_parkserve_acreage(self):
+        """ParkServe acreage produces authoritative size score."""
+        # 12 acres = 48,564 sqm >= SIZE_LARGE_SQM (40,000) → size 1.5
+        score, reason, is_estimate = _score_size_loop(
+            {}, 4.0, 100, "Good Park", parkserve_acres=12,
+        )
+        self.assertFalse(is_estimate)
+        self.assertEqual(score, 1.5)
+        self.assertIn("ParkServe", reason)
+        self.assertIn("large park", reason)
+
+    def test_score_size_parkserve_beats_osm(self):
+        """ParkServe acreage takes priority over OSM area estimate."""
+        osm_data = {
+            "enriched": True,
+            "area_sqm": 5000,   # SMALL (5K sqm)
+            "path_count": 0,
+            "has_trail": False,
+        }
+        # Without ParkServe: would use OSM 5000 sqm → SMALL → 0.5
+        score_osm, _, _ = _score_size_loop(osm_data, 4.0, 100, "Park")
+        self.assertEqual(score_osm, 0.5)
+
+        # With ParkServe: 12 acres = 48,564 sqm → LARGE → 1.5
+        score_ps, reason, is_estimate = _score_size_loop(
+            osm_data, 4.0, 100, "Park", parkserve_acres=12,
+        )
+        self.assertFalse(is_estimate)
+        self.assertEqual(score_ps, 1.5)
+        self.assertIn("ParkServe", reason)
+        self.assertGreater(score_ps, score_osm)
+
+    def test_score_size_parkserve_medium(self):
+        """Medium park via ParkServe (3-10 acres)."""
+        # 5 acres = 20,235 sqm >= SIZE_MEDIUM_SQM (12,000) → 1.0
+        score, reason, _ = _score_size_loop(
+            {}, None, 0, "Small Town Park", parkserve_acres=5,
+        )
+        self.assertEqual(score, 1.0)
+        self.assertIn("medium park", reason)
+        self.assertIn("ParkServe", reason)
+
+    def test_score_size_parkserve_small(self):
+        """Small park via ParkServe (1-3 acres)."""
+        # 2 acres = 8,094 sqm >= SIZE_SMALL_SQM (4,000) → 0.5
+        score, reason, _ = _score_size_loop(
+            {}, None, 0, "Pocket Green", parkserve_acres=2,
+        )
+        self.assertEqual(score, 0.5)
+        self.assertIn("small park", reason)
+        self.assertIn("ParkServe", reason)
+
+    def test_score_size_parkserve_with_osm_paths(self):
+        """ParkServe area + OSM paths combine for best-of-both scoring."""
+        osm_data = {
+            "enriched": True,
+            "area_sqm": 5000,  # would be SMALL, but ParkServe overrides
+            "path_count": 6,   # PATH_NETWORK_DENSE → loop_score 1.5
+            "has_trail": False,
+        }
+        # ParkServe 12 acres (LARGE → 1.5) + OSM paths (1.5) = 3.0
+        score, reason, _ = _score_size_loop(
+            osm_data, 4.0, 100, "Trail Park", parkserve_acres=12,
+        )
+        self.assertEqual(score, 3.0)
+        self.assertIn("ParkServe", reason)
+        self.assertIn("footway segments", reason)
+
+
+class TestNormalizeParkName(unittest.TestCase):
+    """Tests for park name normalization used in dedup."""
+
+    def test_strips_park_suffix(self):
+        self.assertEqual(_normalize_park_name("Riverside Park"), "riverside")
+
+    def test_strips_preserve_suffix(self):
+        self.assertEqual(_normalize_park_name("Mianus River Gorge Preserve"), "mianus river gorge")
+
+    def test_strips_punctuation(self):
+        self.assertEqual(_normalize_park_name("St. Mary's Park"), "st marys")
+
+    def test_case_insensitive(self):
+        self.assertEqual(
+            _normalize_park_name("TIBBETTS BROOK PARK"),
+            _normalize_park_name("tibbetts brook park"),
+        )
+
+    def test_strips_multiple_suffixes(self):
+        """Names with stacked suffixes like 'Park Field' get both stripped."""
+        self.assertEqual(
+            _normalize_park_name("Memorial Park Field"),
+            "memorial",
+        )
+
+    def test_strips_recreation_area_then_park(self):
+        self.assertEqual(
+            _normalize_park_name("Riverside Recreation Area"),
+            "riverside",
+        )
+
+
+class TestApproxDistanceM(unittest.TestCase):
+    """Tests for approximate distance calculation."""
+
+    def test_same_point_is_zero(self):
+        self.assertAlmostEqual(_approx_distance_m(40.9, -73.8, 40.9, -73.8), 0.0)
+
+    def test_close_points_within_200m(self):
+        # ~0.001 degrees lat ≈ 111 m
+        dist = _approx_distance_m(40.9, -73.8, 40.901, -73.8)
+        self.assertGreater(dist, 100)
+        self.assertLess(dist, 200)
+
+    def test_far_points_beyond_200m(self):
+        # ~0.01 degrees lat ≈ 1.1 km
+        dist = _approx_distance_m(40.9, -73.8, 40.91, -73.8)
+        self.assertGreater(dist, 1000)
 
 
 if __name__ == "__main__":
