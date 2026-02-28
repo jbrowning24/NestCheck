@@ -220,6 +220,7 @@ _SAFETY_CHECK_NAMES = {
     "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
     "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
     "Superfund (NPL)",
+    "TRI facility",
 }
 
 _CHECK_SOURCE_GROUP = {
@@ -233,6 +234,7 @@ _CHECK_SOURCE_GROUP = {
     "Cell tower": "environmental",
     "Industrial zone": "environmental",
     "Superfund (NPL)": "epa_sems",
+    "TRI facility": "epa_tri",
     # EJScreen block group indicators
     "EJScreen PM2.5": "ejscreen",
     "EJScreen cancer risk": "ejscreen",
@@ -259,6 +261,11 @@ _SOURCE_GROUP_LABELS = {
         "checks": ["Superfund (NPL)"],
         "explanation": "Superfund site data not available for this area",
     },
+    "epa_tri": {
+        "label": "EPA Toxic Release Inventory",
+        "checks": ["TRI facility"],
+        "explanation": "TRI facility data not available for this area",
+    },
     "ejscreen": {
         "label": "EPA EJScreen environmental indicators",
         "checks": [
@@ -281,6 +288,7 @@ _CLEAR_HEADLINES = {
     "Industrial zone": "No industrial-zoned land within 500 ft",
     "Flood zone": "Not in a FEMA flood zone",
     "Superfund (NPL)": "Not within an EPA Superfund NPL site",
+    "TRI facility": "No EPA TRI facilities within 1 mile",
     # EJScreen block group indicators
     "EJScreen PM2.5": "Block group below 80th percentile for PM2.5",
     "EJScreen cancer risk": "Block group below 80th percentile for air toxics cancer risk",
@@ -302,6 +310,7 @@ _ISSUE_HEADLINES = {
     "Industrial zone": "Industrial-zoned land detected nearby",
     "Flood zone": "Located in a FEMA Special Flood Hazard Area",
     "Superfund (NPL)": "Property is within an EPA Superfund NPL site",
+    "TRI facility": "EPA TRI facility within 1 mile",
     # EJScreen block group indicators (these only produce WARNING, not FAIL,
     # but registered here for completeness)
     "EJScreen PM2.5": "Elevated PM2.5 levels in this block group",
@@ -319,6 +328,7 @@ _WARNING_HEADLINES = {
     "Cell tower": "Cell tower detected nearby",
     "Industrial zone": "Industrial-zoned land detected nearby",
     "Flood zone": "In a moderate flood risk area",
+    "TRI facility": "EPA Toxic Release Inventory facility within 1 mile",
     # EJScreen block group indicators
     "EJScreen PM2.5": "Block group in 80th+ percentile for PM2.5",
     "EJScreen cancer risk": "Block group in 80th+ percentile for air toxics cancer risk",
@@ -624,6 +634,36 @@ _HEALTH_CONTEXT = {
             "hazardous contamination. We check whether an address falls inside "
             "the EPA-defined remediation boundary of any NPL site. This address "
             "is outside those boundaries."
+        ),
+    },
+    # ── TRI Facility ─────────────────────────────────────────────
+    ("TRI facility", "WARNING"): {
+        "why": (
+            "EPA Toxic Release Inventory (TRI) facilities manufacture, process, "
+            "or otherwise use significant quantities of listed toxic chemicals "
+            "and are required to report annual releases to the EPA. Proximity to "
+            "these facilities may indicate exposure to toxic air emissions, water "
+            "discharges, or contaminated soil."
+        ),
+        "who": (
+            "Children, pregnant women, and older adults face elevated risk from "
+            "chronic low-level exposure to toxic chemicals. Effects may include "
+            "respiratory illness, neurological impacts, and increased cancer risk "
+            "depending on the specific chemicals released."
+        ),
+        "practical": (
+            "Not all TRI facilities pose the same risk \u2014 release quantities, "
+            "chemical toxicity, and wind patterns all matter. Check the EPA "
+            "Envirofacts database for the specific facility\u2019s release reports "
+            "to understand what chemicals are involved and in what quantities."
+        ),
+    },
+    ("TRI facility", "PASS"): {
+        "why": (
+            "EPA Toxic Release Inventory facilities report annual releases of "
+            "listed toxic chemicals to air, water, and land. We check for TRI "
+            "facilities within 1 mile of the property. No reporting facilities "
+            "were found within that radius."
         ),
     },
 }
