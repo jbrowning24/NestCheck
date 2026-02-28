@@ -375,9 +375,14 @@ def _normalize_park_name(name: str) -> str:
     name = name.lower()
     name = "".join(c for c in name if c.isalnum() or c.isspace())
     name = " ".join(name.split())  # collapse whitespace
-    for suffix in _PARK_NAME_SUFFIXES:
-        if name.endswith(suffix):
-            name = name[: -len(suffix)]
+    changed = True
+    while changed:
+        changed = False
+        for suffix in _PARK_NAME_SUFFIXES:
+            if name.endswith(suffix):
+                name = name[: -len(suffix)].strip()
+                changed = True
+                break
     return name.strip()
 
 
@@ -467,7 +472,7 @@ def _merge_park_sources(
             elif ps_norm and g_norm:
                 shorter = ps_norm if len(ps_norm) <= len(g_norm) else g_norm
                 longer = g_norm if len(ps_norm) <= len(g_norm) else ps_norm
-                if shorter and shorter in longer:
+                if shorter and len(shorter) >= 4 and shorter in longer:
                     matched = True
 
             if matched:
@@ -1126,7 +1131,7 @@ def _score_size_loop(
         if area and area >= SIZE_LARGE_SQM:
             size_score = 1.5
             if ps_area_sqm is not None:
-                size_reason = f"{parkserve_acres:.0f} acres — large park (ParkServe)"
+                size_reason = f"{parkserve_acres:.1f} acres — large park (ParkServe)"
             else:
                 size_reason = f"~{area / 4047:.0f} acres — large park"
         elif area and area >= SIZE_MEDIUM_SQM:

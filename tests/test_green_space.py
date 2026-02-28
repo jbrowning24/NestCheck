@@ -757,6 +757,37 @@ class TestParkServeDiscovery(unittest.TestCase):
         self.assertIn("Central Park", names)
         self.assertIn("Hidden Gem Nature Preserve", names)
 
+    def test_merge_short_name_no_false_positive(self):
+        """Short normalized names (<4 chars) must not substring-match."""
+        # "Oak Park" normalizes to "oak" (3 chars) — should NOT match
+        # "Red Oak Nature Preserve" which normalizes to "red oak nature"
+        google_parks = [
+            {
+                "place_id": "g1",
+                "name": "Red Oak Nature Preserve",
+                "types": ["park"],
+                "rating": 4.0,
+                "user_ratings_total": 50,
+                "geometry": {"location": {"lat": 40.9, "lng": -73.8}},
+            }
+        ]
+        parkserve_parks = [
+            {
+                "place_id": "parkserve_ps1",
+                "name": "Oak Park",
+                "types": ["park"],
+                "rating": None,
+                "user_ratings_total": 0,
+                "geometry": {"location": {"lat": 40.9001, "lng": -73.8001}},
+                "_parkserve": True,
+                "_parkserve_acres": 3,
+                "_parkserve_type": "Mini Park",
+            }
+        ]
+        merged = _merge_park_sources(google_parks, parkserve_parks)
+        # Should NOT merge — "oak" is too short for substring match
+        self.assertEqual(len(merged), 2)
+
 
 class TestParkServeSizeScoring(unittest.TestCase):
     """Tests for ParkServe acreage integration in size/loop scoring."""
@@ -846,6 +877,19 @@ class TestNormalizeParkName(unittest.TestCase):
         self.assertEqual(
             _normalize_park_name("TIBBETTS BROOK PARK"),
             _normalize_park_name("tibbetts brook park"),
+        )
+
+    def test_strips_multiple_suffixes(self):
+        """Names with stacked suffixes like 'Park Field' get both stripped."""
+        self.assertEqual(
+            _normalize_park_name("Memorial Park Field"),
+            "memorial",
+        )
+
+    def test_strips_recreation_area_then_park(self):
+        self.assertEqual(
+            _normalize_park_name("Riverside Recreation Area"),
+            "riverside",
         )
 
 
