@@ -6,8 +6,8 @@ Usage:
   2. Run this script:     python scripts/verify_api_calls.py
 
 Hits POST /debug/eval with a benchmark address, parses the full trace,
-and prints a summary table with pass/fail against the 85-90 target from
-the NES-65 deduplication audit.
+and prints a summary table with pass/fail against the 38-60 target from
+the NES-187 API call reduction work.
 
 Requires the local server to be running with valid GOOGLE_MAPS_API_KEY
 and WALKSCORE_API_KEY in .env.
@@ -30,9 +30,9 @@ BENCHMARK_ADDRESS = "10 Byron Place, Larchmont, NY 10538"
 # Builder auth — default secret from app.py
 BUILDER_SECRET = "nestcheck-builder-2024"
 
-# Target from deduplication audit (issues/api-call-deduplication.md)
-TARGET_LOW = 85
-TARGET_HIGH = 90
+# Target from NES-187 API call reduction (batch + cache + spatial DB)
+TARGET_LOW = 38
+TARGET_HIGH = 60
 
 
 def run_evaluation() -> dict:
@@ -71,7 +71,7 @@ def print_summary(data: dict):
 
     # --- Header ---
     print("=" * 60)
-    print("  NES-65 API Call Verification")
+    print("  NES-187 API Call Verification")
     print("=" * 60)
     print(f"  Address:       {data.get('address', '?')}")
     print(f"  Final score:   {data.get('final_score', '?')}")
