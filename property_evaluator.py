@@ -687,7 +687,7 @@ class GoogleMapsClient:
 
 
 class OverpassClient:
-    """Client for OpenStreetMap Overpass API - for road data.
+    """Client for OpenStreetMap Overpass API - for road data."""
 
     def __init__(self):
         pass
