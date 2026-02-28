@@ -946,10 +946,12 @@ def check_gas_stations(
                 lat, lng, 500, "ust"
             )
 
-            # Prefer facilities with active (open) USTs — closest first
+            # Prefer facilities with active (open) USTs — closest first.
+            # Coerce to int defensively: value may arrive as str after
+            # JSON roundtrip even though the ingestion script stores int.
             active = [
                 f for f in facilities
-                if (f.metadata.get("open_usts") or 0) > 0
+                if int(f.metadata.get("open_usts") or 0) > 0
             ]
             candidates = active if active else facilities
 
@@ -3818,9 +3820,9 @@ def evaluate_property(
     # High-traffic road check (HPMS AADT data — local SpatiaLite, no API cost)
     result.tier1_checks.append(check_high_traffic_road(lat, lng, _spatial_store))
 
-    # Power lines (HIFLD spatial data → Overpass fallback)
-    # Industrial zones (TRI spatial data → Overpass fallback)
-    # Substations & cell towers still require Overpass — no local data yet
+    # Overpass is still called unconditionally: substations and cell towers
+    # have no local spatial data yet.  Once those two checks are wired to
+    # spatial data, this call can be removed entirely.
     env_hazards = None
     try:
         env_hazards = _query_environmental_hazards(lat, lng)
