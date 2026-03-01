@@ -1197,6 +1197,164 @@
 .pw-emphasis { color: var(--color-accent); }
 .pw-deemphasis { color: var(--color-text-muted); }
 
+/* --- Walk Quality Card (NES-192, MAPS-Mini) --- */
+.walk-quality-card {
+  padding: var(--space-base);
+  border-radius: var(--radius-md, 8px);
+  margin-top: var(--space-base);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+.walk-quality-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.walk-quality-title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.walk-quality-badge {
+  display: inline-block;
+  font-size: var(--text-xs, 0.7rem);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 99px);
+  background: var(--color-accent-light, rgba(59, 130, 246, 0.1));
+  color: var(--color-accent, #3b82f6);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.walk-quality-score-pill {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.walk-quality-score-value {
+  font-size: 1.75rem;
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1;
+}
+.walk-quality-score-label {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+.walk-quality-rating {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+.walk-quality-comparison {
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-subtle, rgba(0,0,0,0.02));
+  border-radius: var(--radius-sm, 4px);
+  line-height: 1.5;
+}
+
+/* Feature breakdown bars */
+.walk-quality-features {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-base);
+}
+.wq-feature-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 32px;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-small);
+}
+.wq-feature-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wq-feature-source {
+  font-size: var(--text-xs, 0.65rem);
+  padding: 1px 4px;
+  border-radius: var(--radius-full, 99px);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.wq-source-gsv {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-accent, #3b82f6);
+}
+.wq-source-osm {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--color-pass-text, #16a34a);
+}
+.wq-source-combined {
+  background: rgba(168, 85, 247, 0.1);
+  color: #8b5cf6;
+}
+.wq-feature-bar-container {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-border, #e5e7eb);
+  overflow: hidden;
+}
+.wq-feature-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-accent, #3b82f6);
+  transition: width 0.3s ease;
+}
+.wq-feature-score {
+  text-align: right;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-xs, 0.7rem);
+  color: var(--color-text-secondary);
+}
+
+/* Summaries */
+.walk-quality-gsv-summary,
+.walk-quality-infra-summary {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Confidence */
+.walk-quality-confidence {
+  margin-top: var(--space-sm);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+}
+.walk-quality-confidence-high { color: var(--color-pass-text); }
+.walk-quality-confidence-medium { color: var(--color-warning-text); }
+.walk-quality-confidence-low { color: var(--color-danger); }
+
+/* Color theming for score levels */
+.walk-quality-card.proximity-neutral .walk-quality-score-value { color: var(--color-pass-text); }
+.walk-quality-card.proximity-notable .walk-quality-score-value { color: var(--color-warning-text); }
+.walk-quality-card.proximity-very_close .walk-quality-score-value { color: var(--color-danger); }
+.walk-quality-card.proximity-neutral .wq-feature-bar { background: var(--color-pass-text); }
+.walk-quality-card.proximity-notable .wq-feature-bar { background: var(--color-warning-text); }
+.walk-quality-card.proximity-very_close .wq-feature-bar { background: var(--color-danger); }
+
+/* Responsive: stack on mobile */
+@media (max-width: 480px) {
+  .wq-feature-row {
+    grid-template-columns: 1fr 80px 28px;
+  }
+  .wq-feature-label {
+    font-size: var(--text-xs, 0.7rem);
+  }
+}
+
 /* --- Print --- */
 @media print {
   nav, .share-bar, footer { display: none; }

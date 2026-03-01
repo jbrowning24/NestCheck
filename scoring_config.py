@@ -254,7 +254,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.3.0",
+    version="1.4.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
@@ -371,7 +371,7 @@ TIER2_NAME_TO_DIMENSION: Dict[str, str] = {
     "Provisioning": "Daily Essentials",
     "Fitness access": "Fitness & Recreation",
     "Urban access": "Getting Around",
-    # "Road Noise" has a persona weight but no Tier2Score yet (config-only).
+    "Road Noise": "Road Noise",
     # "Cost" has a Tier2Score but no persona weight (budget is universal).
 }
 

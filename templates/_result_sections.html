@@ -340,7 +340,7 @@
         <div class="accessibility-attr">
           <span class="accessibility-label">Step-free entrance:</span>
           {% if pt.wheelchair_accessible_entrance is true %}
-            <span class="accessibility-val accessibility-yes">Yes</span>
+            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
           {% elif pt.wheelchair_accessible_entrance is false %}
             <span class="accessibility-val accessibility-no">No</span>
           {% else %}
@@ -350,7 +350,7 @@
         <div class="accessibility-attr">
           <span class="accessibility-label">Elevator:</span>
           {% if pt.elevator_available is true %}
-            <span class="accessibility-val accessibility-yes">Yes</span>
+            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
           {% elif pt.elevator_available is false %}
             <span class="accessibility-val accessibility-no">No</span>
           {% else %}
@@ -405,6 +405,88 @@
             {% endif %}
           </div>
         {% endif %}
+      </div>
+    {% endif %}
+
+    {# ── Walk Quality (MAPS-Mini) card (NES-192) ── #}
+    {% if result.walk_quality is defined and result.walk_quality %}
+      {% set wq = result.walk_quality %}
+      {% if wq.walk_quality_score >= 70 %}
+        {% set wq_css = "proximity-neutral" %}
+      {% elif wq.walk_quality_score >= 45 %}
+        {% set wq_css = "proximity-notable" %}
+      {% else %}
+        {% set wq_css = "proximity-very_close" %}
+      {% endif %}
+      <div class="walk-quality-card {{ wq_css }}">
+        <div class="walk-quality-header">
+          <div class="walk-quality-title">
+            <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+            Walk Quality
+            <span class="walk-quality-badge">MAPS-Mini</span>
+          </div>
+          <div class="walk-quality-score-pill">
+            <span class="walk-quality-score-value">{{ wq.walk_quality_score }}</span>
+            <span class="walk-quality-score-label">/ 100</span>
+          </div>
+        </div>
+        <div class="walk-quality-rating">{{ wq.walk_quality_rating }}</div>
+
+        {% if wq.walk_score_comparison %}
+          <div class="walk-quality-comparison">{{ wq.walk_score_comparison }}</div>
+        {% endif %}
+
+        {# Feature breakdown bars #}
+        <div class="walk-quality-features">
+          {% for fs in wq.feature_scores %}
+            <div class="wq-feature-row">
+              <div class="wq-feature-label">
+                {{ fs.feature }}
+                <span class="wq-feature-source wq-source-{{ fs.source|lower }}">{{ fs.source }}</span>
+              </div>
+              <div class="wq-feature-bar-container">
+                <div class="wq-feature-bar" style="width: {{ fs.score }}%"></div>
+              </div>
+              <div class="wq-feature-score">{{ fs.score }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# GSV coverage summary #}
+        {% if wq.gsv_available %}
+          <div class="walk-quality-gsv-summary">
+            Street View analyzed at {{ wq.sample_points_with_coverage }} of {{ wq.sample_points_total }} sample points
+            &bull; {{ wq.avg_greenery_pct }}% avg greenery
+          </div>
+        {% endif %}
+
+        {# Infrastructure summary #}
+        {% if wq.infrastructure %}
+          <div class="walk-quality-infra-summary">
+            {% set inf = wq.infrastructure %}
+            {{ inf.crosswalk_count }} crosswalks
+            &bull; {{ inf.streetlight_count }} street lights
+            &bull; {{ inf.curb_cut_count }} curb cuts
+            &bull; {{ inf.ped_signal_count }} ped signals
+            within 500 m
+          </div>
+        {% endif %}
+
+        {# Data confidence #}
+        <div class="walk-quality-confidence walk-quality-confidence-{{ wq.data_confidence|lower }}">
+          Data confidence: {{ wq.data_confidence }} &mdash; {{ wq.data_confidence_note }}
+        </div>
+
+        {# Collapsible methodology #}
+        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+          <span class="collapse-icon">&#9654;</span>
+          <span>How walk quality differs from Walk Score</span>
+        </div>
+        <div class="collapsible-body collapsed">
+          <div class="proximity-methodology">
+            {{ wq.methodology_note }}
+          </div>
+        </div>
       </div>
     {% endif %}
 

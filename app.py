@@ -897,6 +897,9 @@ def _serialize_urban_access(urban_access):
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,
             "frequency_class": pt.frequency_class,
+            "wheelchair_accessible_entrance": pt.wheelchair_accessible_entrance,
+            "elevator_available": pt.elevator_available,
+            "ada_accessibility_note": pt.ada_accessibility_note,
         }
 
     major_hub = None
@@ -1008,15 +1011,63 @@ def result_to_dict(result):
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
+    # Road noise assessment (NES-193)
+    rna = result.road_noise_assessment
+    if rna is not None:
+        output["road_noise"] = {
+            "worst_road_name": rna.worst_road_name,
+            "worst_road_ref": rna.worst_road_ref,
+            "worst_road_type": rna.worst_road_type,
+            "worst_road_lanes": rna.worst_road_lanes,
+            "distance_ft": rna.distance_ft,
+            "estimated_dba": rna.estimated_dba,
+            "severity": rna.severity.value,
+            "severity_label": rna.severity_label,
+            "methodology_note": rna.methodology_note,
+            "all_roads_assessed": rna.all_roads_assessed,
+        }
+    else:
+        output["road_noise"] = None
+
     # EJScreen block group environmental profile (NES-EJScreen)
     output["ejscreen_profile"] = result.ejscreen_profile
 
-    # Census ACS demographic profile (NES-191) — informational context, never scored
-    _census = getattr(result, "census_profile", None)
-    if _census is not None and hasattr(_census, "state_fips") and isinstance(getattr(_census, "state_fips", None), str):
-        output["demographics"] = _serialize_census(_census)
+    # Walk quality — MAPS-Mini pipeline (NES-192)
+    wq = getattr(result, "walk_quality", None)
+    if wq is not None:
+        output["walk_quality"] = {
+            "walk_quality_score": wq.walk_quality_score,
+            "walk_quality_rating": wq.walk_quality_rating,
+            "feature_scores": [
+                {
+                    "feature": fs.feature,
+                    "score": fs.score,
+                    "weight": fs.weight,
+                    "detail": fs.detail,
+                    "source": fs.source,
+                }
+                for fs in wq.feature_scores
+            ],
+            "sample_points_total": wq.sample_points_total,
+            "sample_points_with_coverage": wq.sample_points_with_coverage,
+            "avg_greenery_pct": wq.avg_greenery_pct,
+            "avg_brightness": wq.avg_brightness,
+            "infrastructure": {
+                "crosswalk_count": wq.infrastructure.crosswalk_count,
+                "streetlight_count": wq.infrastructure.streetlight_count,
+                "curb_cut_count": wq.infrastructure.curb_cut_count,
+                "ped_signal_count": wq.infrastructure.ped_signal_count,
+                "bench_count": wq.infrastructure.bench_count,
+                "total_features": wq.infrastructure.total_features,
+            } if wq.infrastructure else None,
+            "data_confidence": wq.data_confidence,
+            "data_confidence_note": wq.data_confidence_note,
+            "gsv_available": wq.gsv_available,
+            "methodology_note": wq.methodology_note,
+            "walk_score_comparison": wq.walk_score_comparison,
+        }
     else:
-        output["demographics"] = None
+        output["walk_quality"] = None
 
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["structured_summary"] = generate_structured_summary(output["presented_checks"])

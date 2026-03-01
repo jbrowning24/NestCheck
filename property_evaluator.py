@@ -37,8 +37,9 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION,
+    TIER2_NAME_TO_DIMENSION, apply_piecewise,
 )
+from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
 
 load_dotenv()
@@ -270,6 +271,9 @@ class PrimaryTransitOption:
     parking_available: Optional[bool] = None
     user_ratings_total: Optional[int] = None
     frequency_class: Optional[str] = None
+    wheelchair_accessible_entrance: Optional[bool] = None
+    elevator_available: Optional[bool] = None
+    ada_accessibility_note: Optional[str] = None
 
 
 @dataclass
@@ -356,11 +360,14 @@ class EvaluationResult:
     percentile_label: str = ""
     notes: List[str] = field(default_factory=list)
 
+    # Road noise assessment from FHWA TNM-based screening (NES-193)
+    road_noise_assessment: Optional[RoadNoiseAssessment] = None
+
     # EJScreen block group environmental indicators (NES-EJScreen)
     ejscreen_profile: Optional[Dict[str, Any]] = None
 
-    # Census ACS demographic profile (NES-191)
-    census_profile: Any = None  # Optional[CensusProfile] from census.py
+    # Walk quality assessment — MAPS-Mini pipeline (NES-192)
+    walk_quality: Optional[Any] = None
 
 
 # =============================================================================
@@ -2570,6 +2577,18 @@ def find_primary_transit(
     parking_available = get_parking_availability(maps, place.get("place_id"))
     user_ratings_total = place.get("user_ratings_total")
 
+    # Look up accessibility from MTA official data for NYC subway stations
+    wheelchair_entrance: Optional[bool] = None
+    elevator: Optional[bool] = None
+    ada_note: Optional[str] = None
+    try:
+        from nyc_subway_accessibility import lookup_nyc_subway_accessibility
+        result = lookup_nyc_subway_accessibility(place_lat, place_lng)
+        if result is not None:
+            wheelchair_entrance, elevator, ada_note = result
+    except ImportError:
+        pass
+
     return PrimaryTransitOption(
         name=place.get("name", "Unknown"),
         mode=mode,
@@ -2584,6 +2603,9 @@ def find_primary_transit(
             if isinstance(user_ratings_total, int)
             else None
         ),
+        wheelchair_accessible_entrance=wheelchair_entrance,
+        elevator_available=elevator,
+        ada_accessibility_note=ada_note,
     )
 
 
@@ -3561,6 +3583,55 @@ def score_cost(cost: Optional[int]) -> Tier2Score:
     )
 
 
+def score_road_noise(
+    road_noise_assessment: Optional[RoadNoiseAssessment],
+) -> Tier2Score:
+    """Score road noise exposure (0-10 points).
+
+    Uses the FHWA TNM-based assessment from road_noise.py and maps
+    estimated dBA through the piecewise curve in SCORING_MODEL.road_noise.
+
+    When the assessment is None (Overpass failed or no roads found),
+    returns a benefit-of-the-doubt fallback score of 7/10.
+    """
+    if road_noise_assessment is None:
+        return Tier2Score(
+            name="Road Noise",
+            points=7,
+            max_points=10,
+            details="Road noise data unavailable — benefit of the doubt",
+            data_confidence="LOW",
+            data_confidence_note="Overpass query failed or no roads within search radius",
+        )
+
+    dba = road_noise_assessment.estimated_dba
+    cfg = SCORING_MODEL.road_noise
+    raw_score = apply_piecewise(cfg.knots, dba)
+    points = int(max(cfg.floor, raw_score) + 0.5)
+
+    road_label = road_noise_assessment.worst_road_name
+    if road_noise_assessment.worst_road_ref:
+        road_label += f" ({road_noise_assessment.worst_road_ref})"
+
+    details = (
+        f"{road_noise_assessment.severity_label} — "
+        f"~{dba:.0f} dBA from {road_label}, "
+        f"{road_noise_assessment.distance_ft:.0f} ft away"
+    )
+
+    return Tier2Score(
+        name="Road Noise",
+        points=points,
+        max_points=10,
+        details=details,
+        data_confidence="HIGH",
+        data_confidence_note=(
+            f"FHWA TNM estimate from {road_noise_assessment.all_roads_assessed} "
+            f"roads within 500 m"
+        ),
+    )
+
+
 def score_transit_access(
     maps: GoogleMapsClient,
     lat: float,
@@ -4181,10 +4252,9 @@ def evaluate_property(
     except Exception:
         pass
 
-    # Census ACS demographic profile (NES-191) — informational only, never scored
     try:
-        from census import get_demographics
-        result.census_profile = _staged("demographics", get_demographics, lat, lng)
+        result.road_noise_assessment = _staged(
+            "road_noise", assess_road_noise, lat, lng)
     except Exception:
         pass
 
@@ -4288,6 +4358,9 @@ def evaluate_property(
         result.tier2_scores.append(_fitness_score)
 
         result.tier2_scores.append(score_cost(listing.cost))
+        result.tier2_scores.append(
+            score_road_noise(result.road_noise_assessment)
+        )
         result.tier2_scores.append(
             _staged(
                 "score_transit_access", score_transit_access,
@@ -4659,6 +4732,9 @@ def main():
                     "parking_available": result.urban_access.primary_transit.parking_available,
                     "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
                     "frequency_class": result.urban_access.primary_transit.frequency_class,
+                    "wheelchair_accessible_entrance": result.urban_access.primary_transit.wheelchair_accessible_entrance,
+                    "elevator_available": result.urban_access.primary_transit.elevator_available,
+                    "ada_accessibility_note": result.urban_access.primary_transit.ada_accessibility_note,
                 } if result.urban_access and result.urban_access.primary_transit else None,
                 "major_hub": {
                     "name": result.urban_access.major_hub.name,
