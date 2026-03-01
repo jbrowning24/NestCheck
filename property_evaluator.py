@@ -366,6 +366,9 @@ class EvaluationResult:
     # EJScreen block group environmental indicators (NES-EJScreen)
     ejscreen_profile: Optional[Dict[str, Any]] = None
 
+    # Walk quality assessment — MAPS-Mini pipeline (NES-192)
+    walk_quality: Optional[Any] = None
+
 
 # =============================================================================
 # DEDUPLICATION HELPERS
