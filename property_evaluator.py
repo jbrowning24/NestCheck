@@ -3586,8 +3586,7 @@ def score_road_noise(
     dba = road_noise_assessment.estimated_dba
     cfg = SCORING_MODEL.road_noise
     raw_score = apply_piecewise(cfg.knots, dba)
-    score = max(cfg.floor, raw_score)
-    points = int(score + 0.5)
+    points = int(max(cfg.floor, raw_score) + 0.5)
 
     road_label = road_noise_assessment.worst_road_name
     if road_noise_assessment.worst_road_ref:

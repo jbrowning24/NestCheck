@@ -1008,7 +1008,7 @@ def result_to_dict(result):
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
     # Road noise assessment (NES-193)
-    rna = getattr(result, "road_noise_assessment", None)
+    rna = result.road_noise_assessment
     if rna is not None:
         output["road_noise"] = {
             "worst_road_name": rna.worst_road_name,
