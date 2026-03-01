@@ -1091,20 +1091,106 @@ HIGH_TRAFFIC_FAIL_RADIUS_M = 150       # meters — elevated-risk zone
 HIGH_TRAFFIC_WARN_RADIUS_M = 300       # meters — diminishing-risk zone
 
 
+def _query_major_roads_overpass(lat: float, lng: float, radius_m: float) -> Optional[List[Dict]]:
+    """Query Overpass for motorway/trunk roads near the property.
+
+    Fallback when HPMS SpatiaLite data is unavailable.  Uses OSM highway
+    classification as a proxy for high-traffic volume: motorway and trunk
+    roads in the US typically carry AADT well above 50,000.
+
+    Returns list of road element dicts, or None on failure.
+    """
+    query = f"""
+    [out:json][timeout:25];
+    (
+      way["highway"="motorway"](around:{radius_m},{lat},{lng});
+      way["highway"="trunk"](around:{radius_m},{lat},{lng});
+      way["highway"="motorway_link"](around:{radius_m},{lat},{lng});
+    );
+    out body;
+    >;
+    out skel qt;
+    """
+    try:
+        from overpass_http import (
+            OverpassQueryError,
+            OverpassRateLimitError,
+            overpass_query,
+        )
+        data = overpass_query(query, caller="high_traffic_roads", timeout=25, ttl_days=14)
+        return data.get("elements", [])
+    except Exception as e:
+        logger.warning("High-traffic road Overpass query failed: %s", e)
+        return None
+
+
 def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check:
     """Check for high-traffic roads using HPMS AADT data.
 
     Queries the local SpatiaLite database for HPMS road segments within 300m.
-    Uses measured Annual Average Daily Traffic (AADT) counts rather than
-    OSM road classification.
+    Falls back to Overpass query for motorway/trunk roads when spatial DB
+    is unavailable.
 
     Thresholds (per CDC/HEI research):
-      FAIL:    AADT >= 50,000 within 150m
-      WARNING: AADT >= 50,000 within 150-300m
+      FAIL:    AADT >= 50,000 within 150m  (or motorway within 150m via Overpass)
+      WARNING: AADT >= 50,000 within 150-300m  (or motorway within 300m via Overpass)
       PASS:    No qualifying segments within 300m
-      UNKNOWN: SpatialDataStore unavailable or no data
+      UNKNOWN: Neither SpatiaLite nor Overpass data available
     """
-    if spatial_store is None or not spatial_store.is_available():
+    # ------------------------------------------------------------------
+    # Primary path: HPMS AADT data (local SpatiaLite)
+    # ------------------------------------------------------------------
+    if spatial_store is not None and spatial_store.is_available():
+        try:
+            segments = spatial_store.lines_within(
+                lat, lng, HIGH_TRAFFIC_WARN_RADIUS_M, "hpms"
+            )
+
+            # Filter out segments with no AADT data
+            with_aadt = [
+                s for s in segments
+                if s.metadata.get("aadt") is not None
+            ]
+
+            # Find highest-AADT segment within the fail radius (150m)
+            fail_candidates = [
+                s for s in with_aadt
+                if s.distance_meters <= HIGH_TRAFFIC_FAIL_RADIUS_M
+                and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
+            ]
+
+            if fail_candidates:
+                worst = max(fail_candidates, key=lambda s: s.metadata["aadt"])
+                return _high_traffic_result(CheckResult.FAIL, worst)
+
+            # Check warning band (150-300m)
+            warn_candidates = [
+                s for s in with_aadt
+                if s.distance_meters > HIGH_TRAFFIC_FAIL_RADIUS_M
+                and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
+            ]
+
+            if warn_candidates:
+                worst = max(warn_candidates, key=lambda s: s.metadata["aadt"])
+                return _high_traffic_result(CheckResult.WARNING, worst)
+
+            # No high-traffic roads nearby
+            return Tier1Check(
+                name="High-traffic road",
+                result=CheckResult.PASS,
+                details="No high-traffic roads within 1,000 ft",
+                value=None,
+            )
+
+        except Exception as e:
+            logger.warning("High-traffic road HPMS check failed: %s", e)
+            # Fall through to Overpass fallback
+
+    # ------------------------------------------------------------------
+    # Fallback: Overpass motorway/trunk query
+    # ------------------------------------------------------------------
+    elements = _query_major_roads_overpass(lat, lng, HIGH_TRAFFIC_WARN_RADIUS_M)
+    if elements is None:
         return Tier1Check(
             name="High-traffic road",
             result=CheckResult.UNKNOWN,
@@ -1112,55 +1198,60 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
             value=None,
         )
 
-    try:
-        segments = spatial_store.lines_within(
-            lat, lng, HIGH_TRAFFIC_WARN_RADIUS_M, "hpms"
-        )
+    # Build a node-ID → (lat, lon) lookup for resolving way child nodes
+    all_nodes: Dict[int, Tuple[float, float]] = {}
+    for el in elements:
+        if el.get("type") == "node" and "lat" in el and "lon" in el:
+            all_nodes[el["id"]] = (el["lat"], el["lon"])
 
-        # Filter out segments with no AADT data
-        with_aadt = [
-            s for s in segments
-            if s.metadata.get("aadt") is not None
-        ]
+    # Find closest motorway/trunk way
+    min_dist_ft = float("inf")
+    closest_name = ""
+    for el in elements:
+        tags = el.get("tags")
+        if not tags or el.get("type") != "way":
+            continue
+        highway = tags.get("highway", "")
+        if highway not in ("motorway", "trunk", "motorway_link"):
+            continue
+        d = _element_distance_ft(lat, lng, el, all_nodes)
+        if d < min_dist_ft:
+            min_dist_ft = d
+            closest_name = tags.get("name") or tags.get("ref") or highway
 
-        # Find highest-AADT segment within the fail radius (150m)
-        fail_candidates = [
-            s for s in with_aadt
-            if s.distance_meters <= HIGH_TRAFFIC_FAIL_RADIUS_M
-            and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
-        ]
+    fail_radius_ft = HIGH_TRAFFIC_FAIL_RADIUS_M * 3.28084
+    warn_radius_ft = HIGH_TRAFFIC_WARN_RADIUS_M * 3.28084
 
-        if fail_candidates:
-            worst = max(fail_candidates, key=lambda s: s.metadata["aadt"])
-            return _high_traffic_result(CheckResult.FAIL, worst)
-
-        # Check warning band (150-300m)
-        warn_candidates = [
-            s for s in with_aadt
-            if s.distance_meters > HIGH_TRAFFIC_FAIL_RADIUS_M
-            and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
-        ]
-
-        if warn_candidates:
-            worst = max(warn_candidates, key=lambda s: s.metadata["aadt"])
-            return _high_traffic_result(CheckResult.WARNING, worst)
-
-        # No high-traffic roads nearby
+    if min_dist_ft <= fail_radius_ft:
         return Tier1Check(
             name="High-traffic road",
-            result=CheckResult.PASS,
-            details="No high-traffic roads within 1,000 ft",
-            value=None,
+            result=CheckResult.FAIL,
+            details=(
+                f"Major highway ({closest_name}) within {round(min_dist_ft):,} ft. "
+                "Motorways/trunk roads typically carry high traffic volumes "
+                "associated with elevated air pollution exposure."
+            ),
+            value=round(min_dist_ft),
         )
 
-    except Exception as e:
-        logger.warning("High-traffic road check failed: %s", e)
+    if min_dist_ft <= warn_radius_ft:
         return Tier1Check(
             name="High-traffic road",
-            result=CheckResult.UNKNOWN,
-            details="Could not query traffic volume data",
-            value=None,
+            result=CheckResult.WARNING,
+            details=(
+                f"Major highway ({closest_name}) within {round(min_dist_ft):,} ft. "
+                "Traffic-related air pollution diminishes at this distance but "
+                "may still be elevated above background levels."
+            ),
+            value=round(min_dist_ft),
         )
+
+    return Tier1Check(
+        name="High-traffic road",
+        result=CheckResult.PASS,
+        details="No high-traffic roads within 1,000 ft",
+        value=None,
+    )
 
 
 def _high_traffic_result(result: CheckResult, segment) -> Tier1Check:
@@ -1361,13 +1452,9 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
     """
 
     try:
-        from overpass_http import (
-            OverpassQueryError as _HTTPQueryError,
-            OverpassRateLimitError as _HTTPRateLimitError,
-            overpass_query as _overpass_http_query,
-        )
+        from overpass_http import overpass_query as _overpass_http_query
         data = _overpass_http_query(query, caller="environmental_hazards", timeout=25, ttl_days=14)
-    except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
+    except Exception as e:
         logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
         return None
 
@@ -1725,11 +1812,53 @@ def check_industrial_zones(
     )
 
 
+def _query_fema_flood_zone_api(lat: float, lng: float) -> Optional[List[Dict]]:
+    """Query FEMA NFHL ArcGIS REST API for flood zone at a point.
+
+    Fallback when local SpatiaLite fema_nfhl data is unavailable.
+    Returns list of dicts with 'fld_zone' and 'zone_subtype' keys,
+    or None on failure.
+    """
+    endpoint = (
+        "https://hazards.fema.gov/arcgis/rest/services/public/NFHL"
+        "/MapServer/28/query"
+    )
+    params = {
+        "geometry": f"{lng},{lat}",
+        "geometryType": "esriGeometryPoint",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "outFields": "FLD_ZONE,ZONE_SUBTY",
+        "returnGeometry": "false",
+        "f": "json",
+    }
+    try:
+        resp = requests.get(endpoint, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        if "error" in data:
+            logger.warning("FEMA API error: %s", data["error"])
+            return None
+        features = data.get("features", [])
+        results = []
+        for f in features:
+            attrs = f.get("attributes", {})
+            results.append({
+                "fld_zone": attrs.get("FLD_ZONE", ""),
+                "zone_subtype": attrs.get("ZONE_SUBTY", ""),
+            })
+        return results
+    except Exception as e:
+        logger.warning("FEMA flood zone API query failed: %s", e)
+        return None
+
+
 def check_flood_zones(lat: float, lng: float) -> Tier1Check:
     """Check whether the property falls within a FEMA flood zone.
 
-    Queries the local SpatiaLite database (fema_nfhl layer) — no external
-    API calls.  Severity precedence across all overlapping polygons:
+    Queries the local SpatiaLite database (fema_nfhl layer) first.
+    Falls back to FEMA NFHL ArcGIS REST API when spatial DB is
+    unavailable.  Severity precedence across all overlapping polygons:
       1. Zone A* / V*  → FAIL  (Special Flood Hazard Area)
       2. Zone X shaded → WARNING (moderate risk)
       3. Everything else → PASS
@@ -1742,75 +1871,136 @@ def check_flood_zones(lat: float, lng: float) -> Tier1Check:
         value=None,
         required=True,
     )
+
+    # ------------------------------------------------------------------
+    # Primary path: local SpatiaLite (zero API cost)
+    # ------------------------------------------------------------------
+    zone_records: Optional[List[Dict]] = None
     try:
         store = SpatialDataStore()
         polygons = store.point_in_polygons(lat, lng, "fema_nfhl")
+        if polygons:
+            zone_records = [
+                {
+                    "fld_zone": r.metadata.get("fld_zone", ""),
+                    "zone_subtype": r.metadata.get("zone_subtype", ""),
+                }
+                for r in polygons
+            ]
+    except Exception:
+        logger.warning("Flood zone SpatiaLite check failed", exc_info=True)
 
-        if not polygons:
-            return _unknown
+    # ------------------------------------------------------------------
+    # Fallback: FEMA NFHL ArcGIS REST API
+    # ------------------------------------------------------------------
+    if zone_records is None:
+        zone_records = _query_fema_flood_zone_api(lat, lng)
 
-        # Scan all overlapping polygons — highest severity wins.
-        has_high_risk = False
-        high_risk_zone = ""
-        has_moderate_risk = False
+    if not zone_records:
+        return _unknown
 
-        for record in polygons:
-            fld_zone = record.metadata.get("fld_zone", "")
-            zone_subtype = record.metadata.get("zone_subtype", "")
+    # Scan all overlapping zones — highest severity wins.
+    has_high_risk = False
+    high_risk_zone = ""
+    has_moderate_risk = False
 
-            if fld_zone.startswith("A") or fld_zone.startswith("V"):
-                has_high_risk = True
-                high_risk_zone = fld_zone
-            elif (
-                fld_zone.startswith("X")
-                and zone_subtype
-                and "SHADED" in zone_subtype.upper()
-            ):
-                has_moderate_risk = True
+    for zr in zone_records:
+        fld_zone = zr.get("fld_zone", "")
+        zone_subtype = zr.get("zone_subtype", "")
 
-        if has_high_risk:
-            return Tier1Check(
-                name="Flood zone",
-                result=CheckResult.FAIL,
-                details=(
-                    f"Property is in a FEMA Special Flood Hazard Area "
-                    f"(Zone {high_risk_zone})"
-                ),
-                value=high_risk_zone,
-                required=True,
-            )
+        if fld_zone.startswith("A") or fld_zone.startswith("V"):
+            has_high_risk = True
+            high_risk_zone = fld_zone
+        elif (
+            fld_zone.startswith("X")
+            and zone_subtype
+            and "SHADED" in zone_subtype.upper()
+        ):
+            has_moderate_risk = True
 
-        if has_moderate_risk:
-            return Tier1Check(
-                name="Flood zone",
-                result=CheckResult.WARNING,
-                details="Property is in a moderate flood risk area (Zone X, shaded)",
-                value="X-shaded",
-                required=True,
-            )
-
-        # No high or moderate risk — property is outside SFHA.
-        display_zone = polygons[0].metadata.get("fld_zone", "X")
+    if has_high_risk:
         return Tier1Check(
             name="Flood zone",
-            result=CheckResult.PASS,
+            result=CheckResult.FAIL,
             details=(
-                f"Not in a FEMA Special Flood Hazard Area "
-                f"(Zone {display_zone})"
+                f"Property is in a FEMA Special Flood Hazard Area "
+                f"(Zone {high_risk_zone})"
             ),
-            value=display_zone,
+            value=high_risk_zone,
             required=True,
         )
 
-    except Exception:
-        logger.warning("Flood zone check failed", exc_info=True)
-        return _unknown
+    if has_moderate_risk:
+        return Tier1Check(
+            name="Flood zone",
+            result=CheckResult.WARNING,
+            details="Property is in a moderate flood risk area (Zone X, shaded)",
+            value="X-shaded",
+            required=True,
+        )
+
+    # No high or moderate risk — property is outside SFHA.
+    display_zone = zone_records[0].get("fld_zone", "X")
+    return Tier1Check(
+        name="Flood zone",
+        result=CheckResult.PASS,
+        details=(
+            f"Not in a FEMA Special Flood Hazard Area "
+            f"(Zone {display_zone})"
+        ),
+        value=display_zone,
+        required=True,
+    )
+
+
+def _query_superfund_api(lat: float, lng: float) -> Optional[List[Dict]]:
+    """Query EPA Superfund Site Boundaries ArcGIS REST API for a point.
+
+    Fallback when local SpatiaLite sems data is unavailable.
+    Returns list of site dicts with 'site_name' and 'npl_status_code' keys,
+    or None on failure.
+    """
+    endpoint = (
+        "https://services.arcgis.com/cJ9YHowT8TU7DUyn"
+        "/arcgis/rest/services/FAC_Superfund_Site_Boundaries_EPA_Public"
+        "/FeatureServer/0/query"
+    )
+    params = {
+        "geometry": f"{lng},{lat}",
+        "geometryType": "esriGeometryPoint",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "outFields": "SITE_NAME,NPL_STATUS_CODE,EPA_ID",
+        "returnGeometry": "false",
+        "f": "json",
+    }
+    try:
+        resp = requests.get(endpoint, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        if "error" in data:
+            logger.warning("EPA Superfund API error: %s", data["error"])
+            return None
+        features = data.get("features", [])
+        results = []
+        for f in features:
+            attrs = f.get("attributes", {})
+            results.append({
+                "site_name": attrs.get("SITE_NAME", ""),
+                "npl_status_code": attrs.get("NPL_STATUS_CODE", ""),
+                "epa_id": attrs.get("EPA_ID", ""),
+            })
+        return results
+    except Exception as e:
+        logger.warning("EPA Superfund API query failed: %s", e)
+        return None
 
 
 def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
     """Check whether the property falls within an EPA Superfund NPL site boundary.
 
     Queries the local SpatiaLite database (sems layer) via point-in-polygon.
+    Falls back to EPA Superfund ArcGIS REST API when spatial DB is unavailable.
     Filters to NPL sites only: npl_status_code in ("F", "P") — Final and
     Proposed National Priorities List. Non-NPL sites are excluded to avoid
     false positives (EPA-evaluated sites with no further action).
@@ -1829,56 +2019,128 @@ def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
         value=None,
         required=True,
     )
+
+    # ------------------------------------------------------------------
+    # Primary path: local SpatiaLite (zero API cost)
+    # ------------------------------------------------------------------
+    site_records: Optional[List[Dict]] = None
     try:
         store = SpatialDataStore()
-        if not store.is_available():
-            return _unknown
+        if store.is_available():
+            polygons = store.point_in_polygons(lat, lng, "sems")
+            if polygons:
+                site_records = [
+                    {
+                        "site_name": r.metadata.get("site_name", r.name),
+                        "npl_status_code": r.metadata.get("npl_status_code", ""),
+                    }
+                    for r in polygons
+                ]
+    except Exception:
+        logger.warning("Superfund SpatiaLite check failed", exc_info=True)
 
-        polygons = store.point_in_polygons(lat, lng, "sems")
-        if not polygons:
-            return _unknown
+    # ------------------------------------------------------------------
+    # Fallback: EPA Superfund ArcGIS REST API
+    # ------------------------------------------------------------------
+    if site_records is None:
+        site_records = _query_superfund_api(lat, lng)
 
-        # Filter to NPL sites only (Final F, Proposed P)
-        npl_sites = [
-            r for r in polygons
-            if r.metadata.get("npl_status_code", "").upper() in ("F", "P")
-        ]
-
-        if npl_sites:
-            site_name = npl_sites[0].metadata.get("site_name", npl_sites[0].name)
+    if not site_records:
+        # API returned empty list (no sites contain this point) → PASS
+        if site_records is not None:
             return Tier1Check(
                 name="Superfund (NPL)",
-                result=CheckResult.FAIL,
-                details=(
-                    f"Property is within EPA Superfund NPL site: {site_name}. "
-                    "Contaminants may pose health risks (cancer, neurological effects)."
-                ),
-                value=site_name,
+                result=CheckResult.PASS,
+                details="Not within an EPA Superfund National Priorities List site",
+                value=None,
                 required=True,
             )
+        return _unknown
 
-        # Property is inside a Superfund polygon but not NPL-listed (npl_status_code
-        # not F/P, or missing) — treat as pass; only NPL sites cause hard fail.
+    # Filter to NPL sites only (Final F, Proposed P)
+    npl_sites = [
+        r for r in site_records
+        if r.get("npl_status_code", "").upper() in ("F", "P")
+    ]
+
+    if npl_sites:
+        site_name = npl_sites[0].get("site_name", "Unknown")
         return Tier1Check(
             name="Superfund (NPL)",
-            result=CheckResult.PASS,
-            details="Not within an EPA Superfund National Priorities List site",
-            value=None,
+            result=CheckResult.FAIL,
+            details=(
+                f"Property is within EPA Superfund NPL site: {site_name}. "
+                "Contaminants may pose health risks (cancer, neurological effects)."
+            ),
+            value=site_name,
             required=True,
         )
 
-    except Exception:
-        logger.warning("Superfund NPL check failed", exc_info=True)
-        return _unknown
+    # Property is inside a Superfund polygon but not NPL-listed — treat as pass.
+    return Tier1Check(
+        name="Superfund (NPL)",
+        result=CheckResult.PASS,
+        details="Not within an EPA Superfund National Priorities List site",
+        value=None,
+        required=True,
+    )
+
+
+def _query_tri_api(lat: float, lng: float, radius_meters: float) -> Optional[List[Dict]]:
+    """Query EPA TRI Reporting Facilities ArcGIS REST API near a point.
+
+    Fallback when local SpatiaLite TRI data is unavailable.
+    Returns list of facility dicts sorted by distance, or None on failure.
+    """
+    endpoint = (
+        "https://gispub.epa.gov/arcgis/rest/services"
+        "/OEI/TRI_Reporting_Facilities/MapServer/0/query"
+    )
+    params = {
+        "geometry": f"{lng},{lat}",
+        "geometryType": "esriGeometryPoint",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "distance": radius_meters,
+        "units": "esriSRUnit_Meter",
+        "outFields": "FACILITY_NAME,INDUSTRY,TRI_FACILITY_ID",
+        "returnGeometry": "true",
+        "outSR": "4326",
+        "f": "json",
+    }
+    try:
+        resp = requests.get(endpoint, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        if "error" in data:
+            logger.warning("EPA TRI API error: %s", data["error"])
+            return None
+        features = data.get("features", [])
+        results = []
+        for f in features:
+            attrs = f.get("attributes", {})
+            geom = f.get("geometry", {})
+            flat = geom.get("y", 0)
+            flng = geom.get("x", 0)
+            dist_ft = _distance_feet(lat, lng, flat, flng) if flat and flng else 0
+            results.append({
+                "name": attrs.get("FACILITY_NAME", "Unknown facility"),
+                "industry": attrs.get("INDUSTRY", ""),
+                "distance_feet": dist_ft,
+            })
+        results.sort(key=lambda x: x["distance_feet"])
+        return results
+    except Exception as e:
+        logger.warning("EPA TRI API query failed: %s", e)
+        return None
 
 
 def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
     """Check proximity to EPA Toxic Release Inventory (TRI) facilities.
 
     Queries the local SpatiaLite database (facilities_tri layer) for TRI
-    reporting facilities within 1 mile of the property.  TRI facilities
-    manufacture, process, or use significant quantities of listed toxic
-    chemicals and are required to report annual releases to the EPA.
+    reporting facilities within 1 mile of the property.  Falls back to
+    EPA TRI ArcGIS REST API when spatial DB is unavailable.
 
     Tier 0 WARNING — nearby TRI facilities indicate potential exposure to
     toxic air emissions, water discharges, or soil contamination.  This is
@@ -1896,27 +2158,51 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
         required=False,
     )
 
-    if spatial_store is None or not spatial_store.is_available():
-        return _unknown
+    # ------------------------------------------------------------------
+    # Primary path: local SpatiaLite (zero API cost)
+    # ------------------------------------------------------------------
+    spatial_ok = spatial_store is not None and spatial_store.is_available()
+    if spatial_ok:
+        try:
+            facilities = spatial_store.find_facilities_within(
+                lat, lng, TRI_FACILITY_WARNING_RADIUS_M, "tri"
+            )
 
-    try:
-        facilities = spatial_store.find_facilities_within(
-            lat, lng, TRI_FACILITY_WARNING_RADIUS_M, "tri"
-        )
-
-        if not facilities:
-            if (
-                hasattr(spatial_store, "last_query_failed")
-                and callable(spatial_store.last_query_failed)
-                and spatial_store.last_query_failed() is True
-            ):
-                return Tier1Check(
-                    name="TRI facility",
-                    result=CheckResult.UNKNOWN,
-                    details="Unable to query TRI spatial data; check skipped",
-                    value=None,
-                    required=False,
+            if not facilities:
+                if (
+                    hasattr(spatial_store, "last_query_failed")
+                    and callable(spatial_store.last_query_failed)
+                    and spatial_store.last_query_failed() is True
+                ):
+                    spatial_ok = False  # fall through to API
+                else:
+                    return Tier1Check(
+                        name="TRI facility",
+                        result=CheckResult.PASS,
+                        details="No EPA TRI facilities within 1 mile",
+                        value=None,
+                        required=False,
+                    )
+            else:
+                nearest = facilities[0]
+                return _build_tri_result(
+                    nearest.name or "Unknown facility",
+                    round(nearest.distance_feet),
+                    nearest.metadata.get("industry_sector", ""),
+                    len(facilities),
                 )
+        except Exception:
+            logger.warning("TRI spatial check failed", exc_info=True)
+            spatial_ok = False
+
+    # ------------------------------------------------------------------
+    # Fallback: EPA TRI ArcGIS REST API
+    # ------------------------------------------------------------------
+    if not spatial_ok:
+        api_results = _query_tri_api(lat, lng, TRI_FACILITY_WARNING_RADIUS_M)
+        if api_results is None:
+            return _unknown
+        if not api_results:
             return Tier1Check(
                 name="TRI facility",
                 result=CheckResult.PASS,
@@ -1924,40 +2210,42 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
                 value=None,
                 required=False,
             )
+        nearest = api_results[0]
+        return _build_tri_result(
+            nearest["name"],
+            nearest["distance_feet"],
+            nearest.get("industry", ""),
+            len(api_results),
+        )
 
-        nearest = facilities[0]
-        dist_ft = round(nearest.distance_feet)
-        facility_name = nearest.name or "Unknown facility"
-        industry = nearest.metadata.get("industry_sector", "")
+    return _unknown
 
-        detail_parts = [
-            f"EPA Toxic Release Inventory facility within {dist_ft:,} ft: "
-            f"{facility_name}."
-        ]
-        if industry:
-            detail_parts.append(f"Industry: {industry}.")
+
+def _build_tri_result(
+    facility_name: str, dist_ft: int, industry: str, count: int
+) -> Tier1Check:
+    """Build a Tier1Check WARNING for a nearby TRI facility."""
+    detail_parts = [
+        f"EPA Toxic Release Inventory facility within {dist_ft:,} ft: "
+        f"{facility_name}."
+    ]
+    if industry:
+        detail_parts.append(f"Industry: {industry}.")
+    detail_parts.append(
+        "TRI facilities report annual releases of toxic chemicals to "
+        "air, water, and land."
+    )
+    if count > 1:
         detail_parts.append(
-            "TRI facilities report annual releases of toxic chemicals to "
-            "air, water, and land."
+            f"{count} TRI facilities found within 1 mile."
         )
-
-        count = len(facilities)
-        if count > 1:
-            detail_parts.append(
-                f"{count} TRI facilities found within 1 mile."
-            )
-
-        return Tier1Check(
-            name="TRI facility",
-            result=CheckResult.WARNING,
-            details=" ".join(detail_parts),
-            value=dist_ft,
-            required=False,
-        )
-
-    except Exception:
-        logger.warning("TRI facility proximity check failed", exc_info=True)
-        return _unknown
+    return Tier1Check(
+        name="TRI facility",
+        result=CheckResult.WARNING,
+        details=" ".join(detail_parts),
+        value=dist_ft,
+        required=False,
+    )
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:

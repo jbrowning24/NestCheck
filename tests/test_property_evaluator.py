@@ -355,15 +355,17 @@ class TestCheckGasStations:
 # ============================================================================
 
 class TestCheckHighTrafficRoad:
-    def test_no_spatial_store_returns_unknown(self):
-        result = check_high_traffic_road(40.0, -74.0, None)
+    def test_no_spatial_store_and_no_overpass_returns_unknown(self):
+        with patch("property_evaluator._query_major_roads_overpass", return_value=None):
+            result = check_high_traffic_road(40.0, -74.0, None)
         assert result.result == CheckResult.UNKNOWN
         assert result.name == "High-traffic road"
 
-    def test_unavailable_store_returns_unknown(self):
-        store = MagicMock()
-        store.is_available.return_value = False
-        result = check_high_traffic_road(40.0, -74.0, store)
+    def test_unavailable_store_and_no_overpass_returns_unknown(self):
+        with patch("property_evaluator._query_major_roads_overpass", return_value=None):
+            store = MagicMock()
+            store.is_available.return_value = False
+            result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.UNKNOWN
 
     def test_no_segments_returns_pass(self):
@@ -759,8 +761,9 @@ class TestCheckIndustrialZones:
 # ============================================================================
 
 class TestCheckSuperfundNpl:
-    def test_unavailable_store_returns_unknown(self):
-        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+    def test_unavailable_store_and_api_returns_unknown(self):
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls, \
+             patch("property_evaluator._query_superfund_api", return_value=None):
             mock_store = MagicMock()
             mock_store.is_available.return_value = False
             mock_store_cls.return_value = mock_store
@@ -768,14 +771,24 @@ class TestCheckSuperfundNpl:
         assert result.result == CheckResult.UNKNOWN
         assert result.name == "Superfund (NPL)"
 
-    def test_empty_polygons_returns_unknown(self):
-        with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
+    def test_unavailable_store_api_fallback_empty_returns_pass(self):
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls, \
+             patch("property_evaluator._query_superfund_api", return_value=[]):
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = False
+            mock_store_cls.return_value = mock_store
+            result = check_superfund_npl(40.0, -74.0)
+        assert result.result == CheckResult.PASS
+
+    def test_empty_polygons_api_fallback_returns_pass(self):
+        with patch("property_evaluator.SpatialDataStore") as mock_store_cls, \
+             patch("property_evaluator._query_superfund_api", return_value=[]):
             mock_store = MagicMock()
             mock_store.is_available.return_value = True
             mock_store.point_in_polygons.return_value = []
             mock_store_cls.return_value = mock_store
             result = check_superfund_npl(40.0, -74.0)
-        assert result.result == CheckResult.UNKNOWN
+        assert result.result == CheckResult.PASS
 
     def test_npl_final_site_returns_fail(self):
         from spatial_data import FacilityRecord
@@ -846,15 +859,17 @@ class TestCheckSuperfundNpl:
 # ============================================================================
 
 class TestCheckTriFacilityProximity:
-    def test_unavailable_store_returns_unknown(self):
-        mock_store = MagicMock()
-        mock_store.is_available.return_value = False
-        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+    def test_unavailable_store_and_api_returns_unknown(self):
+        with patch("property_evaluator._query_tri_api", return_value=None):
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = False
+            result = check_tri_facility_proximity(40.0, -74.0, mock_store)
         assert result.result == CheckResult.UNKNOWN
         assert result.name == "TRI facility"
 
-    def test_none_store_returns_unknown(self):
-        result = check_tri_facility_proximity(40.0, -74.0, None)
+    def test_none_store_and_api_returns_unknown(self):
+        with patch("property_evaluator._query_tri_api", return_value=None):
+            result = check_tri_facility_proximity(40.0, -74.0, None)
         assert result.result == CheckResult.UNKNOWN
 
     def test_no_facilities_returns_pass(self):
@@ -867,14 +882,14 @@ class TestCheckTriFacilityProximity:
         assert "No EPA TRI facilities" in result.details
         assert result.required is False
 
-    def test_query_failure_returns_unknown(self):
-        mock_store = MagicMock()
-        mock_store.is_available.return_value = True
-        mock_store.find_facilities_within.return_value = []
-        mock_store.last_query_failed.return_value = True
-        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+    def test_query_failure_falls_through_to_api(self):
+        with patch("property_evaluator._query_tri_api", return_value=None):
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.find_facilities_within.return_value = []
+            mock_store.last_query_failed.return_value = True
+            result = check_tri_facility_proximity(40.0, -74.0, mock_store)
         assert result.result == CheckResult.UNKNOWN
-        assert "check skipped" in result.details
 
     def test_nearby_facility_returns_warning(self):
         from spatial_data import FacilityRecord
@@ -931,11 +946,12 @@ class TestCheckTriFacilityProximity:
         assert result.result == CheckResult.WARNING
         assert "2 TRI facilities" in result.details
 
-    def test_exception_returns_unknown(self):
-        mock_store = MagicMock()
-        mock_store.is_available.return_value = True
-        mock_store.find_facilities_within.side_effect = RuntimeError("DB error")
-        result = check_tri_facility_proximity(40.0, -74.0, mock_store)
+    def test_exception_falls_through_to_api(self):
+        with patch("property_evaluator._query_tri_api", return_value=None):
+            mock_store = MagicMock()
+            mock_store.is_available.return_value = True
+            mock_store.find_facilities_within.side_effect = RuntimeError("DB error")
+            result = check_tri_facility_proximity(40.0, -74.0, mock_store)
         assert result.result == CheckResult.UNKNOWN
 
     def test_queries_correct_radius_and_type(self):
