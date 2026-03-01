@@ -1010,6 +1010,43 @@ def result_to_dict(result):
     # EJScreen block group environmental profile (NES-EJScreen)
     output["ejscreen_profile"] = result.ejscreen_profile
 
+    # Walk quality — MAPS-Mini pipeline (NES-192)
+    wq = getattr(result, "walk_quality", None)
+    if wq is not None:
+        output["walk_quality"] = {
+            "walk_quality_score": wq.walk_quality_score,
+            "walk_quality_rating": wq.walk_quality_rating,
+            "feature_scores": [
+                {
+                    "feature": fs.feature,
+                    "score": fs.score,
+                    "weight": fs.weight,
+                    "detail": fs.detail,
+                    "source": fs.source,
+                }
+                for fs in wq.feature_scores
+            ],
+            "sample_points_total": wq.sample_points_total,
+            "sample_points_with_coverage": wq.sample_points_with_coverage,
+            "avg_greenery_pct": wq.avg_greenery_pct,
+            "avg_brightness": wq.avg_brightness,
+            "infrastructure": {
+                "crosswalk_count": wq.infrastructure.crosswalk_count,
+                "streetlight_count": wq.infrastructure.streetlight_count,
+                "curb_cut_count": wq.infrastructure.curb_cut_count,
+                "ped_signal_count": wq.infrastructure.ped_signal_count,
+                "bench_count": wq.infrastructure.bench_count,
+                "total_features": wq.infrastructure.total_features,
+            } if wq.infrastructure else None,
+            "data_confidence": wq.data_confidence,
+            "data_confidence_note": wq.data_confidence_note,
+            "gsv_available": wq.gsv_available,
+            "methodology_note": wq.methodology_note,
+            "walk_score_comparison": wq.walk_score_comparison,
+        }
+    else:
+        output["walk_quality"] = None
+
     output["presented_checks"] = present_checks(output["tier1_checks"])
     output["structured_summary"] = generate_structured_summary(output["presented_checks"])
     output["verdict"] = generate_verdict(output)

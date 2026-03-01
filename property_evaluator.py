@@ -359,6 +359,9 @@ class EvaluationResult:
     # EJScreen block group environmental indicators (NES-EJScreen)
     ejscreen_profile: Optional[Dict[str, Any]] = None
 
+    # Walk quality assessment — MAPS-Mini pipeline (NES-192)
+    walk_quality: Optional[Any] = None
+
 
 # =============================================================================
 # DEDUPLICATION HELPERS
@@ -4177,6 +4180,30 @@ def evaluate_property(
             "walk_scores", get_walk_scores, listing.address, lat, lng)
     except Exception:
         pass
+
+    # Walk quality — MAPS-Mini pipeline via GSV + OSM (NES-192)
+    try:
+        from walk_quality import assess_walk_quality
+
+        # Pass existing sidewalk coverage data to avoid duplicate Overpass query
+        _sw_pct = None
+        _sw_conf = None
+        if hasattr(result, "sidewalk_coverage") and result.sidewalk_coverage:
+            _sw_pct = getattr(result.sidewalk_coverage, "sidewalk_pct", None)
+            _sw_conf = getattr(result.sidewalk_coverage, "data_confidence", None)
+
+        # Pass Walk Score for comparison
+        _ws = result.walk_scores.get("walk_score") if result.walk_scores else None
+
+        result.walk_quality = _staged(
+            "walk_quality", assess_walk_quality,
+            lat, lng, api_key,
+            sidewalk_pct=_sw_pct,
+            sidewalk_confidence=_sw_conf,
+            walk_score=_ws,
+        )
+    except Exception:
+        logger.warning("Walk quality assessment failed", exc_info=True)
 
     # ===================
     # TIER 1 CHECKS
