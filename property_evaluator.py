@@ -270,6 +270,9 @@ class PrimaryTransitOption:
     parking_available: Optional[bool] = None
     user_ratings_total: Optional[int] = None
     frequency_class: Optional[str] = None
+    wheelchair_accessible_entrance: Optional[bool] = None
+    elevator_available: Optional[bool] = None
+    ada_accessibility_note: Optional[str] = None
 
 
 @dataclass
@@ -2567,6 +2570,18 @@ def find_primary_transit(
     parking_available = get_parking_availability(maps, place.get("place_id"))
     user_ratings_total = place.get("user_ratings_total")
 
+    # Look up accessibility from MTA official data for NYC subway stations
+    wheelchair_entrance: Optional[bool] = None
+    elevator: Optional[bool] = None
+    ada_note: Optional[str] = None
+    try:
+        from nyc_subway_accessibility import lookup_nyc_subway_accessibility
+        result = lookup_nyc_subway_accessibility(place_lat, place_lng)
+        if result is not None:
+            wheelchair_entrance, elevator, ada_note = result
+    except ImportError:
+        pass
+
     return PrimaryTransitOption(
         name=place.get("name", "Unknown"),
         mode=mode,
@@ -2581,6 +2596,9 @@ def find_primary_transit(
             if isinstance(user_ratings_total, int)
             else None
         ),
+        wheelchair_accessible_entrance=wheelchair_entrance,
+        elevator_available=elevator,
+        ada_accessibility_note=ada_note,
     )
 
 
@@ -4559,6 +4577,9 @@ def main():
                     "parking_available": result.urban_access.primary_transit.parking_available,
                     "user_ratings_total": result.urban_access.primary_transit.user_ratings_total,
                     "frequency_class": result.urban_access.primary_transit.frequency_class,
+                    "wheelchair_accessible_entrance": result.urban_access.primary_transit.wheelchair_accessible_entrance,
+                    "elevator_available": result.urban_access.primary_transit.elevator_available,
+                    "ada_accessibility_note": result.urban_access.primary_transit.ada_accessibility_note,
                 } if result.urban_access and result.urban_access.primary_transit else None,
                 "major_hub": {
                     "name": result.urban_access.major_hub.name,
