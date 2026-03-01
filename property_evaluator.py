@@ -4502,6 +4502,96 @@ def format_result(result: EvaluationResult) -> str:
 
 
 # =============================================================================
+# PROXIMITY SYNTHESIS (NES-191) — narrative summary of safety proximity checks
+# =============================================================================
+
+# Human-readable names for proximity check_ids
+_PROXIMITY_LABELS = {
+    "highway": "a highway",
+    "gas_station": "a gas station",
+    "high-volume_road": "a high-volume road",
+    "power_line": "a power line",
+    "substation": "a substation",
+    "cell_tower": "a cell tower",
+    "industrial_zone": "an industrial zone",
+    "rail_corridor": "an active rail line",
+    "flood_zone": "a flood zone",
+    "superfund": "a Superfund site",
+    "tri_facility": "a TRI facility",
+}
+
+
+def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
+    """Generate a narrative synthesis of proximity/safety check results.
+
+    Takes the list of presented_checks (from present_checks()) and produces
+    a single paragraph summarising the overall proximity picture.
+
+    Returns None if no SAFETY checks are present.
+    """
+    safety = [c for c in presented_checks if c.get("category") == "SAFETY"]
+    if not safety:
+        return None
+
+    confirmed = [c for c in safety if c.get("result_type") == "CONFIRMED_ISSUE"]
+    unverified = [c for c in safety if c.get("result_type") == "VERIFICATION_NEEDED"]
+    clear = [c for c in safety if c.get("result_type") == "CLEAR"]
+
+    def _label_with_article(c):
+        """Return the label with article from _PROXIMITY_LABELS, or display_name."""
+        cid = c.get("check_id", "")
+        return _PROXIMITY_LABELS.get(cid, c.get("display_name", cid))
+
+    def _display_label(c):
+        """Return the display_name as-is (capitalized, no article)."""
+        return c.get("display_name", "") or c.get("check_id", "")
+
+    # All clear
+    if not confirmed and not unverified:
+        return "No environmental concerns were detected nearby."
+
+    parts = []
+
+    # Confirmed issues
+    if confirmed:
+        labels = [_label_with_article(c) for c in confirmed]
+        if len(labels) == 1:
+            parts.append(f"This address is close to {labels[0]}.")
+        else:
+            parts.append(f"This address is close to {_join_and(labels)}.")
+
+        if clear and not unverified:
+            parts.append(" The remaining checks are clear.")
+
+    # Unverified items
+    if unverified:
+        if len(unverified) >= 3 and not confirmed:
+            parts.append("None of the proximity checks could be verified with available data.")
+        elif len(unverified) == 1 and not confirmed:
+            # Single unverified: use display_name directly for specificity
+            label = _display_label(unverified[0])
+            parts.append(f"Proximity to {label} could not be verified with available data.")
+        else:
+            labels = [_label_with_article(c) for c in unverified]
+            items = _join_and(labels)
+            if confirmed:
+                parts.append(f" Proximity to {items} could not be verified.")
+            else:
+                parts.append(f"Proximity to {items} could not be verified with available data.")
+
+    return "".join(parts)
+
+
+def _join_and(items: List[str]) -> str:
+    """Join items with commas and 'and'."""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 

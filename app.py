@@ -21,9 +21,10 @@ from dotenv import load_dotenv
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
-    get_score_band,
+    get_score_band, proximity_synthesis,
 )
 from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
+from census import serialize_for_result as _serialize_census
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -1111,7 +1112,558 @@ def result_to_dict(result):
             ),
             "limited_dimensions": _low_dims,
         }
+    # Section-level narrative insights (NES-191)
+    output["insights"] = generate_insights(output)
+
     return output
+
+
+# ---------------------------------------------------------------------------
+# Insight Generators — pure functions: dict → string | None (NES-191)
+# ---------------------------------------------------------------------------
+
+# Dimension labels used in insight text (matches template copy)
+_DIM_LABELS = {
+    "Coffee & Social Spots": "cafés and social spots",
+    "Daily Essentials": "grocery stores",
+    "Fitness & Recreation": "gyms and fitness options",
+    "Parks & Green Space": "parks and green spaces",
+}
+
+_DIM_PLACE_KEYS = {
+    "Coffee & Social Spots": "coffee",
+    "Daily Essentials": "grocery",
+    "Fitness & Recreation": "fitness",
+    "Parks & Green Space": "parks",
+}
+
+
+def _nearest_walk_time(places):
+    """Return the minimum walk_time_min from a list of place dicts, or None."""
+    if not places:
+        return None
+    times = [p.get("walk_time_min") for p in places if p.get("walk_time_min") is not None]
+    return min(times) if times else None
+
+
+def _join_labels(labels, conjunction="and"):
+    """Join a list of labels with Oxford comma formatting."""
+    if len(labels) == 1:
+        return labels[0]
+    if len(labels) == 2:
+        return f"{labels[0]} {conjunction} {labels[1]}"
+    return ", ".join(labels[:-1]) + f", {conjunction} {labels[-1]}"
+
+
+def _insight_neighborhood(neighborhood, tier2):
+    """Generate a narrative insight for the Your Neighborhood section.
+
+    Classifies dimensions into strong (>=7), middling (4-6), and weak (<4)
+    buckets, then selects a prose template.
+    """
+    if not neighborhood or not tier2:
+        return None
+
+    # Build per-dimension info: {dim_name: {score, label, place_key, places}}
+    dims = []
+    for dim_name, label in _DIM_LABELS.items():
+        score_entry = tier2.get(dim_name, {})
+        score = score_entry.get("points", 0) if isinstance(score_entry, dict) else 0
+        place_key = _DIM_PLACE_KEYS[dim_name]
+        places = neighborhood.get(place_key, [])
+        dims.append({
+            "name": dim_name,
+            "label": label,
+            "score": score,
+            "places": places,
+            "place_key": place_key,
+        })
+
+    if not dims:
+        return None
+
+    # Classify
+    strong = [d for d in dims if d["score"] >= 7]
+    middling = [d for d in dims if 4 <= d["score"] < 7]
+    weak = [d for d in dims if d["score"] < 4]
+
+    # Sort each bucket by score descending
+    strong.sort(key=lambda d: d["score"], reverse=True)
+    middling.sort(key=lambda d: d["score"], reverse=True)
+    weak.sort(key=lambda d: d["score"], reverse=True)
+
+    # Get the lead place name from the highest-scoring dimension
+    all_sorted = sorted(dims, key=lambda d: d["score"], reverse=True)
+    lead = all_sorted[0]
+    lead_place_name = None
+    if lead["places"]:
+        lead_place_name = lead["places"][0].get("name")
+
+    # Branch: all strong (4 dims >= 7)
+    if len(strong) == 4:
+        lead_label = lead["label"]
+        others = [d["label"] for d in strong if d["name"] != lead["name"]]
+        parts = []
+        if lead_place_name:
+            parts.append(f"{lead_place_name} is just a short walk away")
+        else:
+            parts.append(f"This area excels at {lead_label}")
+        parts.append(f" \u2014 and {_join_labels(others)} are all within easy reach too.")
+        return "".join(parts)
+
+    # Branch: all weak (all < 4)
+    if len(weak) == 4:
+        # Check if any places exist at all
+        any_places = any(d["places"] for d in weak)
+        if not any_places:
+            return "We didn't find nearby options for everyday amenities in this area."
+        # Places exist but are far
+        return "Most everyday amenities will likely require driving from this location."
+
+    # Branch: all middling (all 4-6)
+    if len(middling) == 4:
+        labels = [d["label"] for d in middling]
+        lead_name = lead_place_name or "Everyday amenities"
+        return f"{lead_name} and other essentials are within reach \u2014 {_join_labels(labels)} are all accessible, though none stand out as a particular strength."
+
+    # Branch: mixed — has both strong and weak
+    if strong and weak:
+        # Lead from strongest
+        lead_label = lead["label"]
+        lead_sentence = ""
+        if lead_place_name:
+            lead_sentence = f"{lead_place_name} ({lead_label}) is a standout nearby."
+        else:
+            lead_sentence = f"This area scores well for {lead_label}."
+
+        # Others (strong + middling, excluding lead)
+        other_strong = [d for d in strong if d["name"] != lead["name"]]
+        all_other_labels = [d["label"] for d in other_strong + middling]
+
+        # Weakness sentence
+        weak_labels = [d["label"] for d in weak]
+        any_weak_places = any(d["places"] for d in weak)
+
+        weakness = ""
+        if not any_weak_places:
+            weakness = f" On the other hand, we didn't find nearby {_join_labels(weak_labels)}."
+        else:
+            weakness = f" On the other hand, {_join_labels(weak_labels)} may require more effort to reach."
+
+        return lead_sentence + weakness
+
+    # Branch: has strong dims, rest are middling (no weak)
+    if strong and middling and not weak:
+        lead_label = lead["label"]
+        others = [d["label"] for d in dims if d["name"] != lead["name"]]
+        if lead_place_name:
+            return f"{lead_place_name} ({lead_label}) is a standout nearby \u2014 and {_join_labels(others)} are all accessible too."
+        return f"This area excels at {lead_label} \u2014 and {_join_labels(others)} are all accessible too."
+
+    # Branch: no strong, middling + weak
+    if not strong and middling and weak:
+        lead_label = lead["label"]
+        weak_labels = [d["label"] for d in weak]
+        any_weak_places = any(d["places"] for d in weak)
+
+        lead_sentence = ""
+        if lead_place_name:
+            lead_sentence = f"{lead_place_name} ({lead_label}) is the closest option."
+        else:
+            lead_sentence = f"{lead_label.capitalize()} are the most accessible here."
+
+        weakness = ""
+        if not any_weak_places:
+            weakness = f" But we didn't find nearby {_join_labels(weak_labels)}."
+        else:
+            weakness = f" But {_join_labels(weak_labels)} may require more effort to reach."
+
+        return lead_sentence + weakness
+
+    return None
+
+
+def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
+    """Generate a narrative insight for the Getting Around section."""
+    score = 0
+    if tier2:
+        entry = tier2.get("Getting Around", {})
+        score = entry.get("points", 0) if isinstance(entry, dict) else 0
+
+    has_rail = urban and urban.get("primary_transit") and urban["primary_transit"].get("name")
+    has_bus = transit and transit.get("primary_stop")
+
+    if not has_rail and not has_bus:
+        if urban is not None:
+            return "Public transit options are limited in this area \u2014 driving will be the primary way to get around."
+        return None
+
+    parts = []
+
+    if has_rail:
+        station = urban["primary_transit"]["name"]
+        walk_min = urban["primary_transit"].get("walk_time_min")
+
+        if score >= 7:
+            # Strong rail
+            parts.append(f"{station} station is {walk_min} minutes on foot")
+            if freq_label:
+                parts.append(f", with {freq_label.lower()} service")
+            parts.append(".")
+
+            hub = urban.get("major_hub")
+            if hub and hub.get("name") and hub.get("travel_time_min"):
+                parts.append(f" {hub['name']} is about {hub['travel_time_min']} minutes away.")
+
+        elif score >= 4:
+            # Moderate rail
+            parts.append(f"{station} is the nearest station")
+            if walk_min:
+                parts.append(f" ({walk_min} minutes on foot)")
+            if freq_label:
+                parts.append(f", but service runs at {freq_label.lower()} frequency")
+            parts.append(". A backup transportation option is recommended.")
+
+        else:
+            # Weak rail
+            parts.append(f"The nearest transit is {station}")
+            if walk_min:
+                parts.append(f" ({walk_min} minutes away)")
+            parts.append(". Plan on driving for most trips.")
+
+    elif has_bus:
+        stop = transit["primary_stop"]
+        walk_min = transit.get("walk_minutes")
+        freq = transit.get("frequency_bucket", "")
+
+        parts.append(f"The nearest bus stop is {stop}")
+        if walk_min:
+            parts.append(f" ({walk_min} minutes on foot)")
+        if freq:
+            parts.append(f", with {freq.lower()} frequency")
+        parts.append(".")
+
+        if score < 4:
+            parts.append(" Driving or rideshare will be needed for most trips.")
+
+    result = "".join(parts)
+
+    # Add walk description for moderate+ scores
+    if walk_scores and score >= 4:
+        walk_desc = walk_scores.get("walk_description")
+        if walk_desc:
+            result += f" The area is rated \"{walk_desc}.\""
+
+    # Add bike note for high bike scores
+    if walk_scores and walk_scores.get("bike_score") and walk_scores["bike_score"] >= 60:
+        result += " Biking is also a viable option here."
+
+    return result
+
+
+def _insight_parks(green_escape, tier2):
+    """Generate a narrative insight for the Parks & Green Space section."""
+    if not green_escape:
+        return None
+
+    best_park = green_escape.get("best_daily_park")
+    if not best_park or not best_park.get("name"):
+        return "We found no parks or named green spaces within walking distance."
+
+    name = best_park["name"]
+    walk_min = best_park.get("walk_time_min")
+    score = 0
+    if tier2:
+        entry = tier2.get("Parks & Green Space", {})
+        score = entry.get("points", 0) if isinstance(entry, dict) else 0
+
+    nearby = green_escape.get("nearby_green_spaces", [])
+
+    # OSM enrichment details
+    osm_enriched = best_park.get("osm_enriched", False)
+    area_sqm = best_park.get("osm_area_sqm", 0) if osm_enriched else 0
+    has_trail = best_park.get("osm_has_trail", False) if osm_enriched else False
+    path_count = best_park.get("osm_path_count", 0) if osm_enriched else 0
+
+    parts = []
+
+    # Branch: strong + close (score >= 7 and walk <= 15)
+    if score >= 7 and walk_min is not None and walk_min <= 15:
+        parts.append(f"{name} is just {walk_min} minutes away \u2014 close enough to go for a run")
+
+        # OSM enrichment
+        osm_details = []
+        if area_sqm and area_sqm >= 20_234:  # ~5 acres
+            acres = int(area_sqm / 4047 + 0.5)
+            osm_details.append(f"{acres} acres")
+        if has_trail:
+            osm_details.append("trails")
+        if path_count >= 3:
+            osm_details.append(f"{path_count} paths")
+
+        if osm_details:
+            parts.append(f", with {_join_labels(osm_details)}")
+
+        parts.append(".")
+
+    # Branch: good park but far (score < 7 and walk > 20)
+    elif score < 7 and walk_min is not None and walk_min > 20:
+        parts.append(f"{name} ({walk_min} minutes away) is more of a weekend destination than a daily option.")
+
+    # Branch: moderate (score >= 4)
+    elif score >= 4:
+        parts.append(f"{name} is ")
+        if walk_min is not None:
+            parts.append(f"{walk_min} minutes away, ")
+        parts.append(f"a solid option for regular visits.")
+
+        # OSM enrichment
+        osm_details = []
+        if area_sqm and area_sqm >= 20_234:
+            acres = int(area_sqm / 4047 + 0.5)
+            osm_details.append(f"{acres} acres")
+        if has_trail:
+            osm_details.append("trails")
+        if path_count >= 3:
+            osm_details.append(f"{path_count} paths")
+
+        if osm_details:
+            parts[-1] = parts[-1].rstrip(".")
+            parts.append(f", with {_join_labels(osm_details)}.")
+
+    # Branch: weak (score < 4)
+    else:
+        parts.append(f"Green space options are limited \u2014 {name} is the closest")
+        if walk_min is not None:
+            parts.append(f" at {walk_min} minutes")
+        parts.append(".")
+
+    # Nearby green spaces notation
+    if nearby:
+        if len(nearby) == 1:
+            parts.append(f" There's also another green space nearby.")
+        else:
+            parts.append(f" There are {len(nearby)} other green spaces nearby.")
+
+    return "".join(parts)
+
+
+def _weather_context(weather):
+    """Generate weather context sentences from trigger flags and monthly data."""
+    if not weather:
+        return None
+
+    triggers = weather.get("triggers", [])
+    if not triggers:
+        return None
+
+    monthly = weather.get("monthly", [])
+    sentences = []
+
+    has_snow = "snow" in triggers
+    has_freezing = "freezing" in triggers
+    has_heat = "extreme_heat" in triggers
+    has_rain = "rain" in triggers
+
+    month_names = {1: "January", 2: "February", 3: "March", 4: "April",
+                   5: "May", 6: "June", 7: "July", 8: "August",
+                   9: "September", 10: "October", 11: "November", 12: "December"}
+
+    def _month_range(month_numbers):
+        """Find contiguous month range, handling Dec-Jan wrap-around."""
+        if not month_numbers:
+            return None, None
+        nums = sorted(set(month_numbers))
+        # Check for winter wrap-around (has both Dec and Jan/Feb/Mar)
+        if 12 in nums and any(m <= 3 for m in nums):
+            # Wrap: start from December, end at last spring month
+            winter = [m for m in nums if m >= 10] + [m for m in nums if m <= 5]
+            return month_names[winter[0]], month_names[winter[-1]]
+        return month_names[nums[0]], month_names[nums[-1]]
+
+    # Snow + freezing combined
+    if has_snow and has_freezing:
+        snow_months = [m["month"] for m in monthly if m.get("avg_snowfall_in", 0) > 1.0]
+        if snow_months:
+            first, last = _month_range(snow_months)
+            sentences.append(
+                f"Expect snow and freezing temperatures from {first} through {last}"
+            )
+        else:
+            sentences.append("Expect snow and freezing temperatures in winter")
+    elif has_snow:
+        snow_months = [m["month"] for m in monthly if m.get("avg_snowfall_in", 0) > 1.0]
+        if snow_months:
+            first, last = _month_range(snow_months)
+            sentences.append(
+                f"Notable snow from {first} through {last}"
+            )
+        else:
+            sentences.append("Notable snow in winter months")
+    elif has_freezing:
+        sentences.append("Freezing temperatures are common in winter")
+
+    # Extreme heat
+    if has_heat:
+        heat_month_nums = [m["month"] for m in monthly if m.get("avg_high_f", 0) >= 90]
+        if heat_month_nums:
+            first, last = _month_range(heat_month_nums)
+            sentences.append(
+                f"Summers are hot, with highs above 90\u00b0F from {first} through {last}"
+            )
+        else:
+            sentences.append("Summers can be extremely hot")
+
+    # Rain (only if snow is NOT present)
+    if has_rain and not has_snow:
+        sentences.append("Frequent rain year-round")
+
+    # Cap at 2 sentences
+    sentences = sentences[:2]
+
+    if not sentences:
+        return None
+
+    return ". ".join(sentences)
+
+
+def _insight_community_profile(demographics, persona, result_dict):
+    """Generate a narrative insight for the Community Profile section.
+
+    Ordering and emphasis vary by persona:
+    - balanced: children → tenure → commute
+    - commuter: commute → children → tenure
+    - quiet: tenure → children → WFH
+    - active: children → tenure → commute (same as balanced)
+    """
+    if not demographics:
+        return None
+
+    persona_key = "balanced"
+    if persona and isinstance(persona, dict):
+        persona_key = persona.get("key", "balanced")
+
+    children_pct = demographics.get("children_pct", 0)
+    renter_pct = demographics.get("renter_pct", 0)
+    owner_pct = demographics.get("owner_pct", 0)
+    county_name = demographics.get("county_name", "the county")
+    county_children_pct = demographics.get("county_children_pct")
+    county_renter_pct = demographics.get("county_renter_pct")
+    median_rent = demographics.get("median_rent")
+    county_median_rent = demographics.get("county_median_rent")
+
+    commute = demographics.get("commute", {})
+    transit_pct = commute.get("transit_pct", 0)
+    walk_pct = commute.get("walk_pct", 0)
+    wfh_pct = commute.get("wfh_pct", 0)
+    drive_alone_pct = commute.get("drive_alone_pct", 0)
+
+    county_commute = demographics.get("county_commute", {})
+    county_transit_pct = county_commute.get("transit_pct", 0) if county_commute else 0
+
+    # Build sentence components
+    def _children_sentence():
+        s = f"About {children_pct:.0f}% of households have children"
+        if county_children_pct is not None:
+            s += f" (vs. {county_children_pct:.0f}% across {county_name})"
+        return s
+
+    def _tenure_sentence():
+        if renter_pct >= owner_pct:
+            return f"This tract is majority renter-occupied ({renter_pct:.0f}%)"
+        return f"This tract is majority owner-occupied ({owner_pct:.0f}%)"
+
+    def _commute_sentence():
+        if transit_pct >= 10:
+            s = f"{transit_pct:.0f}% of commuters use transit"
+            if county_transit_pct:
+                s += f" (vs. {county_transit_pct:.0f}% countywide)"
+            return s
+        return f"{drive_alone_pct:.0f}% of commuters drive alone"
+
+    def _wfh_sentence():
+        if wfh_pct >= 10:
+            return f"{wfh_pct:.0f}% work from home"
+        return None
+
+    def _sidewalk_cross_ref():
+        if walk_pct >= 3 and result_dict:
+            sw = result_dict.get("sidewalk_coverage", {})
+            sw_pct = sw.get("sidewalk_pct") if sw else None
+            if sw_pct is not None:
+                return f"{walk_pct:.0f}% walk to work, supported by {sw_pct:.0f}% sidewalk coverage"
+        return None
+
+    # Assemble based on persona ordering
+    sentences = []
+
+    if persona_key == "commuter":
+        sentences.append(_commute_sentence())
+        # Sidewalk cross-reference
+        sw = _sidewalk_cross_ref()
+        if sw:
+            sentences.append(sw)
+        sentences.append(_children_sentence())
+        sentences.append(_tenure_sentence())
+    elif persona_key == "quiet":
+        sentences.append(_tenure_sentence())
+        sentences.append(_children_sentence())
+        wfh = _wfh_sentence()
+        if wfh:
+            sentences.append(wfh)
+        sentences.append(_commute_sentence())
+    else:
+        # balanced / active / default
+        sentences.append(_children_sentence())
+        sentences.append(_tenure_sentence())
+        sentences.append(_commute_sentence())
+
+    # Filter None values
+    sentences = [s for s in sentences if s]
+
+    if not sentences:
+        return None
+
+    return ". ".join(sentences) + "."
+
+
+def generate_insights(result_dict):
+    """Orchestrate all section-level narrative insights.
+
+    Returns a dict with keys matching template section names:
+    - your_neighborhood
+    - getting_around
+    - parks
+    - proximity
+    - community_profile
+    """
+    neighborhood = result_dict.get("neighborhood_places")
+    tier2_list = result_dict.get("tier2_scores", [])
+
+    # Build tier2 lookup: {name: {points, max, ...}}
+    tier2 = {}
+    for s in tier2_list:
+        if isinstance(s, dict):
+            tier2[s.get("name", "")] = s
+
+    green_escape = result_dict.get("green_escape")
+    urban_access = result_dict.get("urban_access")
+    transit_access = result_dict.get("transit_access")
+    walk_scores = result_dict.get("walk_scores")
+    freq_label = result_dict.get("frequency_label", "")
+    presented_checks = result_dict.get("presented_checks", [])
+    demographics = result_dict.get("demographics")
+    persona = result_dict.get("persona")
+
+    return {
+        "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
+        "getting_around": _insight_getting_around(
+            urban_access, transit_access, walk_scores, freq_label, tier2,
+        ),
+        "parks": _insight_parks(green_escape, tier2),
+        "proximity": proximity_synthesis(presented_checks),
+        "community_profile": _insight_community_profile(demographics, persona, result_dict),
+    }
 
 
 # ---------------------------------------------------------------------------

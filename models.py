@@ -73,6 +73,11 @@ def init_db():
             summary_json  TEXT NOT NULL,
             created_at    TEXT
         );
+        CREATE TABLE IF NOT EXISTS census_cache (
+            cache_key     TEXT PRIMARY KEY,
+            data_json     TEXT NOT NULL,
+            created_at    TEXT
+        );
 
         CREATE TABLE IF NOT EXISTS evaluation_jobs (
             job_id          TEXT PRIMARY KEY,
@@ -764,3 +769,57 @@ def set_weather_cache(cache_key: str, summary_json: str) -> None:
             conn.close()
     except Exception:
         logger.warning("Weather cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Census cache (90-day TTL)
+# ---------------------------------------------------------------------------
+
+_CENSUS_CACHE_TTL_DAYS = 90
+
+
+def get_census_cache(cache_key: str) -> Optional[str]:
+    """Look up cached census data by tract/county key.
+
+    Returns the raw JSON string if found and younger than TTL, else None.
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            row = conn.execute(
+                """SELECT data_json, created_at FROM census_cache
+                   WHERE cache_key = ?""",
+                (cache_key,),
+            ).fetchone()
+            if not row:
+                return None
+            if not _check_cache_ttl(row["created_at"], _CENSUS_CACHE_TTL_DAYS):
+                return None
+            return row["data_json"]
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Census cache lookup failed", exc_info=True)
+        return None
+
+
+def set_census_cache(cache_key: str, data_json: str) -> None:
+    """Store census data in the persistent cache.
+
+    Cache errors are swallowed so they never break an evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            now = datetime.now(timezone.utc).isoformat()
+            conn.execute(
+                """INSERT OR REPLACE INTO census_cache (cache_key, data_json, created_at)
+                   VALUES (?, ?, ?)""",
+                (cache_key, data_json, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning("Census cache write failed", exc_info=True)
