@@ -896,6 +896,9 @@ def _serialize_urban_access(urban_access):
             "drive_time_min": pt.drive_time_min,
             "parking_available": pt.parking_available,
             "frequency_class": pt.frequency_class,
+            "wheelchair_accessible_entrance": pt.wheelchair_accessible_entrance,
+            "elevator_available": pt.elevator_available,
+            "ada_accessibility_note": pt.ada_accessibility_note,
         }
 
     major_hub = None
@@ -1006,6 +1009,24 @@ def result_to_dict(result):
 
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
+
+    # Road noise assessment (NES-193)
+    rna = result.road_noise_assessment
+    if rna is not None:
+        output["road_noise"] = {
+            "worst_road_name": rna.worst_road_name,
+            "worst_road_ref": rna.worst_road_ref,
+            "worst_road_type": rna.worst_road_type,
+            "worst_road_lanes": rna.worst_road_lanes,
+            "distance_ft": rna.distance_ft,
+            "estimated_dba": rna.estimated_dba,
+            "severity": rna.severity.value,
+            "severity_label": rna.severity_label,
+            "methodology_note": rna.methodology_note,
+            "all_roads_assessed": rna.all_roads_assessed,
+        }
+    else:
+        output["road_noise"] = None
 
     # EJScreen block group environmental profile (NES-EJScreen)
     output["ejscreen_profile"] = result.ejscreen_profile
