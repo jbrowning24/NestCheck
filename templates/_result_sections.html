@@ -340,7 +340,7 @@
         <div class="accessibility-attr">
           <span class="accessibility-label">Step-free entrance:</span>
           {% if pt.wheelchair_accessible_entrance is true %}
-            <span class="accessibility-val accessibility-yes">Yes</span>
+            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
           {% elif pt.wheelchair_accessible_entrance is false %}
             <span class="accessibility-val accessibility-no">No</span>
           {% else %}
@@ -350,7 +350,7 @@
         <div class="accessibility-attr">
           <span class="accessibility-label">Elevator:</span>
           {% if pt.elevator_available is true %}
-            <span class="accessibility-val accessibility-yes">Yes</span>
+            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
           {% elif pt.elevator_available is false %}
             <span class="accessibility-val accessibility-no">No</span>
           {% else %}

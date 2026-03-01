@@ -898,6 +898,7 @@ def _serialize_urban_access(urban_access):
             "frequency_class": pt.frequency_class,
             "wheelchair_accessible_entrance": pt.wheelchair_accessible_entrance,
             "elevator_available": pt.elevator_available,
+            "ada_accessibility_note": pt.ada_accessibility_note,
         }
 
     major_hub = None
