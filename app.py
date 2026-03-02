@@ -223,6 +223,8 @@ _SAFETY_CHECK_NAMES = {
     "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
     "Superfund (NPL)",
     "TRI facility",
+    # Phase 1B spatial dataset checks
+    "ust_proximity", "tri_proximity", "hifld_power_lines", "rail_proximity",
 }
 
 _CHECK_SOURCE_GROUP = {
@@ -298,6 +300,11 @@ _CLEAR_HEADLINES = {
     "EJScreen lead paint": "Block group below 80th percentile for lead paint indicator",
     "EJScreen Superfund": "Block group below 80th percentile for Superfund proximity",
     "EJScreen hazardous waste": "Block group below 80th percentile for hazardous waste proximity",
+    # Phase 1B spatial dataset checks
+    "ust_proximity": "No underground storage tank facilities within 500 ft",
+    "tri_proximity": "No EPA toxic release facilities within 1 mile",
+    "hifld_power_lines": "No high-voltage transmission lines within 200 ft",
+    "rail_proximity": "No rail corridors within 1,000 ft",
 }
 
 _ISSUE_HEADLINES = {
@@ -321,6 +328,11 @@ _ISSUE_HEADLINES = {
     "EJScreen lead paint": "Elevated lead paint indicator in this block group",
     "EJScreen Superfund": "Elevated Superfund proximity in this block group",
     "EJScreen hazardous waste": "Elevated hazardous waste proximity in this block group",
+    # Phase 1B spatial dataset checks
+    "ust_proximity": "Underground storage tank facility within proximity threshold",
+    "tri_proximity": "EPA toxic release facility within 1 mile",
+    "hifld_power_lines": "High-voltage transmission line detected nearby",
+    "rail_proximity": "Rail corridor detected nearby",
 }
 
 _WARNING_HEADLINES = {
@@ -339,6 +351,11 @@ _WARNING_HEADLINES = {
     "EJScreen lead paint": "Block group in 80th+ percentile for lead paint indicator",
     "EJScreen Superfund": "Block group in 80th+ percentile for Superfund proximity",
     "EJScreen hazardous waste": "Block group in 80th+ percentile for hazardous waste proximity",
+    # Phase 1B spatial dataset checks
+    "ust_proximity": "Underground storage tank facility within 500 ft",
+    "tri_proximity": "EPA toxic release facility within 1 mile",
+    "hifld_power_lines": "High-voltage transmission line within 200 ft",
+    "rail_proximity": "Rail corridor within 1,000 ft",
 }
 
 # ---------------------------------------------------------------------------
@@ -690,6 +707,120 @@ _HEALTH_CONTEXT = {
             "listed toxic chemicals to air, water, and land. We check for TRI "
             "facilities within 1 mile of the property. No reporting facilities "
             "were found within that radius."
+        ),
+    },
+    # ── Underground Storage Tanks (Phase 1B) ─────────────────────
+    ("ust_proximity", "FAIL"): {
+        "why": (
+            "Underground storage tanks can leak fuel and chemicals into "
+            "surrounding soil and air. Research has found benzene levels "
+            "exceeding safety thresholds within 500 feet of tank vent pipes."
+        ),
+        "regulatory": (
+            "Hilpert et al. (2019) at Columbia and Johns Hopkins found that "
+            "benzene emissions from underground storage tank vent pipes exceeded "
+            "California\u2019s reference exposure level at 160 meters. California "
+            "recommends 300-foot setbacks for large fuel stations; Maryland "
+            "requires 500 feet. NestCheck flags UST facilities within 500 feet "
+            "of your address."
+        ),
+    },
+    ("ust_proximity", "WARNING"): {
+        "why": (
+            "Underground storage tanks can leak fuel and chemicals into "
+            "surrounding soil and air. Research has found benzene levels "
+            "exceeding safety thresholds within 500 feet of tank vent pipes."
+        ),
+        "regulatory": (
+            "Hilpert et al. (2019) at Columbia and Johns Hopkins found that "
+            "benzene emissions from underground storage tank vent pipes exceeded "
+            "California\u2019s reference exposure level at 160 meters. California "
+            "recommends 300-foot setbacks for large fuel stations; Maryland "
+            "requires 500 feet. NestCheck flags UST facilities within 500 feet "
+            "of your address."
+        ),
+    },
+    ("ust_proximity", "PASS"): {
+        "why": (
+            "Underground storage tanks can leak fuel and chemicals into "
+            "surrounding soil and air. Hilpert et al. (2019) found benzene "
+            "emissions from vent pipes exceeded California\u2019s reference exposure "
+            "level at 160 meters. Several states mandate 300\u2013500 foot setbacks. "
+            "This address clears that buffer."
+        ),
+    },
+    # ── Toxic Release Facilities (Phase 1B) ──────────────────────
+    ("tri_proximity", "WARNING"): {
+        "why": (
+            "EPA Toxics Release Inventory facilities report chemical releases "
+            "to air, water, and land. Proximity to these facilities may indicate "
+            "elevated exposure to industrial pollutants."
+        ),
+        "regulatory": (
+            "The EPA Toxics Release Inventory tracks releases of more than 800 "
+            "chemicals from approximately 21,000 facilities nationwide. Risk "
+            "varies significantly by chemical type and release volume. NestCheck "
+            "flags TRI facilities within 1 mile as a prompt for further "
+            "investigation."
+        ),
+    },
+    ("tri_proximity", "PASS"): {
+        "why": (
+            "EPA Toxics Release Inventory facilities report chemical releases "
+            "to air, water, and land. The TRI tracks more than 800 chemicals "
+            "from approximately 21,000 facilities nationwide. This address has "
+            "no TRI facilities within 1 mile."
+        ),
+    },
+    # ── High-Voltage Power Lines / HIFLD (Phase 1B) ──────────────
+    ("hifld_power_lines", "WARNING"): {
+        "why": (
+            "High-voltage transmission lines produce electromagnetic fields "
+            "that decline with distance. The International Agency for Research "
+            "on Cancer classifies EMF as a possible carcinogen, with elevated "
+            "risk observed within 200 feet of lines."
+        ),
+        "regulatory": (
+            "The International Agency for Research on Cancer (IARC) classified "
+            "extremely low frequency electromagnetic fields as Group 2B "
+            "(possibly carcinogenic) in 2002, based on a consistent "
+            "approximately 2x increase in childhood leukemia risk at exposures "
+            "above 0.3\u20130.4 microtesla. EMF from typical transmission lines "
+            "drops to approximately 0.18 microtesla at 200 feet. The evidence "
+            "is moderate and contested \u2014 no biophysical mechanism has been "
+            "established."
+        ),
+    },
+    ("hifld_power_lines", "PASS"): {
+        "why": (
+            "High-voltage transmission lines produce electromagnetic fields "
+            "classified as \u201cpossibly carcinogenic\u201d by IARC. EMF intensity drops "
+            "rapidly with distance, reaching typical background levels by about "
+            "200 feet from the line. This address is outside that proximity zone."
+        ),
+    },
+    # ── Rail Corridor (Phase 1B) ─────────────────────────────────
+    ("rail_proximity", "WARNING"): {
+        "why": (
+            "Freight rail corridors produce noise and vibration that affect "
+            "nearby residents. Rail lines also carry hazardous materials, "
+            "presenting a low-probability but high-consequence risk."
+        ),
+        "regulatory": (
+            "The Federal Railroad Administration and Bureau of Transportation "
+            "Statistics document noise and vibration impacts from rail "
+            "corridors. Freight rail lines carry hazardous materials under "
+            "Department of Transportation regulations. NestCheck flags rail "
+            "corridors within approximately 1,000 feet of your address."
+        ),
+    },
+    ("rail_proximity", "PASS"): {
+        "why": (
+            "Rail corridors produce noise, vibration, and carry hazardous "
+            "materials. The Federal Railroad Administration documents these "
+            "impacts on nearby residents. This address has no rail corridors "
+            "within 1,000 feet."
+>>>>>>> Stashed changes
         ),
     },
 }

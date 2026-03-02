@@ -41,6 +41,7 @@ NestCheck/
 - Add docstrings for public functions
 - No print() in production - use logging
 - All API calls need timeout handling
+- Spatial metadata values may arrive as strings after JSON round-tripping — cast to `float()` before numeric formatting (`:,.0f`)
 
 ## Key Patterns
 
@@ -55,12 +56,37 @@ NestCheck/
 - Always use `timeout=API_REQUEST_TIMEOUT`
 - Handle quota errors gracefully
 
+### Narrative Insights (NES-191+)
+- Insight generators are pure functions: `dict → str | None`. Keep them side-effect-free for testability.
+- Place insight logic in dedicated modules (not `app.py`) — `app.py` is for routes/views.
+- Avoid duplicating utility helpers across modules (e.g., Oxford-comma join) — use a shared module.
+
+### Check Display Metadata (app.py)
+- Each Tier1Check `name` in `property_evaluator.py` needs entries in app.py: `_SAFETY_CHECK_NAMES`, `_CLEAR_HEADLINES`, `_ISSUE_HEADLINES`, `_WARNING_HEADLINES`, `_HEALTH_CONTEXT`.
+- Only add headline entries for result states the check can actually produce. `_build_health_context()` returns `None` silently for missing keys.
+- **Naming split**: Legacy checks use display names (`"Power lines"`, `"Gas station"`). Phase 1B spatial checks use `snake_case` (`"ust_proximity"`, `"hifld_power_lines"`). Match the convention of the source check function.
+- New checks NOT in `_CHECK_SOURCE_GROUP` render individually (not collapsed).
+
+### Data Caches (models.py)
+- Pattern: `get_<name>_cache(key) → Optional[str]` / `set_<name>_cache(key, json) → None`
+- Always swallow cache errors so they never break an evaluation.
+- Each cache table has its own TTL constant (`_<NAME>_CACHE_TTL_DAYS`).
+- Existing caches: weather (30-day), census (90-day).
+
+### Spatial Ingest (startup_ingest.py + scripts/ingest_*.py)
+- `startup_ingest.py` calls `ingest()` directly with keyword args — scripts must accept kwargs, not just argparse.
+- State filter format varies by dataset: 2-letter (`"NY"`) for EJScreen/TRI, full name (`"New York"`) for UST. Always check the upstream API field.
+- ArcGIS bbox filtering: `geometry` (JSON envelope), `geometryType=esriGeometryEnvelope`, `inSR=4326`. Server-side filter.
+- Wiring pattern: lazy-import wrapper → `_table_has_data()` → `_run_ingest()`. One failure never blocks others.
+
 ## Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-02 | DB-backed job queue | Safe with gunicorn workers > 1 |
 | 2026-02 | 25s API timeout | Prevents indefinite hangs |
+| 2026-02 | Census data is informational only | ACS demographics shown as context, never scored — avoids bias in property ratings |
+| 2026-03 | Bbox filter for HIFLD/FRA ingest | Nationwide data (94K+/100K+ rows) too large for 5GB Railway volume; scope to Westchester area |
 
 ## When Unsure
 

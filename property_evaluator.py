@@ -1882,6 +1882,7 @@ def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
         return _unknown
 
 
+<<<<<<< Updated upstream
 def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
     """Check proximity to EPA Toxic Release Inventory (TRI) facilities.
 
@@ -1931,10 +1932,174 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
                 name="TRI facility",
                 result=CheckResult.PASS,
                 details="No EPA TRI facilities within 1 mile",
+=======
+# =============================================================================
+# TIER 1 — SPATIAL DATASET CHECKS (Phase 1B: UST, TRI, HIFLD, FRA)
+# =============================================================================
+
+
+def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check for underground storage tank facilities near the address.
+
+    Benzene exposure risk from vent pipe emissions.
+
+    Evidence basis: Hilpert et al. (2019, Columbia/JHU) found benzene reference
+    level exceeded at 160m. California recommends 300ft setbacks for large
+    stations. Maryland requires 500ft.
+
+    Thresholds:
+      FAIL:    UST facility within 90m (~300ft)
+      WARNING: UST facility within 150m (~500ft)
+      PASS:    No UST facilities within 500ft
+      UNKNOWN: Spatial data unavailable
+    """
+    try:
+        facilities = spatial_store.find_facilities_within(lat, lng, 150, "ust")
+
+        if not facilities:
+            return Tier1Check(
+                name="ust_proximity",
+                result=CheckResult.PASS,
+                details="No underground storage tank facilities within 500 feet",
+                value=None,
+                required=True,
+            )
+
+        nearest = facilities[0]  # sorted by distance ascending
+        meta = nearest.metadata
+        facility_name = meta.get("name", nearest.name)
+        open_usts = meta.get("open_usts")
+        closed_usts = meta.get("closed_usts")
+        status = meta.get("status", "")
+
+        detail_parts = [
+            f"Underground storage tank facility within "
+            f"{nearest.distance_feet:.0f} feet ({facility_name})"
+        ]
+        if open_usts is not None:
+            detail_parts.append(f"{open_usts} open tank(s)")
+        if closed_usts is not None:
+            detail_parts.append(f"{closed_usts} closed tank(s)")
+        if status:
+            detail_parts.append(f"status: {status}")
+        details = " — ".join(detail_parts)
+
+        if nearest.distance_meters <= 90:
+            return Tier1Check(
+                name="ust_proximity",
+                result=CheckResult.FAIL,
+                details=details,
+                value=nearest.distance_meters,
+                required=True,
+            )
+
+        return Tier1Check(
+            name="ust_proximity",
+            result=CheckResult.WARNING,
+            details=details,
+            value=nearest.distance_meters,
+            required=True,
+        )
+
+    except Exception as e:
+        logger.warning("UST proximity check failed: %s", e)
+        return Tier1Check(
+            name="ust_proximity",
+            result=CheckResult.UNKNOWN,
+            details="UST data unavailable",
+            value=None,
+            required=True,
+        )
+
+
+def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check for EPA Toxics Release Inventory facilities within 1 mile.
+
+    TRI tracks 800+ chemicals from ~21,000 facilities. Risk varies by chemical
+    type and release volume. Conservative warning approach — surface the data,
+    let the insight layer contextualize.
+
+    Thresholds:
+      WARNING: TRI facility within 1600m (~1 mile)
+      PASS:    No TRI facilities within 1 mile
+      UNKNOWN: Spatial data unavailable
+    """
+    try:
+        facilities = spatial_store.find_facilities_within(lat, lng, 1600, "tri")
+
+        if not facilities:
+            return Tier1Check(
+                name="tri_proximity",
+                result=CheckResult.PASS,
+                details="No EPA toxic release facilities within 1 mile",
+                value=None,
+                required=True,
+            )
+
+        nearest = facilities[0]
+        meta = nearest.metadata
+        facility_name = meta.get("name", nearest.name)
+        industry_sector = meta.get("industry_sector", "")
+        total_releases_lb = meta.get("total_releases_lb")
+
+        details = (
+            f"EPA toxic release facility within "
+            f"{nearest.distance_miles:.1f} miles ({facility_name}"
+        )
+        if industry_sector:
+            details += f", {industry_sector}"
+        details += ")"
+        if total_releases_lb is not None:
+            try:
+                details += f" — reported {float(total_releases_lb):,.0f} lbs of releases"
+            except (ValueError, TypeError):
+                pass
+
+        return Tier1Check(
+            name="tri_proximity",
+            result=CheckResult.WARNING,
+            details=details,
+            value=nearest.distance_meters,
+            required=True,
+        )
+
+    except Exception as e:
+        logger.warning("TRI proximity check failed: %s", e)
+        return Tier1Check(
+            name="tri_proximity",
+            result=CheckResult.UNKNOWN,
+            details="TRI data unavailable",
+            value=None,
+            required=True,
+        )
+
+
+def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check for high-voltage transmission lines (69kV-765kV) via HIFLD data.
+
+    EMF exposure concern. IARC Group 2B classification ("possibly carcinogenic"),
+    2002. Consistent ~2x childhood leukemia risk at exposures above 0.3-0.4 μT.
+    EMF drops to ~0.18 μT at 200 feet from typical lines.
+
+    Thresholds:
+      WARNING: Transmission line within 60m (~200ft)
+      PASS:    No transmission lines within 200ft
+      UNKNOWN: Spatial data unavailable
+    """
+    try:
+        lines = spatial_store.lines_within(lat, lng, 60, "hifld")
+
+        if not lines:
+            return Tier1Check(
+                name="hifld_power_lines",
+                result=CheckResult.PASS,
+                details="No high-voltage transmission lines within 200 feet",
+>>>>>>> Stashed changes
                 value=None,
                 required=False,
             )
 
+<<<<<<< Updated upstream
         nearest = facilities[0]
         dist_ft = round(nearest.distance_feet)
         facility_name = nearest.name or "Unknown facility"
@@ -1968,6 +2133,93 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
     except Exception:
         logger.warning("TRI facility proximity check failed", exc_info=True)
         return _unknown
+=======
+        nearest = lines[0]
+        meta = nearest.metadata
+        voltage = meta.get("voltage", "")
+        volt_class = meta.get("volt_class", "")
+        voltage_label = f"{voltage}kV" if voltage else volt_class or "unknown voltage"
+
+        return Tier1Check(
+            name="hifld_power_lines",
+            result=CheckResult.WARNING,
+            details=(
+                f"High-voltage transmission line ({voltage_label}) "
+                f"within {nearest.distance_feet:.0f} feet"
+            ),
+            value=nearest.distance_meters,
+            required=False,
+        )
+
+    except Exception as e:
+        logger.warning("HIFLD power lines check failed: %s", e)
+        return Tier1Check(
+            name="hifld_power_lines",
+            result=CheckResult.UNKNOWN,
+            details="HIFLD power line data unavailable",
+            value=None,
+            required=False,
+        )
+
+
+def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
+    """Check for freight rail corridors within 300m (~1,000ft).
+
+    Noise/vibration impact plus probabilistic hazmat transport risk.
+
+    Evidence basis: FRA Safety Data, BTS National Transportation Atlas.
+    Moderate evidence for noise and vibration effects on nearby residents.
+    Rail corridors carry hazardous materials with low-probability/high-consequence
+    risk.
+
+    Thresholds:
+      WARNING: Rail line within 300m (~1,000ft)
+      PASS:    No rail corridors within 1,000ft
+      UNKNOWN: Spatial data unavailable
+    """
+    try:
+        lines = spatial_store.lines_within(lat, lng, 300, "fra")
+
+        if not lines:
+            return Tier1Check(
+                name="rail_proximity",
+                result=CheckResult.PASS,
+                details="No rail corridors within 1,000 feet",
+                value=None,
+                required=False,
+            )
+
+        nearest = lines[0]
+        meta = nearest.metadata
+        owner = meta.get("owner", meta.get("owner2", nearest.name))
+        passenger = meta.get("passenger", "")
+
+        if str(passenger).upper() in ("Y", "YES", "1"):
+            rail_type = "passenger rail"
+        else:
+            rail_type = "freight rail"
+
+        return Tier1Check(
+            name="rail_proximity",
+            result=CheckResult.WARNING,
+            details=(
+                f"Rail corridor within {nearest.distance_feet:.0f} feet "
+                f"({owner}, {rail_type})"
+            ),
+            value=nearest.distance_meters,
+            required=False,
+        )
+
+    except Exception as e:
+        logger.warning("Rail proximity check failed: %s", e)
+        return Tier1Check(
+            name="rail_proximity",
+            result=CheckResult.UNKNOWN,
+            details="Rail proximity data unavailable",
+            value=None,
+            required=False,
+        )
+>>>>>>> Stashed changes
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -4318,6 +4570,52 @@ def evaluate_property(
         result.tier1_checks.extend(
             _check_ejscreen_indicators(ejscreen_data, sems_check)
         )
+
+    # --- UST proximity (Phase 1B — local SpatiaLite) ---
+    try:
+        ust_check = check_ust_proximity(lat, lng, _spatial_store)
+        result.tier1_checks.append(ust_check)
+    except Exception as e:
+        logger.warning("UST proximity check failed: %s", e)
+        result.tier1_checks.append(Tier1Check(
+            name="ust_proximity", result=CheckResult.UNKNOWN,
+            details="UST proximity data unavailable", value=None,
+        ))
+
+    # --- TRI proximity (Phase 1B — local SpatiaLite) ---
+    try:
+        tri_check = check_tri_proximity(lat, lng, _spatial_store)
+        result.tier1_checks.append(tri_check)
+    except Exception as e:
+        logger.warning("TRI proximity check failed: %s", e)
+        result.tier1_checks.append(Tier1Check(
+            name="tri_proximity", result=CheckResult.UNKNOWN,
+            details="TRI proximity data unavailable", value=None,
+        ))
+
+    # --- HIFLD power lines (Phase 1B — local SpatiaLite) ---
+    try:
+        hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
+        result.tier1_checks.append(hifld_check)
+    except Exception as e:
+        logger.warning("HIFLD power lines check failed: %s", e)
+        result.tier1_checks.append(Tier1Check(
+            name="hifld_power_lines", result=CheckResult.UNKNOWN,
+            details="HIFLD power line data unavailable", value=None,
+            required=False,
+        ))
+
+    # --- Rail proximity (Phase 1B — local SpatiaLite) ---
+    try:
+        rail_check = check_rail_proximity(lat, lng, _spatial_store)
+        result.tier1_checks.append(rail_check)
+    except Exception as e:
+        logger.warning("Rail proximity check failed: %s", e)
+        result.tier1_checks.append(Tier1Check(
+            name="rail_proximity", result=CheckResult.UNKNOWN,
+            details="Rail proximity data unavailable", value=None,
+            required=False,
+        ))
 
     # Listing-based checks
     result.tier1_checks.extend(check_listing_requirements(listing))

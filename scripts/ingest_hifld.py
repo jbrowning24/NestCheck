@@ -76,7 +76,7 @@ def _paths_to_multilinestring_wkt(paths: list, decimals: int = 6) -> str | None:
         return None
 
 
-def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
+def fetch_page(offset: int, where_clause: str = "1=1", bbox: str = "") -> dict:
     """Fetch one page of HIFLD transmission line records."""
     params = {
         "where": where_clause,
@@ -87,6 +87,15 @@ def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
         "resultOffset": offset,
         "resultRecordCount": PAGE_SIZE,
     }
+    if bbox:
+        parts = [float(x) for x in bbox.split(",")]
+        params["geometry"] = json.dumps({
+            "xmin": parts[0], "ymin": parts[1],
+            "xmax": parts[2], "ymax": parts[3],
+            "spatialReference": {"wkid": 4326},
+        })
+        params["geometryType"] = "esriGeometryEnvelope"
+        params["inSR"] = "4326"
     for attempt in range(3):
         try:
             resp = requests.get(HIFLD_ENDPOINT, params=params, timeout=90)
@@ -107,7 +116,7 @@ def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
                 raise
 
 
-def ingest(limit_pages: int = 0, discover: bool = False):
+def ingest(limit_pages: int = 0, discover: bool = False, bbox: str = ""):
     """Main ingestion loop."""
 
     if discover:
@@ -134,6 +143,8 @@ def ingest(limit_pages: int = 0, discover: bool = False):
         return
 
     logger.info("Starting HIFLD transmission line ingestion")
+    if bbox:
+        logger.info("  BBOX: %s", bbox)
     if limit_pages:
         logger.info("  LIMIT: %d pages (%d records)", limit_pages, limit_pages * PAGE_SIZE)
 
@@ -151,7 +162,7 @@ def ingest(limit_pages: int = 0, discover: bool = False):
         while True:
             batch_num += 1
             logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
-            data = fetch_page(offset)
+            data = fetch_page(offset, bbox=bbox)
 
             features = data.get("features", [])
             if not features:
@@ -230,7 +241,10 @@ def ingest(limit_pages: int = 0, discover: bool = False):
                 HIFLD_ENDPOINT,
                 datetime.now(timezone.utc).isoformat(),
                 total_inserted,
-                f"LIMIT: {limit_pages} pages" if limit_pages else "full",
+                ", ".join(filter(None, [
+                    f"LIMIT: {limit_pages} pages" if limit_pages else None,
+                    f"BBOX: {bbox}" if bbox else None,
+                ])) or "full",
             ),
         )
         conn.commit()
@@ -279,6 +293,10 @@ if __name__ == "__main__":
         help="Max pages to ingest (0 = all). Each page = 2000 records.",
     )
     parser.add_argument(
+        "--bbox", type=str, default="",
+        help="Bounding box filter: 'min_lng,min_lat,max_lng,max_lat' (e.g., '-74.15,40.75,-73.35,41.45').",
+    )
+    parser.add_argument(
         "--discover", action="store_true",
         help="Print sample record and exit.",
     )
@@ -291,6 +309,6 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True)
     else:
-        ingest(limit_pages=args.limit)
+        ingest(limit_pages=args.limit, bbox=args.bbox)
         if args.verify:
             verify()
