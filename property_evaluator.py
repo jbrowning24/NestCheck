@@ -1882,7 +1882,6 @@ def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
         return _unknown
 
 
-<<<<<<< Updated upstream
 def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
     """Check proximity to EPA Toxic Release Inventory (TRI) facilities.
 
@@ -1932,7 +1931,45 @@ def check_tri_facility_proximity(lat: float, lng: float, spatial_store) -> Tier1
                 name="TRI facility",
                 result=CheckResult.PASS,
                 details="No EPA TRI facilities within 1 mile",
-=======
+                value=None,
+                required=False,
+            )
+
+        nearest = facilities[0]
+        dist_ft = round(nearest.distance_feet)
+        facility_name = nearest.name or "Unknown facility"
+        industry = nearest.metadata.get("industry_sector", "")
+
+        detail_parts = [
+            f"EPA Toxic Release Inventory facility within {dist_ft:,} ft: "
+            f"{facility_name}."
+        ]
+        if industry:
+            detail_parts.append(f"Industry: {industry}.")
+        detail_parts.append(
+            "TRI facilities report annual releases of toxic chemicals to "
+            "air, water, and land."
+        )
+
+        count = len(facilities)
+        if count > 1:
+            detail_parts.append(
+                f"{count} TRI facilities found within 1 mile."
+            )
+
+        return Tier1Check(
+            name="TRI facility",
+            result=CheckResult.WARNING,
+            details=" ".join(detail_parts),
+            value=dist_ft,
+            required=False,
+        )
+
+    except Exception:
+        logger.warning("TRI facility proximity check failed", exc_info=True)
+        return _unknown
+
+
 # =============================================================================
 # TIER 1 — SPATIAL DATASET CHECKS (Phase 1B: UST, TRI, HIFLD, FRA)
 # =============================================================================
@@ -2094,46 +2131,10 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
                 name="hifld_power_lines",
                 result=CheckResult.PASS,
                 details="No high-voltage transmission lines within 200 feet",
->>>>>>> Stashed changes
                 value=None,
                 required=False,
             )
 
-<<<<<<< Updated upstream
-        nearest = facilities[0]
-        dist_ft = round(nearest.distance_feet)
-        facility_name = nearest.name or "Unknown facility"
-        industry = nearest.metadata.get("industry_sector", "")
-
-        detail_parts = [
-            f"EPA Toxic Release Inventory facility within {dist_ft:,} ft: "
-            f"{facility_name}."
-        ]
-        if industry:
-            detail_parts.append(f"Industry: {industry}.")
-        detail_parts.append(
-            "TRI facilities report annual releases of toxic chemicals to "
-            "air, water, and land."
-        )
-
-        count = len(facilities)
-        if count > 1:
-            detail_parts.append(
-                f"{count} TRI facilities found within 1 mile."
-            )
-
-        return Tier1Check(
-            name="TRI facility",
-            result=CheckResult.WARNING,
-            details=" ".join(detail_parts),
-            value=dist_ft,
-            required=False,
-        )
-
-    except Exception:
-        logger.warning("TRI facility proximity check failed", exc_info=True)
-        return _unknown
-=======
         nearest = lines[0]
         meta = nearest.metadata
         voltage = meta.get("voltage", "")
@@ -2219,7 +2220,6 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
             value=None,
             required=False,
         )
->>>>>>> Stashed changes
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:

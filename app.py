@@ -820,7 +820,6 @@ _HEALTH_CONTEXT = {
             "materials. The Federal Railroad Administration documents these "
             "impacts on nearby residents. This address has no rail corridors "
             "within 1,000 feet."
->>>>>>> Stashed changes
         ),
     },
 }
