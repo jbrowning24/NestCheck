@@ -4610,7 +4610,8 @@ def evaluate_property(
     except Exception as e:
         logger.warning("Environmental hazard query failed: %s", e)
 
-    result.tier1_checks.append(check_power_lines(lat, lng, _spatial_store, env_hazards))
+    _power_lines_legacy_result = check_power_lines(lat, lng, _spatial_store, env_hazards)
+    result.tier1_checks.append(_power_lines_legacy_result)
     result.tier1_checks.append(check_substations(env_hazards, lat, lng))
     result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
     result.tier1_checks.append(check_industrial_zones(lat, lng, _spatial_store, env_hazards))
@@ -4622,9 +4623,8 @@ def evaluate_property(
     result.tier1_checks.append(check_superfund_npl(lat, lng))
 
     # TRI facility proximity check (local SpatiaLite — Tier 0 warning)
-    result.tier1_checks.append(
-        check_tri_facility_proximity(lat, lng, _spatial_store)
-    )
+    _tri_legacy_result = check_tri_facility_proximity(lat, lng, _spatial_store)
+    result.tier1_checks.append(_tri_legacy_result)
 
     # EJScreen block group environmental indicators (local SpatiaLite — no API cost)
     ejscreen_data = None
@@ -4655,27 +4655,31 @@ def evaluate_property(
         ))
 
     # --- TRI proximity (Phase 1B — local SpatiaLite) ---
-    try:
-        tri_check = check_tri_proximity(lat, lng, _spatial_store)
-        result.tier1_checks.append(tri_check)
-    except Exception as e:
-        logger.warning("TRI proximity check failed: %s", e)
-        result.tier1_checks.append(Tier1Check(
-            name="tri_proximity", result=CheckResult.UNKNOWN,
-            details="TRI proximity data unavailable", value=None,
-        ))
+    # Skip when the legacy TRI check already produced a result (same data source).
+    if _tri_legacy_result is None:
+        try:
+            tri_check = check_tri_proximity(lat, lng, _spatial_store)
+            result.tier1_checks.append(tri_check)
+        except Exception as e:
+            logger.warning("TRI proximity check failed: %s", e)
+            result.tier1_checks.append(Tier1Check(
+                name="tri_proximity", result=CheckResult.UNKNOWN,
+                details="TRI proximity data unavailable", value=None,
+            ))
 
     # --- HIFLD power lines (Phase 1B — local SpatiaLite) ---
-    try:
-        hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
-        result.tier1_checks.append(hifld_check)
-    except Exception as e:
-        logger.warning("HIFLD power lines check failed: %s", e)
-        result.tier1_checks.append(Tier1Check(
-            name="hifld_power_lines", result=CheckResult.UNKNOWN,
-            details="HIFLD power line data unavailable", value=None,
-            required=False,
-        ))
+    # Skip when the legacy power lines check already produced a result (same data source).
+    if _power_lines_legacy_result is None:
+        try:
+            hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
+            result.tier1_checks.append(hifld_check)
+        except Exception as e:
+            logger.warning("HIFLD power lines check failed: %s", e)
+            result.tier1_checks.append(Tier1Check(
+                name="hifld_power_lines", result=CheckResult.UNKNOWN,
+                details="HIFLD power line data unavailable", value=None,
+                required=False,
+            ))
 
     # --- Rail proximity (Phase 1B — local SpatiaLite) ---
     try:
