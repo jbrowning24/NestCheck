@@ -4653,7 +4653,9 @@ def evaluate_property(
         ))
 
     # --- TRI proximity (Phase 1B — local SpatiaLite) ---
-    # Skip when the legacy TRI check already produced a result (same data source).
+    # Phase 1B TRI check is intentionally suppressed when legacy check ran.
+    # Legacy check_tri_facility_proximity() always returns a Tier1Check (never None),
+    # so this block only executes if the legacy function is removed in a future refactor.
     if _tri_legacy_result is None:
         try:
             tri_check = check_tri_proximity(lat, lng, _spatial_store)
@@ -4666,7 +4668,9 @@ def evaluate_property(
             ))
 
     # --- HIFLD power lines (Phase 1B — local SpatiaLite) ---
-    # Skip when the legacy power lines check already produced a result (same data source).
+    # Phase 1B HIFLD check is intentionally suppressed when legacy check ran.
+    # Legacy check_power_lines() always returns a Tier1Check (never None),
+    # so this block only executes if the legacy function is removed in a future refactor.
     if _power_lines_legacy_result is None:
         try:
             hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
