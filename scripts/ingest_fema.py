@@ -51,7 +51,8 @@ PAGE_SIZE = 2000
 
 # PRD launch metro bounding boxes (lng_min, lat_min, lng_max, lat_max)
 METRO_BBOXES = {
-    "nyc": (-74.3, 40.45, -73.65, 40.95),
+    # NYC metro: five boroughs, northern NJ, and Westchester County up to Putnam border
+    "nyc": (-74.3, 40.45, -73.45, 41.40),
     "sf": (-122.55, 37.65, -122.30, 37.85),
     "chicago": (-87.95, 41.60, -87.50, 42.10),
     "la": (-118.70, 33.65, -117.65, 34.35),

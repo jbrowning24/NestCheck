@@ -50,3 +50,18 @@ def post_fork(server, worker):
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception("Failed to start health monitor: %s", e)
+
+    # Background spatial data check — fast (~100ms) when data exists on volume;
+    # slow (30+ min) on first deploy or volume wipe.  Worker serves requests
+    # immediately; spatial checks degrade to UNKNOWN until data is loaded.
+    def _ensure_spatial():
+        try:
+            from startup_ingest import ensure_spatial_data
+            ensure_spatial_data()
+        except Exception:
+            import logging as _logging
+            _logging.getLogger("nestcheck.startup").exception(
+                "Background spatial ingest failed"
+            )
+
+    threading.Thread(target=_ensure_spatial, daemon=True).start()
