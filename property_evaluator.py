@@ -1994,10 +1994,27 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No UST facilities within 500ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="ust_proximity",
+        result=CheckResult.UNKNOWN,
+        details="UST facility data not available for this area",
+        value=None,
+        required=True,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         facilities = spatial_store.find_facilities_within(lat, lng, 150, "ust")
 
         if not facilities:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="ust_proximity",
                 result=CheckResult.PASS,
@@ -2065,10 +2082,27 @@ def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No TRI facilities within 1 mile
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="tri_proximity",
+        result=CheckResult.UNKNOWN,
+        details="TRI facility data not available for this area",
+        value=None,
+        required=True,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         facilities = spatial_store.find_facilities_within(lat, lng, 1600, "tri")
 
         if not facilities:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="tri_proximity",
                 result=CheckResult.PASS,
@@ -2127,10 +2161,27 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
       PASS:    No transmission lines within 200ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="hifld_power_lines",
+        result=CheckResult.UNKNOWN,
+        details="Transmission line data not available for this area",
+        value=None,
+        required=False,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         lines = spatial_store.lines_within(lat, lng, 60, "hifld")
 
         if not lines:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="hifld_power_lines",
                 result=CheckResult.PASS,
@@ -2182,10 +2233,27 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No rail corridors within 1,000ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="rail_proximity",
+        result=CheckResult.UNKNOWN,
+        details="Rail corridor data not available for this area",
+        value=None,
+        required=False,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         lines = spatial_store.lines_within(lat, lng, 300, "fra")
 
         if not lines:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="rail_proximity",
                 result=CheckResult.PASS,
