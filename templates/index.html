@@ -591,6 +591,12 @@
       }
       // Auto-submit with the payment token + email from Stripe round-trip
       submitEvaluation(returnAddress, paymentToken, returnEmail);
+    } else if (returnAddress) {
+      // Pre-fill address from URL param (e.g. compare → evaluate flow)
+      var addressInput = document.getElementById('address-input');
+      if (addressInput && !addressInput.value) {
+        addressInput.value = returnAddress;
+      }
     }
 
     // If we landed with ?job_id= (e.g. non-JS form POST redirect), start polling

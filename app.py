@@ -2122,12 +2122,67 @@ def export_snapshot_csv(snapshot_id):
     )
 
 
-@app.route("/compare")
+@app.route("/compare", methods=["GET", "POST"])
 def compare():
+    # --- POST: instant health comparison via spatial checks ---
+    if request.method == "POST":
+        addresses_raw = request.form.getlist("address[]")
+        addresses = [a.strip() for a in addresses_raw if a.strip()]
+
+        if len(addresses) < 2:
+            flash("Please enter at least 2 addresses to compare.", "error")
+            return redirect(url_for("compare"))
+        if len(addresses) > 5:
+            addresses = addresses[:5]
+
+        api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+        if not api_key:
+            flash("Google Maps API key not configured.", "error")
+            return redirect(url_for("compare"))
+
+        from health_compare import compare_addresses
+        comparison = compare_addresses(addresses, api_key)
+
+        if not comparison.get("spatial_available"):
+            flash(
+                "Spatial data is still loading. Please try again in a few minutes.",
+                "warning",
+            )
+            return redirect(url_for("compare"))
+
+        # Serialize Tier1Check instances → dicts for present_checks()
+        for result in comparison["results"]:
+            if result.get("checks"):
+                serialized = []
+                for check in result["checks"]:
+                    serialized.append({
+                        "name": check.name,
+                        "result": check.result.value if hasattr(check.result, "value") else check.result,
+                        "details": check.details,
+                        "value": check.value,
+                        "required": getattr(check, "required", True),
+                    })
+                result["presented_checks"] = present_checks(serialized)
+
+        return render_template(
+            "compare_health.html",
+            comparison=comparison,
+            addresses=addresses,
+            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
+            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
+        )
+
+    # --- GET: snapshot-based comparison (existing) or empty form ---
     raw_ids = (request.args.get("ids") or "").strip()
     if not raw_ids:
-        flash("Select at least two addresses", "error")
-        return redirect(url_for("index"))
+        # No snapshot IDs — show the health comparison form
+        return render_template(
+            "compare_health.html",
+            comparison=None,
+            addresses=[],
+            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
+            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
+        )
 
     requested_ids = [part.strip() for part in raw_ids.split(",") if part.strip()]
     deduped_ids = []
