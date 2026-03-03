@@ -1994,10 +1994,27 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No UST facilities within 500ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="ust_proximity",
+        result=CheckResult.UNKNOWN,
+        details="UST facility data not available for this area",
+        value=None,
+        required=True,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         facilities = spatial_store.find_facilities_within(lat, lng, 150, "ust")
 
         if not facilities:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="ust_proximity",
                 result=CheckResult.PASS,
@@ -2065,10 +2082,27 @@ def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No TRI facilities within 1 mile
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="tri_proximity",
+        result=CheckResult.UNKNOWN,
+        details="TRI facility data not available for this area",
+        value=None,
+        required=True,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         facilities = spatial_store.find_facilities_within(lat, lng, 1600, "tri")
 
         if not facilities:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="tri_proximity",
                 result=CheckResult.PASS,
@@ -2127,10 +2161,27 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
       PASS:    No transmission lines within 200ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="hifld_power_lines",
+        result=CheckResult.UNKNOWN,
+        details="Transmission line data not available for this area",
+        value=None,
+        required=False,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         lines = spatial_store.lines_within(lat, lng, 60, "hifld")
 
         if not lines:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="hifld_power_lines",
                 result=CheckResult.PASS,
@@ -2182,10 +2233,27 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
       PASS:    No rail corridors within 1,000ft
       UNKNOWN: Spatial data unavailable
     """
+    _unknown = Tier1Check(
+        name="rail_proximity",
+        result=CheckResult.UNKNOWN,
+        details="Rail corridor data not available for this area",
+        value=None,
+        required=False,
+    )
+
+    if spatial_store is None or not spatial_store.is_available():
+        return _unknown
+
     try:
         lines = spatial_store.lines_within(lat, lng, 300, "fra")
 
         if not lines:
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return _unknown
             return Tier1Check(
                 name="rail_proximity",
                 result=CheckResult.PASS,
@@ -4026,10 +4094,11 @@ def score_provisioning_access(
     """
     try:
         # Search for full-service provisioning stores
-        # Use 3000m radius to share cached results with neighborhood snapshot
+        # 5000m (~3.1 mi) covers car-oriented suburban areas where the
+        # nearest supermarket may be 2-3 miles away.
         all_stores = []
-        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=3000))
-        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=3000))
+        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=5000))
+        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=5000))
         all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
@@ -4046,26 +4115,23 @@ def score_provisioning_access(
         # Filter for household provisioning quality
         eligible_stores = []
         included_types = ["supermarket", "grocery_store", "warehouse_store", "superstore"]
-        excluded_types = ["convenience_store", "gas_station", "pharmacy", "liquor_store", "meal_takeaway", "fast_food"]
 
         for store in all_stores:
             types = store.get("types", [])
 
-            # Must have at least one provisioning type
-            has_provisioning_type = any(t in types for t in included_types)
-            if not has_provisioning_type:
+            # Must have at least one provisioning type.  We intentionally
+            # do NOT exclude by secondary types (pharmacy, gas_station, etc.)
+            # — supermarkets like Stop & Shop often carry these tags and
+            # should not be filtered out.
+            if not any(t in types for t in included_types):
                 continue
 
-            # Must NOT have any excluded type
-            has_excluded_type = any(t in types for t in excluded_types)
-            if has_excluded_type:
-                continue
-
-            # Must meet quality threshold
+            # Must meet quality threshold (loosened for suburban coverage —
+            # walk-time scoring still favours closer, higher-rated options)
             rating = store.get("rating", 0)
             reviews = store.get("user_ratings_total", 0)
 
-            if rating >= 4.0 and reviews >= 50:
+            if rating >= 3.5 and reviews >= 20:
                 eligible_stores.append(store)
 
         if not eligible_stores:
@@ -4542,7 +4608,8 @@ def evaluate_property(
     except Exception as e:
         logger.warning("Environmental hazard query failed: %s", e)
 
-    result.tier1_checks.append(check_power_lines(lat, lng, _spatial_store, env_hazards))
+    _power_lines_legacy_result = check_power_lines(lat, lng, _spatial_store, env_hazards)
+    result.tier1_checks.append(_power_lines_legacy_result)
     result.tier1_checks.append(check_substations(env_hazards, lat, lng))
     result.tier1_checks.append(check_cell_towers(env_hazards, lat, lng))
     result.tier1_checks.append(check_industrial_zones(lat, lng, _spatial_store, env_hazards))
@@ -4554,9 +4621,8 @@ def evaluate_property(
     result.tier1_checks.append(check_superfund_npl(lat, lng))
 
     # TRI facility proximity check (local SpatiaLite — Tier 0 warning)
-    result.tier1_checks.append(
-        check_tri_facility_proximity(lat, lng, _spatial_store)
-    )
+    _tri_legacy_result = check_tri_facility_proximity(lat, lng, _spatial_store)
+    result.tier1_checks.append(_tri_legacy_result)
 
     # EJScreen block group environmental indicators (local SpatiaLite — no API cost)
     ejscreen_data = None
@@ -4587,27 +4653,31 @@ def evaluate_property(
         ))
 
     # --- TRI proximity (Phase 1B — local SpatiaLite) ---
-    try:
-        tri_check = check_tri_proximity(lat, lng, _spatial_store)
-        result.tier1_checks.append(tri_check)
-    except Exception as e:
-        logger.warning("TRI proximity check failed: %s", e)
-        result.tier1_checks.append(Tier1Check(
-            name="tri_proximity", result=CheckResult.UNKNOWN,
-            details="TRI proximity data unavailable", value=None,
-        ))
+    # Skip when the legacy TRI check already produced a result (same data source).
+    if _tri_legacy_result is None:
+        try:
+            tri_check = check_tri_proximity(lat, lng, _spatial_store)
+            result.tier1_checks.append(tri_check)
+        except Exception as e:
+            logger.warning("TRI proximity check failed: %s", e)
+            result.tier1_checks.append(Tier1Check(
+                name="tri_proximity", result=CheckResult.UNKNOWN,
+                details="TRI proximity data unavailable", value=None,
+            ))
 
     # --- HIFLD power lines (Phase 1B — local SpatiaLite) ---
-    try:
-        hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
-        result.tier1_checks.append(hifld_check)
-    except Exception as e:
-        logger.warning("HIFLD power lines check failed: %s", e)
-        result.tier1_checks.append(Tier1Check(
-            name="hifld_power_lines", result=CheckResult.UNKNOWN,
-            details="HIFLD power line data unavailable", value=None,
-            required=False,
-        ))
+    # Skip when the legacy power lines check already produced a result (same data source).
+    if _power_lines_legacy_result is None:
+        try:
+            hifld_check = check_hifld_power_lines(lat, lng, _spatial_store)
+            result.tier1_checks.append(hifld_check)
+        except Exception as e:
+            logger.warning("HIFLD power lines check failed: %s", e)
+            result.tier1_checks.append(Tier1Check(
+                name="hifld_power_lines", result=CheckResult.UNKNOWN,
+                details="HIFLD power line data unavailable", value=None,
+                required=False,
+            ))
 
     # --- Rail proximity (Phase 1B — local SpatiaLite) ---
     try:
