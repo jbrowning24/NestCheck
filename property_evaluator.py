@@ -4094,10 +4094,11 @@ def score_provisioning_access(
     """
     try:
         # Search for full-service provisioning stores
-        # Use 3000m radius to share cached results with neighborhood snapshot
+        # 5000m (~3.1 mi) covers car-oriented suburban areas where the
+        # nearest supermarket may be 2-3 miles away.
         all_stores = []
-        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=3000))
-        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=3000))
+        all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=5000))
+        all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=5000))
         all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
@@ -4124,16 +4125,19 @@ def score_provisioning_access(
             if not has_provisioning_type:
                 continue
 
-            # Must NOT have any excluded type
+            # Exclude secondary-type matches (convenience stores, gas stations,
+            # etc.) ONLY when no provisioning type is present.  A supermarket
+            # with an in-store pharmacy (Stop & Shop) should not be dropped.
             has_excluded_type = any(t in types for t in excluded_types)
-            if has_excluded_type:
+            if has_excluded_type and not has_provisioning_type:
                 continue
 
-            # Must meet quality threshold
+            # Must meet quality threshold (loosened for suburban coverage —
+            # walk-time scoring still favours closer, higher-rated options)
             rating = store.get("rating", 0)
             reviews = store.get("user_ratings_total", 0)
 
-            if rating >= 4.0 and reviews >= 50:
+            if rating >= 3.5 and reviews >= 20:
                 eligible_stores.append(store)
 
         if not eligible_stores:
