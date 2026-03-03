@@ -31,37 +31,33 @@ logger = logging.getLogger(__name__)
 # EJScreen spatial check — reads directly from SpatiaLite
 # ---------------------------------------------------------------------------
 
-# Indicator keys matching what ingest_ejscreen.py stores in metadata_json.
-# Values are raw EPA indicator values (not percentiles).  Thresholds here
-# use the 80th-percentile concept from the spec, but since stored values
-# may be raw counts/concentrations, we compare against the national 80th
-# percentile reference values published by EPA for EJScreen 2024.
-#
-# Reference: EPA EJScreen Technical Documentation, Table 1.
-# These are approximate national 80th-percentile values.
-EJSCREEN_INDICATORS = {
-    "PTRAF": ("Traffic Proximity", 1500),        # vehicles/day / distance
-    "PNPL": ("Superfund Proximity", 0.22),       # site count / distance
-    "PRMP": ("RMP Facility Proximity", 0.75),     # facility count / distance
-    "PTSDF": ("Hazardous Waste Proximity", 3.9),  # facility count / distance
-    "UST": ("Underground Storage Tanks", 6.2),     # count / area
-    "PM25": ("Particulate Matter (PM2.5)", 10.5),  # µg/m³
-    "OZONE": ("Ozone", 43.0),                      # ppb
-    "DSLPM": ("Diesel Particulate Matter", 0.5),   # µg/m³
-    "CANCER": ("Air Toxics Cancer Risk", 30),       # per million
-    "RESP": ("Air Toxics Respiratory Risk", 0.5),   # hazard index
-    "PWDIS": ("Wastewater Discharge", 28),          # toxicity-weighted conc
-    "LEAD": ("Lead Paint Indicator", 0.45),         # % pre-1960 housing
+# Human-readable labels for each EJScreen indicator.
+# The *_PCT keys in metadata_json hold pre-computed national percentiles
+# (0–100) from the EPA EJScreen ArcGIS service.
+_EJSCREEN_LABELS = {
+    "PTRAF": "Traffic Proximity",
+    "PNPL": "Superfund Proximity",
+    "PRMP": "RMP Facility Proximity",
+    "PTSDF": "Hazardous Waste Proximity",
+    "UST": "Underground Storage Tanks",
+    "PM25": "Particulate Matter (PM2.5)",
+    "OZONE": "Ozone",
+    "DSLPM": "Diesel Particulate Matter",
+    "CANCER": "Air Toxics Cancer Risk",
+    "RESP": "Air Toxics Respiratory Risk",
+    "PWDIS": "Wastewater Discharge",
+    "LEAD": "Lead Paint Indicator",
 }
 
 
 def check_ejscreen_spatial(
     lat: float, lng: float, spatial_store: SpatialDataStore,
 ) -> List[Tier1Check]:
-    """Simplified EJScreen check using local SpatiaLite data.
+    """EJScreen check using national percentiles from local SpatiaLite data.
 
     Finds the nearest census block group centroid and flags any
-    environmental indicators above approximate 80th-percentile thresholds.
+    environmental indicators at or above the 80th national percentile.
+    Percentiles >= 95 are annotated as "very high".
 
     Returns a single summary Tier1Check (wrapped in a list for consistency
     with _check_ejscreen_indicators).
@@ -89,24 +85,25 @@ def check_ejscreen_spatial(
     meta = nearest.metadata
 
     elevated: List[str] = []
-    highest_ratio = 0.0
+    highest_pct = 0.0
+    has_percentile_data = False
 
-    for key, (label, threshold_80) in EJSCREEN_INDICATORS.items():
-        raw = meta.get(key)
-        if raw is None:
+    for key, label in _EJSCREEN_LABELS.items():
+        pct_key = f"{key}_PCT"
+        raw_pct = meta.get(pct_key)
+        if raw_pct is None:
             continue
         try:
-            val = float(raw)
+            pct = float(raw_pct)
         except (ValueError, TypeError):
             continue
+        has_percentile_data = True
 
-        if threshold_80 > 0 and val >= threshold_80:
-            ratio = val / threshold_80
-            if ratio > highest_ratio:
-                highest_ratio = ratio
+        if pct >= 80:
+            if pct > highest_pct:
+                highest_pct = pct
             note = label
-            # Flag very-high values (roughly ≥95th percentile — 1.5× the 80th)
-            if ratio >= 1.5:
+            if pct >= 95:
                 note += " (very high)"
             elevated.append(note)
 
@@ -117,7 +114,16 @@ def check_ejscreen_spatial(
             details=(
                 f"Elevated environmental indicators: {', '.join(elevated)}"
             ),
-            value=round(highest_ratio, 2),
+            value=round(highest_pct, 1),
+            required=False,
+        )]
+
+    if not has_percentile_data:
+        return [Tier1Check(
+            name="ejscreen_environmental",
+            result=CheckResult.UNKNOWN,
+            details="EJScreen percentile data unavailable for this location",
+            value=None,
             required=False,
         )]
 

@@ -225,6 +225,8 @@ _SAFETY_CHECK_NAMES = {
     "TRI facility",
     # Phase 1B spatial dataset checks
     "ust_proximity", "tri_proximity", "hifld_power_lines", "rail_proximity",
+    # Health comparison summary check
+    "ejscreen_environmental",
 }
 
 _CHECK_SOURCE_GROUP = {
@@ -305,6 +307,8 @@ _CLEAR_HEADLINES = {
     "tri_proximity": "No EPA toxic release facilities within 1 mile",
     "hifld_power_lines": "No high-voltage transmission lines within 200 ft",
     "rail_proximity": "No rail corridors within 1,000 ft",
+    # Health comparison summary check
+    "ejscreen_environmental": "Environmental indicators within normal ranges",
 }
 
 _ISSUE_HEADLINES = {
@@ -356,6 +360,8 @@ _WARNING_HEADLINES = {
     "tri_proximity": "EPA toxic release facility within 1 mile",
     "hifld_power_lines": "High-voltage transmission line within 200 ft",
     "rail_proximity": "Rail corridor within 1,000 ft",
+    # Health comparison summary check
+    "ejscreen_environmental": "Elevated environmental indicators in this block group",
 }
 
 # ---------------------------------------------------------------------------

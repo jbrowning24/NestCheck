@@ -1281,10 +1281,14 @@ def _query_ejscreen_block_group(
     # find_facilities_within() returns results sorted by distance ascending
     nearest = results[0]
 
-    # Extract only environmental indicator fields
+    # Extract percentile values (_PCT suffix) when available, fall back to
+    # raw indicator values for backwards compatibility with pre-percentile data.
     indicators = {}
     for field_name in EJSCREEN_INDICATOR_FIELDS:
-        value = nearest.metadata.get(field_name)
+        pct_key = f"{field_name}_PCT"
+        value = nearest.metadata.get(pct_key)
+        if value is None:
+            value = nearest.metadata.get(field_name)
         if value is not None:
             try:
                 indicators[field_name] = float(value)

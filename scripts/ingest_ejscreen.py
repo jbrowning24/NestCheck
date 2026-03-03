@@ -123,36 +123,68 @@ def _probe_endpoint() -> str:
 
 
 def _get_indicator_fields(attrs: dict) -> dict:
-    """Extract environmental indicator fields from attributes, handling name variations."""
+    """Extract environmental indicator fields from attributes, handling name variations.
+
+    Returns both raw indicator values (e.g. ``PM25``) and national percentile
+    values (e.g. ``PM25_PCT``) when available.  Percentile columns use the
+    ``P_`` prefix in the EJScreen ArcGIS service and are pre-computed 0–100
+    national percentiles.
+    """
     indicators = {}
-    # Map common field name patterns to standard names
-    field_map = {
-        "PM25": ["PM25", "pm25", "P_PM25"],
-        "OZONE": ["OZONE", "ozone", "P_OZONE"],
-        "DSLPM": ["DSLPM", "dslpm", "P_DSLPM", "DIESEL"],
-        "CANCER": ["CANCER", "cancer", "P_CANCER"],
-        "RESP": ["RESP", "resp", "P_RESP"],
-        "PTRAF": ["PTRAF", "ptraf", "P_PTRAF", "TRAFFIC"],
-        "PNPL": ["PNPL", "pnpl", "P_PNPL", "SUPERFUND"],
-        "PRMP": ["PRMP", "prmp", "P_PRMP", "RMP"],
-        "PTSDF": ["PTSDF", "ptsdf", "P_PTSDF", "TSDF", "HAZWASTE"],
-        "UST": ["UST_RAW", "UST", "ust", "P_UST", "UNDERGRNDSTOR"],
-        "PWDIS": ["PWDIS", "pwdis", "P_PWDIS", "WASTEWATER"],
-        "LEAD": ["PRE1960", "LEAD", "lead", "P_LDPNT", "LEADPAINT"],
+
+    # --- Raw indicator values ---
+    raw_field_map = {
+        "PM25": ["PM25", "pm25"],
+        "OZONE": ["OZONE", "ozone"],
+        "DSLPM": ["DSLPM", "dslpm", "DIESEL"],
+        "CANCER": ["CANCER", "cancer"],
+        "RESP": ["RESP", "resp"],
+        "PTRAF": ["PTRAF", "ptraf", "TRAFFIC"],
+        "PNPL": ["PNPL", "pnpl", "SUPERFUND"],
+        "PRMP": ["PRMP", "prmp", "RMP"],
+        "PTSDF": ["PTSDF", "ptsdf", "TSDF", "HAZWASTE"],
+        "UST": ["UST_RAW", "UST", "ust", "UNDERGRNDSTOR"],
+        "PWDIS": ["PWDIS", "pwdis", "WASTEWATER"],
+        "LEAD": ["PRE1960", "LEAD", "lead", "LEADPAINT"],
         "DEMOGIDX": ["DEMOGIDX_2", "DEMOGIDX", "demogidx"],
     }
-    for std_name, candidates in field_map.items():
+
+    # --- Percentile columns (P_ prefix → stored as <KEY>_PCT) ---
+    pct_field_map = {
+        "PM25_PCT": ["P_PM25"],
+        "OZONE_PCT": ["P_OZONE"],
+        "DSLPM_PCT": ["P_DSLPM"],
+        "CANCER_PCT": ["P_CANCER"],
+        "RESP_PCT": ["P_RESP"],
+        "PTRAF_PCT": ["P_PTRAF"],
+        "PNPL_PCT": ["P_PNPL"],
+        "PRMP_PCT": ["P_PRMP"],
+        "PTSDF_PCT": ["P_PTSDF"],
+        "UST_PCT": ["P_UST"],
+        "PWDIS_PCT": ["P_PWDIS"],
+        "LEAD_PCT": ["P_LDPNT"],
+    }
+
+    def _find_value(candidates):
         for cand in candidates:
             if cand in attrs:
-                indicators[std_name] = attrs[cand]
-                break
+                return attrs[cand]
             # Case-insensitive fallback
             for key in attrs:
                 if key.upper() == cand.upper():
-                    indicators[std_name] = attrs[key]
-                    break
-            if std_name in indicators:
-                break
+                    return attrs[key]
+        return None
+
+    for std_name, candidates in raw_field_map.items():
+        val = _find_value(candidates)
+        if val is not None:
+            indicators[std_name] = val
+
+    for std_name, candidates in pct_field_map.items():
+        val = _find_value(candidates)
+        if val is not None:
+            indicators[std_name] = val
+
     return indicators
 
 

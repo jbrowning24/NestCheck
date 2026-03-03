@@ -27,7 +27,9 @@ The EJScreen ingest (`scripts/ingest_ejscreen.py`) stores raw EPA indicator valu
 
 ## Acceptance criteria
 
-- [ ] Percentile columns stored in spatial.db metadata
-- [ ] Threshold logic uses actual percentiles, not approximate reference values
-- [ ] `ejscreen_environmental` added to `_SAFETY_CHECK_NAMES`, `_CLEAR_HEADLINES`, `_WARNING_HEADLINES` in app.py
+- [x] Percentile columns stored in spatial.db metadata (`_get_indicator_fields()` now extracts `P_*` → `*_PCT` keys)
+- [x] Threshold logic uses actual percentiles, not approximate reference values (`check_ejscreen_spatial()` and `_query_ejscreen_block_group()` updated)
+- [x] `EJSCREEN_INDICATORS` approximate threshold dict removed from `health_compare.py`
+- [x] `ejscreen_environmental` added to `_SAFETY_CHECK_NAMES`, `_CLEAR_HEADLINES`, `_WARNING_HEADLINES` in app.py
+- [ ] Re-ingest EJScreen data with `--state NY` to populate `*_PCT` fields (EPA endpoints currently offline — monitor for restoration)
 - [ ] Verified against 3+ known Westchester addresses with expected EJScreen profiles
