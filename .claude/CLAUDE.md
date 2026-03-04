@@ -42,6 +42,7 @@ NestCheck/
 - No print() in production - use logging
 - All API calls need timeout handling
 - Spatial metadata values may arrive as strings after JSON round-tripping — cast to `float()` before numeric formatting (`:,.0f`)
+- When changing template element IDs, update `smoke_test.py` markers (`LANDING_REQUIRED_MARKERS`, `SNAPSHOT_REQUIRED_MARKERS`) in the same commit. Mismatches cause silent post-deploy smoke test failures.
 
 ## Key Patterns
 
@@ -87,6 +88,7 @@ NestCheck/
 | 2026-02 | 25s API timeout | Prevents indefinite hangs |
 | 2026-02 | Census data is informational only | ACS demographics shown as context, never scored — avoids bias in property ratings |
 | 2026-03 | Bbox filter for HIFLD/FRA ingest | Nationwide data (94K+/100K+ rows) too large for 5GB Railway volume; scope to Westchester area |
+| 2026-03 | `railpack.json` for system deps | Railway uses Railpack (not Nixpacks); `nixpacks.toml` is silently ignored. Runtime apt packages go in `deploy.aptPackages` or `RAILPACK_DEPLOY_APT_PACKAGES` env var |
 
 ## When Unsure
 
