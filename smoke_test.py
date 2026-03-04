@@ -45,7 +45,7 @@ SNAPSHOT_MIN_MARKERS = 2
 
 # Content markers for the landing page
 LANDING_REQUIRED_MARKERS = [
-    'id="address"',           # The address input form
+    'id="address-input"',     # The address input form
     "Evaluate",               # Submit button text
 ]
 
