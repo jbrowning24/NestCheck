@@ -54,7 +54,8 @@ def ensure_spatial_data() -> None:
     Check each spatial dataset and run ingestion for any that are missing.
 
     Acquires an exclusive file lock so only one gunicorn worker performs
-    ingestion. Other workers skip and proceed to start_worker() immediately.
+    ingestion. Other workers block on a shared lock until ingestion finishes,
+    then signal spatial_ready so their evaluation worker can proceed.
     """
     logger.info("Checking spatial data availability...")
 
@@ -77,6 +78,8 @@ def ensure_spatial_data() -> None:
         # spatial DB exists before we signal readiness to our own worker thread.
         logger.info("Another worker is running ingestion, waiting for it to finish...")
         lock_fd.close()
+        # Re-open read-only for shared lock; file may be empty but that's fine
+        # on Linux (fcntl locks work on any valid fd regardless of content).
         lock_fd = open(lock_path, "r")
         try:
             fcntl.flock(lock_fd, fcntl.LOCK_SH)  # blocks until exclusive lock is released
@@ -93,8 +96,8 @@ def ensure_spatial_data() -> None:
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         lock_fd.close()
+        spatial_ready.set()
 
-    spatial_ready.set()
     logger.info("Spatial data check complete")
 
 
