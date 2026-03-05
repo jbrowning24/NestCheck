@@ -2894,7 +2894,7 @@ def find_primary_transit(
     place_lng = place["geometry"]["location"]["lng"]
 
     drive_time = None
-    if walk_time > 30:
+    if walk_time > 20:
         drive_time = maps.driving_time(
             (lat, lng),
             (place_lat, place_lng)
@@ -3984,6 +3984,23 @@ def score_transit_access(
             return 1
         return 0
 
+    def drive_accessibility_points(drive_time: Optional[int]) -> int:
+        """Award partial walkability credit for short drives to transit.
+
+        Capped at 3 so driving never matches the best walking score (4).
+        Designed for car-dependent suburban addresses where driving to a
+        Metro-North station is the practical commute pattern.
+        """
+        if drive_time is None or drive_time >= 9999:
+            return 0
+        if drive_time <= 5:
+            return 3
+        if drive_time <= 10:
+            return 2
+        if drive_time <= 20:
+            return 1
+        return 0
+
     def hub_travel_points(travel_time: Optional[int]) -> int:
         if travel_time is None or travel_time <= 0:
             return 0
@@ -4026,6 +4043,14 @@ def score_transit_access(
 
         walk_points = walkability_points(primary_transit.walk_time_min)
 
+        # Drive-time fallback: for car-dependent addresses where walking
+        # to transit is impractical, award partial credit if driving is
+        # quick.  drive_points is capped at 3 (never matches best walk
+        # score of 4) so walkable properties always score higher.
+        drive_points = drive_accessibility_points(primary_transit.drive_time_min)
+        used_drive_fallback = drive_points > walk_points
+        accessibility_points = max(walk_points, drive_points)
+
         # Use smart heuristic bucket when available, else fall back to
         # the original review-count frequency_class.
         if transit_access and transit_access.frequency_bucket:
@@ -4049,11 +4074,19 @@ def score_transit_access(
         hub_time = major_hub.travel_time_min if major_hub else None
         hub_points = hub_travel_points(hub_time)
 
-        total_points = min(10, walk_points + frequency_points + hub_points)
+        total_points = min(10, accessibility_points + frequency_points + hub_points)
 
+        # Build distance note: show drive time when available
         drive_note = ""
         if primary_transit.drive_time_min:
             drive_note = f" | {primary_transit.drive_time_min} min drive"
+
+        # Annotate when drive fallback actually boosted the score
+        fallback_note = ""
+        if used_drive_fallback:
+            fallback_note = " (drive-accessible)"
+            if primary_transit.parking_available:
+                fallback_note = " (drive-accessible, parking available)"
 
         hub_note = "Hub travel time unavailable"
         if major_hub and hub_time:
@@ -4065,7 +4098,7 @@ def score_transit_access(
             max_points=10,
             details=(
                 f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
-                f"{drive_note} | "
+                f"{drive_note}{fallback_note} | "
                 f"Service: {frequency_label} | "
                 f"Hub: {hub_note}"
             ),
