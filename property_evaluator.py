@@ -4121,11 +4121,13 @@ def score_provisioning_access(
         for store in all_stores:
             types = store.get("types", [])
 
-            # Must have at least one provisioning type.  We intentionally
-            # do NOT exclude by secondary types (pharmacy, gas_station, etc.)
-            # — supermarkets like Stop & Shop often carry these tags and
-            # should not be filtered out.
+            # Must have at least one provisioning type.
             if not any(t in types for t in included_types):
+                continue
+
+            # Exclude gas stations — they sometimes match grocery_store but
+            # are not full-service provisioning options.
+            if "gas_station" in types:
                 continue
 
             # Must meet quality threshold (loosened for suburban coverage —
