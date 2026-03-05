@@ -297,11 +297,17 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 
 def _make_urban(station: str, walk_min: int, *, hub: str | None = None,
-                hub_min: int | None = None, freq_class: str = "") -> dict:
+                hub_min: int | None = None, freq_class: str = "",
+                drive_min: int | None = None,
+                parking: bool | None = None) -> dict:
     """Build a minimal urban access dict."""
     urban = {"primary_transit": {"name": station, "walk_time_min": walk_min}}
     if freq_class:
         urban["primary_transit"]["frequency_class"] = freq_class
+    if drive_min is not None:
+        urban["primary_transit"]["drive_time_min"] = drive_min
+    if parking is not None:
+        urban["primary_transit"]["parking_available"] = parking
     if hub:
         urban["major_hub"] = {"name": hub, "travel_time_min": hub_min}
     return urban
@@ -333,6 +339,50 @@ class TestGettingAroundStrongRail:
         urban = _make_urban("Scarsdale", 8)
         result = _insight_getting_around(urban, None, None, "Peak-Hour", _ga_tier2(8))
         assert "peak-hour" in result.lower()
+
+
+# ---------------------------------------------------------------------------
+# Branch: drive-accessible rail (NES-204)
+# ---------------------------------------------------------------------------
+
+class TestGettingAroundDriveAccessible:
+    """Prose should say 'drive' not 'on foot' for car-dependent addresses."""
+
+    def test_strong_rail_drive_phrasing(self):
+        """Score >= 7 via drive fallback should say 'X-minute drive', not walk."""
+        urban = _make_urban("Croton-Harmon", 45, drive_min=8,
+                            hub="Grand Central", hub_min=55)
+        result = _insight_getting_around(urban, None, None, "peak-hour", _ga_tier2(8))
+        assert "8-minute drive" in result
+        assert "on foot" not in result
+
+    def test_strong_rail_parking_note(self):
+        """When parking is available and drive-accessible, mention it."""
+        urban = _make_urban("Croton-Harmon", 45, drive_min=8, parking=True,
+                            hub="Grand Central", hub_min=55)
+        result = _insight_getting_around(urban, None, None, "peak-hour", _ga_tier2(8))
+        assert "parking available" in result
+
+    def test_moderate_rail_drive_phrasing(self):
+        """Score 4-6 with drive access should show drive time, not walk time."""
+        urban = _make_urban("Brewster", 40, drive_min=12)
+        result = _insight_getting_around(urban, None, None, "hourly", _ga_tier2(5))
+        assert "12 minutes by car" in result
+        assert "40 minutes on foot" not in result
+
+    def test_moderate_rail_drive_with_parking(self):
+        """Moderate score with parking should note it."""
+        urban = _make_urban("Brewster", 40, drive_min=12, parking=True)
+        result = _insight_getting_around(urban, None, None, "hourly", _ga_tier2(5))
+        assert "parking available" in result
+
+    def test_walkable_address_still_says_on_foot(self):
+        """Walk <= 20 should always use 'on foot' phrasing, even if drive_min set."""
+        urban = _make_urban("Scarsdale", 8, drive_min=3,
+                            hub="Grand Central", hub_min=35)
+        result = _insight_getting_around(urban, None, None, "peak-hour", _ga_tier2(8))
+        assert "on foot" in result
+        assert "drive" not in result.lower()
 
 
 # ---------------------------------------------------------------------------

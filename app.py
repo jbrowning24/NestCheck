@@ -1457,10 +1457,27 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
     if has_rail:
         station = urban["primary_transit"]["name"]
         walk_min = urban["primary_transit"].get("walk_time_min")
+        drive_min = urban["primary_transit"].get("drive_time_min")
+        parking = urban["primary_transit"].get("parking_available")
+
+        # Determine if this is a drive-accessible station (walk is impractical
+        # but driving is quick).  Used to shape prose so we don't imply the
+        # commuter would walk 45 minutes.
+        is_drive_accessible = (
+            walk_min is not None
+            and drive_min is not None
+            and walk_min > 20
+            and drive_min <= 20
+        )
 
         if score >= 7:
             # Strong rail
-            parts.append(f"{station} station is {walk_min} minutes on foot")
+            if is_drive_accessible:
+                parts.append(f"{station} station is a {drive_min}-minute drive")
+                if parking:
+                    parts.append(" with parking available")
+            else:
+                parts.append(f"{station} station is {walk_min} minutes on foot")
             if freq_label:
                 parts.append(f", with {freq_label.lower()} service")
             parts.append(".")
@@ -1472,7 +1489,12 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
         elif score >= 4:
             # Moderate rail
             parts.append(f"{station} is the nearest station")
-            if walk_min:
+            if is_drive_accessible:
+                parts.append(f" ({drive_min} minutes by car")
+                if parking:
+                    parts.append(", parking available")
+                parts.append(")")
+            elif walk_min:
                 parts.append(f" ({walk_min} minutes on foot)")
             if freq_label:
                 parts.append(f", but service runs at {freq_label.lower()} frequency")
