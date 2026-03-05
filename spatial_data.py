@@ -102,6 +102,48 @@ class SpatialDataStore:
             self._available = False
             return False
 
+    def has_nearby_data(
+        self,
+        lat: float,
+        lng: float,
+        facility_type: str,
+        radius_km: float = 50.0,
+    ) -> bool:
+        """Check if any data exists within radius_km of the given point.
+
+        Used to distinguish 'no hazard found' (PASS) from 'no data coverage'
+        (UNKNOWN) for partial-coverage datasets like FEMA NFHL.
+        """
+        if not self.is_available():
+            return False
+        table_name = f"facilities_{facility_type}"
+        radius_meters = radius_km * 1000.0
+        try:
+            conn = _connect()
+            try:
+                radius_deg = radius_meters / 80000.0
+                cursor = conn.execute(
+                    f"""
+                    SELECT 1 FROM {table_name}
+                    WHERE ROWID IN (
+                        SELECT ROWID FROM SpatialIndex
+                        WHERE f_table_name = ?
+                        AND f_geometry_column = 'geometry'
+                        AND search_frame = BuildCircleMbr(?, ?, ?, 4326)
+                    )
+                    LIMIT 1
+                    """,
+                    (table_name, lng, lat, radius_deg),
+                )
+                return cursor.fetchone() is not None
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning(
+                "has_nearby_data check failed for %s: %s", facility_type, e
+            )
+            return False
+
     def find_facilities_within(
         self,
         lat: float,

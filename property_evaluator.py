@@ -1562,7 +1562,7 @@ def check_substations(
         return Tier1Check(
             name="Electrical substation",
             result=CheckResult.UNKNOWN,
-            details="Unable to query environmental data",
+            details="OpenStreetMap data temporarily unavailable",
             required=False,
         )
 
@@ -1601,7 +1601,7 @@ def check_cell_towers(
         return Tier1Check(
             name="Cell tower",
             result=CheckResult.UNKNOWN,
-            details="Unable to query environmental data",
+            details="OpenStreetMap data temporarily unavailable",
             required=False,
         )
 
@@ -1761,7 +1761,23 @@ def check_flood_zones(lat: float, lng: float) -> Tier1Check:
         polygons = store.point_in_polygons(lat, lng, "fema_nfhl")
 
         if not polygons:
-            return _unknown
+            # FEMA NFHL has partial coverage (NYC metro only in our dataset).
+            # Distinguish "area covered, no flood zone" from "no data at all".
+            if store.has_nearby_data(lat, lng, "fema_nfhl", radius_km=50):
+                return Tier1Check(
+                    name="Flood zone",
+                    result=CheckResult.PASS,
+                    details="Not in a FEMA Special Flood Hazard Area",
+                    value=None,
+                    required=True,
+                )
+            return Tier1Check(
+                name="Flood zone",
+                result=CheckResult.UNKNOWN,
+                details="FEMA flood data does not cover this area",
+                value=None,
+                required=True,
+            )
 
         # Scan all overlapping polygons — highest severity wins.
         has_high_risk = False
@@ -1850,7 +1866,15 @@ def check_superfund_npl(lat: float, lng: float) -> Tier1Check:
 
         polygons = store.point_in_polygons(lat, lng, "sems")
         if not polygons:
-            return _unknown
+            # SEMS is a national dataset — empty results means no Superfund
+            # site at this location, not missing data coverage.
+            return Tier1Check(
+                name="Superfund (NPL)",
+                result=CheckResult.PASS,
+                details="Not within an EPA Superfund National Priorities List site",
+                value=None,
+                required=True,
+            )
 
         # Filter to NPL sites only (Final F, Proposed P)
         npl_sites = [
@@ -2395,31 +2419,9 @@ def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
             required=is_required
         ))
     
-    # Cost (monthly - rent or estimated)
-    if listing.cost is None:
-        checks.append(Tier1Check(
-            name="Cost",
-            result=CheckResult.UNKNOWN,
-            details="Monthly cost not specified",
-            required=is_required
-        ))
-    elif listing.cost <= COST_MAX:
-        checks.append(Tier1Check(
-            name="Cost",
-            result=CheckResult.PASS,
-            details=f"${listing.cost:,}/month",
-            value=listing.cost,
-            required=is_required
-        ))
-    else:
-        checks.append(Tier1Check(
-            name="Cost",
-            result=CheckResult.FAIL,
-            details=f"${listing.cost:,}/month > ${COST_MAX:,} max",
-            value=listing.cost,
-            required=is_required
-        ))
-    
+    # Cost tier1 check removed — users never provide listing cost data.
+    # Reintroduce when we support listing-data input.
+
     return checks
 
 
@@ -4733,7 +4735,10 @@ def evaluate_property(
             "score_fitness", score_fitness_access, maps, lat, lng)
         result.tier2_scores.append(_fitness_score)
 
-        result.tier2_scores.append(score_cost(listing.cost))
+        # Cost dimension removed — users never provide listing cost data,
+        # so score_cost() always returned 0/10, silently penalising every
+        # evaluation by ~14 percentage points.  Reintroduce when we support
+        # listing-data input.
         result.tier2_scores.append(
             score_road_noise(result.road_noise_assessment)
         )

@@ -1251,6 +1251,20 @@ def result_to_dict(result):
     # Section-level narrative insights (NES-191)
     output["insights"] = generate_insights(output)
 
+    # Cap score band when insight layer says car-dependent — a location
+    # where "most everyday amenities will likely require driving" cannot
+    # be labelled "Strong Daily Fit" or "Exceptional Daily Fit".
+    if output["insights"].get("_car_dependent") and output["score_band"]["css_class"] in (
+        "band-strong", "band-exceptional",
+    ):
+        output["score_band"] = get_score_band(55)  # → "Moderate — Some Trade-offs"
+
+    # Count unresolved safety checks for CTA conditioning (Phase 4)
+    output["unknown_check_count"] = sum(
+        1 for c in output.get("tier1_checks", [])
+        if c.get("result") == "UNKNOWN"
+    )
+
     return output
 
 
@@ -1296,9 +1310,13 @@ def _insight_neighborhood(neighborhood, tier2):
 
     Classifies dimensions into strong (>=7), middling (4-6), and weak (<4)
     buckets, then selects a prose template.
+
+    Returns a dict with:
+      - text: str | None — the insight prose
+      - car_dependent: bool — True when all 4 neighbourhood dimensions < 4
     """
     if not neighborhood or not tier2:
-        return None
+        return {"text": None, "car_dependent": False}
 
     # Build per-dimension info: {dim_name: {score, label, place_key, places}}
     dims = []
@@ -1316,7 +1334,7 @@ def _insight_neighborhood(neighborhood, tier2):
         })
 
     if not dims:
-        return None
+        return {"text": None, "car_dependent": False}
 
     # Classify
     strong = [d for d in dims if d["score"] >= 7]
@@ -1345,22 +1363,22 @@ def _insight_neighborhood(neighborhood, tier2):
         else:
             parts.append(f"This area excels at {lead_label}")
         parts.append(f" \u2014 and {_join_labels(others)} are all within easy reach too.")
-        return "".join(parts)
+        return {"text": "".join(parts), "car_dependent": False}
 
-    # Branch: all weak (all < 4)
+    # Branch: all weak (all < 4) — car-dependent location
     if len(weak) == 4:
         # Check if any places exist at all
         any_places = any(d["places"] for d in weak)
         if not any_places:
-            return "We didn't find nearby options for everyday amenities in this area."
+            return {"text": "We didn't find nearby options for everyday amenities in this area.", "car_dependent": True}
         # Places exist but are far
-        return "Most everyday amenities will likely require driving from this location."
+        return {"text": "Most everyday amenities will likely require driving from this location.", "car_dependent": True}
 
     # Branch: all middling (all 4-6)
     if len(middling) == 4:
         labels = [d["label"] for d in middling]
         lead_name = lead_place_name or "Everyday amenities"
-        return f"{lead_name} and other essentials are within reach \u2014 {_join_labels(labels)} are all accessible, though none stand out as a particular strength."
+        return {"text": f"{lead_name} and other essentials are within reach \u2014 {_join_labels(labels)} are all accessible, though none stand out as a particular strength.", "car_dependent": False}
 
     # Branch: mixed — has both strong and weak
     if strong and weak:
@@ -1386,15 +1404,15 @@ def _insight_neighborhood(neighborhood, tier2):
         else:
             weakness = f" On the other hand, {_join_labels(weak_labels)} may require more effort to reach."
 
-        return lead_sentence + weakness
+        return {"text": lead_sentence + weakness, "car_dependent": False}
 
     # Branch: has strong dims, rest are middling (no weak)
     if strong and middling and not weak:
         lead_label = lead["label"]
         others = [d["label"] for d in dims if d["name"] != lead["name"]]
         if lead_place_name:
-            return f"{lead_place_name} ({lead_label}) is a standout nearby \u2014 and {_join_labels(others)} are all accessible too."
-        return f"This area excels at {lead_label} \u2014 and {_join_labels(others)} are all accessible too."
+            return {"text": f"{lead_place_name} ({lead_label}) is a standout nearby \u2014 and {_join_labels(others)} are all accessible too.", "car_dependent": False}
+        return {"text": f"This area excels at {lead_label} \u2014 and {_join_labels(others)} are all accessible too.", "car_dependent": False}
 
     # Branch: no strong, middling + weak
     if not strong and middling and weak:
@@ -1414,9 +1432,9 @@ def _insight_neighborhood(neighborhood, tier2):
         else:
             weakness = f" But {_join_labels(weak_labels)} may require more effort to reach."
 
-        return lead_sentence + weakness
+        return {"text": lead_sentence + weakness, "car_dependent": False}
 
-    return None
+    return {"text": None, "car_dependent": False}
 
 
 def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
@@ -1791,14 +1809,17 @@ def generate_insights(result_dict):
     demographics = result_dict.get("demographics")
     persona = result_dict.get("persona")
 
+    neighborhood_insight = _insight_neighborhood(neighborhood, tier2)
+
     return {
-        "your_neighborhood": _insight_neighborhood(neighborhood, tier2),
+        "your_neighborhood": neighborhood_insight["text"],
         "getting_around": _insight_getting_around(
             urban_access, transit_access, walk_scores, freq_label, tier2,
         ),
         "parks": _insight_parks(green_escape, tier2),
         "proximity": proximity_synthesis(presented_checks),
         "community_profile": _insight_community_profile(demographics, persona, result_dict),
+        "_car_dependent": neighborhood_insight["car_dependent"],
     }
 
 

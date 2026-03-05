@@ -768,14 +768,15 @@ class TestCheckSuperfundNpl:
         assert result.result == CheckResult.UNKNOWN
         assert result.name == "Superfund (NPL)"
 
-    def test_empty_polygons_returns_unknown(self):
+    def test_empty_polygons_returns_pass(self):
+        """SEMS is a national dataset — empty results means no Superfund site."""
         with patch("property_evaluator.SpatialDataStore") as mock_store_cls:
             mock_store = MagicMock()
             mock_store.is_available.return_value = True
             mock_store.point_in_polygons.return_value = []
             mock_store_cls.return_value = mock_store
             result = check_superfund_npl(40.0, -74.0)
-        assert result.result == CheckResult.UNKNOWN
+        assert result.result == CheckResult.PASS
 
     def test_npl_final_site_returns_fail(self):
         from spatial_data import FacilityRecord
@@ -1016,21 +1017,12 @@ class TestCheckListingRequirements:
         br = next(c for c in checks if c.name == "Bedrooms")
         assert br.result == CheckResult.PASS
 
-    def test_cost_over_max_fails(self):
-        listing = self._listing(cost=COST_MAX + 1)
-        checks = check_listing_requirements(listing)
-        cost = next(c for c in checks if c.name == "Cost")
-        assert cost.result == CheckResult.FAIL
-
-    def test_cost_at_max_passes(self):
-        listing = self._listing(cost=COST_MAX)
-        checks = check_listing_requirements(listing)
-        cost = next(c for c in checks if c.name == "Cost")
-        assert cost.result == CheckResult.PASS
-
-    def test_returns_five_checks(self):
+    def test_returns_four_checks(self):
+        """Cost tier1 check was removed (users never provide cost data)."""
         checks = check_listing_requirements(self._listing())
-        assert len(checks) == 5
+        assert len(checks) == 4
+        names = {c.name for c in checks}
+        assert "Cost" not in names
 
 
 # ============================================================================

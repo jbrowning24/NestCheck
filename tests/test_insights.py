@@ -2,7 +2,9 @@
 
 Each test targets one classification branch using synthetic input dicts
 — no API calls or mocking needed.  All insight functions are pure:
-dict in → string (or None) out.
+dict in → dict/string (or None) out.
+
+_insight_neighborhood returns {"text": str|None, "car_dependent": bool}.
 """
 
 from app import (
@@ -67,17 +69,20 @@ class TestAllStrong:
     def test_output_mentions_lead_and_others(self):
         neighborhood, tier2 = _build_inputs(9, 8, 7, 7)
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "Blue Bottle" in result  # lead (highest score)
-        assert "grocery stores" in result
-        assert "gyms and fitness options" in result
-        assert "parks and green spaces" in result
+        text = result["text"]
+        assert text is not None
+        assert "Blue Bottle" in text  # lead (highest score)
+        assert "grocery stores" in text
+        assert "gyms and fitness options" in text
+        assert "parks and green spaces" in text
+        assert result["car_dependent"] is False
 
     def test_no_duplicate_labels(self):
         neighborhood, tier2 = _build_inputs(9, 8, 7, 7)
         result = _insight_neighborhood(neighborhood, tier2)
+        text = result["text"]
         # Lead label should appear only in the lead clause, not the "also" clause
-        parts = result.split("\u2014")  # split on em-dash
+        parts = text.split("\u2014")  # split on em-dash
         assert "cafés" not in parts[1] if len(parts) > 1 else True
 
 
@@ -95,8 +100,10 @@ class TestAllWeakWithPlaces:
             parks_places=[_make_place("Far Park", 26)],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "driving" in result.lower()
+        text = result["text"]
+        assert text is not None
+        assert "driving" in text.lower()
+        assert result["car_dependent"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -113,8 +120,10 @@ class TestAllWeakNoPlaces:
             parks_places=[],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "didn't find" in result.lower()
+        text = result["text"]
+        assert text is not None
+        assert "didn't find" in text.lower()
+        assert result["car_dependent"] is True
 
 
 # ---------------------------------------------------------------------------
@@ -127,24 +136,25 @@ class TestOneStandoutRestMiddling:
         'grocery' must not appear in the second sentence."""
         neighborhood, tier2 = _build_inputs(5, 9, 4)
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
+        text = result["text"]
+        assert text is not None
         # Lead sentence mentions grocery by label
-        assert "grocery" in result.lower()
+        assert "grocery" in text.lower()
         # The label should appear exactly once (in the lead sentence)
-        assert result.lower().count("grocery") == 1
+        assert text.lower().count("grocery") == 1
 
     def test_other_dims_present(self):
         """All non-lead dims (coffee, fitness, parks) in second sentence."""
         neighborhood, tier2 = _build_inputs(5, 9, 4)
-        result = _insight_neighborhood(neighborhood, tier2)
-        assert "cafés and social spots" in result.lower()
-        assert "gyms and fitness options" in result.lower()
-        assert "parks and green spaces" in result.lower()
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
+        assert "cafés and social spots" in text.lower()
+        assert "gyms and fitness options" in text.lower()
+        assert "parks and green spaces" in text.lower()
 
     def test_lead_place_name_in_output(self):
         neighborhood, tier2 = _build_inputs(5, 9, 4)
-        result = _insight_neighborhood(neighborhood, tier2)
-        assert "Trader Joe's" in result
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
+        assert "Trader Joe's" in text
 
 
 # ---------------------------------------------------------------------------
@@ -156,19 +166,20 @@ class TestTwoStrongRestMiddling:
         """All four dimension labels must appear in the output."""
         neighborhood, tier2 = _build_inputs(8, 9, 5)
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
+        text = result["text"]
+        assert text is not None
         # Lead is grocery (score 9)
-        assert "Trader Joe's" in result
+        assert "Trader Joe's" in text
         # Remaining strong (coffee) and middling (fitness, parks) all in output
-        assert "cafés and social spots" in result.lower()
-        assert "gyms and fitness options" in result.lower()
-        assert "parks and green spaces" in result.lower()
+        assert "cafés and social spots" in text.lower()
+        assert "gyms and fitness options" in text.lower()
+        assert "parks and green spaces" in text.lower()
 
     def test_lead_not_in_others(self):
         neighborhood, tier2 = _build_inputs(8, 9, 5)
-        result = _insight_neighborhood(neighborhood, tier2)
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
         # "grocery" should appear once (lead sentence), not in the others list
-        assert result.lower().count("grocery") == 1
+        assert text.lower().count("grocery") == 1
 
 
 # ---------------------------------------------------------------------------
@@ -182,21 +193,23 @@ class TestMixedStrongAndWeak:
             grocery_places=[_make_place("Distant Grocery", 20)],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
+        text = result["text"]
+        assert text is not None
         # Strength lead
-        assert "Blue Bottle" in result
+        assert "Blue Bottle" in text
         # Weakness hedge
-        assert "grocery" in result.lower()
+        assert "grocery" in text.lower()
+        assert result["car_dependent"] is False
 
     def test_no_duplicate_dim_in_both_sentences(self):
         neighborhood, tier2 = _build_inputs(
             8, 2, 5,
             grocery_places=[_make_place("Distant Grocery", 20)],
         )
-        result = _insight_neighborhood(neighborhood, tier2)
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
         # "café" label should not appear in the weakness sentence
-        assert "on the other hand" in result.lower()
-        parts = result.lower().split("on the other hand")
+        assert "on the other hand" in text.lower()
+        parts = text.lower().split("on the other hand")
         assert "café" not in parts[1]
 
     def test_weak_with_no_places(self):
@@ -205,8 +218,9 @@ class TestMixedStrongAndWeak:
             grocery_places=[],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "didn't find" in result.lower()
+        text = result["text"]
+        assert text is not None
+        assert "didn't find" in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -220,11 +234,12 @@ class TestNoStrongMiddlingAndWeak:
             grocery_places=[_make_place("Distant Grocery", 22)],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
+        text = result["text"]
+        assert text is not None
         # Middling lead (coffee, highest middling)
-        assert "Blue Bottle" in result
+        assert "Blue Bottle" in text
         # Weakness — grocery is the only weak dim (score 2)
-        assert "grocery" in result.lower()
+        assert "grocery" in text.lower()
 
     def test_weak_no_places(self):
         neighborhood, tier2 = _build_inputs(
@@ -232,8 +247,9 @@ class TestNoStrongMiddlingAndWeak:
             grocery_places=[],
         )
         result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "didn't find" in result.lower()
+        text = result["text"]
+        assert text is not None
+        assert "didn't find" in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -243,17 +259,17 @@ class TestNoStrongMiddlingAndWeak:
 class TestAllMiddling:
     def test_generic_phrasing(self):
         neighborhood, tier2 = _build_inputs(5, 5, 5, 5)
-        result = _insight_neighborhood(neighborhood, tier2)
-        assert result is not None
-        assert "within reach" in result.lower()
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
+        assert text is not None
+        assert "within reach" in text.lower()
 
     def test_mentions_all_labels(self):
         neighborhood, tier2 = _build_inputs(5, 5, 5, 5)
-        result = _insight_neighborhood(neighborhood, tier2)
-        assert "cafés and social spots" in result.lower()
-        assert "grocery stores" in result.lower()
-        assert "gyms and fitness options" in result.lower()
-        assert "parks and green spaces" in result.lower()
+        text = _insight_neighborhood(neighborhood, tier2)["text"]
+        assert "cafés and social spots" in text.lower()
+        assert "grocery stores" in text.lower()
+        assert "gyms and fitness options" in text.lower()
+        assert "parks and green spaces" in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -261,11 +277,15 @@ class TestAllMiddling:
 # ---------------------------------------------------------------------------
 
 class TestEdgeCases:
-    def test_empty_neighborhood_returns_none(self):
-        assert _insight_neighborhood({}, {}) is None
+    def test_empty_neighborhood_returns_none_text(self):
+        result = _insight_neighborhood({}, {})
+        assert result["text"] is None
+        assert result["car_dependent"] is False
 
-    def test_none_neighborhood_returns_none(self):
-        assert _insight_neighborhood(None, {}) is None
+    def test_none_neighborhood_returns_none_text(self):
+        result = _insight_neighborhood(None, {})
+        assert result["text"] is None
+        assert result["car_dependent"] is False
 
 
 # ===========================================================================
@@ -601,16 +621,19 @@ class TestParksEdgeCases:
 # ===========================================================================
 
 class TestGenerateInsights:
-    def test_returns_all_five_keys(self):
+    def test_returns_all_expected_keys(self):
         result = generate_insights({})
-        assert set(result.keys()) == {
+        assert {
             "your_neighborhood", "getting_around", "parks", "proximity",
-            "community_profile",
-        }
+            "community_profile", "_car_dependent",
+        }.issubset(set(result.keys()))
 
-    def test_empty_input_returns_all_none(self):
+    def test_empty_input_returns_none_insights(self):
         result = generate_insights({})
-        assert all(v is None for v in result.values())
+        for key in ("your_neighborhood", "getting_around", "parks", "proximity",
+                     "community_profile"):
+            assert result[key] is None
+        assert result["_car_dependent"] is False
 
     def test_populated_input_produces_strings(self):
         """A fully populated result_dict should yield non-None strings."""

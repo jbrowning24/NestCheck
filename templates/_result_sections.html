@@ -127,12 +127,15 @@
   {# ── CONTEXTUAL SHARE PROMPT (snapshot only — NES-123) ──── #}
   {% if is_snapshot is defined and is_snapshot %}
   {% set band = result.score_band.css_class if result.score_band is mapping else '' %}
+  {% set unresolved = result.unknown_check_count|default(0) > 0 %}
   <div class="share-prompt {{ band }}">
     <div class="share-prompt-text">
-      {% if band == 'band-exceptional' %}
+      {% if unresolved %}
+        Some safety checks could not be verified — review the details and decide if this address is worth a closer look.
+      {% elif band == 'band-exceptional' %}
         This property is a standout — share this report with your household.
       {% elif band == 'band-strong' %}
-        This property looks promising — send it to someone who should see it.
+        A strong evaluation — share this report and discuss the details.
       {% elif band == 'band-moderate' %}
         Considering this property? Share the evaluation and talk it over.
       {% elif band == 'band-limited' %}
