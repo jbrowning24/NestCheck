@@ -4117,6 +4117,11 @@ def score_provisioning_access(
         # Filter for household provisioning quality
         eligible_stores = []
         included_types = ["supermarket", "grocery_store", "warehouse_store", "superstore"]
+        # Exclude non-provisioning places that sometimes carry a
+        # grocery_store or supermarket tag (aligned with the
+        # NeighborhoodSnapshot filter in _collect_neighborhood_snapshot).
+        excluded_types = ["convenience_store", "gas_station", "pharmacy",
+                          "liquor_store", "meal_takeaway", "fast_food"]
 
         for store in all_stores:
             types = store.get("types", [])
@@ -4125,9 +4130,7 @@ def score_provisioning_access(
             if not any(t in types for t in included_types):
                 continue
 
-            # Exclude gas stations — they sometimes match grocery_store but
-            # are not full-service provisioning options.
-            if "gas_station" in types:
+            if any(t in types for t in excluded_types):
                 continue
 
             # Must meet quality threshold (loosened for suburban coverage —
