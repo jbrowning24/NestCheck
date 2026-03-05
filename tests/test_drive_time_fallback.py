@@ -136,6 +136,14 @@ class TestDriveTimeFallback(unittest.TestCase):
         # 0 walk + 2 freq + 3 hub = 5
         self.assertEqual(result.points, 5)
 
+    def test_none_drive_time_no_type_error(self):
+        """drive_time_min=None must not raise TypeError on numeric comparison."""
+        ua = _make_urban_access(walk_time_min=45, drive_time_min=None)
+        # Should not raise — None guard must short-circuit before <= comparison
+        result = score_transit_access(_mock_client(), 41.0, -73.8, urban_access=ua)
+        self.assertEqual(result.points, 6)  # 1 walk + 2 freq + 3 hub
+        self.assertNotIn("drive-accessible", result.details)
+
 
 class TestDriveTimeThreshold(unittest.TestCase):
     """Verify find_primary_transit computes drive_time when walk > 20 min."""

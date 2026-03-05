@@ -384,6 +384,15 @@ class TestGettingAroundDriveAccessible:
         assert "on foot" in result
         assert "drive" not in result.lower()
 
+    def test_none_drive_time_no_crash(self):
+        """drive_time_min=None must not raise TypeError on comparison."""
+        urban = _make_urban("Wassaic", 45, drive_min=None,
+                            hub="Grand Central", hub_min=55)
+        result = _insight_getting_around(urban, None, None, "limited", _ga_tier2(2))
+        assert "drive" not in result or "driving" in result.lower()
+        # Should fall through to weak-rail "Plan on driving" branch
+        assert "Plan on driving" in result
+
 
 # ---------------------------------------------------------------------------
 # Branch: moderate rail (score 4-6)
