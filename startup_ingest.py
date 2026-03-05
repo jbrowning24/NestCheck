@@ -14,11 +14,17 @@ import fcntl
 import logging
 import os
 import sqlite3
+import threading
 import time
 
 from spatial_data import _spatial_db_path
 
 logger = logging.getLogger("nestcheck.startup_ingest")
+
+# Event signalling that spatial data is ready (or ingestion was attempted).
+# The evaluation worker waits on this before processing its first job so that
+# spatial health checks don't return UNKNOWN due to a race with ingestion.
+spatial_ready = threading.Event()
 
 # Warn (but don't kill) if a single ingest exceeds this threshold
 _INGEST_WARN_SECONDS = 300  # 5 minutes
@@ -67,8 +73,19 @@ def ensure_spatial_data() -> None:
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        logger.info("Another worker is running ingestion, skipping")
+        # Another worker holds the lock — wait for it to finish so that the
+        # spatial DB exists before we signal readiness to our own worker thread.
+        logger.info("Another worker is running ingestion, waiting for it to finish...")
         lock_fd.close()
+        lock_fd = open(lock_path, "r")
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_SH)  # blocks until exclusive lock is released
+            logger.info("Other worker's ingestion finished, spatial data should be ready")
+        except OSError:
+            logger.warning("Failed to wait for ingestion lock, proceeding anyway")
+        finally:
+            lock_fd.close()
+        spatial_ready.set()
         return
 
     try:
@@ -77,6 +94,7 @@ def ensure_spatial_data() -> None:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         lock_fd.close()
 
+    spatial_ready.set()
     logger.info("Spatial data check complete")
 
 

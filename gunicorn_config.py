@@ -52,8 +52,8 @@ def post_fork(server, worker):
         logging.getLogger(__name__).exception("Failed to start health monitor: %s", e)
 
     # Background spatial data check — fast (~100ms) when data exists on volume;
-    # slow (30+ min) on first deploy or volume wipe.  Worker serves requests
-    # immediately; spatial checks degrade to UNKNOWN until data is loaded.
+    # slow (30+ min) on first deploy or volume wipe.  Worker waits for the
+    # spatial_ready event before processing jobs (up to 10 min timeout).
     def _ensure_spatial():
         try:
             from startup_ingest import ensure_spatial_data
@@ -63,5 +63,9 @@ def post_fork(server, worker):
             _logging.getLogger("nestcheck.startup").exception(
                 "Background spatial ingest failed"
             )
+            # Signal readiness even on failure so the worker doesn't block
+            # indefinitely — spatial checks will degrade to UNKNOWN gracefully.
+            from startup_ingest import spatial_ready
+            spatial_ready.set()
 
     threading.Thread(target=_ensure_spatial, daemon=True).start()

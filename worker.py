@@ -216,9 +216,29 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         clear_trace()
 
 
+_SPATIAL_READY_TIMEOUT = 600  # max seconds to wait for spatial data on startup
+
+
 def _worker_loop() -> None:
     """Loop: claim next job, run it, repeat until stop event is set."""
     logger.info("[worker] Evaluation worker thread started")
+
+    # Wait for spatial data ingestion to finish so health checks don't return
+    # UNKNOWN.  The timeout prevents indefinite blocking if ingestion hangs.
+    try:
+        from startup_ingest import spatial_ready
+        if not spatial_ready.is_set():
+            logger.info("[worker] Waiting for spatial data before processing jobs...")
+            if spatial_ready.wait(timeout=_SPATIAL_READY_TIMEOUT):
+                logger.info("[worker] Spatial data ready, starting job processing")
+            else:
+                logger.warning(
+                    "[worker] Spatial data not ready after %ds, starting job processing anyway",
+                    _SPATIAL_READY_TIMEOUT,
+                )
+    except Exception:
+        logger.exception("[worker] Failed to check spatial readiness, proceeding")
+
     while not _stop_event.is_set():
         job = claim_next_job()
         if job:
