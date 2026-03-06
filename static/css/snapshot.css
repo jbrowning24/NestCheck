@@ -203,6 +203,7 @@
     top: 80px;
     align-self: start;
     max-height: calc(100vh - 100px);
+    max-height: calc(100dvh - 100px);
     overflow-y: auto;
   }
   .report-map-inline {

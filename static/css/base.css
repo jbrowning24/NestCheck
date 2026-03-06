@@ -15,6 +15,9 @@ body {
   background-color: var(--color-bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Ensure Safari mobile URL bar can properly show/hide */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 h1, h2, h3, h4 {
@@ -90,6 +93,7 @@ footer {
   background: var(--color-brand);
   color: #e0e0e0;
   padding: var(--space-md) var(--space-lg);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   font-size: var(--font-size-cookie);
   z-index: 9999;
   align-items: center;

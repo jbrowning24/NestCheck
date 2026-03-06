@@ -99,6 +99,12 @@ NestCheck/
 | 2026-03 | NYSED data as bundled CSV | NYSED publishes bulk data as Access DBs only (no API). Curated CSV for ~40 Westchester districts is pragmatic; refresh annually after Report Card release (~Dec) |
 | 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
 
+### Safari Mobile / Viewport (iOS)
+- `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
+- Never use bare `100vh` for layout heights; always add a `100dvh` override on the next line. Safari iOS `100vh` includes the URL bar's hidden space, which breaks scroll detection and makes the address bar stick in its collapsed state.
+- Fixed-position elements pinned to `bottom: 0` must include `padding-bottom: calc(<normal> + env(safe-area-inset-bottom, 0px))` so they clear Safari's bottom bar and home indicator. Currently applied to: cookie banner (`base.css`), compare tray (`_compare_tray.html`).
+- When adding new `position: fixed; bottom: 0` elements, follow the same `env()` pattern.
+
 ## When Unsure
 
 - Ask clarifying questions before implementing
