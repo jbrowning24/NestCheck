@@ -33,8 +33,10 @@
      band_class: CSS class for band colouring, e.g. "band-exceptional".
      size_class: Wrapper CSS class controlling dimensions.
                  "score-ring-container" (main) or "rail-score-ring" (rail).
+     show_value: If True (default), show numeric score in the ring center.
+                 Set to False to use the ring as a pure colour gauge.
    ── #}
-{% macro score_ring(score, band_class='', size_class='score-ring-container') %}
+{% macro score_ring(score, band_class='', size_class='score-ring-container', show_value=True) %}
 {% set pct = score / 100 %}
 {% set circ = 251.33 %}
 <div class="{{ size_class }} {{ band_class }}">
@@ -48,7 +50,9 @@
             stroke-linecap="round"
             transform="rotate(-90 50 50)" />
   </svg>
+  {% if show_value %}
   <div class="score-ring-value">{{ score }}</div>
+  {% endif %}
 </div>
 {% endmacro %}
 
