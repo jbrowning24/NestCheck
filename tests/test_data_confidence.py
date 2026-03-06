@@ -6,6 +6,7 @@ Tests cover:
   - _classify_transit_confidence: with/without transit data
   - _classify_park_confidence: OSM-enriched vs estimated
   - _classify_cost_confidence: provided vs missing cost
+  - _apply_confidence_cap: score capping by confidence level
   - Tier2Score / DimensionResult confidence fields
   - Serialization in result_to_dict() and aggregate confidence
 """
@@ -20,6 +21,8 @@ from property_evaluator import (
     _classify_transit_confidence,
     _classify_park_confidence,
     _classify_cost_confidence,
+    _apply_confidence_cap,
+    _CONFIDENCE_SCORE_CAP,
     _PLACES_HIGH_COUNT,
     _PLACES_HIGH_REVIEWS,
     _PLACES_MED_REVIEWS,
@@ -124,6 +127,39 @@ class TestClassifyPlacesConfidence:
         """Many reviews but not enough places should be MEDIUM."""
         level, _ = _classify_places_confidence(2, 200)
         assert level == "MEDIUM"
+
+
+# =============================================================================
+# _apply_confidence_cap (NES-sparse-data)
+# =============================================================================
+
+class TestApplyConfidenceCap:
+    """Score should be capped when data confidence is LOW or MEDIUM."""
+
+    def test_high_no_cap(self):
+        assert _apply_confidence_cap(10, "HIGH") == 10
+
+    def test_medium_caps_at_8(self):
+        assert _apply_confidence_cap(10, "MEDIUM") == 8
+
+    def test_medium_no_cap_when_below(self):
+        assert _apply_confidence_cap(6, "MEDIUM") == 6
+
+    def test_low_caps_at_6(self):
+        assert _apply_confidence_cap(10, "LOW") == 6
+
+    def test_low_caps_score_of_7(self):
+        assert _apply_confidence_cap(7, "LOW") == 6
+
+    def test_low_no_cap_when_below(self):
+        assert _apply_confidence_cap(3, "LOW") == 3
+
+    def test_zero_score_unchanged(self):
+        assert _apply_confidence_cap(0, "LOW") == 0
+
+    def test_unknown_confidence_no_cap(self):
+        """Unknown confidence levels default to no cap."""
+        assert _apply_confidence_cap(10, "UNKNOWN") == 10
 
 
 # =============================================================================

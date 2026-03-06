@@ -3671,6 +3671,24 @@ _PLACES_HIGH_COUNT = 3       # eligible places for HIGH
 _PLACES_HIGH_REVIEWS = 100   # best place review count for HIGH
 _PLACES_MED_REVIEWS = 30     # best place review count for MEDIUM
 
+# -- Score caps by confidence level (NES-sparse-data) --------------------------
+# Sparse/limited data should not produce maximum-confidence ratings.
+_CONFIDENCE_SCORE_CAP = {
+    "LOW": 6,       # sparse data — cap at 6/10
+    "MEDIUM": 8,    # limited data — cap at 8/10
+    "HIGH": 10,     # full confidence — no cap
+}
+
+
+def _apply_confidence_cap(score: int, confidence: str) -> int:
+    """Cap a dimension score based on data confidence level.
+
+    Prevents high-confidence ratings (e.g. 10/10) when the underlying
+    data is sparse or limited.
+    """
+    cap = _CONFIDENCE_SCORE_CAP.get(confidence, 10)
+    return min(score, cap)
+
 
 def _classify_places_confidence(
     eligible_count: int,
@@ -4013,9 +4031,12 @@ def score_third_place_access(
             len(eligible_places), reviews,
         )
 
+        # Cap score when data confidence is low (NES-sparse-data)
+        capped_score = _apply_confidence_cap(best_score, conf)
+
         return (Tier2Score(
             name="Third Place",
-            points=best_score,
+            points=capped_score,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4405,9 +4426,12 @@ def score_provisioning_access(
             len(eligible_stores), reviews,
         )
 
+        # Cap score when data confidence is low (NES-sparse-data)
+        capped_score = _apply_confidence_cap(best_score, conf)
+
         return (Tier2Score(
             name="Provisioning",
-            points=best_score,
+            points=capped_score,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4490,7 +4514,8 @@ def score_fitness_access(
                 best_score = score
                 best_facility = facility
                 facility_name = facility.get("name", "Fitness center")
-                best_details = f"{facility_name} ({rating}★) — {walk_time} min walk"
+                reviews = facility.get("user_ratings_total", 0)
+                best_details = f"{facility_name} ({rating}★, {reviews} reviews) — {walk_time} min walk"
 
             scored_facilities.append((score, walk_time, facility))
 
@@ -4539,9 +4564,12 @@ def score_fitness_access(
                 data_confidence_note=conf_note,
             ), neighborhood_places)
 
+        # Cap score when data confidence is low (NES-sparse-data)
+        capped_score = _apply_confidence_cap(best_score, conf)
+
         return (Tier2Score(
             name="Fitness access",
-            points=best_score,
+            points=capped_score,
             max_points=10,
             details=best_details,
             data_confidence=conf,
