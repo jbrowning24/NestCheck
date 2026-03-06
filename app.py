@@ -2188,13 +2188,15 @@ def export_snapshot_csv(snapshot_id):
 
     # Tier 2 scores breakdown
     writer.writerow([])
-    writer.writerow(["category", "points", "max", "details"])
+    writer.writerow(["category", "points", "max", "details", "data_confidence", "data_confidence_note"])
     for score in result.get("tier2_scores", []):
         writer.writerow([
             score.get("name", ""),
             score.get("points", ""),
             score.get("max", ""),
             score.get("details", ""),
+            score.get("data_confidence", ""),
+            score.get("data_confidence_note", ""),
         ])
 
     # Tier 1 checks

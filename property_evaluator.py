@@ -3847,7 +3847,7 @@ def score_park_access(
                 )
 
             # Use the daily walk value score directly (already 0–10)
-            points = round(best.daily_walk_value)
+            points = _apply_confidence_cap(round(best.daily_walk_value), conf)
             rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
             details = (
                 f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
@@ -4081,6 +4081,7 @@ def score_cost(cost: Optional[int]) -> Tier2Score:
         points = 0
         details = f"${cost:,} — OVER BUDGET"
 
+    points = _apply_confidence_cap(points, conf)
     return Tier2Score(
         name="Cost",
         points=points,
@@ -4274,9 +4275,10 @@ def score_transit_access(
         if major_hub and hub_time:
             hub_note = f"{major_hub.name} — {hub_time} min"
 
+        capped_points = _apply_confidence_cap(total_points, conf)
         return Tier2Score(
             name="Urban access",
-            points=total_points,
+            points=capped_points,
             max_points=10,
             details=(
                 f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
