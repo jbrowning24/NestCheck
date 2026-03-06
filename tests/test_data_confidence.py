@@ -6,6 +6,7 @@ Tests cover:
   - _classify_transit_confidence: with/without transit data
   - _classify_park_confidence: OSM-enriched vs estimated
   - _classify_cost_confidence: provided vs missing cost
+  - _apply_confidence_cap: score capping by confidence level
   - Tier2Score / DimensionResult confidence fields
   - Serialization in result_to_dict() and aggregate confidence
 """
@@ -20,10 +21,14 @@ from property_evaluator import (
     _classify_transit_confidence,
     _classify_park_confidence,
     _classify_cost_confidence,
+    _apply_confidence_cap,
+    _CONFIDENCE_SCORE_CAP,
     _PLACES_HIGH_COUNT,
     _PLACES_HIGH_REVIEWS,
     _PLACES_MED_REVIEWS,
     score_cost,
+    score_park_access,
+    score_transit_access,
 )
 from scoring_config import DimensionResult
 
@@ -124,6 +129,39 @@ class TestClassifyPlacesConfidence:
         """Many reviews but not enough places should be MEDIUM."""
         level, _ = _classify_places_confidence(2, 200)
         assert level == "MEDIUM"
+
+
+# =============================================================================
+# _apply_confidence_cap (NES-sparse-data)
+# =============================================================================
+
+class TestApplyConfidenceCap:
+    """Score should be capped when data confidence is LOW or MEDIUM."""
+
+    def test_high_no_cap(self):
+        assert _apply_confidence_cap(10, "HIGH") == 10
+
+    def test_medium_caps_at_8(self):
+        assert _apply_confidence_cap(10, "MEDIUM") == 8
+
+    def test_medium_no_cap_when_below(self):
+        assert _apply_confidence_cap(6, "MEDIUM") == 6
+
+    def test_low_caps_at_6(self):
+        assert _apply_confidence_cap(10, "LOW") == 6
+
+    def test_low_caps_score_of_7(self):
+        assert _apply_confidence_cap(7, "LOW") == 6
+
+    def test_low_no_cap_when_below(self):
+        assert _apply_confidence_cap(3, "LOW") == 3
+
+    def test_zero_score_unchanged(self):
+        assert _apply_confidence_cap(0, "LOW") == 0
+
+    def test_unknown_confidence_no_cap(self):
+        """Unknown confidence levels default to no cap."""
+        assert _apply_confidence_cap(10, "UNKNOWN") == 10
 
 
 # =============================================================================
@@ -435,3 +473,120 @@ class TestResultToDictConfidence:
         output = result_to_dict(result)
         assert output["data_confidence_summary"]["level"] == "HIGH"
         assert output["data_confidence_summary"]["limited_dimensions"] == []
+
+
+# =============================================================================
+# Integration: confidence cap applied in score_park_access (NES-sparse-data)
+# =============================================================================
+
+class TestParkAccessConfidenceCap:
+    """Verify score_park_access applies _apply_confidence_cap."""
+
+    def test_low_confidence_park_capped_at_6(self):
+        """A park with LOW confidence should have score capped at 6."""
+        park = MagicMock()
+        park.daily_walk_value = 9.5
+        park.rating = 4.0
+        park.user_ratings_total = 3
+        park.walk_time_min = 8
+        park.name = "Test Park"
+        park.criteria_status = "met"
+        park.osm_enriched = False
+        park.subscores = []
+
+        eval_ = MagicMock()
+        eval_.best_daily_park = park
+
+        # LOW confidence → few reviews, no OSM
+        with patch(
+            "property_evaluator._classify_park_confidence",
+            return_value=("LOW", "few reviews"),
+        ):
+            result = score_park_access(
+                maps=MagicMock(),
+                lat=41.0,
+                lng=-73.0,
+                green_escape_evaluation=eval_,
+            )
+        assert result.points <= 6, f"Expected ≤6 but got {result.points}"
+
+    def test_high_confidence_park_uncapped(self):
+        """A park with HIGH confidence should retain its full score."""
+        park = MagicMock()
+        park.daily_walk_value = 9.0
+        park.rating = 4.5
+        park.user_ratings_total = 500
+        park.walk_time_min = 5
+        park.name = "Great Park"
+        park.criteria_status = "met"
+        park.osm_enriched = True
+        park.subscores = []
+
+        eval_ = MagicMock()
+        eval_.best_daily_park = park
+
+        with patch(
+            "property_evaluator._classify_park_confidence",
+            return_value=("HIGH", "good data"),
+        ):
+            result = score_park_access(
+                maps=MagicMock(),
+                lat=41.0,
+                lng=-73.0,
+                green_escape_evaluation=eval_,
+            )
+        assert result.points == 9
+
+
+# =============================================================================
+# Integration: confidence cap applied in score_cost (NES-sparse-data)
+# =============================================================================
+
+class TestCostConfidenceCap:
+    """Verify score_cost applies _apply_confidence_cap."""
+
+    def test_cost_none_low_confidence_capped(self):
+        """When cost is None → LOW confidence → points stay 0 (already below cap)."""
+        result = score_cost(None)
+        assert result.data_confidence == "LOW"
+        assert result.points == 0
+
+    def test_cost_provided_high_confidence_uncapped(self):
+        """When cost is provided and HIGH confidence, score is not artificially capped."""
+        result = score_cost(1500)
+        assert result.data_confidence == "HIGH"
+        assert result.points == 10  # well under ideal
+
+
+# =============================================================================
+# Integration: confidence cap applied in score_transit_access (NES-sparse-data)
+# =============================================================================
+
+class TestTransitAccessConfidenceCap:
+    """Verify score_transit_access applies _apply_confidence_cap."""
+
+    def test_low_confidence_transit_capped_at_6(self):
+        """Transit score with LOW confidence should cap at 6."""
+        transit = MagicMock()
+        transit.name = "Test Station"
+        transit.walk_time_min = 10
+        transit.drive_time_min = None
+        transit.parking_available = False
+        transit.frequency_label = "Good"
+        transit.score = 9
+
+        with patch(
+            "property_evaluator._classify_transit_confidence",
+            return_value=("LOW", "limited data"),
+        ):
+            result = score_transit_access(
+                maps=MagicMock(),
+                lat=41.0,
+                lng=-73.0,
+                transit_access=transit,
+                urban_access=MagicMock(
+                    major_hub=MagicMock(name="Grand Central"),
+                    major_hub_travel_time_min=45,
+                ),
+            )
+        assert result.points <= 6, f"Expected ≤6 but got {result.points}"
