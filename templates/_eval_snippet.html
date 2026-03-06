@@ -84,7 +84,6 @@
     {% set band_class = preview_result.score_band.css_class if preview_result.score_band is mapping else '' %}
     {% set band_label = preview_result.score_band.label if preview_result.score_band is mapping else (preview_result.score_band or preview_result.verdict) %}
     <div class="snippet-assessment">
-      <div class="snippet-assessment-score {{ band_class }}">{{ preview_result.final_score }}<span class="snippet-assessment-max">/100</span></div>
       <div class="snippet-assessment-label {{ band_class }}">{{ band_label }}</div>
     </div>
 

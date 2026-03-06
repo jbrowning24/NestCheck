@@ -28,10 +28,9 @@
       {% endif %}
       <div class="compare-summary-address" title="{{ eval.address }}">{{ eval.address }}</div>
       <div class="compare-summary-score-row">
-        {{ score_ring(eval.final_score, band_class, 'compare-score-ring') }}
+        {{ score_ring(eval.final_score, band_class, 'compare-score-ring', show_value=False) }}
         <div class="compare-summary-details">
           <div class="score-band {{ band_class }}">{{ band_label }}</div>
-          <div class="compare-score-scale">out of 100</div>
         </div>
       </div>
     </div>
@@ -44,12 +43,14 @@
   {% for eval in evaluations %}
   <div class="compare-column">
     {# Column header (visible always; toggles on mobile) #}
+    {% set col_band_class = eval.score_band.css_class if eval.score_band is mapping else '' %}
+    {% set col_band_label = eval.score_band.label if eval.score_band is mapping else eval.verdict %}
     <div class="compare-column-header" role="button" tabindex="0"
          aria-label="Toggle details for {{ eval.address }}" aria-expanded="true"
          onclick="toggleCompareColumn(this)"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCompareColumn(this);}">
       <h2 class="compare-column-address">{{ eval.address }}</h2>
-      <span class="compare-column-score">{{ eval.final_score }}/100</span>
+      <span class="compare-column-score score-band {{ col_band_class }}">{{ col_band_label }}</span>
       <span class="compare-collapse-icon">&#9660;</span>
     </div>
     <div class="compare-column-body">

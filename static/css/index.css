@@ -414,34 +414,17 @@
   padding-top: var(--space-base);
   border-top: 1px solid var(--color-border);
 }
-.snippet-assessment-score {
-  font-family: var(--font-heading);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-none);
-  font-variant-numeric: tabular-nums;
-}
-.snippet-assessment-max {
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-faint);
-}
 .snippet-assessment-label {
   font-family: var(--font-heading);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
 }
 
 /* Score band colors for assessment */
-.snippet-assessment-score.band-exceptional,
 .snippet-assessment-label.band-exceptional { color: var(--band-exceptional); }
-.snippet-assessment-score.band-strong,
 .snippet-assessment-label.band-strong { color: var(--band-strong); }
-.snippet-assessment-score.band-moderate,
 .snippet-assessment-label.band-moderate { color: var(--band-moderate); }
-.snippet-assessment-score.band-limited,
 .snippet-assessment-label.band-limited { color: var(--band-limited); }
-.snippet-assessment-score.band-poor,
 .snippet-assessment-label.band-poor { color: var(--band-poor); }
 
 /* CTA */
