@@ -67,6 +67,8 @@ NestCheck/
 - Only add headline entries for result states the check can actually produce. `_build_health_context()` returns `None` silently for missing keys.
 - **Naming split**: Legacy checks use display names (`"Power lines"`, `"Gas station"`). Phase 1B spatial checks use `snake_case` (`"ust_proximity"`, `"hifld_power_lines"`). Match the convention of the source check function.
 - New checks NOT in `_CHECK_SOURCE_GROUP` render individually (not collapsed).
+- **Tier1Check serialization paths**: `Tier1Check` is serialized in three places — `result_to_dict()` (main snapshot), the compare route's serialization loop, and CSV export. When adding a new field to the dataclass, update ALL three. The compare path is easy to miss.
+- **Search radius vs threshold** (NES-203): Search radius can be wider than the warning threshold to report "Nearest: X (Y ft)" on PASS. Set `show_detail=True` on those PASS results. When nothing is found even within the expanded radius, the detail string should match the `_CLEAR_HEADLINES` wording (use the threshold distance, not the search radius).
 
 ### Data Caches (models.py)
 - Pattern: `get_<name>_cache(key) → Optional[str]` / `set_<name>_cache(key, json) → None`
@@ -76,9 +78,12 @@ NestCheck/
 
 ### Spatial Ingest (startup_ingest.py + scripts/ingest_*.py)
 - `startup_ingest.py` calls `ingest()` directly with keyword args — scripts must accept kwargs, not just argparse.
-- State filter format varies by dataset: 2-letter (`"NY"`) for EJScreen/TRI, full name (`"New York"`) for UST. Always check the upstream API field.
+- State filter format varies by dataset: 2-letter (`"NY"`) for EJScreen/TRI, full name (`"New York"`) for UST, FIPS code (`"36"`) for TIGER. Always check the upstream API field.
 - ArcGIS bbox filtering: `geometry` (JSON envelope), `geometryType=esriGeometryEnvelope`, `inSR=4326`. Server-side filter.
 - Wiring pattern: lazy-import wrapper → `_table_has_data()` → `_run_ingest()`. One failure never blocks others.
+- **ArcGIS polygon ring orientation**: Clockwise = outer boundary, counter-clockwise = hole. Use shoelace formula (`_ring_is_clockwise()`) to classify rings when features may have disjoint parts (e.g., school districts with enclaves). The simpler `MULTIPOLYGON(((ring1),(ring2)))` pattern used by SEMS/FEMA only works when all rings belong to one contiguous polygon.
+- **Two-table join pattern** (NES-206): Spatial polygon table (`facilities_school_districts`) for point-in-polygon → extract GEOID → join to a separate lookup table (`nysed_performance`) for enrichment data. Different from single-table spatial checks.
+- **Bundled CSV for data without stable APIs**: When upstream data is only available as Access DBs or manual downloads (e.g., NYSED), ship a curated CSV in `data/` and flag as `MANUAL REFRESH` in the `dataset_registry` notes. Include refresh cadence.
 
 ## Decision Log
 
@@ -89,6 +94,8 @@ NestCheck/
 | 2026-02 | Census data is informational only | ACS demographics shown as context, never scored — avoids bias in property ratings |
 | 2026-03 | Bbox filter for HIFLD/FRA ingest | Nationwide data (94K+/100K+ rows) too large for 5GB Railway volume; scope to Westchester area |
 | 2026-03 | `railpack.json` for system deps | Railway uses Railpack (not Nixpacks); `nixpacks.toml` is silently ignored. Runtime apt packages go in `deploy.aptPackages` or `RAILPACK_DEPLOY_APT_PACKAGES` env var |
+| 2026-03 | NYSED data as bundled CSV | NYSED publishes bulk data as Access DBs only (no API). Curated CSV for ~40 Westchester districts is pragmatic; refresh annually after Report Card release (~Dec) |
+| 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
 
 ## When Unsure
 
