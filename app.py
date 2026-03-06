@@ -957,6 +957,23 @@ def present_checks(tier1_checks):
     return collapsed
 
 
+def suppress_unknown_safety_checks(presented_checks):
+    """Remove VERIFICATION_NEEDED safety checks from the presented list.
+
+    Returns (filtered_list, suppressed_count).  Listing-specific UNKNOWN
+    checks (LIFESTYLE category) are kept — they represent missing listing
+    data, not missing database coverage.
+    """
+    filtered = []
+    suppressed = 0
+    for pc in presented_checks:
+        if pc.get("result_type") == "VERIFICATION_NEEDED" and pc.get("category") == "SAFETY":
+            suppressed += 1
+        else:
+            filtered.append(pc)
+    return filtered, suppressed
+
+
 # ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
@@ -2094,6 +2111,17 @@ def view_snapshot(snapshot_id):
             "description": _bp.description,
             "weights": dict(_bp.weights),
         }
+
+    # NES-196: Suppress UNKNOWN spatial checks at presentation layer.
+    # Build a shallow copy so the stored snapshot dict is never mutated.
+    filtered_checks, suppressed_unknown_count = (
+        suppress_unknown_safety_checks(result.get("presented_checks", []))
+    )
+    result = {
+        **result,
+        "presented_checks": filtered_checks,
+        "suppressed_unknown_count": suppressed_unknown_count,
+    }
 
     return render_template(
         "snapshot.html",

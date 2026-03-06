@@ -25,6 +25,7 @@ from app import (
     app,
     generate_verdict,
     present_checks,
+    suppress_unknown_safety_checks,
     _serialize_urban_access,
     result_to_dict,
 )
@@ -129,6 +130,40 @@ class TestPresentChecks:
         checks = [self._check("W/D in unit", "PASS")]
         presented = present_checks(checks)
         assert presented[0]["category"] == "LIFESTYLE"
+
+    def test_suppress_unknown_safety(self):
+        """NES-196: UNKNOWN safety checks are suppressed; LIFESTYLE kept."""
+        checks = [
+            self._check("Gas station", "UNKNOWN", "Data not available"),
+            self._check("Flood zone", "UNKNOWN", "Data not available"),
+            self._check("W/D in unit", "UNKNOWN", "Not specified"),
+            self._check("Power lines", "PASS", "No lines nearby"),
+        ]
+        presented = present_checks(checks)
+        filtered, count = suppress_unknown_safety_checks(presented)
+        # Two SAFETY UNKNOWNs suppressed; LIFESTYLE UNKNOWN and SAFETY PASS kept
+        assert count == 2
+        names = [p["name"] for p in filtered]
+        assert "Gas station" not in names
+        assert "Flood zone" not in names
+        assert "W/D in unit" in names
+        assert "Power lines" in names
+
+    def test_suppress_unknown_grouped(self):
+        """NES-196: Grouped UNKNOWN checks are also suppressed."""
+        checks = [
+            self._check("Power lines", "UNKNOWN"),
+            self._check("Electrical substation", "UNKNOWN"),
+            self._check("Cell tower", "UNKNOWN"),
+            self._check("Industrial zone", "UNKNOWN"),
+        ]
+        presented = present_checks(checks)
+        # present_checks collapses these into a grouped item
+        assert len(presented) == 1
+        assert presented[0].get("is_grouped")
+        filtered, count = suppress_unknown_safety_checks(presented)
+        assert count == 1
+        assert len(filtered) == 0
 
     def test_all_safety_check_names(self):
         safety_names = [

@@ -70,6 +70,7 @@ NestCheck/
 - New checks NOT in `_CHECK_SOURCE_GROUP` render individually (not collapsed).
 - **Tier1Check serialization paths**: `Tier1Check` is serialized in three places — `result_to_dict()` (main snapshot), the compare route's serialization loop, and CSV export. When adding a new field to the dataclass, update ALL three. The compare path is easy to miss.
 - **Search radius vs threshold** (NES-203): Search radius can be wider than the warning threshold to report "Nearest: X (Y ft)" on PASS. Set `show_detail=True` on those PASS results. When nothing is found even within the expanded radius, the detail string should match the `_CLEAR_HEADLINES` wording (use the threshold distance, not the search radius).
+- **Presentation-layer suppression** (NES-196): To hide checks from display without changing evaluation or storage, filter in the route handler (e.g., `view_snapshot()`), not in `present_checks()` or `result_to_dict()`. Use `result = {**result, ...}` to shallow-copy the deserialized snapshot dict before modifying — never mutate it in-place, as a future caching layer would silently corrupt shared state. Suppressed metadata (e.g., count) should travel inside `result` dict, not as a separate template var, so Jinja includes and macros can access it without relying on inherited scope.
 
 ### Data Caches (models.py)
 - Pattern: `get_<name>_cache(key) → Optional[str]` / `set_<name>_cache(key, json) → None`
