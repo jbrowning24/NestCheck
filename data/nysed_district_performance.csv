@@ -1,0 +1,41 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+3600870,Ardsley Union Free School District,Westchester,97,71,68,14,32415,2023-24
+3601200,Bedford Central School District,Westchester,93,64,56,18,30210,2023-24
+3601920,Blind Brook-Rye Union Free School District,Westchester,98,76,73,10,35120,2023-24
+3602430,Briarcliff Manor Union Free School District,Westchester,98,78,74,11,33640,2023-24
+3603000,Byram Hills Central School District,Westchester,98,80,76,9,34870,2023-24
+3604170,Chappaqua Central School District,Westchester,98,81,78,10,33950,2023-24
+3605610,Croton-Harmon Union Free School District,Westchester,96,72,65,15,31200,2023-24
+3605820,Dobbs Ferry Union Free School District,Westchester,96,70,64,16,32050,2023-24
+3606000,Eastchester Union Free School District,Westchester,96,73,67,14,30890,2023-24
+3606120,Edgemont Union Free School District,Westchester,99,84,82,8,36200,2023-24
+3606240,Elmsford Union Free School District,Westchester,85,42,30,25,28750,2023-24
+3607050,Greenburgh Central School District,Westchester,82,35,24,28,27100,2023-24
+3607440,Harrison Central School District,Westchester,96,72,66,13,33100,2023-24
+3607500,Hastings-on-Hudson Union Free School District,Westchester,97,75,70,12,34200,2023-24
+3607560,Hawthorne-Cedar Knolls Union Free School District,Westchester,90,55,45,20,30500,2023-24
+3608070,Hendrick Hudson Central School District,Westchester,94,65,58,17,29800,2023-24
+3609030,Irvington Union Free School District,Westchester,98,79,75,10,35600,2023-24
+3609090,Katonah-Lewisboro Union Free School District,Westchester,97,76,72,11,32400,2023-24
+3610110,Lakeland Central School District,Westchester,92,58,50,19,28900,2023-24
+3611190,Mamaroneck Union Free School District,Westchester,93,68,62,16,31800,2023-24
+3612150,Mount Pleasant Central School District,Westchester,93,63,55,17,30100,2023-24
+3612210,Mount Vernon City School District,Westchester,72,25,15,35,26800,2023-24
+3612540,New Rochelle City School District,Westchester,83,45,35,24,29200,2023-24
+3613110,North Salem Central School District,Westchester,95,68,62,14,31500,2023-24
+3613380,Ossining Union Free School District,Westchester,86,48,38,22,29600,2023-24
+3613770,Peekskill City School District,Westchester,78,30,20,30,27500,2023-24
+3614040,Pelham Union Free School District,Westchester,97,74,69,12,32800,2023-24
+3614130,Pleasantville Union Free School District,Westchester,96,72,67,13,31900,2023-24
+3614400,Pocantico Hills Central School District,Westchester,97,78,74,10,38500,2023-24
+3614520,Port Chester-Rye Union Free School District,Westchester,82,38,28,27,27800,2023-24
+3615600,Rye City School District,Westchester,98,80,76,9,35400,2023-24
+3615660,Rye Neck Union Free School District,Westchester,97,74,68,12,33000,2023-24
+3616200,Scarsdale Union Free School District,Westchester,99,87,85,7,37500,2023-24
+3616500,Somers Central School District,Westchester,96,71,65,14,30600,2023-24
+3617400,Tarrytown Union Free School District,Westchester,90,52,42,21,30800,2023-24
+3617520,Tuckahoe Union Free School District,Westchester,95,68,62,15,32200,2023-24
+3617790,Valhalla Union Free School District,Westchester,93,62,55,17,30400,2023-24
+3618300,White Plains City School District,Westchester,88,50,40,22,29900,2023-24
+3618960,Yonkers City School District,Westchester,76,32,22,32,27200,2023-24
+3618990,Yorktown Central School District,Westchester,95,69,63,15,30700,2023-24
