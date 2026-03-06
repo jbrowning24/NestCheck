@@ -2,8 +2,8 @@
 Startup spatial data ingestion for NestCheck.
 
 Called during gunicorn post_fork to ensure spatial datasets (SEMS, FEMA, HPMS,
-EJScreen, TRI, UST, HIFLD, FRA) are populated before the evaluation worker
-starts processing jobs. Uses a
+EJScreen, TRI, UST, HIFLD, FRA, School Districts, NYSED) are populated before
+the evaluation worker starts processing jobs. Uses a
 file-based lock (fcntl) to prevent concurrent ingestion from multiple workers.
 
 Datasets are checked in order and ingested independently — a failure in one
@@ -172,6 +172,22 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fra: missing or empty, starting ingestion...")
         _run_ingest("fra", _ingest_fra)
 
+    # --- School Districts (TIGER unified school district boundaries, NY) ---
+    has_data, count = _table_has_data(db_path, "facilities_school_districts")
+    if has_data:
+        logger.info("Dataset school_districts: present (%d records), skipping", count)
+    else:
+        logger.info("Dataset school_districts: missing or empty, starting ingestion...")
+        _run_ingest("school_districts", _ingest_school_districts)
+
+    # --- NYSED Performance (school district performance metrics) ---
+    has_data, count = _table_has_data(db_path, "nysed_performance")
+    if has_data:
+        logger.info("Dataset nysed_performance: present (%d records), skipping", count)
+    else:
+        logger.info("Dataset nysed_performance: missing or empty, starting ingestion...")
+        _run_ingest("nysed_performance", _ingest_nysed)
+
 
 def _run_ingest(name: str, fn) -> None:
     """Execute an ingestion function with timing and error handling."""
@@ -231,3 +247,13 @@ def _ingest_hifld():
 def _ingest_fra():
     from scripts.ingest_fra import ingest as do_ingest
     do_ingest(bbox="-74.15,40.75,-73.35,41.45", us_only=True)
+
+
+def _ingest_school_districts():
+    from scripts.ingest_school_districts import ingest as do_ingest
+    do_ingest(state="36")
+
+
+def _ingest_nysed():
+    from scripts.ingest_nysed import ingest as do_ingest
+    do_ingest()

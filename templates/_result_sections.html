@@ -734,7 +734,7 @@
             {%- endif %}
             {{ pc.headline }}
           </div>
-          {% if pc.explanation and (pc.proximity_band != 'NEUTRAL' or pc.result_type != 'CLEAR') %}
+          {% if pc.explanation %}
             <div class="proximity-detail">{{ pc.explanation }}</div>
           {% endif %}
           {# Satellite link for unverified checks #}
@@ -916,6 +916,17 @@
 
   </div>
 
+  {# ── AREA CONTEXT divider — separates scored evaluation from informational data ── #}
+  {# Community Profile + School District are contextual, never scored (FHA separation) #}
+  {% set _has_context = (result.demographics is defined and result.demographics is not none)
+      or (result.school_district is defined and result.school_district is not none) %}
+  {% if _has_context %}
+  <div class="area-context-divider">
+    <h2 class="area-context-heading">Area Context</h2>
+    <p class="area-context-note">Community and school data shown for reference — not factored into the livability score.</p>
+  </div>
+  {% endif %}
+
   {# ── 6b. COMMUNITY PROFILE — shown in both preview and full (NES-134) ── #}
   {# Three-state guard: key absent = old snapshot (hide),                     #}
   {#   value=none = API failure (hide), value=dict = show section.            #}
@@ -985,6 +996,66 @@
     {# Data attribution #}
     <p class="community-profile-source">
       Source: U.S. Census Bureau, ACS 5-Year Estimates &middot; Tract {{ demo.geoid }}
+    </p>
+
+  </div>
+  {% endif %}
+
+  {# ── 6c. SCHOOL DISTRICT — TIGER boundaries + NYSED (NES-206) ── #}
+  {% if result.school_district is defined and result.school_district is not none %}
+  {% set sd = result.school_district %}
+  <div id="school-district" class="report-section">
+    <h2>School District</h2>
+
+    <div class="school-district-header">
+      <span class="school-district-name">{{ sd.district_name }}</span>
+      {% if sd.grade_range %}
+        <span class="school-district-grades">Grades {{ sd.grade_range }}</span>
+      {% endif %}
+    </div>
+
+    {% if sd.graduation_rate_pct is not none %}
+    <div class="stat-card-grid">
+
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(sd.graduation_rate_pct) }}%</div>
+        <div class="stat-card__label">Graduation rate</div>
+      </div>
+
+      {% if sd.ela_proficiency_pct is not none %}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(sd.ela_proficiency_pct) }}%</div>
+        <div class="stat-card__label">ELA proficiency</div>
+      </div>
+      {% endif %}
+
+      {% if sd.math_proficiency_pct is not none %}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(sd.math_proficiency_pct) }}%</div>
+        <div class="stat-card__label">Math proficiency</div>
+      </div>
+      {% endif %}
+
+      {% if sd.chronic_absenteeism_pct is not none %}
+      <div class="stat-card">
+        <div class="stat-card__value">{{ "%.0f"|format(sd.chronic_absenteeism_pct) }}%</div>
+        <div class="stat-card__label">Chronic absenteeism</div>
+      </div>
+      {% endif %}
+
+      {% if sd.pupil_expenditure is not none %}
+      <div class="stat-card">
+        <div class="stat-card__value">${{ "{:,.0f}".format(sd.pupil_expenditure) }}</div>
+        <div class="stat-card__label">Per-pupil spending</div>
+      </div>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+    <p class="community-profile-source">
+      Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
+      &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
     </p>
 
   </div>

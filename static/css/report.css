@@ -903,6 +903,43 @@
   margin-top: var(--space-sm);
   text-align: right;
 }
+
+/* School District (NES-206) */
+.school-district-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.school-district-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.school-district-grades {
+  font-size: var(--font-size-small);
+  color: var(--color-text-faint);
+}
+
+/* Area Context divider — visual separation between scored and informational data */
+.area-context-divider {
+  border-top: 2px solid var(--color-border-subtle, #e2e8f0);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+.area-context-heading {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-xs) 0;
+}
+.area-context-note {
+  font-size: var(--font-size-small);
+  color: var(--color-text-faint);
+  margin: 0;
+}
+
 .place-name--light { font-weight: var(--font-weight-medium); }
 .badge--inline { margin-left: var(--space-sm); }
 .share-btn--secondary {

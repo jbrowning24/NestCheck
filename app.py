@@ -881,7 +881,8 @@ def present_checks(tier1_checks):
             result_type = "CLEAR"
             proximity_band = "NEUTRAL"
             headline = _CLEAR_HEADLINES.get(name, f"{name} — Clear")
-            explanation = None
+            # Show nearest distance when the check explicitly opted in
+            explanation = details if check.get("show_detail") else None
         elif result == "FAIL":
             result_type = "CONFIRMED_ISSUE"
             proximity_band = "VERY_CLOSE"
@@ -1108,6 +1109,7 @@ def result_to_dict(result):
                 "details": c.details,
                 "required": c.required,
                 "value": c.value,
+                "show_detail": c.show_detail,
             }
             for c in result.tier1_checks
         ],
@@ -1167,6 +1169,23 @@ def result_to_dict(result):
 
     # EJScreen block group environmental profile (NES-EJScreen)
     output["ejscreen_profile"] = result.ejscreen_profile
+
+    # School district identification + NYSED performance (NES-206)
+    sd = getattr(result, "school_district", None)
+    if sd is not None:
+        output["school_district"] = {
+            "district_name": sd.district_name,
+            "geoid": sd.geoid,
+            "grade_range": sd.grade_range,
+            "graduation_rate_pct": float(sd.graduation_rate_pct) if sd.graduation_rate_pct is not None else None,
+            "ela_proficiency_pct": float(sd.ela_proficiency_pct) if sd.ela_proficiency_pct is not None else None,
+            "math_proficiency_pct": float(sd.math_proficiency_pct) if sd.math_proficiency_pct is not None else None,
+            "chronic_absenteeism_pct": float(sd.chronic_absenteeism_pct) if sd.chronic_absenteeism_pct is not None else None,
+            "pupil_expenditure": float(sd.pupil_expenditure) if sd.pupil_expenditure is not None else None,
+            "source_year": sd.source_year,
+        }
+    else:
+        output["school_district"] = None
 
     # Walk quality — MAPS-Mini pipeline (NES-192)
     wq = getattr(result, "walk_quality", None)
@@ -2210,6 +2229,7 @@ def compare():
                         "details": check.details,
                         "value": check.value,
                         "required": getattr(check, "required", True),
+                        "show_detail": getattr(check, "show_detail", False),
                     })
                 result["presented_checks"] = present_checks(serialized)
 

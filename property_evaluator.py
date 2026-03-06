@@ -178,6 +178,7 @@ class Tier1Check:
     details: str
     value: Optional[Any] = None
     required: bool = True
+    show_detail: bool = False
 
 
 @dataclass
@@ -258,6 +259,20 @@ class SchoolPlace:
 class ChildSchoolingSnapshot:
     childcare: List[ChildcarePlace] = field(default_factory=list)
     schools_by_level: Dict[str, Optional[SchoolPlace]] = field(default_factory=dict)
+
+
+@dataclass
+class SchoolDistrictInfo:
+    """School district identification + NYSED performance metrics."""
+    district_name: str
+    geoid: str
+    grade_range: str  # e.g. "PK–12"
+    graduation_rate_pct: Optional[float] = None
+    ela_proficiency_pct: Optional[float] = None
+    math_proficiency_pct: Optional[float] = None
+    chronic_absenteeism_pct: Optional[float] = None
+    pupil_expenditure: Optional[float] = None
+    source_year: Optional[str] = None
 
 
 @dataclass
@@ -368,6 +383,9 @@ class EvaluationResult:
 
     # Walk quality assessment — MAPS-Mini pipeline (NES-192)
     walk_quality: Optional[Any] = None
+
+    # School district identification + NYSED performance (NES-206)
+    school_district: Optional[SchoolDistrictInfo] = None
 
 
 # =============================================================================
@@ -990,6 +1008,7 @@ def _classify_gas_station_distance(
         result=CheckResult.PASS,
         details=f"Nearest: {closest_name} ({min_distance:,} ft)",
         value=min_distance,
+        show_detail=True,
     )
 
 
@@ -1123,8 +1142,9 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
         )
 
     try:
+        # Search 600m (~2,000ft) to report nearest distance even on PASS
         segments = spatial_store.lines_within(
-            lat, lng, HIGH_TRAFFIC_WARN_RADIUS_M, "hpms"
+            lat, lng, 600, "hpms"
         )
 
         # Filter out segments with no AADT data
@@ -1155,7 +1175,36 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
             worst = max(warn_candidates, key=lambda s: s.metadata["aadt"])
             return _high_traffic_result(CheckResult.WARNING, worst)
 
-        # No high-traffic roads nearby
+        # No high-traffic roads in fail/warn range — check wider for nearest
+        all_high_traffic = [
+            s for s in with_aadt
+            if s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
+        ]
+        if all_high_traffic:
+            nearest_ht = min(all_high_traffic, key=lambda s: s.distance_meters)
+            ht_name = nearest_ht.name
+            if not ht_name or ht_name in ("Unknown", "HPMS segment"):
+                ht_name = nearest_ht.metadata.get("route_id", "")
+            ht_name = (ht_name or "").strip()
+            dist_ft = round(nearest_ht.distance_feet)
+            aadt_val = nearest_ht.metadata["aadt"]
+            if ht_name:
+                pass_detail = f"Nearest: {ht_name} ({aadt_val:,} vehicles/day, {dist_ft:,} ft)"
+            else:
+                pass_detail = f"Nearest: {aadt_val:,} vehicles/day ({dist_ft:,} ft)"
+            return Tier1Check(
+                name="High-traffic road",
+                result=CheckResult.PASS,
+                details=pass_detail,
+                show_detail=True,
+                value={
+                    "aadt": aadt_val,
+                    "distance_ft": dist_ft,
+                    "road_name": ht_name or None,
+                    "radius_m": round(nearest_ht.distance_meters, 1),
+                },
+            )
+
         return Tier1Check(
             name="High-traffic road",
             result=CheckResult.PASS,
@@ -2030,7 +2079,8 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
         return _unknown
 
     try:
-        facilities = spatial_store.find_facilities_within(lat, lng, 150, "ust")
+        # Search 500m (~1,640ft) to report nearest distance even on PASS
+        facilities = spatial_store.find_facilities_within(lat, lng, 500, "ust")
 
         if not facilities:
             if (
@@ -2075,12 +2125,23 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
                 required=True,
             )
 
+        if nearest.distance_meters <= 150:
+            return Tier1Check(
+                name="ust_proximity",
+                result=CheckResult.WARNING,
+                details=details,
+                value=nearest.distance_meters,
+                required=True,
+            )
+
+        # Beyond threshold — PASS with nearest distance
         return Tier1Check(
             name="ust_proximity",
-            result=CheckResult.WARNING,
-            details=details,
+            result=CheckResult.PASS,
+            details=f"Nearest: {facility_name} ({nearest.distance_feet:.0f} ft)",
             value=nearest.distance_meters,
             required=True,
+            show_detail=True,
         )
 
     except Exception as e:
@@ -2118,7 +2179,8 @@ def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
         return _unknown
 
     try:
-        facilities = spatial_store.find_facilities_within(lat, lng, 1600, "tri")
+        # Search 4800m (~3 miles) to report nearest distance even on PASS
+        facilities = spatial_store.find_facilities_within(lat, lng, 4800, "tri")
 
         if not facilities:
             if (
@@ -2154,12 +2216,23 @@ def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
             except (ValueError, TypeError):
                 pass
 
+        if nearest.distance_meters <= 1600:
+            return Tier1Check(
+                name="tri_proximity",
+                result=CheckResult.WARNING,
+                details=details,
+                value=nearest.distance_meters,
+                required=True,
+            )
+
+        # Beyond 1-mile threshold — PASS with nearest distance
         return Tier1Check(
             name="tri_proximity",
-            result=CheckResult.WARNING,
-            details=details,
+            result=CheckResult.PASS,
+            details=f"Nearest: {facility_name} ({nearest.distance_miles:.1f} mi)",
             value=nearest.distance_meters,
             required=True,
+            show_detail=True,
         )
 
     except Exception as e:
@@ -2197,7 +2270,8 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
         return _unknown
 
     try:
-        lines = spatial_store.lines_within(lat, lng, 60, "hifld")
+        # Search 300m (~1,000ft) to report nearest distance even on PASS
+        lines = spatial_store.lines_within(lat, lng, 300, "hifld")
 
         if not lines:
             if (
@@ -2220,15 +2294,26 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
         volt_class = meta.get("volt_class", "")
         voltage_label = f"{voltage}kV" if voltage else volt_class or "unknown voltage"
 
+        if nearest.distance_meters <= 60:
+            return Tier1Check(
+                name="hifld_power_lines",
+                result=CheckResult.WARNING,
+                details=(
+                    f"High-voltage transmission line ({voltage_label}) "
+                    f"within {nearest.distance_feet:.0f} feet"
+                ),
+                value=nearest.distance_meters,
+                required=False,
+            )
+
+        # Beyond 200ft threshold — PASS with nearest distance
         return Tier1Check(
             name="hifld_power_lines",
-            result=CheckResult.WARNING,
-            details=(
-                f"High-voltage transmission line ({voltage_label}) "
-                f"within {nearest.distance_feet:.0f} feet"
-            ),
+            result=CheckResult.PASS,
+            details=f"Nearest: {voltage_label} line ({nearest.distance_feet:.0f} ft)",
             value=nearest.distance_meters,
             required=False,
+            show_detail=True,
         )
 
     except Exception as e:
@@ -2269,7 +2354,8 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
         return _unknown
 
     try:
-        lines = spatial_store.lines_within(lat, lng, 300, "fra")
+        # Search 800m (~2,625ft) to report nearest distance even on PASS
+        lines = spatial_store.lines_within(lat, lng, 800, "fra")
 
         if not lines:
             if (
@@ -2296,15 +2382,26 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
         else:
             rail_type = "freight rail"
 
+        if nearest.distance_meters <= 300:
+            return Tier1Check(
+                name="rail_proximity",
+                result=CheckResult.WARNING,
+                details=(
+                    f"Rail corridor within {nearest.distance_feet:.0f} feet "
+                    f"({owner}, {rail_type})"
+                ),
+                value=nearest.distance_meters,
+                required=False,
+            )
+
+        # Beyond 1,000ft threshold — PASS with nearest distance
         return Tier1Check(
             name="rail_proximity",
-            result=CheckResult.WARNING,
-            details=(
-                f"Rail corridor within {nearest.distance_feet:.0f} feet "
-                f"({owner}, {rail_type})"
-            ),
+            result=CheckResult.PASS,
+            details=f"Nearest: {owner} ({nearest.distance_feet:.0f} ft, {rail_type})",
             value=nearest.distance_meters,
             required=False,
+            show_detail=True,
         )
 
     except Exception as e:
@@ -2316,6 +2413,70 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
             value=None,
             required=False,
         )
+
+
+def get_school_district(
+    lat: float, lng: float, spatial_store,
+) -> Optional[SchoolDistrictInfo]:
+    """Identify the school district for a location using TIGER boundaries.
+
+    Uses point-in-polygon against TIGER unified school district boundaries,
+    then enriches with NYSED performance data from the nysed_performance table.
+
+    Zero API calls — pure local SpatiaLite query.
+    """
+    if spatial_store is None or not spatial_store.is_available():
+        return None
+
+    try:
+        results = spatial_store.point_in_polygons(lat, lng, "school_districts")
+        if not results:
+            return None
+
+        district = results[0]
+        meta = district.metadata
+        geoid = meta.get("geoid", "")
+        lograde = meta.get("lograde", "")
+        higrade = meta.get("higrade", "")
+        grade_range = f"{lograde}\u2013{higrade}" if lograde and higrade else ""
+
+        info = SchoolDistrictInfo(
+            district_name=district.name,
+            geoid=geoid,
+            grade_range=grade_range,
+        )
+
+        # Enrich with NYSED performance data
+        if geoid:
+            try:
+                from spatial_data import _connect as _spatial_connect
+                conn = _spatial_connect()
+                try:
+                    cursor = conn.execute(
+                        """SELECT graduation_rate_pct, ela_proficiency_pct,
+                                  math_proficiency_pct, chronic_absenteeism_pct,
+                                  pupil_expenditure, source_year
+                           FROM nysed_performance WHERE geoid = ?""",
+                        (geoid,),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        info.graduation_rate_pct = row[0]
+                        info.ela_proficiency_pct = row[1]
+                        info.math_proficiency_pct = row[2]
+                        info.chronic_absenteeism_pct = row[3]
+                        info.pupil_expenditure = row[4]
+                        info.source_year = row[5]
+                finally:
+                    conn.close()
+            except Exception as e:
+                logger.debug("NYSED performance lookup failed for %s: %s", geoid, e)
+
+        return info
+
+    except Exception as e:
+        logger.warning("School district lookup failed: %s", e)
+        return None
 
 
 def check_listing_requirements(listing: PropertyListing) -> List[Tier1Check]:
@@ -4578,6 +4739,12 @@ def evaluate_property(
         except Exception:
             pass
 
+    # School district identification (TIGER boundaries + NYSED) — zero API calls
+    try:
+        result.school_district = get_school_district(lat, lng, _spatial_store)
+    except Exception:
+        pass
+
     try:
         result.urban_access = _staged(
             "urban_access", get_urban_access_profile, maps, lat, lng)
@@ -5242,6 +5409,17 @@ def main():
             "final_score": result.final_score,
             "percentile_top": result.percentile_top,
             "percentile_label": result.percentile_label,
+            "school_district": {
+                "district_name": result.school_district.district_name,
+                "geoid": result.school_district.geoid,
+                "grade_range": result.school_district.grade_range,
+                "graduation_rate_pct": result.school_district.graduation_rate_pct,
+                "ela_proficiency_pct": result.school_district.ela_proficiency_pct,
+                "math_proficiency_pct": result.school_district.math_proficiency_pct,
+                "chronic_absenteeism_pct": result.school_district.chronic_absenteeism_pct,
+                "pupil_expenditure": result.school_district.pupil_expenditure,
+                "source_year": result.school_district.source_year,
+            } if result.school_district else None,
         }
         print(json.dumps(output, indent=2))
     else:
