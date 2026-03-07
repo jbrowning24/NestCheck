@@ -2657,9 +2657,24 @@ _register_ingest_command()
 # Error handlers
 # ---------------------------------------------------------------------------
 
+@app.errorhandler(400)
+def bad_request(e):
+    msg = getattr(e, "description", "Bad request")
+    if _wants_json():
+        return jsonify({"error": msg}), 400
+    return render_template("404.html"), 400
+
+
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def internal_error(e):
+    if _wants_json():
+        return jsonify({"error": "Internal server error. Please try again."}), 500
+    return render_template("404.html"), 500
 
 
 # ---------------------------------------------------------------------------

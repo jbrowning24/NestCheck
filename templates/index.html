@@ -348,16 +348,36 @@
         if (patienceEl) patienceEl.classList.add('visible');
       }, 10000);
 
+      var notFoundRetries = 0;
+      var MAX_NOT_FOUND_RETRIES = 5;
+      var networkErrorRetries = 0;
+      var MAX_NETWORK_RETRIES = 3;
+
       function poll() {
         fetch('/job/' + jobId, { headers: { 'Accept': 'application/json' } })
           .then(function(r) {
             if (!r.ok) {
               if (r.status === 404) {
+                notFoundRetries++;
+                if (notFoundRetries <= MAX_NOT_FOUND_RETRIES) {
+                  setTimeout(poll, POLL_INTERVAL_MS);
+                  return null;
+                }
                 clearTimeout(patienceTimer);
-                showError('Job not found.', overlay, btn, form);
+                showError('Job not found. The server may be busy — please try again.', overlay, btn, form);
+              } else {
+                networkErrorRetries++;
+                if (networkErrorRetries <= MAX_NETWORK_RETRIES) {
+                  setTimeout(poll, POLL_INTERVAL_MS * 2);
+                  return null;
+                }
+                clearTimeout(patienceTimer);
+                showError('Server error (' + r.status + '). Please try again.', overlay, btn, form);
               }
               return null;
             }
+            notFoundRetries = 0;
+            networkErrorRetries = 0;
             return r.json();
           })
           .then(function(data) {
@@ -380,8 +400,13 @@
             setTimeout(poll, POLL_INTERVAL_MS);
           })
           .catch(function(err) {
+            networkErrorRetries++;
+            if (networkErrorRetries <= MAX_NETWORK_RETRIES) {
+              setTimeout(poll, POLL_INTERVAL_MS * 2);
+              return;
+            }
             clearTimeout(patienceTimer);
-            showError('Could not check job status. Please try again. (' + err.message + ')', overlay, btn, form);
+            showError('Could not check job status. Please try again.', overlay, btn, form);
           });
       }
       poll();
@@ -428,7 +453,18 @@
         body: body,
         headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
       })
-        .then(function(resp) { return resp.json(); })
+        .then(function(resp) {
+          if (!resp.ok) {
+            var ct = resp.headers.get('content-type') || '';
+            if (ct.indexOf('application/json') !== -1) {
+              return resp.json();
+            }
+            return resp.text().then(function(text) {
+              throw new Error('Server error (' + resp.status + '). Please try again.');
+            });
+          }
+          return resp.json();
+        })
         .then(function(data) {
           if (data.error === 'free_tier_exhausted') {
             // Free tier used — offer paid path

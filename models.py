@@ -22,9 +22,10 @@ DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
 def _get_db():
     """Get a sqlite3 connection with WAL mode for concurrent reads."""
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
@@ -475,31 +476,62 @@ def save_snapshot_for_place(
 def create_job(address: str, visitor_id: str = None, request_id: str = None,
                place_id: str = None, email_hash: str = None,
                persona: str = None, email_raw: str = None) -> str:
-    """Insert a new evaluation job and return its job_id."""
+    """Insert a new evaluation job and return its job_id.
+
+    Retries up to 3 times on transient SQLite busy errors to handle
+    concurrent writes from multiple gunicorn workers.
+    """
     job_id = uuid.uuid4().hex[:12]
     now = datetime.now(timezone.utc).isoformat()
-    conn = _get_db()
-    conn.execute(
-        """INSERT INTO evaluation_jobs
-           (job_id, address, status, visitor_id, request_id, place_id,
-            email_hash, persona, email_raw, created_at)
-           VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)""",
-        (job_id, address, visitor_id, request_id, place_id,
-         email_hash, persona, email_raw, now),
-    )
-    conn.commit()
-    conn.close()
-    return job_id
+    last_err = None
+    for attempt in range(3):
+        try:
+            conn = _get_db()
+            try:
+                conn.execute(
+                    """INSERT INTO evaluation_jobs
+                       (job_id, address, status, visitor_id, request_id, place_id,
+                        email_hash, persona, email_raw, created_at)
+                       VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)""",
+                    (job_id, address, visitor_id, request_id, place_id,
+                     email_hash, persona, email_raw, now),
+                )
+                conn.commit()
+                return job_id
+            finally:
+                conn.close()
+        except sqlite3.OperationalError as e:
+            last_err = e
+            if "locked" in str(e) or "busy" in str(e):
+                logger.warning("create_job retry %d/3: %s", attempt + 1, e)
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            raise
+    raise last_err
 
 
 def get_job(job_id: str) -> Optional[dict]:
-    """Return job row as a dict, or None."""
-    conn = _get_db()
-    row = conn.execute(
-        "SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)
-    ).fetchone()
-    conn.close()
-    return dict(row) if row else None
+    """Return job row as a dict, or None.
+
+    Retries once on transient SQLite errors to handle concurrent access.
+    """
+    for attempt in range(2):
+        try:
+            conn = _get_db()
+            try:
+                row = conn.execute(
+                    "SELECT * FROM evaluation_jobs WHERE job_id = ?", (job_id,)
+                ).fetchone()
+                return dict(row) if row else None
+            finally:
+                conn.close()
+        except sqlite3.OperationalError as e:
+            if attempt == 0 and ("locked" in str(e) or "busy" in str(e)):
+                logger.warning("get_job retry: %s", e)
+                time.sleep(0.3)
+                continue
+            raise
+    return None
 
 
 def claim_next_job() -> Optional[dict]:
