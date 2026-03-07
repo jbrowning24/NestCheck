@@ -44,6 +44,9 @@ NestCheck/
 - Spatial metadata values may arrive as strings after JSON round-tripping — cast to `float()` before numeric formatting (`:,.0f`)
 - When changing template element IDs, update `smoke_test.py` markers (`LANDING_REQUIRED_MARKERS`, `SNAPSHOT_REQUIRED_MARKERS`) in the same commit. Mismatches cause silent post-deploy smoke test failures.
 - When removing HTML elements from templates, remove the corresponding CSS rules in the same commit. Orphaned selectors (e.g., `.snippet-assessment-score` after removing the score div) accumulate silently.
+- Frontend `fetch()` calls that expect JSON must check `resp.ok` and content-type before calling `.json()`. Non-JSON error responses (CSRF 400, HTML 500) cause Safari-specific `TypeError` ("The string did not match the expected pattern") that hides the real error. Always guard: `if (!resp.ok) { /* handle non-JSON */ }` before `resp.json()`.
+- Frontend polling loops must never give up on a single transient error (404, 5xx, network). Use retry counters with a cap before showing a failure. The job queue is eventually-consistent under load; a freshly-created job may not be visible to the poll endpoint for 1-2 cycles.
+- Flask error handlers (`@app.errorhandler`) must return JSON when `_wants_json()` is true. Without this, JS clients get HTML error pages they can't parse. Add handlers for 400, 404, and 500 at minimum.
 
 ## Key Patterns
 
@@ -72,6 +75,12 @@ NestCheck/
 - **Search radius vs threshold** (NES-203): Search radius can be wider than the warning threshold to report "Nearest: X (Y ft)" on PASS. Set `show_detail=True` on those PASS results. When nothing is found even within the expanded radius, the detail string should match the `_CLEAR_HEADLINES` wording (use the threshold distance, not the search radius).
 - **Presentation-layer suppression** (NES-196): To hide checks from display without changing evaluation or storage, filter in the route handler (e.g., `view_snapshot()`), not in `present_checks()` or `result_to_dict()`. Use `result = {**result, ...}` to shallow-copy the deserialized snapshot dict before modifying — never mutate it in-place, as a future caching layer would silently corrupt shared state. Suppressed metadata (e.g., count) should travel inside `result` dict, not as a separate template var, so Jinja includes and macros can access it without relying on inherited scope. Apply suppression to ALL routes that render the same data (snapshot, compare-health, etc.) to avoid inconsistent UX.
 - **Confidence score caps** (NES-sparse-data): Dimension scores from data-confidence-aware scorers must be passed through `_apply_confidence_cap(score, confidence)` before building the `Tier2Score`. LOW caps at 6/10, MEDIUM at 8/10, HIGH uncapped. Apply consistently to every dimension that classifies confidence — omitting it lets sparse data produce artificially high ratings.
+
+### SQLite Concurrency (models.py)
+- `_get_db()` sets `PRAGMA busy_timeout=30000` (30s) for write contention under concurrent gunicorn workers + evaluation threads.
+- Job-critical write functions (`create_job`) retry up to 3× on `OperationalError` with "locked"/"busy" in the message, with progressive backoff. Read functions (`get_job`) retry once.
+- Pattern for retry-safe DB functions: open connection inside `try`, use `finally: conn.close()`, catch `sqlite3.OperationalError` outside the connection block.
+- `sqlite3.connect(timeout=N)` and `PRAGMA busy_timeout` both set the busy timeout — use only the PRAGMA (more explicit, avoids redundancy).
 
 ### Data Caches (models.py)
 - Pattern: `get_<name>_cache(key) → Optional[str]` / `set_<name>_cache(key, json) → None`

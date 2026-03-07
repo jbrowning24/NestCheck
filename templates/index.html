@@ -365,6 +365,14 @@
                 }
                 clearTimeout(patienceTimer);
                 showError('Job not found. The server may be busy — please try again.', overlay, btn, form);
+              } else {
+                networkErrorRetries++;
+                if (networkErrorRetries <= MAX_NETWORK_RETRIES) {
+                  setTimeout(poll, POLL_INTERVAL_MS * 2);
+                  return null;
+                }
+                clearTimeout(patienceTimer);
+                showError('Server error (' + r.status + '). Please try again.', overlay, btn, form);
               }
               return null;
             }

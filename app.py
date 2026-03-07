@@ -2659,10 +2659,10 @@ _register_ingest_command()
 
 @app.errorhandler(400)
 def bad_request(e):
+    msg = getattr(e, "description", "Bad request")
     if _wants_json():
-        msg = getattr(e, "description", "Bad request")
         return jsonify({"error": msg}), 400
-    return e.get_response()
+    return render_template("404.html"), 400
 
 
 @app.errorhandler(404)

@@ -22,7 +22,7 @@ DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
 def _get_db():
     """Get a sqlite3 connection with WAL mode for concurrent reads."""
-    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=30000")
