@@ -79,6 +79,7 @@ NestCheck/
 ### Narrative Insights (NES-191+)
 - Insight generators are pure functions: `dict → str | None`. Keep them side-effect-free for testability.
 - Place insight logic in dedicated modules (not `app.py`) — `app.py` is for routes/views.
+- **Dict field-name contracts**: Insight functions that consume dicts from `present_checks()` must use the field names that function actually produces (`"name"`, `"result_type"`, `"category"`, etc.) — not alternative names like `"display_name"` or `"check_id"`. When adding a new consumer of presented-check dicts, verify field names against `present_checks()` output, not against `_PROXIMITY_LABELS` keys or other lookup tables. Always add a `or "this hazard"` (or similar) terminal fallback when interpolating dict values into user-facing sentences to prevent sentence fragments from malformed input.
 - Avoid duplicating utility helpers across modules (e.g., Oxford-comma join) — use a shared module.
 
 ### Check Display Metadata (app.py)
@@ -125,6 +126,11 @@ NestCheck/
 - **Comparative verdict** (NES-218): `_build_comparative_verdict()` is a pure function that synthesizes headline + body from already-computed comparison data. It does NOT call APIs or touch the DB. When adding new comparison prose, add a branch to this function and a corresponding unit test — don't put text-generation logic in the template.
 - **Branch-priority ordering for score spreads**: When multiple `if spread <= N` branches exist, check tighter thresholds first (e.g., `<= 3` before `<= 5`) to avoid the looser condition swallowing the tighter one. This is a common bug in cascading numeric thresholds — always order from most specific to least specific.
 
+### Quality Ceiling (scoring_config.py + property_evaluator.py)
+- **Quality ceiling pattern**: `QualityCeilingConfig` caps a dimension's max score based on venue diversity + review depth. Applied *before* `_apply_confidence_cap()` so both constraints compose. To add a ceiling to another dimension: add `quality_ceiling=QualityCeilingConfig(...)` to its `DimensionConfig`, then call `_compute_quality_ceiling()` between the raw score and the confidence cap.
+- **Threshold reachability**: Config thresholds must be reachable by the upstream classifier. If `_classify_coffee_sub_type()` returns at most 3 distinct types, a `(4, bonus)` diversity threshold is dead code. Always verify the input domain before defining threshold tiers.
+- **Pre-filtered inputs shift threshold floors**: `eligible_places` is already filtered to `reviews >= 30` and `rating >= 4.0` before reaching the ceiling. Depth thresholds near the filter floor (e.g., `(50, 1.0)`) will almost always trigger. Account for upstream filters when tuning thresholds.
+
 ### Display Thresholds (scoring_config.py)
 - `WALK_DRIVE_BOTH_THRESHOLD` and `WALK_DRIVE_ONLY_THRESHOLD` in `scoring_config.py` are the canonical walk/drive time display thresholds. All display logic (templates, drive-time fetching) should reference these, not hardcode magic numbers.
 - **Scoring thresholds ≠ display thresholds**: `WALK_TIME_MARGINAL` (30 min, `green_space.py`) controls the walk-time *scoring curve*. `WALK_DRIVE_BOTH_THRESHOLD` (20 min) controls when drive times are *fetched and shown*. Don't conflate them — a constant can share a numeric value with a display threshold but serve a different purpose (scoring vs presentation).
@@ -147,8 +153,7 @@ NestCheck/
 | 2026-03 | Centralized walk/drive display thresholds (NES-213) | `WALK_DRIVE_BOTH_THRESHOLD=20` and `WALK_DRIVE_ONLY_THRESHOLD=40` in `scoring_config.py`. Lowered park drive-time fetch from 30→20 to align with display band |
 | 2026-03 | Compare view structured differentials (NES-207) | Replaced side-by-side full reports with health grid + dimension scores + key differences. Cuts 1,210 lines of `_result_sections.html` per column. Zero API cost — pure presentation over existing snapshots |
 | 2026-03 | Comparative verdict as pure function (NES-218) | `_build_comparative_verdict()` synthesizes headline+body from existing comparison data. 6 priority-ordered branches (tier1 failure → health disparity → score spread). Pure function for testability, not a template filter |
-| 2026-03 | Quality ceiling for coffee/social scoring | Walk-time proximity alone inflates scores for thin scenes. Diversity ceiling (category buckets × review depth) caps the score. Ceiling is bounded by search query types — expanding queries widens the ceiling range without scoring changes |
-| 2026-03 | Suppressed dimensions use `points=None`, not `points=0` | `0` penalizes addresses for data gaps; `None` excludes from aggregation. Slight composite inflation is acceptable (benefit of user) — Phase 3 revisits with proper insufficient-data strategy |
+| 2026-03 | Quality ceiling for Coffee & Social Spots | Proximity alone shouldn't yield 10/10 with only delis. `QualityCeilingConfig` caps score via diversity + depth bonuses. Applied before confidence cap. Model version bumped to 1.5.0 |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
