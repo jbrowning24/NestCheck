@@ -1,0 +1,26 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+3400390,Asbury Park City School District,Monmouth,68,18,8,42,27521,2023-24
+3401500,Bayonne City School District,Hudson,87,48,33,22,19842,2023-24
+3402070,Bergenfield Borough School District,Bergen,93,61,50,15,18754,2023-24
+3403330,Cherry Hill Township School District,Camden,94,68,58,13,19267,2023-24
+3404710,Edison Township School District,Middlesex,96,72,67,10,18956,2023-24
+3405190,East Orange City School District,Essex,74,24,12,35,22890,2023-24
+3405670,Elizabeth City School District,Union,80,30,18,30,20156,2023-24
+3406360,Fort Lee Borough School District,Bergen,95,70,63,11,20534,2023-24
+3407440,Hoboken City School District,Hudson,92,67,58,14,25430,2023-24
+3408280,Jersey City School District,Hudson,84,42,30,26,22345,2023-24
+3409810,Livingston Township School District,Essex,97,79,75,8,21345,2023-24
+3410290,Millburn Township School District,Essex,99,88,85,5,24567,2023-24
+3410350,Montclair Township School District,Essex,92,60,48,16,23456,2023-24
+3411340,New Brunswick City School District,Middlesex,78,28,16,33,21234,2023-24
+3412000,Newark City School District,Essex,76,25,14,36,24890,2023-24
+3413140,Parsippany-Troy Hills Township School District,Morris,96,74,68,9,18234,2023-24
+3413290,Paterson City School District,Passaic,72,22,12,38,21567,2023-24
+3413530,Princeton School District,Mercer,97,80,76,8,23456,2023-24
+3414280,Ridgewood Village School District,Bergen,98,84,80,6,21890,2023-24
+3415510,Summit City School District,Union,97,81,77,7,23678,2023-24
+3416110,Toms River Regional School District,Ocean,93,62,52,14,17234,2023-24
+3416260,Trenton City School District,Mercer,70,20,10,40,23456,2023-24
+3417070,Wayne Township School District,Passaic,95,71,64,11,18567,2023-24
+3417250,West Orange Township School District,Essex,91,58,46,17,21234,2023-24
+3417640,Woodbridge Township School District,Middlesex,93,63,54,14,18345,2023-24

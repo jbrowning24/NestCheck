@@ -11,6 +11,18 @@ the school district polygon table (facilities_school_districts).
 
 Idempotent: drops and recreates the table on each run.
 
+Statewide data expansion:
+    The bundled CSV currently covers ~40 Westchester County districts.
+    Full statewide data (~730+ districts) is available from:
+    - Graduation rates: https://data.nysed.gov/files/gradrate/24-25/gradrate.zip
+    - Report Card (ELA/Math): https://data.nysed.gov/files/essa/24-25/SRC2025.zip
+    Both are Access .mdb databases. To extract:
+    1. Install mdbtools: apt install mdbtools
+    2. List tables: mdb-tables <file>.mdb
+    3. Export: mdb-export <file>.mdb <table> > output.csv
+    4. Map NYSED BEDS codes to TIGER GEOIDs (NCES LEAID = GEOID)
+    5. Replace data/nysed_district_performance.csv with full statewide version
+
 Usage:
     python scripts/ingest_nysed.py
     python scripts/ingest_nysed.py --verify

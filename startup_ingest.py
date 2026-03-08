@@ -33,6 +33,28 @@ spatial_ready = threading.Event()
 _INGEST_WARN_SECONDS = 300  # 5 minutes
 
 
+def _table_has_state_data(
+    db_path: str, table_name: str, state: str,
+) -> tuple[bool, int]:
+    """Check if a table has rows for a specific state.
+
+    Used for state_education_performance where NY, NJ, CT data are
+    loaded independently and should be checked individually.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute(
+                f"SELECT COUNT(*) FROM {table_name} WHERE state = ?", (state,)
+            )
+            count = cursor.fetchone()[0]
+            return (count > 0, count)
+        finally:
+            conn.close()
+    except Exception:
+        return (False, 0)
+
+
 def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
     """
     Check if a table exists in the spatial DB and has rows.
@@ -184,12 +206,29 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("school_districts", _ingest_school_districts)
 
     # --- State Education Performance (school district performance metrics, multi-state) ---
+    # NY (NYSED) — creates the table and loads NY data
     has_data, count = _table_has_data(db_path, "state_education_performance")
     if has_data:
-        logger.info("Dataset state_education_performance: present (%d records), skipping", count)
+        logger.info("Dataset state_education_performance: present (%d records), skipping NY", count)
     else:
-        logger.info("Dataset state_education_performance: missing or empty, starting ingestion...")
+        logger.info("Dataset state_education_performance: missing or empty, starting NY ingestion...")
         _run_ingest("state_education_performance", _ingest_nysed)
+
+    # NJ — appends NJ data (table must exist from NYSED step or NJ creates it)
+    has_nj, nj_count = _table_has_state_data(db_path, "state_education_performance", "NJ")
+    if has_nj:
+        logger.info("Dataset state_education_performance NJ: present (%d records), skipping", nj_count)
+    else:
+        logger.info("Dataset state_education_performance NJ: missing, starting ingestion...")
+        _run_ingest("state_education_performance_nj", _ingest_nj_performance)
+
+    # CT — appends CT data
+    has_ct, ct_count = _table_has_state_data(db_path, "state_education_performance", "CT")
+    if has_ct:
+        logger.info("Dataset state_education_performance CT: present (%d records), skipping", ct_count)
+    else:
+        logger.info("Dataset state_education_performance CT: missing, starting ingestion...")
+        _run_ingest("state_education_performance_ct", _ingest_ct_performance)
 
     # --- NCES Public Schools (2022-23, tri-state) ---
     has_data, count = _table_has_data(db_path, "facilities_nces_schools")
@@ -267,6 +306,16 @@ def _ingest_school_districts():
 
 def _ingest_nysed():
     from scripts.ingest_nysed import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_nj_performance():
+    from scripts.ingest_nj_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_ct_performance():
+    from scripts.ingest_ct_performance import ingest as do_ingest
     do_ingest()
 
 
