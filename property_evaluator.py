@@ -5417,10 +5417,10 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
     clear = [c for c in safety if c.get("result_type") == "CLEAR"]
 
     def _label_with_article(c):
-        """Return the label with article from _PROXIMITY_LABELS, or display_name."""
+        """Return the label with article from _PROXIMITY_LABELS, or name."""
         cid = c.get("check_id", "")
         fallback = c.get("display_name", "") or c.get("name", "") or cid
-        return _PROXIMITY_LABELS.get(cid, fallback)
+        return _PROXIMITY_LABELS.get(cid, fallback) or "this hazard"
 
     def _display_label(c):
         """Return the display_name as-is (capitalized, no article)."""
@@ -5449,7 +5449,7 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
         if len(unverified) >= 3 and not confirmed:
             parts.append("None of the proximity checks could be verified with available data.")
         elif len(unverified) == 1 and not confirmed:
-            # Single unverified: use display_name directly for specificity
+            # Single unverified: use name/display_name for specificity
             label = _display_label(unverified[0])
             parts.append(f"Proximity to {label} could not be verified with available data.")
         else:

@@ -74,6 +74,7 @@ NestCheck/
 ### Narrative Insights (NES-191+)
 - Insight generators are pure functions: `dict → str | None`. Keep them side-effect-free for testability.
 - Place insight logic in dedicated modules (not `app.py`) — `app.py` is for routes/views.
+- **Dict field-name contracts**: Insight functions that consume dicts from `present_checks()` must use the field names that function actually produces (`"name"`, `"result_type"`, `"category"`, etc.) — not alternative names like `"display_name"` or `"check_id"`. When adding a new consumer of presented-check dicts, verify field names against `present_checks()` output, not against `_PROXIMITY_LABELS` keys or other lookup tables. Always add a `or "this hazard"` (or similar) terminal fallback when interpolating dict values into user-facing sentences to prevent sentence fragments from malformed input.
 - Avoid duplicating utility helpers across modules (e.g., Oxford-comma join) — use a shared module.
 
 ### Check Display Metadata (app.py)

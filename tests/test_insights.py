@@ -845,6 +845,14 @@ class TestProximitySynthesisConfirmed:
         assert "close to a highway" in result.lower()
         assert "remaining checks are clear" in result.lower()
 
+    def test_confirmed_no_name_fields(self):
+        """_label_with_article must also bottom out gracefully."""
+        checks = [
+            {"category": "SAFETY", "result_type": "CONFIRMED_ISSUE"},
+        ]
+        result = proximity_synthesis(checks)
+        assert "close to this hazard" in result.lower()
+
     def test_confirmed_only_no_clears(self):
         checks = [_make_check("highway", "CONFIRMED_ISSUE")]
         result = proximity_synthesis(checks)
