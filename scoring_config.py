@@ -382,3 +382,14 @@ for _k, _p in PERSONA_PRESETS.items():
         raise ValueError(f"Persona {_k!r} weights sum to {_wsum}, expected 6.0")
     if len(_p.weights) != 6:
         raise ValueError(f"Persona {_k!r} has {len(_p.weights)} weights, expected 6")
+
+
+# =============================================================================
+# Walk / drive time display thresholds (minutes)
+# =============================================================================
+# Controls when the report shows walk time, both, or drive time only.
+#   walk_time <= BOTH  : walk only
+#   BOTH < walk_time <= ONLY : show both walk + drive
+#   walk_time > ONLY  : drive only
+WALK_DRIVE_BOTH_THRESHOLD = 20
+WALK_DRIVE_ONLY_THRESHOLD = 40

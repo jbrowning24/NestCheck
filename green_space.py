@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 
 from nc_trace import get_trace
+from scoring_config import WALK_DRIVE_BOTH_THRESHOLD
 
 try:
     from spatial_data import SpatialDataStore
@@ -1534,12 +1535,12 @@ def evaluate_green_escape(
     best_id = evaluation.best_daily_park.place_id if evaluation.best_daily_park else None
     nearby = [s for s in scored if s.place_id != best_id][:NEARBY_LIST_SIZE]
 
-    # Step 5b: Fetch drive times for parks beyond walking distance.
-    # Collect all candidate parks (best + nearby) that exceed WALK_TIME_MARGINAL.
+    # Step 5b: Fetch drive times for parks beyond comfortable walk threshold.
+    # Drive times fetched for any park beyond comfortable walk threshold
     all_candidates = list(nearby)
-    if evaluation.best_daily_park and evaluation.best_daily_park.walk_time_min > WALK_TIME_MARGINAL:
+    if evaluation.best_daily_park and evaluation.best_daily_park.walk_time_min > WALK_DRIVE_BOTH_THRESHOLD:
         all_candidates.append(evaluation.best_daily_park)
-    far_parks = [s for s in all_candidates if s.walk_time_min > WALK_TIME_MARGINAL]
+    far_parks = [s for s in all_candidates if s.walk_time_min > WALK_DRIVE_BOTH_THRESHOLD]
 
     drive_times_fetched = False
     if far_parks and hasattr(maps_client, "driving_times_batch"):
@@ -1563,7 +1564,7 @@ def evaluate_green_escape(
     if drive_times_fetched:
         nearby = [
             s for s in nearby
-            if s.walk_time_min <= WALK_TIME_MARGINAL
+            if s.walk_time_min <= WALK_DRIVE_BOTH_THRESHOLD
             or (s.drive_time_min is not None and s.drive_time_min <= DRIVE_TIME_MAX)
         ]
     evaluation.nearby_green_spaces = nearby
