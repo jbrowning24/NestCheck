@@ -7,7 +7,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, school_card %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon %}
 
 <div class="report">
 
@@ -170,11 +170,19 @@
     {# presented_checks is guaranteed by load-time backfill (NES-80) #}
     {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
     {% if safety_items %}
+      {% set clear_count = safety_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+      {% set warning_count = safety_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
+      {% set issue_count = safety_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+      <div class="health-stat-row">
+        {% if clear_count %}<span class="health-stat-badge health-stat-badge--clear">{{ clear_count }} Clear</span>{% endif %}
+        {% if warning_count %}<span class="health-stat-badge health-stat-badge--warning">{{ warning_count }} Warning{{ 's' if warning_count != 1 }}</span>{% endif %}
+        {% if issue_count %}<span class="health-stat-badge health-stat-badge--issue">{{ issue_count }} Issue{{ 's' if issue_count != 1 }}</span>{% endif %}
+      </div>
       {% for pc in safety_items %}
         {% if pc.is_grouped | default(false) %}
         <div class="proximity-item proximity-notable proximity-grouped">
           <div class="proximity-name">
-            <span class="proximity-icon proximity-icon-unverified">?</span>
+            {{ health_check_icon("unverified") }}
             {{ pc.headline }}
           </div>
           <div class="proximity-explanation">{{ pc.explanation }}</div>
@@ -188,19 +196,13 @@
           {% endif %}
         </div>
         {% else %}
-        {# --- Existing individual check rendering --- #}
+        {# --- Individual check rendering --- #}
         {% set band_class = "proximity-" + pc.proximity_band | lower %}
-        <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+        {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
+        <div class="proximity-item {{ band_class }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
           <div class="proximity-name">
-            {% if pc.result_type == "CLEAR" -%}
-              <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-            {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
-              <span class="proximity-icon proximity-icon-issue">&#10007;</span>
-            {%- elif pc.result_type == "WARNING_DETECTED" -%}
-              <span class="proximity-icon proximity-icon-warning">&#9888;</span>
-            {%- else -%}
-              <span class="proximity-icon proximity-icon-unverified">?</span>
-            {%- endif %}
+            {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
+            {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
             {{ pc.headline }}
           </div>
           {% if pc.explanation %}
@@ -228,9 +230,9 @@
         {% endif %}
       {% endfor %}
     {% else %}
-      <div class="proximity-item proximity-neutral">
+      <div class="proximity-item proximity-neutral health-check--quiet">
         <div class="proximity-name">
-          <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+          {{ health_check_icon("clear", quiet=true) }}
           No environmental concerns detected near this address.
         </div>
       </div>
@@ -259,15 +261,11 @@
       {% else %}
         {% set noise_css = "proximity-neutral" %}
       {% endif %}
-      <div class="proximity-item {{ noise_css }}">
+      {% set _noise_mod = "health-check--elevated" if sev in ("LOUD", "VERY_LOUD") else ("health-check--quiet" if sev == "QUIET" else "") %}
+      <div class="proximity-item {{ noise_css }} {{ _noise_mod }}">
         <div class="proximity-name">
-          {% if sev == "QUIET" -%}
-            <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-          {%- elif sev == "MODERATE" -%}
-            <span class="proximity-icon proximity-icon-unverified">!</span>
-          {%- else -%}
-            <span class="proximity-icon proximity-icon-issue">&#10007;</span>
-          {%- endif %}
+          {% set _noise_icon = "clear" if sev == "QUIET" else ("warning" if sev == "MODERATE" else "issue") %}
+          {{ health_check_icon(_noise_icon, quiet=(sev == 'QUIET')) }}
           Road Noise Estimate
         </div>
         <div class="proximity-detail">{{ rn.severity_label }}</div>

@@ -39,6 +39,7 @@ NestCheck/
 - Custom slash commands in `.claude/commands/` must not shadow built-in commands (e.g., `/review`, `/compact`, `/init`). Check the built-in list before naming a new command. Shadowed built-ins become unreachable.
 - PostToolUse hooks that reference `$CLAUDE_FILE_PATH` must guard with `test -n` and quote the variable. If unset, tools like `ruff format` will silently operate on the entire directory.
 - Subagent definitions live in `.claude/agents/`. Each agent should have a single focused responsibility and explicit verification steps.
+- SessionStart hooks that run `sudo apt install` will hang in environments requiring a password prompt. Always guard with `command -v <tool>` to skip installation when the tool already exists, and end with `|| true` so failures never block the session.
 
 ## Coding Standards
 
@@ -111,6 +112,11 @@ NestCheck/
 - **Derived percentages from upstream counts**: When computing percentages from two upstream fields (e.g., TOTFRL/MEMBER for FRL%), always cap at 100% — data quality issues in federal datasets can produce numerator > denominator.
 - **Template component duplication**: When the same UI component renders in multiple conditional branches (e.g., school card inside vs. outside school district section), extract into a Jinja macro in `_macros.html` immediately. Copy-paste diverges silently on the next edit.
 
+### Display Thresholds (scoring_config.py)
+- `WALK_DRIVE_BOTH_THRESHOLD` and `WALK_DRIVE_ONLY_THRESHOLD` in `scoring_config.py` are the canonical walk/drive time display thresholds. All display logic (templates, drive-time fetching) should reference these, not hardcode magic numbers.
+- **Scoring thresholds ≠ display thresholds**: `WALK_TIME_MARGINAL` (30 min, `green_space.py`) controls the walk-time *scoring curve*. `WALK_DRIVE_BOTH_THRESHOLD` (20 min) controls when drive times are *fetched and shown*. Don't conflate them — a constant can share a numeric value with a display threshold but serve a different purpose (scoring vs presentation).
+- Transit drive-time fetch uses its own hardcoded threshold (`> 20` in `find_primary_transit`) — intentionally independent of the display constants. It follows a walk-primary/drive-secondary pattern where both are always shown when drive time exists.
+
 ## Decision Log
 
 | Date | Decision | Rationale |
@@ -125,7 +131,7 @@ NestCheck/
 | 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
 | 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
 | 2026-03 | Health checks promoted to top of report (NES-214) | Primary differentiator was buried at position #11. Now `id="health-safety"` section after Summary Narrative. Proximity & Environment dissolved: sidewalk→Getting Around, EJScreen→Area Context |
-| 2026-03 | Renamed "Third Place" → "Coffee & Social Spots" (NES-210) | Academic jargon ("third place") was inaccessible. Internal Tier2Score name now matches display name, fixing weight badge lookup bug. Old snapshots migrated via `_migrate_dimension_names()` |
+| 2026-03 | Centralized walk/drive display thresholds (NES-213) | `WALK_DRIVE_BOTH_THRESHOLD=20` and `WALK_DRIVE_ONLY_THRESHOLD=40` in `scoring_config.py`. Lowered park drive-time fetch from 30→20 to align with display band |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
