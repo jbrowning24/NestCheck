@@ -5424,7 +5424,8 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
 
     def _display_label(c):
         """Return the display_name as-is (capitalized, no article)."""
-        return c.get("display_name", "") or c.get("name", "") or c.get("check_id", "")
+        label = c.get("display_name", "") or c.get("name", "") or c.get("check_id", "")
+        return label or "this hazard"
 
     # All clear
     if not confirmed and not unverified:

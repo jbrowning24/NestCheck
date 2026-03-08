@@ -791,6 +791,26 @@ class TestProximitySynthesisUnverifiedOnly:
         assert "Gas station" in result
         assert "Proximity to  could" not in result  # no empty name
 
+    def test_single_unverified_no_name_fields(self):
+        """All name fields absent — fallback must produce a grammatical sentence."""
+        checks = [
+            {"category": "SAFETY", "result_type": "CLEAR", "name": "Power lines"},
+            {"category": "SAFETY", "result_type": "VERIFICATION_NEEDED"},
+        ]
+        result = proximity_synthesis(checks)
+        assert "Proximity to  could" not in result
+        assert "this hazard" in result
+
+    def test_two_unverified_name_field_only(self):
+        """Multi-unverified with name-only dicts (no check_id/display_name)."""
+        checks = [
+            {"category": "SAFETY", "result_type": "VERIFICATION_NEEDED", "name": "Gas station"},
+            {"category": "SAFETY", "result_type": "VERIFICATION_NEEDED", "name": "Power lines"},
+        ]
+        result = proximity_synthesis(checks)
+        assert "Gas station" in result
+        assert "Power lines" in result
+
     def test_two_unverified(self):
         checks = [
             _make_check("highway", "VERIFICATION_NEEDED"),
