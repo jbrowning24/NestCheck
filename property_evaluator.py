@@ -473,8 +473,29 @@ def _is_non_physical_place(place: Dict) -> bool:
 
 
 def _filter_physical_places(places: List[Dict]) -> List[Dict]:
-    """Keep only places that appear to be real, physical businesses."""
-    return [p for p in places if not _is_non_physical_place(p)]
+    """Keep only places that appear to be real, physical businesses.
+
+    Filtered-out places are logged at DEBUG level for audit / false-positive
+    review during validation testing.
+    """
+    kept: List[Dict] = []
+    for p in places:
+        if _is_non_physical_place(p):
+            logger.debug(
+                "Filtered non-physical place: %s (status=%s, place_id=%s)",
+                p.get("name", "?"),
+                p.get("business_status", ""),
+                p.get("place_id", ""),
+            )
+        else:
+            kept.append(p)
+    if len(kept) < len(places):
+        logger.info(
+            "Filtered %d non-physical place(s) from %d results",
+            len(places) - len(kept),
+            len(places),
+        )
+    return kept
 
 
 # =============================================================================
