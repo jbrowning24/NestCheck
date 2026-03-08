@@ -158,6 +158,134 @@
   </div>
   {% endif %}
 
+  {# ── HEALTH & ENVIRONMENT — primary differentiator, shown first (NES-214) ── #}
+  <div id="health-safety" class="report-section">
+    <h2>Health &amp; Environment</h2>
+
+    {# Section-level synthesis insight #}
+    {% if result.insights is defined and result.insights and result.insights.proximity %}
+      <p class="section-insight">{{ result.insights.proximity }}</p>
+    {% endif %}
+
+    {# presented_checks is guaranteed by load-time backfill (NES-80) #}
+    {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+    {% if safety_items %}
+      {% for pc in safety_items %}
+        {% if pc.is_grouped | default(false) %}
+        <div class="proximity-item proximity-notable proximity-grouped">
+          <div class="proximity-name">
+            <span class="proximity-icon proximity-icon-unverified">?</span>
+            {{ pc.headline }}
+          </div>
+          <div class="proximity-explanation">{{ pc.explanation }}</div>
+          <div class="proximity-grouped-checks">
+            We check for: {{ pc.grouped_checks | join(', ') }}
+          </div>
+          {% if result.coordinates is defined and result.coordinates %}
+            <a class="proximity-satellite-link"
+               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
+               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+          {% endif %}
+        </div>
+        {% else %}
+        {# --- Existing individual check rendering --- #}
+        {% set band_class = "proximity-" + pc.proximity_band | lower %}
+        <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+          <div class="proximity-name">
+            {% if pc.result_type == "CLEAR" -%}
+              <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+            {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
+              <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+            {%- elif pc.result_type == "WARNING_DETECTED" -%}
+              <span class="proximity-icon proximity-icon-warning">&#9888;</span>
+            {%- else -%}
+              <span class="proximity-icon proximity-icon-unverified">?</span>
+            {%- endif %}
+            {{ pc.headline }}
+          </div>
+          {% if pc.explanation %}
+            <div class="proximity-detail">{{ pc.explanation }}</div>
+          {% endif %}
+          {# Satellite link for unverified checks #}
+          {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
+            <a class="proximity-satellite-link"
+               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
+               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+          {% endif %}
+          {# Progressive disclosure — expanded health context #}
+          {% if pc.health_context is defined and pc.health_context %}
+            <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+              <span class="collapse-icon health-context-label">&#9654;</span>
+              <span class="health-context-label">Why we check this</span>
+            </div>
+            <div class="collapsible-body collapsed health-context-body">
+              {% for paragraph in pc.health_context %}
+                <p class="health-context-paragraph">{{ paragraph }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% else %}
+      <div class="proximity-item proximity-neutral">
+        <div class="proximity-name">
+          <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+          No environmental concerns detected near this address.
+        </div>
+      </div>
+    {% endif %}
+
+    {# NES-196: Note when UNKNOWN spatial checks were suppressed #}
+    {% set _suc = result.suppressed_unknown_count | default(0) %}
+    {% if _suc > 0 %}
+    <div class="confidence-summary confidence-medium">
+      <span class="confidence-summary-icon">&#9432;</span>
+      Environmental database expansion in progress — {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} coming soon.
+    </div>
+    {% endif %}
+
+    {# ── Road Noise Estimate card ── #}
+    {# Three-state guard: key absent → old snapshot, hide card.           #}
+    {# value=none → Overpass failed / no roads, hide card.                #}
+    {# value={..} → show card with severity-based styling.                #}
+    {% if result.road_noise is defined and result.road_noise %}
+      {% set rn = result.road_noise %}
+      {% set sev = rn.severity %}
+      {% if sev == "VERY_LOUD" or sev == "LOUD" %}
+        {% set noise_css = "proximity-very_close" %}
+      {% elif sev == "MODERATE" %}
+        {% set noise_css = "proximity-notable" %}
+      {% else %}
+        {% set noise_css = "proximity-neutral" %}
+      {% endif %}
+      <div class="proximity-item {{ noise_css }}">
+        <div class="proximity-name">
+          {% if sev == "QUIET" -%}
+            <span class="proximity-icon proximity-icon-clear">&#10003;</span>
+          {%- elif sev == "MODERATE" -%}
+            <span class="proximity-icon proximity-icon-unverified">!</span>
+          {%- else -%}
+            <span class="proximity-icon proximity-icon-issue">&#10007;</span>
+          {%- endif %}
+          Road Noise Estimate
+        </div>
+        <div class="proximity-detail">{{ rn.severity_label }}</div>
+        <div class="proximity-detail road-noise-detail">
+          Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
+        </div>
+        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+          <span class="collapse-icon road-noise-label">&#9654;</span>
+          <span class="road-noise-label">About the estimate</span>
+        </div>
+        <div class="collapsible-body collapsed road-noise-methodology">
+          {{ rn.methodology_note }}
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
   {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
   {% set has_map_data = result.coordinates is defined and result.coordinates
                         and result.neighborhood_places is defined and result.neighborhood_places %}
@@ -506,6 +634,47 @@
       </p>
     {% endif %}
 
+    {# ── Sidewalk & Cycleway Coverage card (NES-110, moved from Proximity NES-214) ── #}
+    {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
+      {% set sc = result.sidewalk_coverage %}
+      {% if sc.data_confidence == "HIGH" %}
+        {% if sc.sidewalk_pct >= 60 %}
+          {% set sw_css = "proximity-neutral" %}
+        {% elif sc.sidewalk_pct >= 30 %}
+          {% set sw_css = "proximity-notable" %}
+        {% else %}
+          {% set sw_css = "proximity-very_close" %}
+        {% endif %}
+      {% else %}
+        {% set sw_css = "proximity-neutral" %}
+      {% endif %}
+      <div class="proximity-item {{ sw_css }}">
+        <div class="proximity-name">
+          <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+          Sidewalk &amp; Cycleway Coverage
+        </div>
+        <div class="proximity-detail">
+          {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
+          &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
+        </div>
+        <div class="proximity-detail">
+          {{ sc.total_road_segments }} road segments assessed within 500 m
+          {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
+          {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
+        </div>
+        <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
+          Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
+        </div>
+        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+          <span class="collapse-icon">&#9654;</span>
+          <span>About this metric</span>
+        </div>
+        <div class="collapsible-body collapsed">
+          {{ sc.methodology_note }}
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 
   {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
@@ -689,246 +858,11 @@
   </div>
   {% endif %}
 
-  {# ── 6. PROXIMITY & ENVIRONMENT — always shown (preview + full) ── #}
-  <div id="proximity-environment" class="report-section">
-    <h2>Proximity &amp; Environment</h2>
-
-    {# Section-level synthesis insight #}
-    {% if result.insights is defined and result.insights and result.insights.proximity %}
-      <p class="section-insight">{{ result.insights.proximity }}</p>
-    {% endif %}
-
-    {# presented_checks is guaranteed by load-time backfill (NES-80) #}
-    {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
-    {% if safety_items %}
-      {% for pc in safety_items %}
-        {% if pc.is_grouped | default(false) %}
-        <div class="proximity-item proximity-notable proximity-grouped">
-          <div class="proximity-name">
-            <span class="proximity-icon proximity-icon-unverified">?</span>
-            {{ pc.headline }}
-          </div>
-          <div class="proximity-explanation">{{ pc.explanation }}</div>
-          <div class="proximity-grouped-checks">
-            We check for: {{ pc.grouped_checks | join(', ') }}
-          </div>
-          {% if result.coordinates is defined and result.coordinates %}
-            <a class="proximity-satellite-link"
-               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
-               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
-          {% endif %}
-        </div>
-        {% else %}
-        {# --- Existing individual check rendering --- #}
-        {% set band_class = "proximity-" + pc.proximity_band | lower %}
-        <div class="proximity-item {{ band_class }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
-          <div class="proximity-name">
-            {% if pc.result_type == "CLEAR" -%}
-              <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-            {%- elif pc.result_type == "CONFIRMED_ISSUE" -%}
-              <span class="proximity-icon proximity-icon-issue">&#10007;</span>
-            {%- elif pc.result_type == "WARNING_DETECTED" -%}
-              <span class="proximity-icon proximity-icon-warning">&#9888;</span>
-            {%- else -%}
-              <span class="proximity-icon proximity-icon-unverified">?</span>
-            {%- endif %}
-            {{ pc.headline }}
-          </div>
-          {% if pc.explanation %}
-            <div class="proximity-detail">{{ pc.explanation }}</div>
-          {% endif %}
-          {# Satellite link for unverified checks #}
-          {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
-            <a class="proximity-satellite-link"
-               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
-               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
-          {% endif %}
-          {# Progressive disclosure — expanded health context #}
-          {% if pc.health_context is defined and pc.health_context %}
-            <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-              <span class="collapse-icon health-context-label">&#9654;</span>
-              <span class="health-context-label">Why we check this</span>
-            </div>
-            <div class="collapsible-body collapsed health-context-body">
-              {% for paragraph in pc.health_context %}
-                <p class="health-context-paragraph">{{ paragraph }}</p>
-              {% endfor %}
-            </div>
-          {% endif %}
-        </div>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <div class="proximity-item proximity-neutral">
-        <div class="proximity-name">
-          <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-          No environmental concerns detected near this address.
-        </div>
-      </div>
-    {% endif %}
-
-    {# NES-196: Note when UNKNOWN spatial checks were suppressed #}
-    {% set _suc = result.suppressed_unknown_count | default(0) %}
-    {% if _suc > 0 %}
-    <div class="confidence-summary confidence-medium">
-      <span class="confidence-summary-icon">&#9432;</span>
-      Environmental database expansion in progress — {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} coming soon.
-    </div>
-    {% endif %}
-
-    {# ── Road Noise Estimate card ── #}
-    {# Three-state guard: key absent → old snapshot, hide card.           #}
-    {# value=none → Overpass failed / no roads, hide card.                #}
-    {# value={..} → show card with severity-based styling.                #}
-    {% if result.road_noise is defined and result.road_noise %}
-      {% set rn = result.road_noise %}
-      {% set sev = rn.severity %}
-      {% if sev == "VERY_LOUD" or sev == "LOUD" %}
-        {% set noise_css = "proximity-very_close" %}
-      {% elif sev == "MODERATE" %}
-        {% set noise_css = "proximity-notable" %}
-      {% else %}
-        {% set noise_css = "proximity-neutral" %}
-      {% endif %}
-      <div class="proximity-item {{ noise_css }}">
-        <div class="proximity-name">
-          {% if sev == "QUIET" -%}
-            <span class="proximity-icon proximity-icon-clear">&#10003;</span>
-          {%- elif sev == "MODERATE" -%}
-            <span class="proximity-icon proximity-icon-unverified">!</span>
-          {%- else -%}
-            <span class="proximity-icon proximity-icon-issue">&#10007;</span>
-          {%- endif %}
-          Road Noise Estimate
-        </div>
-        <div class="proximity-detail">{{ rn.severity_label }}</div>
-        <div class="proximity-detail road-noise-detail">
-          Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
-        </div>
-        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon road-noise-label">&#9654;</span>
-          <span class="road-noise-label">About the estimate</span>
-        </div>
-        <div class="collapsible-body collapsed road-noise-methodology">
-          {{ rn.methodology_note }}
-        </div>
-      </div>
-    {% endif %}
-
-    {# ── Sidewalk & Cycleway Coverage card (NES-110) ── #}
-    {# Three-state guard: key absent → old snapshot, hide card.           #}
-    {# value=none → Overpass failed / no roads, hide card.                #}
-    {# value={..} → show card with coverage data.                         #}
-    {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
-      {% set sc = result.sidewalk_coverage %}
-      {% if sc.data_confidence == "HIGH" %}
-        {% if sc.sidewalk_pct >= 60 %}
-          {% set sw_css = "proximity-neutral" %}
-        {% elif sc.sidewalk_pct >= 30 %}
-          {% set sw_css = "proximity-notable" %}
-        {% else %}
-          {% set sw_css = "proximity-very_close" %}
-        {% endif %}
-      {% else %}
-        {% set sw_css = "proximity-neutral" %}
-      {% endif %}
-      <div class="proximity-item {{ sw_css }}">
-        <div class="proximity-name">
-          <span class="proximity-icon proximity-icon-clear">&#128694;</span>
-          Sidewalk &amp; Cycleway Coverage
-        </div>
-        <div class="proximity-detail">
-          {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
-          &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
-        </div>
-        <div class="proximity-detail">
-          {{ sc.total_road_segments }} road segments assessed within 500 m
-          {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
-          {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
-        </div>
-        <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
-          Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
-        </div>
-        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon">&#9654;</span>
-          <span>About this metric</span>
-        </div>
-        <div class="collapsible-body collapsed">
-          {{ sc.methodology_note }}
-        </div>
-      </div>
-    {% endif %}
-
-    {# ── EPA Environmental Profile card (EJScreen) ── #}
-    {# Three-state guard: key absent → old snapshot, hide card.           #}
-    {# value=none → no EJScreen data, hide card.                          #}
-    {# value={..} → show card with all indicators.                        #}
-    {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
-      {% set ej = result.ejscreen_profile %}
-      {# Indicator display config: field_key, label, is_check_indicator #}
-      {% set ej_indicators = [
-        ("PM25",   "PM2.5 Particulate Matter",    true),
-        ("OZONE",  "Ozone",                       false),
-        ("DSLPM",  "Diesel Particulate Matter",    true),
-        ("CANCER", "Air Toxics Cancer Risk",       true),
-        ("RESP",   "Air Toxics Respiratory HI",    false),
-        ("PTRAF",  "Traffic Proximity",            false),
-        ("PNPL",   "Superfund Proximity",          true),
-        ("PRMP",   "RMP Facility Proximity",       false),
-        ("PTSDF",  "Hazardous Waste Proximity",    true),
-        ("UST",    "Underground Storage Tanks",    false),
-        ("PWDIS",  "Wastewater Discharge",         false),
-        ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
-      ] %}
-      <div class="proximity-item proximity-neutral" id="ejscreen-profile">
-        <div class="proximity-name">
-          <span class="proximity-icon proximity-icon-clear">&#127758;</span>
-          EPA Environmental Profile
-        </div>
-        <div class="proximity-detail">
-          Census block group indicators from EPA EJScreen (national percentiles)
-        </div>
-        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon">&#9654;</span>
-          <span>View all indicators</span>
-        </div>
-        <div class="collapsible-body collapsed">
-          <div class="ejscreen-indicators">
-            {% for field_key, label, is_check in ej_indicators %}
-              {% if ej[field_key] is defined and ej[field_key] is not none %}
-                {% set pct = ej[field_key] %}
-                {% if pct >= 80 %}
-                  {% set indicator_css = "ejscreen-indicator--warning" %}
-                {% elif pct >= 50 %}
-                  {% set indicator_css = "ejscreen-indicator--moderate" %}
-                {% else %}
-                  {% set indicator_css = "ejscreen-indicator--low" %}
-                {% endif %}
-                <div class="ejscreen-indicator {{ indicator_css }}">
-                  <span class="ejscreen-indicator__label">{{ label }}</span>
-                  <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
-                  {% if pct >= 80 %}
-                    <span class="ejscreen-indicator__badge">&#9888;</span>
-                  {% endif %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-          <div class="ejscreen-source">
-            Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
-            &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
-            &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
-          </div>
-        </div>
-      </div>
-    {% endif %}
-
-  </div>
-
   {# ── AREA CONTEXT divider — separates scored evaluation from informational data ── #}
   {# Community Profile + School District are contextual, never scored (FHA separation) #}
   {% set _has_context = (result.demographics is defined and result.demographics is not none)
-      or (result.school_district is defined and result.school_district is not none) %}
+      or (result.school_district is defined and result.school_district is not none)
+      or (result.ejscreen_profile is defined and result.ejscreen_profile is not none) %}
   {% if _has_context %}
   <div class="area-context-divider">
     <h2 class="area-context-heading">Area Context</h2>
@@ -1067,6 +1001,65 @@
       &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
     </p>
 
+  </div>
+  {% endif %}
+
+  {# ── EPA Environmental Profile (EJScreen) — moved from Proximity, NES-214 ── #}
+  {# Three-state guard: key absent → old snapshot, hide card.           #}
+  {# value=none → no EJScreen data, hide card.                          #}
+  {# value={..} → show card with all indicators.                        #}
+  {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
+    {% set ej = result.ejscreen_profile %}
+    {# Indicator display config: field_key, label, is_check_indicator #}
+    {% set ej_indicators = [
+      ("PM25",   "PM2.5 Particulate Matter",    true),
+      ("OZONE",  "Ozone",                       false),
+      ("DSLPM",  "Diesel Particulate Matter",    true),
+      ("CANCER", "Air Toxics Cancer Risk",       true),
+      ("RESP",   "Air Toxics Respiratory HI",    false),
+      ("PTRAF",  "Traffic Proximity",            false),
+      ("PNPL",   "Superfund Proximity",          true),
+      ("PRMP",   "RMP Facility Proximity",       false),
+      ("PTSDF",  "Hazardous Waste Proximity",    true),
+      ("UST",    "Underground Storage Tanks",    false),
+      ("PWDIS",  "Wastewater Discharge",         false),
+      ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
+    ] %}
+  <div id="ejscreen-profile" class="report-section">
+    <h2>EPA Environmental Profile</h2>
+    <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
+    <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+      <span class="collapse-icon">&#9654;</span>
+      <span>View all indicators</span>
+    </div>
+    <div class="collapsible-body collapsed">
+      <div class="ejscreen-indicators">
+        {% for field_key, label, is_check in ej_indicators %}
+          {% if ej[field_key] is defined and ej[field_key] is not none %}
+            {% set pct = ej[field_key] %}
+            {% if pct >= 80 %}
+              {% set indicator_css = "ejscreen-indicator--warning" %}
+            {% elif pct >= 50 %}
+              {% set indicator_css = "ejscreen-indicator--moderate" %}
+            {% else %}
+              {% set indicator_css = "ejscreen-indicator--low" %}
+            {% endif %}
+            <div class="ejscreen-indicator {{ indicator_css }}">
+              <span class="ejscreen-indicator__label">{{ label }}</span>
+              <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
+              {% if pct >= 80 %}
+                <span class="ejscreen-indicator__badge">&#9888;</span>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="ejscreen-source">
+        Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
+        &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
+        &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
+      </div>
+    </div>
   </div>
   {% endif %}
 
