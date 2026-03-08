@@ -459,6 +459,15 @@ def _short_address(address: str) -> str:
 _HEALTH_CONCERN_DISPARITY_THRESHOLD = 2
 
 
+def _dimension_lead_sentence(diff: dict) -> str:
+    """Format a dimension lead as a sentence fragment for verdict copy."""
+    high_addr = _short_address(diff.get("high_address", ""))
+    return (
+        f"{high_addr} leads in {diff['dimension']} "
+        f"({diff['high']}/10 vs {diff['low']}/10)"
+    )
+
+
 def _build_comparative_verdict(
     evaluations: List[dict],
     health_grid: dict,
@@ -523,7 +532,7 @@ def _build_comparative_verdict(
             for i in passed_indices
         ]
 
-        # Collect failing check names from the first failed address
+        # Collect failing check names from all failed addresses
         failing_checks: List[str] = []
         for i in failed_indices:
             result = evaluations[i].get("result", {})
@@ -541,13 +550,13 @@ def _build_comparative_verdict(
         body_parts = []
         if failing_checks:
             body_parts.append(
-                f"Failed checks: {', '.join(failing_checks[:4])}."
+                f"Failed checks: {_join_labels(failing_checks[:4])}."
             )
         if len(passed_addrs) == 1:
             body_parts.append(f"{passed_addrs[0]} is the viable option.")
         else:
             body_parts.append(
-                f"{' and '.join(passed_addrs)} remain viable options."
+                f"{_join_labels(passed_addrs)} remain viable options."
             )
 
         return {"headline": headline, "body": " ".join(body_parts)}
@@ -587,14 +596,6 @@ def _build_comparative_verdict(
             )
 
         return {"headline": headline, "body": body}
-
-    # ── Helper: dimension lead sentences ─────────────────────────────
-    def _dimension_lead_sentence(diff: dict) -> str:
-        high_addr = _short_address(diff.get("high_address", ""))
-        return (
-            f"{high_addr} leads in {diff['dimension']} "
-            f"({diff['high']}/10 vs {diff['low']}/10)"
-        )
 
     # ── Branch 3: Clear winner (spread >= 10) ────────────────────────
     if spread >= 10:

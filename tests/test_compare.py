@@ -3,7 +3,7 @@
 import json
 import pytest
 
-from app import _build_comparative_verdict, _short_address
+from app import _build_comparative_verdict, _dimension_lead_sentence, _short_address
 from models import save_snapshot
 
 
