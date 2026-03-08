@@ -2633,7 +2633,7 @@ def export_snapshot_json(snapshot_id):
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
-    result = snapshot["result"]
+    result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
     if not g.is_builder:
@@ -2659,7 +2659,7 @@ def export_snapshot_csv(snapshot_id):
     if not snapshot:
         return jsonify({"error": "Snapshot not found"}), 404
 
-    result = snapshot["result"]
+    result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
     output = io.StringIO()
