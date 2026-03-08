@@ -33,6 +33,13 @@ NestCheck/
 5. `/pr-learn` - PR review + extract lessons for CLAUDE.md
 6. `/review` (built-in) - PR review for code quality, security, and test coverage
 
+## Claude Code Configuration
+
+### Custom Commands & Hooks
+- Custom slash commands in `.claude/commands/` must not shadow built-in commands (e.g., `/review`, `/compact`, `/init`). Check the built-in list before naming a new command. Shadowed built-ins become unreachable.
+- PostToolUse hooks that reference `$CLAUDE_FILE_PATH` must guard with `test -n` and quote the variable. If unset, tools like `ruff format` will silently operate on the entire directory.
+- Subagent definitions live in `.claude/agents/`. Each agent should have a single focused responsibility and explicit verification steps.
+
 ## Coding Standards
 
 - Python: Follow existing patterns in property_evaluator.py
@@ -107,6 +114,8 @@ NestCheck/
 | 2026-03 | `railpack.json` for system deps | Railway uses Railpack (not Nixpacks); `nixpacks.toml` is silently ignored. Runtime apt packages go in `deploy.aptPackages` or `RAILPACK_DEPLOY_APT_PACKAGES` env var |
 | 2026-03 | NYSED data as bundled CSV | NYSED publishes bulk data as Access DBs only (no API). Curated CSV for ~40 Westchester districts is pragmatic; refresh annually after Report Card release (~Dec) |
 | 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
+| 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
+| 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
