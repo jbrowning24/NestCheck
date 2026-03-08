@@ -22,6 +22,11 @@ ${{ git log --oneline -10 }}
 ${{ git diff --stat }}
 ```
 
+**Existing PR for this branch (if any):**
+```
+${{ gh pr view --json url,state 2>/dev/null || echo "No existing PR" }}
+```
+
 ## Steps
 
 1. Review the diff and status above. Stage all relevant changed files (avoid secrets, .env, credentials).

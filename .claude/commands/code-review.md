@@ -4,14 +4,15 @@ Perform comprehensive code review. Be thorough but concise.
 
 ## Check For:
 
-**Logging** - No console.log statements, uses proper logger with context
-**Error Handling** - Try-catch for async, centralized handlers, helpful messages
-**TypeScript** - No `any` types, proper interfaces, no @ts-ignore
-**Production Readiness** - No debug statements, no TODOs, no hardcoded secrets
-**React/Hooks** - Effects have cleanup, dependencies complete, no infinite loops
-**Performance** - No unnecessary re-renders, expensive calcs memoized
-**Security** - Auth checked, inputs validated, RLS policies in place
-**Architecture** - Follows existing patterns, code in correct directory
+**Logging** - No print() in production, uses logging module with context
+**Error Handling** - Try/except for API calls, timeouts set, graceful degradation
+**Type Hints** - Function signatures have type hints, no bare dicts where dataclasses fit
+**Production Readiness** - No debug statements, no TODOs, no hardcoded secrets or API keys
+**API Safety** - All external calls use `timeout=API_REQUEST_TIMEOUT`, quota errors handled
+**SQLite** - Connections closed in finally blocks, busy_timeout set, retries for write contention
+**Templates** - Smoke test markers match element IDs, no orphaned CSS selectors
+**Security** - Inputs validated, CSRF protection, no SQL injection via string formatting
+**Architecture** - Follows existing patterns in property_evaluator.py and app.py
 
 ## Output Format
 

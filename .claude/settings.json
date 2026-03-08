@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ruff format --quiet $CLAUDE_FILE_PATH 2>/dev/null || true"
+            "command": "test -n \"$CLAUDE_FILE_PATH\" && ruff format --quiet \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
           }
         ]
       }
