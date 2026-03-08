@@ -406,6 +406,77 @@ def _dedupe_by_place_id(places: List[Dict]) -> List[Dict]:
     return unique
 
 
+# Name-based patterns for online-only / non-physical businesses that appear
+# in Google Places results but have no real storefront a person could visit.
+_ONLINE_BUSINESS_NAME_PATTERNS: List[re.Pattern] = [
+    re.compile(p, re.IGNORECASE) for p in [
+        r"\bonline\b",
+        r"\bvirtual\b",
+        r"\be[\-\s]?commerce\b",
+        r"\bdelivery only\b",
+        r"\bdelivery[\-\s]?service\b",
+        r"\.com$",
+        r"\.net$",
+        r"\.org$",
+        r"\bweb\s?based\b",
+        r"\binternet\b",
+    ]
+]
+
+# Exact-match names for well-known online-only services that carry
+# Google Places listings (with optional location suffixes like "- Yonkers").
+_ONLINE_BUSINESS_EXACT_NAMES: set = {
+    "amazon",
+    "amazon fresh",
+    "amazon prime",
+    "amazon prime now",
+    "freshdirect",
+    "instacart",
+    "peapod",
+    "grubhub",
+    "doordash",
+    "uber eats",
+    "ubereats",
+    "postmates",
+    "seamless",
+    "gopuff",
+    "shipt",
+}
+
+
+def _is_non_physical_place(place: Dict) -> bool:
+    """Return True if *place* looks like an online-only / non-physical business.
+
+    Checks:
+    1. ``business_status`` is ``CLOSED_PERMANENTLY`` — Google already flagged it.
+    2. Name matches a known online-only service or pattern.
+    """
+    # 1. Permanently closed
+    status = place.get("business_status", "")
+    if status == "CLOSED_PERMANENTLY":
+        return True
+
+    # 2. Name-based heuristics
+    name = place.get("name", "")
+    name_stripped = name.strip()
+    # Check exact match (lowercase, ignore trailing location suffix like "- Yonkers")
+    name_base = name_stripped.split(" - ")[0].strip().lower()
+    if name_base in _ONLINE_BUSINESS_EXACT_NAMES:
+        return True
+
+    # Check regex patterns
+    for pattern in _ONLINE_BUSINESS_NAME_PATTERNS:
+        if pattern.search(name_stripped):
+            return True
+
+    return False
+
+
+def _filter_physical_places(places: List[Dict]) -> List[Dict]:
+    """Keep only places that appear to be real, physical businesses."""
+    return [p for p in places if not _is_non_physical_place(p)]
+
+
 # =============================================================================
 # DISTANCE HELPERS
 # =============================================================================
@@ -543,7 +614,7 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
 
-        results = data.get("results", [])
+        results = _filter_physical_places(data.get("results", []))
         self._places_cache[cache_key] = results
         return results
     
@@ -650,7 +721,7 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Text Search API failed: {data['status']}")
 
-        return data.get("results", [])
+        return _filter_physical_places(data.get("results", []))
 
     def _distance_matrix_batch(
         self,
