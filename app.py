@@ -11,6 +11,7 @@ import traceback
 from datetime import datetime, timezone
 from collections import defaultdict
 from functools import wraps
+from typing import Dict, List, Optional, Tuple
 
 import click
 from flask import (
@@ -23,7 +24,6 @@ from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
     get_score_band, proximity_synthesis,
 )
-from typing import Any, Dict, List, Optional, Tuple
 from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION
 from census import serialize_for_result as _serialize_census
 from models import (
@@ -321,7 +321,7 @@ _CHECK_RESULT_SEVERITY = {"FAIL": 3, "WARNING": 2, "UNKNOWN": 1, "PASS": 0}
 
 def _build_comparison_data(
     evaluations: List[dict],
-) -> Tuple[dict, List[dict], List[dict]]:
+) -> Tuple[dict, List[dict], List[dict], bool]:
     """Compute structured comparison data for the compare template.
 
     Returns (health_grid, dimension_rows, key_differences).
@@ -442,7 +442,13 @@ def _build_comparison_data(
     key_differences.sort(key=lambda d: d["gap"], reverse=True)
     key_differences = key_differences[:3]
 
-    return health_grid, dimension_rows, key_differences
+    has_any_scores = any(
+        s is not None
+        for dim_row in dimension_rows
+        for s in dim_row["scores"]
+    )
+
+    return health_grid, dimension_rows, key_differences, has_any_scores
 
 
 _CLEAR_HEADLINES = {
@@ -2521,8 +2527,8 @@ def compare():
         sum(1 for e in evaluations if e.get("final_score", 0) == top_score) == 1
     )
 
-    health_grid, dimension_rows, key_differences = _build_comparison_data(
-        evaluations,
+    health_grid, dimension_rows, key_differences, has_any_scores = (
+        _build_comparison_data(evaluations)
     )
 
     return render_template(
@@ -2534,6 +2540,7 @@ def compare():
         health_grid=health_grid,
         dimension_rows=dimension_rows,
         key_differences=key_differences,
+        has_any_scores=has_any_scores,
     )
 
 

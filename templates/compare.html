@@ -33,7 +33,7 @@
           <span class="verdict-chip {{ band_class }}">{{ band_label }}</span>
         </div>
       </div>
-      <a href="/s/{{ eval.snapshot_id }}" class="compare-full-report-link">View full report</a>
+      <a href="{{ url_for('view_snapshot', snapshot_id=eval.snapshot_id) }}" class="compare-full-report-link">View full report</a>
     </div>
     {% endfor %}
   </div>
@@ -81,7 +81,7 @@
 {% endif %}
 
 {# ── 2. DIMENSION SCORES ────────────────────────────────────── #}
-{% if dimension_rows and dimension_rows[0].scores | select('ne', None) | list | length > 0 %}
+{% if has_any_scores %}
 <section class="compare-section">
   <h2 class="compare-section-title">Dimension Scores</h2>
   <div class="dimension-table-wrapper">
