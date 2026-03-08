@@ -1204,6 +1204,27 @@ def result_to_dict(result):
     else:
         output["school_district"] = None
 
+    # Nearby individual schools from NCES (NES-216)
+    ns_list = getattr(result, "nearby_schools", None)
+    if ns_list is not None:
+        output["nearby_schools"] = [
+            {
+                "name": s.name,
+                "ncessch": s.ncessch,
+                "level": s.level,
+                "grades": s.grades,
+                "distance_feet": float(s.distance_feet),
+                "distance_miles": float(s.distance_miles),
+                "enrollment": int(s.enrollment) if s.enrollment is not None else None,
+                "frl_pct": float(s.frl_pct) if s.frl_pct is not None else None,
+                "is_charter": s.is_charter,
+                "leaid": s.leaid,
+            }
+            for s in ns_list
+        ]
+    else:
+        output["nearby_schools"] = None
+
     # Walk quality — MAPS-Mini pipeline (NES-192)
     wq = getattr(result, "walk_quality", None)
     if wq is not None:

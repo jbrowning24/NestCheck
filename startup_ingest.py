@@ -2,7 +2,7 @@
 Startup spatial data ingestion for NestCheck.
 
 Called during gunicorn post_fork to ensure spatial datasets (SEMS, FEMA, HPMS,
-EJScreen, TRI, UST, HIFLD, FRA, School Districts, NYSED) are populated before
+EJScreen, TRI, UST, HIFLD, FRA, School Districts, NYSED, NCES) are populated before
 the evaluation worker starts processing jobs. Uses a
 file-based lock (fcntl) to prevent concurrent ingestion from multiple workers.
 
@@ -188,6 +188,14 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset nysed_performance: missing or empty, starting ingestion...")
         _run_ingest("nysed_performance", _ingest_nysed)
 
+    # --- NCES Public Schools (2022-23, Westchester bbox) ---
+    has_data, count = _table_has_data(db_path, "facilities_nces_schools")
+    if has_data:
+        logger.info("Dataset nces_schools: present (%d records), skipping", count)
+    else:
+        logger.info("Dataset nces_schools: missing or empty, starting ingestion...")
+        _run_ingest("nces_schools", _ingest_nces_schools)
+
 
 def _run_ingest(name: str, fn) -> None:
     """Execute an ingestion function with timing and error handling."""
@@ -257,3 +265,8 @@ def _ingest_school_districts():
 def _ingest_nysed():
     from scripts.ingest_nysed import ingest as do_ingest
     do_ingest()
+
+
+def _ingest_nces_schools():
+    from scripts.ingest_nces_schools import ingest as do_ingest
+    do_ingest(bbox="-74.15,40.75,-73.35,41.45")

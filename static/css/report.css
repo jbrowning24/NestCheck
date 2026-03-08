@@ -927,6 +927,63 @@
   color: var(--color-text-faint);
 }
 
+/* Nearby Schools (NES-216) */
+.nearby-schools-section {
+  margin-top: var(--space-lg);
+}
+.nearby-schools-heading {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+.nearby-schools-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.nearby-school-card {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-subtle, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-bg-secondary, #f8fafc);
+}
+.nearby-school-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.nearby-school-card__name {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+.nearby-school-card__distance {
+  font-size: var(--font-size-small);
+  color: var(--color-text-faint);
+  white-space: nowrap;
+  margin-left: var(--space-sm);
+}
+.nearby-school-card__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-sm);
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+.nearby-school-card__level {
+  font-weight: 500;
+}
+.nearby-school-card__charter {
+  background: var(--color-info-bg, #e0f2fe);
+  color: var(--color-info-text, #0369a1);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 500;
+}
+
 /* Area Context divider — visual separation between scored and informational data */
 .area-context-divider {
   border-top: 2px solid var(--color-border-subtle, #e2e8f0);

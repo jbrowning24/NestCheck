@@ -7,7 +7,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card %}
 
 <div class="report">
 
@@ -996,9 +996,24 @@
     </div>
     {% endif %}
 
+    {# ── Nearby Schools (NCES 2022-23) — NES-216 ── #}
+    {% if result.nearby_schools is defined and result.nearby_schools %}
+    <div class="nearby-schools-section">
+      <h3 class="nearby-schools-heading">Nearby Schools</h3>
+      <div class="nearby-schools-list">
+        {% for school in result.nearby_schools %}
+          {{ school_card(school) }}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <p class="community-profile-source">
       Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
       &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
+      {% if result.nearby_schools is defined and result.nearby_schools %}
+        &middot; NCES 2022&ndash;23
+      {% endif %}
     </p>
 
   </div>
