@@ -127,3 +127,27 @@
   </div>
 </div>
 {% endmacro %}
+
+
+{# ── health_check_icon ──────────────────────────────────────────────
+   SVG icon in a rounded-square badge for health check results.
+
+   Args:
+     icon_type: "clear" | "issue" | "warning" | "unverified"
+     quiet:     If true, renders smaller/muted badge (for PASS checks).
+#}
+{% macro health_check_icon(icon_type, quiet=false) %}
+<span class="health-icon-badge health-icon-badge--{{ icon_type }}{% if quiet %} health-icon-badge--quiet{% endif %}">
+  <svg viewBox="0 0 20 20" aria-hidden="true">
+    {% if icon_type == "clear" -%}
+      <polyline points="5,10.5 8.5,14 15,7" />
+    {%- elif icon_type == "issue" -%}
+      <line x1="6" y1="6" x2="14" y2="14" /><line x1="14" y1="6" x2="6" y2="14" />
+    {%- elif icon_type == "warning" -%}
+      <path d="M10 3 L18 16 H2 Z" stroke-linejoin="round" /><line x1="10" y1="9" x2="10" y2="12" /><circle cx="10" cy="14.5" r="0.5" fill="white" stroke="none" />
+    {%- else -%}
+      <text x="10" y="15" text-anchor="middle" fill="white" stroke="none" font-size="14" font-weight="700">?</text>
+    {%- endif %}
+  </svg>
+</span>
+{%- endmacro %}
