@@ -22,6 +22,7 @@ import time
 import logging
 import argparse
 import re
+import statistics
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List, Tuple, Dict, Any
 from enum import Enum
@@ -37,7 +38,7 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION, apply_piecewise,
+    TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
@@ -3951,6 +3952,51 @@ def _classify_places_confidence(
     )
 
 
+def _compute_quality_ceiling(
+    eligible_places: list,
+    ceiling_config: QualityCeilingConfig,
+) -> int:
+    """Compute quality-adjusted score ceiling from venue diversity and depth.
+
+    The ceiling prevents proximity-only high scores when venues are
+    low-diversity (all delis/one category) or low-signal (few reviews).
+
+    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+
+    Returns an integer ceiling (0-10).
+    """
+    if not eligible_places:
+        return round(ceiling_config.base_ceiling)
+
+    # --- Category diversity: count distinct sub-types ---
+    distinct_types = set()
+    for place in eligible_places:
+        sub_type = _classify_coffee_sub_type(place.get("types", []))
+        distinct_types.add(sub_type)
+    num_categories = len(distinct_types)
+
+    diversity_bonus = 0.0
+    for min_cats, bonus in ceiling_config.diversity_thresholds:
+        if num_categories >= min_cats:
+            diversity_bonus = bonus
+            break
+
+    # --- Review depth: median user_ratings_total ---
+    review_counts = [
+        place.get("user_ratings_total", 0) for place in eligible_places
+    ]
+    median_reviews = statistics.median(review_counts)
+
+    depth_bonus = 0.0
+    for min_median, bonus in ceiling_config.depth_thresholds:
+        if median_reviews >= min_median:
+            depth_bonus = bonus
+            break
+
+    raw_ceiling = ceiling_config.base_ceiling + diversity_bonus + depth_bonus
+    return min(round(raw_ceiling), 10)
+
+
 def _classify_transit_confidence(
     transit_access: Optional["TransitAccessResult"],
     urban_access: Optional["UrbanAccessProfile"],
@@ -4286,6 +4332,15 @@ def score_third_place_access(
         conf, conf_note = _classify_places_confidence(
             len(eligible_places), reviews,
         )
+
+        # Quality ceiling: cap score based on venue diversity and review depth.
+        # Applied before confidence cap so both constraints compose.
+        ceiling_config = SCORING_MODEL.coffee.quality_ceiling
+        if ceiling_config is not None:
+            quality_ceiling = _compute_quality_ceiling(
+                eligible_places, ceiling_config,
+            )
+            best_score = min(best_score, quality_ceiling)
 
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)

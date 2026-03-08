@@ -36,11 +36,41 @@ class QualityMultiplier:
 
 
 @dataclass(frozen=True)
+class QualityCeilingConfig:
+    """Parameters for quality-adjusted score ceiling on a dimension.
+
+    The ceiling prevents high scores when venue options are low-diversity
+    (all one category) or low-signal (few reviews).
+
+    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+    """
+    base_ceiling: float = 5.0       # starting ceiling before bonuses
+    # Category diversity: distinct Google Places sub-types among eligible venues.
+    # _classify_coffee_sub_type returns at most 3 types (bakery/cafe/coffee_shop),
+    # so thresholds above 3 are unreachable with the current classifier.
+    diversity_thresholds: Tuple[Tuple[int, float], ...] = (
+        # (min_distinct_categories, bonus_points)
+        (3, 3.0),   # 3 categories  → +3.0
+        (2, 1.5),   # 2 categories  → +1.5
+        # 1 category  → +0.0 (no bonus)
+    )
+    # Review depth: median user_ratings_total across eligible venues
+    depth_thresholds: Tuple[Tuple[int, float], ...] = (
+        # (min_median_reviews, bonus_points)
+        (200, 2.0),  # median 200+ → +2.0
+        (100, 1.5),  # median 100+ → +1.5
+        (50, 1.0),   # median 50+  → +1.0
+        # median <50  → +0.0 (no bonus)
+    )
+
+
+@dataclass(frozen=True)
 class DimensionConfig:
     """Scoring curve and parameters for one Tier 2 dimension."""
     knots: Tuple[PiecewiseKnot, ...]
     floor: float = 0.0  # minimum score returned (after curve + multiplier)
     quality_multipliers: Tuple[QualityMultiplier, ...] = ()
+    quality_ceiling: Optional[QualityCeilingConfig] = None
 
 
 @dataclass(frozen=True)
@@ -254,11 +284,12 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.4.0",
+    version="1.5.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
         floor=2.0,
+        quality_ceiling=QualityCeilingConfig(),
     ),
 
     grocery=DimensionConfig(
