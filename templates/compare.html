@@ -39,6 +39,16 @@
   </div>
 </div>
 
+{# ── COMPARATIVE VERDICT ──────────────────────────────────── #}
+{% if verdict %}
+<section class="compare-section">
+  <div class="compare-verdict">
+    <h2 class="compare-verdict__headline">{{ verdict.headline }}</h2>
+    <p class="compare-verdict__body">{{ verdict.body }}</p>
+  </div>
+</section>
+{% endif %}
+
 {# ── 1. HEALTH FLAGS GRID ───────────────────────────────────── #}
 {% if health_grid.rows %}
 <section class="compare-section">
