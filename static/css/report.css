@@ -333,6 +333,85 @@
   margin-top: var(--space-xs);
 }
 
+/* --- Health Stat Row (NES-215) --- */
+.health-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-base);
+}
+.health-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+.health-stat-badge--clear {
+  background: var(--color-pass-bg);
+  color: var(--color-pass-text);
+  border: 1px solid var(--color-pass-border);
+}
+.health-stat-badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning-border);
+}
+.health-stat-badge--issue {
+  background: var(--color-fail-bg);
+  color: var(--color-fail-text);
+  border: 1px solid var(--color-fail-border);
+}
+
+/* --- Health Icon Badges (NES-215) --- */
+.health-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: var(--space-sm);
+}
+.health-icon-badge svg {
+  width: 16px;
+  height: 16px;
+  stroke: white;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.health-icon-badge--clear { background: var(--color-pass); }
+.health-icon-badge--issue { background: var(--color-fail); }
+.health-icon-badge--warning { background: var(--color-warning); }
+.health-icon-badge--unverified { background: var(--color-border-strong); }
+.health-icon-badge--quiet {
+  width: 22px;
+  height: 22px;
+  opacity: 0.7;
+}
+.health-icon-badge--quiet svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* --- Health Check Card Modifiers (NES-215) --- */
+.health-check--quiet {
+  border-left-width: 2px;
+}
+.health-check--quiet .proximity-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.health-check--elevated {
+  box-shadow: var(--shadow-card);
+}
+
 /* --- Verdict Card Proximity Pills --- */
 .verdict-proximity-flags {
   display: flex;
@@ -1109,6 +1188,9 @@
   .report-section:hover { transform: none; }
   .subscore-grid { grid-template-columns: 1fr 1fr; }
   .section-insight { padding: var(--space-sm) var(--space-md); }
+  .health-stat-badge { font-size: var(--font-size-xs); padding: 3px var(--space-sm); }
+  .health-icon-badge { width: 24px; height: 24px; }
+  .health-icon-badge--quiet { width: 20px; height: 20px; }
   .place-cards { gap: var(--space-sm); }
   .place-card { width: 140px; padding: var(--space-md); }
   .place-card--headline { width: 180px; }
@@ -1470,7 +1552,8 @@
   .collapsible-body.collapsed { display: block !important; max-height: none !important; }
   .collapsible-toggle .collapse-icon { display: none; }
   .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
-  .score-ring-fill, .verdict-card, .proximity-item { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .score-ring-fill, .verdict-card, .proximity-item, .health-stat-badge, .health-icon-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .health-check--elevated { box-shadow: none; }
   body::before {
     content: "NestCheck Property Evaluation";
     display: block;
