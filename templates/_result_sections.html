@@ -91,11 +91,16 @@
       {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
         {% if slot == "right" %}
         <div class="dimension-indicator">
+          {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
+          {# Suppressed dimension — no reliable score available #}
+          <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
+          {% else %}
           <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
           {% if dim_weight > 1.0 %}
             <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
           {% elif dim_weight < 1.0 %}
             <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+          {% endif %}
           {% endif %}
           {# NES-189: Data confidence badge — hidden for HIGH (default) #}
           {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence != 'HIGH' %}
@@ -103,9 +108,15 @@
               {% if dim.data_confidence == 'MEDIUM' %}Limited data{% else %}Sparse data{% endif %}
             </span>
           {% endif %}
+          {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
+          <div class="dimension-bar dimension-bar-suppressed">
+            <div class="dimension-bar-fill" style="--fill: 0%"></div>
+          </div>
+          {% else %}
           <div class="dimension-bar">
             <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
           </div>
+          {% endif %}
         </div>
         {% endif %}
       {% endcall %}

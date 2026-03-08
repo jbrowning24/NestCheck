@@ -393,3 +393,23 @@ for _k, _p in PERSONA_PRESETS.items():
 #   walk_time > ONLY  : drive only
 WALK_DRIVE_BOTH_THRESHOLD = 20
 WALK_DRIVE_ONLY_THRESHOLD = 40
+
+
+# =============================================================================
+# Venue eligibility thresholds — minimum reviews & rating for headline venues
+# =============================================================================
+# A venue below these thresholds is excluded from headline selection and
+# dimension scoring.  Raw venue lists are still returned for display so users
+# can see what exists nearby, even when we decline to score it.
+
+VENUE_MIN_REVIEWS: Dict[str, int] = {
+    "coffee_social": 30,    # existing hardcoded value
+    "provisioning": 20,     # existing hardcoded value
+    "fitness": 10,          # NEW — was 0 (no filter)
+}
+
+VENUE_MIN_RATING: Dict[str, float] = {
+    "coffee_social": 4.0,   # existing hardcoded value
+    "provisioning": 3.5,    # existing hardcoded value
+    "fitness": 3.5,         # NEW — reasonable floor
+}
