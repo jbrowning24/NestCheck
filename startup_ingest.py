@@ -183,13 +183,13 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset school_districts: missing or empty, starting ingestion...")
         _run_ingest("school_districts", _ingest_school_districts)
 
-    # --- NYSED Performance (school district performance metrics) ---
-    has_data, count = _table_has_data(db_path, "nysed_performance")
+    # --- State Education Performance (school district performance metrics, multi-state) ---
+    has_data, count = _table_has_data(db_path, "state_education_performance")
     if has_data:
-        logger.info("Dataset nysed_performance: present (%d records), skipping", count)
+        logger.info("Dataset state_education_performance: present (%d records), skipping", count)
     else:
-        logger.info("Dataset nysed_performance: missing or empty, starting ingestion...")
-        _run_ingest("nysed_performance", _ingest_nysed)
+        logger.info("Dataset state_education_performance: missing or empty, starting ingestion...")
+        _run_ingest("state_education_performance", _ingest_nysed)
 
     # --- NCES Public Schools (2022-23, tri-state) ---
     has_data, count = _table_has_data(db_path, "facilities_nces_schools")

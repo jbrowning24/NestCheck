@@ -41,7 +41,7 @@ NYSED_CSV_PATH = os.path.join(
     "data", "nysed_district_performance.csv",
 )
 
-TABLE_NAME = "nysed_performance"
+TABLE_NAME = "state_education_performance"
 
 
 def ingest(csv_path: str = "", **kwargs):
@@ -71,7 +71,8 @@ def ingest(csv_path: str = "", **kwargs):
                 math_proficiency_pct REAL,
                 chronic_absenteeism_pct REAL,
                 pupil_expenditure REAL,
-                source_year TEXT
+                source_year TEXT,
+                state TEXT
             )
         """)
         conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_geoid ON {TABLE_NAME}(geoid)")
@@ -87,8 +88,9 @@ def ingest(csv_path: str = "", **kwargs):
                         f"""INSERT INTO {TABLE_NAME}
                             (geoid, district_name, county, graduation_rate_pct,
                              ela_proficiency_pct, math_proficiency_pct,
-                             chronic_absenteeism_pct, pupil_expenditure, source_year)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             chronic_absenteeism_pct, pupil_expenditure, source_year,
+                             state)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             row["geoid"],
                             row["district_name"],
@@ -99,6 +101,7 @@ def ingest(csv_path: str = "", **kwargs):
                             float(row["chronic_absenteeism_pct"]) if row.get("chronic_absenteeism_pct") else None,
                             float(row["pupil_expenditure"]) if row.get("pupil_expenditure") else None,
                             row.get("source_year", ""),
+                            "NY",
                         ),
                     )
                     total += 1
@@ -111,7 +114,7 @@ def ingest(csv_path: str = "", **kwargs):
                (facility_type, source_url, ingested_at, record_count, notes)
                VALUES (?, ?, ?, ?, ?)""",
             (
-                "nysed_performance",
+                "state_education_performance",
                 "data.nysed.gov (curated CSV)",
                 datetime.now(timezone.utc).isoformat(),
                 total,
