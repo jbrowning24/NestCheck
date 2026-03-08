@@ -26,13 +26,12 @@ NestCheck/
 
 ## Our Workflow
 
-1. `/create-issue` - Capture bugs/features fast
-2. `/exploration-phase` - Understand before building
-3. `/create-plan` - Markdown plan with status tracking
-4. `/execute-plan` - Hand off to Composer with @plan-file.md
-5. `/review` - Self-review the changes
-6. Get external review from Codex (branch review)
-7. `/peer-review` - Evaluate combined feedback
+1. `/exploration-phase` - Understand before building
+2. `/create-plan` - Markdown plan with status tracking
+3. `/execute` - Implement step by step with progress tracking
+4. `/code-review` - Self-review the changes
+5. `/pr-learn` - PR review + extract lessons for CLAUDE.md
+6. `/review` (built-in) - PR review for code quality, security, and test coverage
 
 ## Coding Standards
 
