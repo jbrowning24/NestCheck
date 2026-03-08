@@ -3170,6 +3170,7 @@ def find_primary_transit(
     place_lat = place["geometry"]["location"]["lat"]
     place_lng = place["geometry"]["location"]["lng"]
 
+    # Transit uses its own threshold (walk-primary, drive-secondary pattern)
     drive_time = None
     if walk_time > 20:
         drive_time = maps.driving_time(
