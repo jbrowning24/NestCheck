@@ -928,7 +928,8 @@
   {# ── AREA CONTEXT divider — separates scored evaluation from informational data ── #}
   {# Community Profile + School District are contextual, never scored (FHA separation) #}
   {% set _has_context = (result.demographics is defined and result.demographics is not none)
-      or (result.school_district is defined and result.school_district is not none) %}
+      or (result.school_district is defined and result.school_district is not none)
+      or (result.nearby_schools is defined and result.nearby_schools) %}
   {% if _has_context %}
   <div class="area-context-divider">
     <h2 class="area-context-heading">Area Context</h2>
@@ -1062,11 +1063,82 @@
     </div>
     {% endif %}
 
+    {# ── Nearby Schools (NCES 2022-23) — NES-216 ── #}
+    {% if result.nearby_schools is defined and result.nearby_schools %}
+    <div class="nearby-schools-section">
+      <h3 class="nearby-schools-heading">Nearby Schools</h3>
+      <div class="nearby-schools-list">
+        {% for school in result.nearby_schools %}
+        <div class="nearby-school-card">
+          <div class="nearby-school-card__header">
+            <span class="nearby-school-card__name">{{ school.name }}</span>
+            <span class="nearby-school-card__distance">{{ "%.1f"|format(school.distance_miles) }} mi</span>
+          </div>
+          <div class="nearby-school-card__details">
+            <span class="nearby-school-card__level nearby-school-card__level--{{ school.level|lower|replace(' ', '-') }}">{{ school.level }}</span>
+            {% if school.grades %}
+              <span class="nearby-school-card__grades">Grades {{ school.grades }}</span>
+            {% endif %}
+            {% if school.enrollment is not none %}
+              <span class="nearby-school-card__enrollment">{{ "{:,}".format(school.enrollment) }} students</span>
+            {% endif %}
+            {% if school.frl_pct is not none %}
+              <span class="nearby-school-card__frl">{{ "%.0f"|format(school.frl_pct) }}% free/reduced lunch</span>
+            {% endif %}
+            {% if school.is_charter %}
+              <span class="nearby-school-card__charter">Charter</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <p class="community-profile-source">
       Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
       &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
+      {% if result.nearby_schools is defined and result.nearby_schools %}
+        &middot; NCES 2022&ndash;23
+      {% endif %}
     </p>
 
+  </div>
+  {% endif %}
+
+  {# ── Standalone Nearby Schools (when no school district data) — NES-216 ── #}
+  {% if (result.school_district is not defined or result.school_district is none)
+      and result.nearby_schools is defined and result.nearby_schools %}
+  <div id="nearby-schools" class="report-section">
+    <h2>Nearby Schools</h2>
+    <div class="nearby-schools-list">
+      {% for school in result.nearby_schools %}
+      <div class="nearby-school-card">
+        <div class="nearby-school-card__header">
+          <span class="nearby-school-card__name">{{ school.name }}</span>
+          <span class="nearby-school-card__distance">{{ "%.1f"|format(school.distance_miles) }} mi</span>
+        </div>
+        <div class="nearby-school-card__details">
+          <span class="nearby-school-card__level nearby-school-card__level--{{ school.level|lower|replace(' ', '-') }}">{{ school.level }}</span>
+          {% if school.grades %}
+            <span class="nearby-school-card__grades">Grades {{ school.grades }}</span>
+          {% endif %}
+          {% if school.enrollment is not none %}
+            <span class="nearby-school-card__enrollment">{{ "{:,}".format(school.enrollment) }} students</span>
+          {% endif %}
+          {% if school.frl_pct is not none %}
+            <span class="nearby-school-card__frl">{{ "%.0f"|format(school.frl_pct) }}% free/reduced lunch</span>
+          {% endif %}
+          {% if school.is_charter %}
+            <span class="nearby-school-card__charter">Charter</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="community-profile-source">
+      Source: NCES 2022&ndash;23 &middot; Data as of 2022&ndash;23 school year
+    </p>
   </div>
   {% endif %}
 

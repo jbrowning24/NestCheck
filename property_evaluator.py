@@ -276,6 +276,21 @@ class SchoolDistrictInfo:
 
 
 @dataclass
+class NearbySchool:
+    """An individual school from NCES data, returned by proximity query."""
+    name: str
+    ncessch: str            # NCES school ID
+    level: str              # "Elementary", "Middle", "High", "Other"
+    grades: str             # e.g. "PK-05", "06-08", "09-12"
+    distance_feet: float
+    distance_miles: float
+    enrollment: Optional[int] = None
+    frl_pct: Optional[float] = None   # Free/reduced lunch percentage
+    is_charter: bool = False
+    leaid: str = ""         # District LEAID for cross-reference
+
+
+@dataclass
 class PrimaryTransitOption:
     name: str
     mode: str
@@ -386,6 +401,9 @@ class EvaluationResult:
 
     # School district identification + NYSED performance (NES-206)
     school_district: Optional[SchoolDistrictInfo] = None
+
+    # Nearby individual schools from NCES 2022-23 (NES-216)
+    nearby_schools: Optional[List[NearbySchool]] = None
 
 
 # =============================================================================
@@ -2476,6 +2494,99 @@ def get_school_district(
 
     except Exception as e:
         logger.warning("School district lookup failed: %s", e)
+        return None
+
+
+# Search radius: 2 miles = 3219 meters
+_NEARBY_SCHOOLS_RADIUS_M = 3219
+_NEARBY_SCHOOLS_MAX = 10
+
+
+def get_nearby_schools(
+    lat: float, lng: float, spatial_store,
+) -> Optional[List[NearbySchool]]:
+    """Find nearby public schools using NCES data from SpatiaLite.
+
+    Returns up to _NEARBY_SCHOOLS_MAX schools within 2 miles, sorted by
+    distance. Zero API calls — pure local spatial query.
+
+    Returns None if spatial data is unavailable (so template can distinguish
+    'no data' from 'no schools nearby').
+    """
+    if spatial_store is None or not spatial_store.is_available():
+        return None
+
+    try:
+        records = spatial_store.find_facilities_within(
+            lat, lng, _NEARBY_SCHOOLS_RADIUS_M, "nces_schools",
+        )
+
+        if not records:
+            # Distinguish "table missing" from "no schools in range"
+            if (
+                hasattr(spatial_store, "last_query_failed")
+                and callable(spatial_store.last_query_failed)
+                and spatial_store.last_query_failed() is True
+            ):
+                return None
+            return []
+
+        schools = []
+        for rec in records[:_NEARBY_SCHOOLS_MAX]:
+            meta = rec.metadata
+
+            # Grade range from GSLO/GSHI
+            gslo = str(meta.get("gslo", "")).strip()
+            gshi = str(meta.get("gshi", "")).strip()
+            if gslo and gshi:
+                grades = f"{gslo}\u2013{gshi}"
+            elif gslo or gshi:
+                grades = gslo or gshi
+            else:
+                grades = ""
+
+            # Enrollment
+            member_raw = meta.get("member")
+            enrollment = None
+            if member_raw is not None and str(member_raw).strip():
+                try:
+                    enrollment = int(float(str(member_raw)))
+                except (TypeError, ValueError):
+                    pass
+
+            # FRL percentage
+            frl_pct = None
+            totfrl_raw = meta.get("totfrl")
+            if (
+                totfrl_raw is not None
+                and str(totfrl_raw).strip()
+                and enrollment
+                and enrollment > 0
+            ):
+                try:
+                    frl_pct = round(
+                        float(str(totfrl_raw)) / enrollment * 100, 1,
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+            schools.append(NearbySchool(
+                name=rec.name,
+                ncessch=str(meta.get("ncessch", "")),
+                level=str(meta.get("level", "Other")),
+                grades=grades,
+                distance_feet=rec.distance_feet,
+                distance_miles=round(rec.distance_feet / 5280, 1),
+                enrollment=enrollment,
+                frl_pct=frl_pct,
+                is_charter=str(meta.get("charter", "")).upper() == "YES",
+                leaid=str(meta.get("leaid", "")),
+            ))
+
+        return schools
+
+    except Exception as e:
+        logger.warning("Nearby schools lookup failed: %s", e)
         return None
 
 
@@ -4772,6 +4883,12 @@ def evaluate_property(
     # School district identification (TIGER boundaries + NYSED) — zero API calls
     try:
         result.school_district = get_school_district(lat, lng, _spatial_store)
+    except Exception:
+        pass
+
+    # Nearby individual schools from NCES (NES-216) — zero API calls
+    try:
+        result.nearby_schools = get_nearby_schools(lat, lng, _spatial_store)
     except Exception:
         pass
 
