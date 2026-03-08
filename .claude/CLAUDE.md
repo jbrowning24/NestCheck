@@ -106,6 +106,11 @@ NestCheck/
 - **Two-table join pattern** (NES-206): Spatial polygon table (`facilities_school_districts`) for point-in-polygon → extract GEOID → join to a separate lookup table (`nysed_performance`) for enrichment data. Different from single-table spatial checks.
 - **Bundled CSV for data without stable APIs**: When upstream data is only available as Access DBs or manual downloads (e.g., NYSED), ship a curated CSV in `data/` and flag as `MANUAL REFRESH` in the `dataset_registry` notes. Include refresh cadence.
 
+### Display Thresholds (scoring_config.py)
+- `WALK_DRIVE_BOTH_THRESHOLD` and `WALK_DRIVE_ONLY_THRESHOLD` in `scoring_config.py` are the canonical walk/drive time display thresholds. All display logic (templates, drive-time fetching) should reference these, not hardcode magic numbers.
+- **Scoring thresholds ≠ display thresholds**: `WALK_TIME_MARGINAL` (30 min, `green_space.py`) controls the walk-time *scoring curve*. `WALK_DRIVE_BOTH_THRESHOLD` (20 min) controls when drive times are *fetched and shown*. Don't conflate them — a constant can share a numeric value with a display threshold but serve a different purpose (scoring vs presentation).
+- Transit drive-time fetch uses its own hardcoded threshold (`> 20` in `find_primary_transit`) — intentionally independent of the display constants. It follows a walk-primary/drive-secondary pattern where both are always shown when drive time exists.
+
 ## Decision Log
 
 | Date | Decision | Rationale |
@@ -120,6 +125,7 @@ NestCheck/
 | 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
 | 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
 | 2026-03 | Health checks promoted to top of report (NES-214) | Primary differentiator was buried at position #11. Now `id="health-safety"` section after Summary Narrative. Proximity & Environment dissolved: sidewalk→Getting Around, EJScreen→Area Context |
+| 2026-03 | Centralized walk/drive display thresholds (NES-213) | `WALK_DRIVE_BOTH_THRESHOLD=20` and `WALK_DRIVE_ONLY_THRESHOLD=40` in `scoring_config.py`. Lowered park drive-time fetch from 30→20 to align with display band |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
