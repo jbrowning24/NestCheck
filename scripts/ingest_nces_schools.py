@@ -5,7 +5,7 @@ Ingest NCES public school locations into the NestCheck spatial database.
 Data source: NCES EDGE Administrative Data for Public Schools (2022-23)
 URL: https://nces.ed.gov/opengis/rest/services/K12_School_Locations/EDGE_ADMINDATA_PUBLICSCH_2223/MapServer/0
 Format: ArcGIS REST API with JSON pagination
-Records: ~200-400 schools within the Westchester bbox
+Records: ~200-400 schools per state within the tri-state bbox (NY+CT+NJ)
 
 This script:
 1. Queries the NCES EDGE MapServer for public school point locations
@@ -16,8 +16,8 @@ Idempotent: drops and recreates the table on each run.
 
 Usage:
     python scripts/ingest_nces_schools.py --discover
-    python scripts/ingest_nces_schools.py --bbox "-74.15,40.75,-73.35,41.45"
-    python scripts/ingest_nces_schools.py --bbox "-74.15,40.75,-73.35,41.45" --verify
+    python scripts/ingest_nces_schools.py --bbox "-75.6,38.9,-71.8,42.1" --stabr NY
+    python scripts/ingest_nces_schools.py --bbox "-75.6,38.9,-71.8,42.1" --stabr CT --verify
 """
 
 import argparse
@@ -99,18 +99,23 @@ def fetch_page(
 
 def ingest(
     bbox: str = "",
+    stabr: str = "NY",
     limit_pages: int = 0,
     discover: bool = False,
+    _skip_table_create: bool = False,
     **kwargs,
 ):
     """Main ingestion loop.
 
     Args:
         bbox: Bounding box 'min_lng,min_lat,max_lng,max_lat'.
+        stabr: State postal abbreviation for STABR filter (default 'NY').
         limit_pages: Max pages to ingest (0 = all).
         discover: Print sample record and exit.
+        _skip_table_create: If True, skip init_spatial_db/create_facility_table
+            (used when caller handles table creation for multi-state loops).
     """
-    where = "STABR='NY'"
+    where = f"STABR='{stabr.upper()}'"
 
     if discover:
         params = {
@@ -143,7 +148,7 @@ def ingest(
             logger.info("Geometry: x=%s, y=%s", geom.get("x"), geom.get("y"))
         return
 
-    logger.info("Starting NCES public school ingestion")
+    logger.info("Starting NCES public school ingestion (STABR=%s)", stabr.upper())
     if bbox:
         logger.info("  BBOX: %s", bbox)
     if limit_pages:
@@ -151,9 +156,10 @@ def ingest(
             "  LIMIT: %d pages (%d records)", limit_pages, limit_pages * PAGE_SIZE,
         )
 
-    init_spatial_db()
-    create_facility_table("nces_schools")  # POINT geometry (default)
-    logger.info("Created facilities_nces_schools table")
+    if not _skip_table_create:
+        init_spatial_db()
+        create_facility_table("nces_schools")  # POINT geometry (default)
+        logger.info("Created facilities_nces_schools table")
 
     conn = _connect()
     total_inserted = 0
@@ -254,6 +260,7 @@ def ingest(
                 total_inserted,
                 ", ".join(filter(None, [
                     "2022-23 school year",
+                    f"STABR: {stabr.upper()}",
                     f"BBOX: {bbox}" if bbox else None,
                     f"LIMIT: {limit_pages} pages" if limit_pages else None,
                 ])),
@@ -307,8 +314,12 @@ if __name__ == "__main__":
         "--bbox", type=str, default="",
         help=(
             "Bounding box filter: 'min_lng,min_lat,max_lng,max_lat' "
-            "(e.g., '-74.15,40.75,-73.35,41.45')."
+            "(e.g., '-75.6,38.9,-71.8,42.1')."
         ),
+    )
+    parser.add_argument(
+        "--stabr", type=str, default="NY",
+        help="State postal abbreviation for STABR filter (default: NY).",
     )
     parser.add_argument(
         "--limit", type=int, default=0,
@@ -325,8 +336,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.discover:
-        ingest(discover=True)
+        ingest(discover=True, stabr=args.stabr)
     else:
-        ingest(bbox=args.bbox, limit_pages=args.limit)
+        ingest(bbox=args.bbox, stabr=args.stabr, limit_pages=args.limit)
         if args.verify:
             verify()

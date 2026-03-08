@@ -8,6 +8,9 @@ file-based lock (fcntl) to prevent concurrent ingestion from multiple workers.
 
 Datasets are checked in order and ingested independently — a failure in one
 never blocks the others or crashes the worker.
+
+Geographic scope: NY + CT + NJ (tri-state). State-filtered datasets use
+multi-state IN clauses; bbox-filtered datasets use (-75.6, 38.9, -71.8, 42.1).
 """
 
 import fcntl
@@ -116,7 +119,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset sems: missing or empty, starting ingestion...")
         _run_ingest("sems", _ingest_sems)
 
-    # --- FEMA NFHL (flood zones, NYC metro) ---
+    # --- FEMA NFHL (flood zones, tri-state) ---
     has_data, count = _table_has_data(db_path, "facilities_fema_nfhl")
     if has_data:
         logger.info("Dataset fema_nfhl: present (%d records), skipping", count)
@@ -132,7 +135,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset hpms: missing or empty, starting ingestion...")
         _run_ingest("hpms", _ingest_hpms)
 
-    # --- EJScreen (EPA environmental justice block groups, NY) ---
+    # --- EJScreen (EPA environmental justice block groups, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_ejscreen")
     if has_data:
         logger.info("Dataset ejscreen: present (%d records), skipping", count)
@@ -140,7 +143,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset ejscreen: missing or empty, starting ingestion...")
         _run_ingest("ejscreen", _ingest_ejscreen)
 
-    # --- TRI (EPA Toxic Release Inventory, NY) ---
+    # --- TRI (EPA Toxic Release Inventory, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_tri")
     if has_data:
         logger.info("Dataset tri: present (%d records), skipping", count)
@@ -148,7 +151,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset tri: missing or empty, starting ingestion...")
         _run_ingest("tri", _ingest_tri)
 
-    # --- UST (EPA Underground Storage Tanks, NY) ---
+    # --- UST (EPA Underground Storage Tanks, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_ust")
     if has_data:
         logger.info("Dataset ust: present (%d records), skipping", count)
@@ -156,7 +159,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset ust: missing or empty, starting ingestion...")
         _run_ingest("ust", _ingest_ust)
 
-    # --- HIFLD (electric power transmission lines, Westchester bbox) ---
+    # --- HIFLD (electric power transmission lines, tri-state bbox) ---
     has_data, count = _table_has_data(db_path, "facilities_hifld")
     if has_data:
         logger.info("Dataset hifld: present (%d records), skipping", count)
@@ -164,7 +167,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset hifld: missing or empty, starting ingestion...")
         _run_ingest("hifld", _ingest_hifld)
 
-    # --- FRA (rail network lines, Westchester bbox) ---
+    # --- FRA (rail network lines, tri-state bbox) ---
     has_data, count = _table_has_data(db_path, "facilities_fra")
     if has_data:
         logger.info("Dataset fra: present (%d records), skipping", count)
@@ -172,7 +175,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fra: missing or empty, starting ingestion...")
         _run_ingest("fra", _ingest_fra)
 
-    # --- School Districts (TIGER unified school district boundaries, NY) ---
+    # --- School Districts (TIGER unified school district boundaries, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_school_districts")
     if has_data:
         logger.info("Dataset school_districts: present (%d records), skipping", count)
@@ -188,7 +191,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset nysed_performance: missing or empty, starting ingestion...")
         _run_ingest("nysed_performance", _ingest_nysed)
 
-    # --- NCES Public Schools (2022-23, Westchester bbox) ---
+    # --- NCES Public Schools (2022-23, tri-state) ---
     has_data, count = _table_has_data(db_path, "facilities_nces_schools")
     if has_data:
         logger.info("Dataset nces_schools: present (%d records), skipping", count)
@@ -224,7 +227,7 @@ def _ingest_sems():
 
 def _ingest_fema():
     from scripts.ingest_fema import ingest as do_ingest
-    do_ingest(metro="nyc")
+    do_ingest(bbox=(-75.6, 38.9, -71.8, 42.1))
 
 
 def _ingest_hpms():
@@ -234,32 +237,32 @@ def _ingest_hpms():
 
 def _ingest_ejscreen():
     from scripts.ingest_ejscreen import ingest as do_ingest
-    do_ingest(state="NY")
+    do_ingest(states=["NY", "CT", "NJ"])
 
 
 def _ingest_tri():
     from scripts.ingest_tri import ingest as do_ingest
-    do_ingest(state="NY")
+    do_ingest(states=["NY", "CT", "NJ"])
 
 
 def _ingest_ust():
     from scripts.ingest_ust import ingest as do_ingest
-    do_ingest(state="New York")
+    do_ingest(states=["New York", "Connecticut", "New Jersey"])
 
 
 def _ingest_hifld():
     from scripts.ingest_hifld import ingest as do_ingest
-    do_ingest(bbox="-74.15,40.75,-73.35,41.45")
+    do_ingest(bbox="-75.6,38.9,-71.8,42.1")
 
 
 def _ingest_fra():
     from scripts.ingest_fra import ingest as do_ingest
-    do_ingest(bbox="-74.15,40.75,-73.35,41.45", us_only=True)
+    do_ingest(bbox="-75.6,38.9,-71.8,42.1", us_only=True)
 
 
 def _ingest_school_districts():
     from scripts.ingest_school_districts import ingest as do_ingest
-    do_ingest(state="36")
+    do_ingest(states=["36", "09", "34"])
 
 
 def _ingest_nysed():
@@ -269,4 +272,12 @@ def _ingest_nysed():
 
 def _ingest_nces_schools():
     from scripts.ingest_nces_schools import ingest as do_ingest
-    do_ingest(bbox="-74.15,40.75,-73.35,41.45")
+    _TRI_STATE_BBOX = "-75.6,38.9,-71.8,42.1"
+    _STABR_CODES = ["NY", "CT", "NJ"]
+    from spatial_data import init_spatial_db, create_facility_table
+    init_spatial_db()
+    create_facility_table("nces_schools")
+    logger.info("Created facilities_nces_schools table")
+    for stabr in _STABR_CODES:
+        logger.info("Ingesting NCES schools for STABR=%s...", stabr)
+        do_ingest(bbox=_TRI_STATE_BBOX, stabr=stabr, _skip_table_create=True)
