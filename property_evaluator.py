@@ -37,6 +37,8 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
+    THIRD_PLACE_CATEGORY_CEILINGS, THIRD_PLACE_DEPTH_BONUS_THRESHOLD,
+    THIRD_PLACE_DEPTH_PENALTY_THRESHOLD,
     TIER2_NAME_TO_DIMENSION, VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     apply_piecewise,
 )
@@ -4140,6 +4142,34 @@ def score_park_access(
         )
 
 
+# -- Social-scene bucket mapping for quality ceiling (Phase 2) ----------------
+# Maps Google Places types to broader social-category buckets.
+# A venue contributes to every bucket it matches (e.g. a café-restaurant
+# counts toward both "coffee" and "restaurant" — it genuinely serves both).
+_SOCIAL_BUCKET_MAP: Dict[str, str] = {
+    "cafe": "coffee",
+    "coffee_shop": "coffee",
+    "bakery": "bakery",
+    "bar": "bar/nightlife",
+    "wine_bar": "bar/nightlife",
+    "night_club": "bar/nightlife",
+    "restaurant": "restaurant",
+}
+
+
+def _social_buckets_for_venue(types: list) -> set:
+    """Return the set of social-category buckets a venue's types map to.
+
+    Types not in _SOCIAL_BUCKET_MAP fall into "other" — but only if no
+    specific bucket matched, to avoid inflating diversity with generic
+    tags like "food" or "point_of_interest".
+    """
+    buckets = {_SOCIAL_BUCKET_MAP[t] for t in types if t in _SOCIAL_BUCKET_MAP}
+    if not buckets:
+        buckets.add("other")
+    return buckets
+
+
 def _classify_coffee_sub_type(types: list) -> str:
     """Classify a Google Places result into a coffee/social sub-category.
 
@@ -4280,6 +4310,36 @@ def score_third_place_access(
             "coffee_shop": _sub_types.count("coffee_shop"),
             "total": len(eligible_places),
         }
+
+        # --- Quality ceiling (Phase 2) ---
+        # Cap the walk-time score by scene diversity + review depth.
+        # 1. Category diversity: count distinct social buckets
+        _all_buckets: set = set()
+        for p in eligible_places:
+            _all_buckets.update(_social_buckets_for_venue(p.get("types", [])))
+        _diversity_count = len(_all_buckets)
+
+        # Look up ceiling from the tier map (4+ uses the max key)
+        _ceiling_key = min(_diversity_count, max(THIRD_PLACE_CATEGORY_CEILINGS))
+        quality_ceiling = THIRD_PLACE_CATEGORY_CEILINGS[_ceiling_key]
+
+        # 2. Review depth: median review count across qualifying venues
+        _review_counts = sorted(
+            p.get("user_ratings_total", 0) for p in eligible_places
+        )
+        _n = len(_review_counts)
+        if _n % 2 == 1:
+            median_reviews = _review_counts[_n // 2]
+        else:
+            median_reviews = (_review_counts[_n // 2 - 1] + _review_counts[_n // 2]) / 2
+
+        if median_reviews > THIRD_PLACE_DEPTH_BONUS_THRESHOLD:
+            quality_ceiling = min(quality_ceiling + 1, 10)
+        elif median_reviews < THIRD_PLACE_DEPTH_PENALTY_THRESHOLD:
+            quality_ceiling = max(quality_ceiling - 1, 1)
+
+        # Final score = min(walk_time_score, ceiling)
+        best_score = min(best_score, quality_ceiling)
 
         # Format details
         name = best_place.get("name", "Coffee spot")

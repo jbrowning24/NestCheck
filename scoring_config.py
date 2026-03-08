@@ -413,3 +413,23 @@ VENUE_MIN_RATING: Dict[str, float] = {
     "provisioning": 3.5,    # existing hardcoded value
     "fitness": 3.5,         # NEW — reasonable floor
 }
+
+
+# =============================================================================
+# Coffee/Social quality ceiling — caps walk-time score by scene diversity
+# =============================================================================
+# Category diversity: distinct social-category buckets among qualifying venues
+# determines a ceiling on the walk-time score.  A close but thin scene
+# (one creamery + delis) can no longer score 10/10.
+
+THIRD_PLACE_CATEGORY_CEILINGS: Dict[int, int] = {
+    1: 5,   # single category = limited scene
+    2: 7,   # two categories = decent variety
+    3: 9,   # three categories = good variety
+    4: 10,  # four+ categories = full scene
+}
+
+# Review depth adjusts the ceiling ±1 based on median review count
+# across qualifying venues — a proxy for establishment maturity.
+THIRD_PLACE_DEPTH_BONUS_THRESHOLD = 200    # median reviews above this → +1
+THIRD_PLACE_DEPTH_PENALTY_THRESHOLD = 50   # median reviews below this → −1
