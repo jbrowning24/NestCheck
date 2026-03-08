@@ -406,6 +406,122 @@ def _dedupe_by_place_id(places: List[Dict]) -> List[Dict]:
     return unique
 
 
+# Name-based patterns for online-only / non-physical businesses that appear
+# in Google Places results but have no real storefront a person could visit.
+_ONLINE_BUSINESS_NAME_PATTERNS: List[re.Pattern] = [
+    re.compile(p, re.IGNORECASE) for p in [
+        r"\bonline\b",
+        r"\bvirtual\b",
+        r"\be[\-\s]?commerce\b",
+        r"\bdelivery only\b",
+        r"\bdelivery[\-\s]?service\b",
+        r"\.com$",
+        r"\.net$",
+        r"\.org$",
+        r"\bweb\s?based\b",
+        r"\binternet\b",
+    ]
+]
+
+# Exact-match names for well-known online-only services that carry
+# Google Places listings (with optional location suffixes like "- Yonkers").
+_ONLINE_BUSINESS_EXACT_NAMES: set = {
+    "amazon",
+    "amazon fresh",
+    "amazon prime",
+    "amazon prime now",
+    "freshdirect",
+    "instacart",
+    "peapod",
+    "grubhub",
+    "doordash",
+    "uber eats",
+    "ubereats",
+    "postmates",
+    "seamless",
+    "gopuff",
+    "shipt",
+}
+
+
+def _non_physical_reason(place: Dict) -> Optional[str]:
+    """Return a short reason string if *place* is non-physical, else ``None``.
+
+    Reason values:
+    - ``"closed_permanently"`` — Google ``business_status`` flag.
+    - ``"online_exact:<name>"`` — matched ``_ONLINE_BUSINESS_EXACT_NAMES``.
+    - ``"online_pattern:<regex>"`` — matched an ``_ONLINE_BUSINESS_NAME_PATTERNS`` entry.
+    """
+    # 1. Permanently closed
+    status = place.get("business_status", "")
+    if status == "CLOSED_PERMANENTLY":
+        return "closed_permanently"
+
+    # 2. Name-based heuristics
+    name = place.get("name", "")
+    name_stripped = name.strip()
+    # Check exact match (lowercase, ignore trailing location suffix like "- Yonkers")
+    name_base = name_stripped.split(" - ")[0].strip().lower()
+    if name_base in _ONLINE_BUSINESS_EXACT_NAMES:
+        return f"online_exact:{name_base}"
+
+    # Check regex patterns
+    for pattern in _ONLINE_BUSINESS_NAME_PATTERNS:
+        if pattern.search(name_stripped):
+            return f"online_pattern:{pattern.pattern}"
+
+    return None
+
+
+def _is_non_physical_place(place: Dict) -> bool:
+    """Return True if *place* looks like an online-only / non-physical business."""
+    return _non_physical_reason(place) is not None
+
+
+def _filter_physical_places(places: List[Dict]) -> List[Dict]:
+    """Keep only places that appear to be real, physical businesses.
+
+    Each filtered place is logged at DEBUG with the filter reason.  A
+    ``filtered_places`` list is appended to the current ``TraceContext``
+    (if one exists) so filtered entries show up in the builder dashboard.
+    """
+    kept: List[Dict] = []
+    filtered_records: List[Dict] = []
+    for p in places:
+        reason = _non_physical_reason(p)
+        if reason:
+            record = {
+                "name": p.get("name", "?"),
+                "place_id": p.get("place_id", ""),
+                "business_status": p.get("business_status", ""),
+                "reason": reason,
+            }
+            filtered_records.append(record)
+            logger.debug(
+                "Filtered non-physical place: %s reason=%s place_id=%s",
+                record["name"],
+                reason,
+                record["place_id"],
+            )
+        else:
+            kept.append(p)
+
+    if filtered_records:
+        logger.info(
+            "Filtered %d non-physical place(s) from %d results",
+            len(filtered_records),
+            len(places),
+        )
+        # Attach to trace for builder dashboard visibility
+        trace = get_trace()
+        if trace:
+            if not hasattr(trace, "filtered_places"):
+                trace.filtered_places = []
+            trace.filtered_places.extend(filtered_records)
+
+    return kept
+
+
 # =============================================================================
 # DISTANCE HELPERS
 # =============================================================================
@@ -543,7 +659,7 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Places API failed: {data['status']}")
 
-        results = data.get("results", [])
+        results = _filter_physical_places(data.get("results", []))
         self._places_cache[cache_key] = results
         return results
     
@@ -650,7 +766,7 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Text Search API failed: {data['status']}")
 
-        return data.get("results", [])
+        return _filter_physical_places(data.get("results", []))
 
     def _distance_matrix_batch(
         self,

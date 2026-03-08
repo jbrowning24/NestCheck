@@ -66,6 +66,8 @@ NestCheck/
 - GoogleMapsClient wraps all Maps API calls
 - Always use `timeout=API_REQUEST_TIMEOUT`
 - Handle quota errors gracefully
+- **Non-physical place filtering** (NES-211): `places_nearby()` and `text_search()` centrally filter out permanently closed and online-only businesses before caching/returning results. All downstream consumers get clean data without their own filter logic. To add a new online-only service, add to `_ONLINE_BUSINESS_EXACT_NAMES` (preferred) or `_ONLINE_BUSINESS_NAME_PATTERNS` (for regex). Filtered places are attached to `TraceContext.filtered_places` for audit.
+- **Auditable heuristic filters**: When filtering API results by name/pattern heuristics, return a reason string (not just bool) so filtered items can be traced and false positives audited. Pattern: `_non_physical_reason() → Optional[str]` with typed reasons like `"closed_permanently"`, `"online_exact:<name>"`, `"online_pattern:<regex>"`.
 
 ### Narrative Insights (NES-191+)
 - Insight generators are pure functions: `dict → str | None`. Keep them side-effect-free for testability.
