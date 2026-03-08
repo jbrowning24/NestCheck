@@ -223,7 +223,7 @@ class GreenSpaceEvaluation:
 @dataclass
 class NeighborhoodPlace:
     """Single nearby amenity for context"""
-    category: str  # "Provisioning", "Third Place", "Park", "School"
+    category: str  # "Provisioning", "Coffee & Social Spots", "Park", "School"
     name: str
     rating: Optional[float]
     walk_time_min: int
@@ -2825,7 +2825,7 @@ def get_neighborhood_snapshot(
     # Find nearest of each category
     categories = [
         ("Provisioning", "grocery_store", "supermarket"),
-        ("Third Place", "cafe", "bakery"),
+        ("Coffee & Social Spots", "cafe", "bakery"),
         ("Park", "park", None),
         ("School", "school", "primary_school")
     ]
@@ -2875,8 +2875,8 @@ def get_neighborhood_snapshot(
                     ))
                     continue
 
-            # Special handling for Third Place - apply third-place quality filter
-            if category == "Third Place":
+            # Special handling for Coffee & Social Spots — apply quality filter
+            if category == "Coffee & Social Spots":
                 eligible_places = []
                 excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
 
@@ -2905,7 +2905,7 @@ def get_neighborhood_snapshot(
                     # Add placeholder entry
                     snapshot.places.append(NeighborhoodPlace(
                         category=category,
-                        name="No good third-place spots nearby",
+                        name="No high-quality cafés or bakeries nearby",
                         rating=None,
                         walk_time_min=0,
                         place_type="none"
@@ -4136,15 +4136,29 @@ def score_park_access(
         )
 
 
+def _classify_coffee_sub_type(types: list) -> str:
+    """Classify a Google Places result into a coffee/social sub-category.
+
+    Priority: bakery > cafe > coffee_shop (bakery is the most distinct;
+    Google often tags bakeries with "cafe" too, so check bakery first).
+    """
+    if "bakery" in types:
+        return "bakery"
+    if "cafe" in types:
+        return "cafe"
+    return "coffee_shop"
+
+
 def score_third_place_access(
     maps: GoogleMapsClient,
     lat: float,
     lng: float
-) -> Tuple[Tier2Score, list]:
-    """Score third-place access based on third-place quality (0-10 points).
+) -> Tuple[Tier2Score, list, dict]:
+    """Score coffee & social spot access (0-10 points).
 
-    Returns (Tier2Score, places_list) where places_list contains up to 5
-    nearby places for the neighborhood display.
+    Returns (Tier2Score, places_list, category_counts) where:
+    - places_list: up to 5 nearby places for neighborhood display
+    - category_counts: {"cafe": N, "bakery": N, "coffee_shop": N, "total": N}
     """
     try:
         # Search for cafes, coffee shops, and bakeries
@@ -4154,16 +4168,18 @@ def score_third_place_access(
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=3000))
         all_places = _dedupe_by_place_id(all_places)
 
+        _empty_counts = {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}
+
         if not all_places:
             conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
-                name="Third Place",
+                name="Coffee & Social Spots",
                 points=0,
                 max_points=10,
-                details="No high-quality third places within walking distance",
+                details="No high-quality cafés or bakeries within walking distance",
                 data_confidence=conf,
                 data_confidence_note=conf_note,
-            ), [])
+            ), [], _empty_counts)
 
         # Filter for third-place quality
         eligible_places = []
@@ -4193,13 +4209,13 @@ def score_third_place_access(
         if not eligible_places:
             conf, conf_note = _classify_places_confidence(0, 0)
             return (Tier2Score(
-                name="Third Place",
+                name="Coffee & Social Spots",
                 points=0,
                 max_points=10,
-                details="No high-quality third places within walking distance",
+                details="No high-quality cafés or bakeries within walking distance",
                 data_confidence=conf,
                 data_confidence_note=conf_note,
-            ), [])
+            ), [], _empty_counts)
 
         # Batch walking times — 1 API call per 25 places instead of 1 each
         destinations = [
@@ -4244,13 +4260,24 @@ def score_third_place_access(
                 "lat": p["geometry"]["location"]["lat"],
                 "lng": p["geometry"]["location"]["lng"],
                 "place_id": p.get("place_id"),
+                "sub_type": _classify_coffee_sub_type(p.get("types", [])),
             }
             for _sc, wt, p in scored_places[:5]
         ]
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
+        # NES-210: Category gap analysis — count eligible places by sub-type.
+        # Uses the full eligible set (not just top 5) for accurate coverage.
+        _sub_types = [_classify_coffee_sub_type(p.get("types", [])) for p in eligible_places]
+        category_counts = {
+            "cafe": _sub_types.count("cafe"),
+            "bakery": _sub_types.count("bakery"),
+            "coffee_shop": _sub_types.count("coffee_shop"),
+            "total": len(eligible_places),
+        }
+
         # Format details
-        name = best_place.get("name", "Third place")
+        name = best_place.get("name", "Coffee spot")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
         details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
@@ -4264,23 +4291,23 @@ def score_third_place_access(
         capped_score = _apply_confidence_cap(best_score, conf)
 
         return (Tier2Score(
-            name="Third Place",
+            name="Coffee & Social Spots",
             points=capped_score,
             max_points=10,
             details=details,
             data_confidence=conf,
             data_confidence_note=conf_note,
-        ), neighborhood_places)
+        ), neighborhood_places, category_counts)
 
     except Exception as e:
         return (Tier2Score(
-            name="Third Place",
+            name="Coffee & Social Spots",
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
             data_confidence="LOW",
             data_confidence_note="Scoring failed due to an error",
-        ), [])
+        ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0})
 
 
 def score_cost(cost: Optional[int]) -> Tier2Score:
@@ -5193,7 +5220,7 @@ def evaluate_property(
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        _coffee_score, _coffee_places = _staged(
+        _coffee_score, _coffee_places, _coffee_category_counts = _staged(
             "score_third_place", score_third_place_access, maps, lat, lng)
         result.tier2_scores.append(_coffee_score)
 
@@ -5242,6 +5269,7 @@ def evaluate_property(
 
         result.neighborhood_places = {
             "coffee": _coffee_places,
+            "coffee_category_counts": _coffee_category_counts,  # NES-210
             "grocery": _grocery_places,
             "fitness": _fitness_places,
             "parks": _park_places,
@@ -5253,7 +5281,7 @@ def evaluate_property(
 
         # Weighted normalization using persona lens.
         # Map internal Tier2Score names to persona dimension names so
-        # weights resolve correctly (e.g. "Third Place" -> "Coffee & Social Spots").
+        # weights resolve correctly (e.g. "Primary Green Escape" -> "Parks & Green Space").
         _weights = persona_preset.weights
         _weighted_total = sum(
             s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)

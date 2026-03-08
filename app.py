@@ -1072,6 +1072,32 @@ def _serialize_urban_access(urban_access):
     }
 
 
+# NES-210: Legacy dimension name migration for old snapshots.
+# Maps internal Tier2Score names that were renamed to their current
+# user-facing equivalents.  Applied during snapshot deserialization so
+# templates always see the current name.
+_LEGACY_DIMENSION_NAMES = {
+    "Third Place": "Coffee & Social Spots",
+}
+
+
+def _migrate_dimension_names(result: dict) -> dict:
+    """Remap legacy dimension names in a deserialized snapshot result dict.
+
+    Mutates tier2_scores and dimension_summaries in-place (caller should
+    shallow-copy the result dict first if mutation is undesirable).
+    """
+    for score in result.get("tier2_scores", []):
+        old = score.get("name", "")
+        if old in _LEGACY_DIMENSION_NAMES:
+            score["name"] = _LEGACY_DIMENSION_NAMES[old]
+    for dim in result.get("dimension_summaries", []):
+        old = dim.get("name", "")
+        if old in _LEGACY_DIMENSION_NAMES:
+            dim["name"] = _LEGACY_DIMENSION_NAMES[old]
+    return result
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -2144,6 +2170,10 @@ def view_snapshot(snapshot_id):
         "suppressed_unknown_count": suppressed_unknown_count,
     }
 
+    # NES-210: Migrate legacy dimension names on the shallow copy (not the
+    # stored snapshot dict) to avoid corrupting a future caching layer.
+    _migrate_dimension_names(result)
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
@@ -2161,6 +2191,7 @@ def export_snapshot_json(snapshot_id):
         return jsonify({"error": "Snapshot not found"}), 404
 
     result = snapshot["result"]
+    _migrate_dimension_names(result)  # NES-210
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -2185,6 +2216,7 @@ def export_snapshot_csv(snapshot_id):
         return jsonify({"error": "Snapshot not found"}), 404
 
     result = snapshot["result"]
+    _migrate_dimension_names(result)  # NES-210
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -2338,6 +2370,8 @@ def compare():
     evaluations = []
     for snapshot in snapshots:
         result = snapshot.get("result", {})
+        # NES-210: Migrate legacy dimension names for old snapshots
+        _migrate_dimension_names(result)
         evaluations.append({
             "snapshot_id": snapshot["snapshot_id"],
             "result": result,

@@ -735,6 +735,25 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* NES-210: Category breakdown chips */
+.category-chips {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
+}
+.chip {
+  font-size: var(--font-size-small);
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--color-bg-alt, #f0f0f0);
+  color: var(--color-text-secondary, #555);
+  white-space: nowrap;
+}
+.chip--empty {
+  opacity: 0.5;
+}
+
 /* Place cards — horizontal scroll with hover lift */
 .place-cards {
   display: flex;
