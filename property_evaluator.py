@@ -3966,7 +3966,7 @@ def _compute_quality_ceiling(
     Returns an integer ceiling (0-10).
     """
     if not eligible_places:
-        return int(ceiling_config.base_ceiling)
+        return round(ceiling_config.base_ceiling)
 
     # --- Category diversity: count distinct sub-types ---
     distinct_types = set()
@@ -3994,7 +3994,7 @@ def _compute_quality_ceiling(
             break
 
     raw_ceiling = ceiling_config.base_ceiling + diversity_bonus + depth_bonus
-    return min(int(raw_ceiling), 10)
+    return min(round(raw_ceiling), 10)
 
 
 def _classify_transit_confidence(

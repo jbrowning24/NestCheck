@@ -45,12 +45,13 @@ class QualityCeilingConfig:
     Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
     """
     base_ceiling: float = 5.0       # starting ceiling before bonuses
-    # Category diversity: distinct Google Places sub-types among eligible venues
+    # Category diversity: distinct Google Places sub-types among eligible venues.
+    # _classify_coffee_sub_type returns at most 3 types (bakery/cafe/coffee_shop),
+    # so thresholds above 3 are unreachable with the current classifier.
     diversity_thresholds: Tuple[Tuple[int, float], ...] = (
         # (min_distinct_categories, bonus_points)
-        (4, 3.0),   # 4+ categories → +3.0
-        (3, 2.0),   # 3 categories  → +2.0
-        (2, 1.0),   # 2 categories  → +1.0
+        (3, 3.0),   # 3 categories  → +3.0
+        (2, 1.5),   # 2 categories  → +1.5
         # 1 category  → +0.0 (no bonus)
     )
     # Review depth: median user_ratings_total across eligible venues

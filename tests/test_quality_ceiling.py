@@ -46,37 +46,34 @@ class TestComputeQualityCeiling:
         assert _compute_quality_ceiling(places, self.CONFIG) == 7
 
     def test_two_categories_low_reviews(self):
-        """2 categories, low reviews → base + diversity(1.0) = 6."""
+        """2 categories, low reviews → base + diversity(1.5) = 6.5 → round = 6."""
         places = [_make_place("cafe", 20), _make_place("bakery", 30)]
         assert _compute_quality_ceiling(places, self.CONFIG) == 6
 
     def test_two_categories_medium_reviews(self):
-        """2 categories, median 100+ → base + diversity(1.0) + depth(1.5) = 7."""
+        """2 categories, median 100+ → base + diversity(1.5) + depth(1.5) = 8."""
         places = [_make_place("cafe", 120), _make_place("bakery", 110)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 7
+        assert _compute_quality_ceiling(places, self.CONFIG) == 8
 
     def test_three_categories_high_reviews(self):
-        """3 categories, median 200+ → base + diversity(2.0) + depth(2.0) = 9."""
+        """3 categories, median 200+ → base + diversity(3.0) + depth(2.0) = 10."""
         places = [
             _make_place("cafe", 250),
             _make_place("bakery", 300),
             _make_place("coffee_shop", 200),
         ]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 9
+        assert _compute_quality_ceiling(places, self.CONFIG) == 10
 
-    def test_four_plus_categories_high_reviews_caps_at_10(self):
-        """4+ categories, high reviews → base(5) + div(3) + depth(2) = 10."""
-        # _classify_coffee_sub_type only returns 3 distinct types (bakery/cafe/coffee_shop),
-        # so 4+ distinct types isn't reachable with the current classifier.
-        # This test uses a custom config to verify the cap-at-10 behavior.
+    def test_caps_at_10(self):
+        """Custom config that exceeds 10 is capped."""
         config = QualityCeilingConfig(
-            base_ceiling=5.0,
+            base_ceiling=6.0,
             diversity_thresholds=(
-                (3, 3.0),  # 3 categories → +3.0
+                (3, 3.0),
                 (2, 2.0),
             ),
             depth_thresholds=(
-                (200, 3.0),  # boosted to exceed 10
+                (200, 3.0),
                 (100, 2.0),
             ),
         )
@@ -85,7 +82,7 @@ class TestComputeQualityCeiling:
             _make_place("bakery", 250),
             _make_place("coffee_shop", 280),
         ]
-        # base(5) + div(3) + depth(3) = 11 → capped to 10
+        # base(6) + div(3) + depth(3) = 12 → capped to 10
         assert _compute_quality_ceiling(places, config) == 10
 
     def test_mixed_reviews_uses_median(self):
