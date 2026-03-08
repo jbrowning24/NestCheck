@@ -26,13 +26,19 @@ NestCheck/
 
 ## Our Workflow
 
-1. `/create-issue` - Capture bugs/features fast
-2. `/exploration-phase` - Understand before building
-3. `/create-plan` - Markdown plan with status tracking
-4. `/execute-plan` - Hand off to Composer with @plan-file.md
-5. `/review` - Self-review the changes
-6. Get external review from Codex (branch review)
-7. `/peer-review` - Evaluate combined feedback
+1. `/exploration-phase` - Understand before building
+2. `/create-plan` - Markdown plan with status tracking
+3. `/execute` - Implement step by step with progress tracking
+4. `/code-review` - Self-review the changes
+5. `/pr-learn` - PR review + extract lessons for CLAUDE.md
+6. `/review` (built-in) - PR review for code quality, security, and test coverage
+
+## Claude Code Configuration
+
+### Custom Commands & Hooks
+- Custom slash commands in `.claude/commands/` must not shadow built-in commands (e.g., `/review`, `/compact`, `/init`). Check the built-in list before naming a new command. Shadowed built-ins become unreachable.
+- PostToolUse hooks that reference `$CLAUDE_FILE_PATH` must guard with `test -n` and quote the variable. If unset, tools like `ruff format` will silently operate on the entire directory.
+- Subagent definitions live in `.claude/agents/`. Each agent should have a single focused responsibility and explicit verification steps.
 
 ## Coding Standards
 
@@ -108,12 +114,50 @@ NestCheck/
 | 2026-03 | `railpack.json` for system deps | Railway uses Railpack (not Nixpacks); `nixpacks.toml` is silently ignored. Runtime apt packages go in `deploy.aptPackages` or `RAILPACK_DEPLOY_APT_PACKAGES` env var |
 | 2026-03 | NYSED data as bundled CSV | NYSED publishes bulk data as Access DBs only (no API). Curated CSV for ~40 Westchester districts is pragmatic; refresh annually after Report Card release (~Dec) |
 | 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
+| 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
+| 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
 - Never use bare `100vh` for layout heights; always add a `100dvh` override on the next line. Safari iOS `100vh` includes the URL bar's hidden space, which breaks scroll detection and makes the address bar stick in its collapsed state.
 - Fixed-position elements pinned to `bottom: 0` must include `padding-bottom: calc(<normal> + env(safe-area-inset-bottom, 0px))` so they clear Safari's bottom bar and home indicator. Currently applied to: cookie banner (`base.css`), compare tray (`_compare_tray.html`).
 - When adding new `position: fixed; bottom: 0` elements, follow the same `env()` pattern.
+
+## Workflow Orchestration
+
+### 1. Plan Mode Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately — don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### 2. Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### 3. Self-Improvement Loop
+- After ANY correction from the user: update CLAUDE.md with the pattern
+- Write rules that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+
+### 4. Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### 5. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes — don't over-engineer
+
+## Core Principles
+
+- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
 
 ## When Unsure
 
