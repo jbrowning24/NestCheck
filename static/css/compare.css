@@ -1,6 +1,6 @@
 /* ================================================================
-   compare.css — Comparison page layout and overrides.
-   Loaded by compare.html after report.css.
+   compare.css — Comparison page: structured differentials (NES-207).
+   Loaded by compare.html.
    ================================================================ */
 
 /* --- Page Title --- */
@@ -79,6 +79,28 @@
   text-align: left;
 }
 
+/* Verdict chip — compact inline badge */
+.verdict-chip {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-12);
+  border-radius: var(--radius-lg);
+  white-space: nowrap;
+}
+
+/* View full report link */
+.compare-full-report-link {
+  display: inline-block;
+  margin-top: var(--space-8);
+  font-size: var(--font-size-body-4);
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.compare-full-report-link:hover {
+  text-decoration: underline;
+}
+
 /* Smaller score ring for summary cards */
 .compare-score-ring {
   position: relative;
@@ -89,136 +111,206 @@
 .compare-score-ring .score-ring { width: 100%; height: 100%; }
 .compare-score-ring .score-ring-value { font-size: 1.3em; }
 
-/* --- Comparison Grid --- */
-.compare-grid {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 var(--space-4);
-  display: grid;
-  gap: var(--space-4);
+/* --- Section containers --- */
+.compare-section {
+  max-width: 1200px;
+  margin: var(--space-24) auto;
+  padding: 0 var(--space-24);
 }
 
-.compare-grid--2 { grid-template-columns: 1fr 1fr; }
-.compare-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
-.compare-grid--4 { grid-template-columns: 1fr 1fr; }
-
-/* --- Column --- */
-.compare-column {
-  min-width: 0; /* prevent grid blowout from long content */
-}
-
-.compare-column-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-muted);
-  border-radius: var(--radius-lg);
-  padding: var(--space-12) var(--space-4);
-  margin-bottom: var(--space-12);
-  position: sticky;
-  top: 56px; /* below nav */
-  z-index: 10;
-  box-shadow: var(--shadow-card);
-}
-
-.compare-column-address {
-  font-size: var(--font-size-body-3);
+.compare-section-title {
+  font-size: var(--font-size-md-2);
   color: var(--color-primary-dark);
+  margin-bottom: var(--space-12);
+}
+
+/* --- Health Flags Grid --- */
+.health-grid-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.health-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-3);
+}
+
+.health-grid th,
+.health-grid td {
+  padding: var(--space-8) var(--space-12);
+  text-align: center;
+  border-bottom: 1px solid var(--color-border-muted);
+}
+
+.health-grid__label-col {
+  text-align: left;
   font-weight: var(--font-weight-semibold);
-  flex: 1;
+  color: var(--color-text-faint);
+  font-size: var(--font-size-body-4);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  white-space: nowrap;
+}
+
+.health-grid__addr-col {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0;
-  border: none;
-  padding: 0;
 }
 
-.compare-column-score {
-  font-size: var(--font-size-body-4);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+.health-grid__label {
+  text-align: left;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
-.compare-collapse-icon {
-  display: none; /* hidden on desktop */
-  font-size: var(--font-size-sm);
-  color: var(--color-text-faint);
-}
-
-/* --- Narrow-column overrides for _result_sections.html content --- */
-.compare-column .verdict-card {
-  padding: var(--space-4);
-}
-
-.compare-column .score-header {
-  flex-direction: column;
-  align-items: center;
+.health-grid__cell {
   text-align: center;
 }
 
-.compare-column .score-ring-container {
-  width: 72px;
-  height: 72px;
+/* Health badge icons */
+.health-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
 }
 
-.compare-column .score-ring-value {
-  font-size: 1.4em;
+.health-badge--pass {
+  background: var(--color-pass-bg);
+  color: var(--color-pass-text);
+  border: 1px solid var(--color-pass-border);
 }
 
-.compare-column .report-section {
-  padding: var(--space-4);
+.health-badge--fail {
+  background: var(--color-fail-bg);
+  color: var(--color-fail-text);
+  border: 1px solid var(--color-fail-border);
 }
 
-/* Place cards: vertical stack instead of horizontal scroll in narrow columns */
-.compare-column .place-cards {
-  flex-direction: column;
-  overflow-x: visible;
+.health-badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning-border);
 }
 
-.compare-column .place-card {
+.health-badge--unknown {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.health-badge--na {
+  color: var(--color-text-faint);
+}
+
+/* --- Dimension Scores Table --- */
+.dimension-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dimension-table {
   width: 100%;
-  flex: none;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-3);
 }
 
-.compare-column .place-card--headline {
-  width: 100%;
+.dimension-table th,
+.dimension-table td {
+  padding: var(--space-8) var(--space-12);
+  text-align: center;
+  border-bottom: 1px solid var(--color-border-muted);
 }
 
-/* Walkscore pills: stack vertically */
-.compare-column .walkscore-row {
-  flex-direction: column;
+.dimension-table__label-col {
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-faint);
+  font-size: var(--font-size-body-4);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  white-space: nowrap;
 }
 
-.compare-column .walkscore-pill {
-  min-width: auto;
+.dimension-table__addr-col {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Subscore grid: 2-column in narrow compare view */
-.compare-column .subscore-grid {
-  grid-template-columns: 1fr 1fr;
+.dimension-table__label {
+  text-align: left;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
-/* Dimension rows: compact for narrow columns */
-.compare-column .dimension-bar {
-  width: 40px;
+.dimension-table__cell {
+  font-size: var(--font-size-body-2);
+  color: var(--color-text-secondary);
 }
 
-/* Map: shorter in comparison context */
-.compare-column .map-leaflet {
-  height: 250px;
+.dimension-table__cell--best {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-dark);
 }
 
-/* Hide elements that don't make sense per-column in comparison */
-.compare-column .snapshot-cta,
-.compare-column .share-bar,
-.compare-column .share-prompt,
-.compare-column .disclaimer,
-.compare-column .preview-upgrade-cta {
-  display: none;
+.dimension-table__max {
+  font-size: var(--font-size-body-4);
+  color: var(--color-text-faint);
+}
+
+.dimension-table__na {
+  color: var(--color-text-faint);
+}
+
+/* --- Key Differences Callout --- */
+.key-differences {
+  background: var(--color-surface);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  padding: var(--space-20);
+  box-shadow: var(--shadow-card);
+}
+
+.key-differences__title {
+  font-size: var(--font-size-body-2);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-dark);
+  margin: 0 0 var(--space-8);
+}
+
+.key-differences__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.key-differences__item {
+  font-size: var(--font-size-body-3);
+  color: var(--color-text-secondary);
+  padding: var(--space-4) 0;
+}
+
+.key-differences__item strong {
+  color: var(--color-primary-dark);
+}
+
+.key-differences__leader {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-body-4);
 }
 
 /* --- Bottom CTA --- */
@@ -227,41 +319,8 @@
   padding: var(--space-40) var(--space-24);
 }
 
-/* --- Responsive: Tablet (< 1024px) --- */
-@media (max-width: 1024px) {
-  .compare-grid--3 {
-    grid-template-columns: 1fr 1fr;
-    /* 3-evaluation: 2 cols, third wraps to next row */
-  }
-}
-
 /* --- Responsive: Mobile (< 768px) --- */
 @media (max-width: 768px) {
-  .compare-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .compare-column-header {
-    cursor: pointer;
-    position: static;
-  }
-
-  .compare-collapse-icon {
-    display: inline;
-  }
-
-  .compare-column-body.compare-column--collapsed {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-  }
-
-  .compare-column-body {
-    max-height: 5000px;
-    overflow: visible;
-    transition: max-height 0.3s ease;
-  }
-
   .compare-summary-card {
     min-width: 140px;
   }
@@ -272,6 +331,12 @@
   }
   .compare-score-ring .score-ring-value {
     font-size: 1.1em;
+  }
+
+  .health-grid__addr-col,
+  .dimension-table__addr-col {
+    max-width: 120px;
+    font-size: var(--font-size-body-4);
   }
 }
 
@@ -290,19 +355,16 @@
   .compare-summary-address {
     font-size: var(--font-size-xs);
   }
+
+  .compare-section {
+    padding: 0 var(--space-12);
+  }
 }
 
 /* --- Print --- */
 @media print {
-  .compare-column-body.compare-column--collapsed {
-    max-height: none !important;
-    overflow: visible !important;
-  }
-  .compare-collapse-icon { display: none; }
-  .compare-column-header { position: static; }
-  .compare-grid { display: block; }
-  .compare-column { break-inside: avoid; margin-bottom: 20px; }
   .compare-bottom-cta { display: none; }
+  .compare-section { max-width: none; }
 }
 
 

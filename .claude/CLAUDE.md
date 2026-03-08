@@ -112,6 +112,11 @@ NestCheck/
 - **Derived percentages from upstream counts**: When computing percentages from two upstream fields (e.g., TOTFRL/MEMBER for FRL%), always cap at 100% — data quality issues in federal datasets can produce numerator > denominator.
 - **Template component duplication**: When the same UI component renders in multiple conditional branches (e.g., school card inside vs. outside school district section), extract into a Jinja macro in `_macros.html` immediately. Copy-paste diverges silently on the next edit.
 
+### Comparison View (app.py + compare.html)
+- **Structured differential pattern** (NES-207): Multi-snapshot comparison views compute differential data in a pure helper (`_build_comparison_data()`) called from the route handler, not in Jinja templates. The helper returns typed data structures (health grid, dimension rows, key differences) — the template only renders. This keeps business logic testable and templates simple.
+- **Legacy/Phase 1B dedup in comparison grids**: When the same check exists in both legacy (`"Power lines"`) and Phase 1B spatial (`"hifld_power_lines"`) forms, use `_SPATIAL_SUPERSEDES` to skip legacy rows when the spatial version exists in any snapshot. Also deduplicate by display label (`seen_labels`) to prevent duplicate rows.
+- **`score_ring` macro requires `report.css`**: The `score_ring` macro from `_macros.html` depends on `.band-exceptional`, `.band-strong`, etc. classes defined in `report.css`. Any template using the macro must load `report.css` even if it doesn't render full report sections.
+
 ### Display Thresholds (scoring_config.py)
 - `WALK_DRIVE_BOTH_THRESHOLD` and `WALK_DRIVE_ONLY_THRESHOLD` in `scoring_config.py` are the canonical walk/drive time display thresholds. All display logic (templates, drive-time fetching) should reference these, not hardcode magic numbers.
 - **Scoring thresholds ≠ display thresholds**: `WALK_TIME_MARGINAL` (30 min, `green_space.py`) controls the walk-time *scoring curve*. `WALK_DRIVE_BOTH_THRESHOLD` (20 min) controls when drive times are *fetched and shown*. Don't conflate them — a constant can share a numeric value with a display threshold but serve a different purpose (scoring vs presentation).
@@ -132,6 +137,7 @@ NestCheck/
 | 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
 | 2026-03 | Health checks promoted to top of report (NES-214) | Primary differentiator was buried at position #11. Now `id="health-safety"` section after Summary Narrative. Proximity & Environment dissolved: sidewalk→Getting Around, EJScreen→Area Context |
 | 2026-03 | Centralized walk/drive display thresholds (NES-213) | `WALK_DRIVE_BOTH_THRESHOLD=20` and `WALK_DRIVE_ONLY_THRESHOLD=40` in `scoring_config.py`. Lowered park drive-time fetch from 30→20 to align with display band |
+| 2026-03 | Compare view structured differentials (NES-207) | Replaced side-by-side full reports with health grid + dimension scores + key differences. Cuts 1,210 lines of `_result_sections.html` per column. Zero API cost — pure presentation over existing snapshots |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.

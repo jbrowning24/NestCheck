@@ -11,6 +11,7 @@ import traceback
 from datetime import datetime, timezone
 from collections import defaultdict
 from functools import wraps
+from typing import Dict, List, Optional, Tuple
 
 import click
 from flask import (
@@ -23,7 +24,7 @@ from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
     get_score_band, proximity_synthesis,
 )
-from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA
+from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION
 from census import serialize_for_result as _serialize_census
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -281,6 +282,174 @@ _SOURCE_GROUP_LABELS = {
         "explanation": "EPA EJScreen data not available for this area",
     },
 }
+
+# ---------------------------------------------------------------------------
+# Comparison view: structured differential data (NES-207)
+# ---------------------------------------------------------------------------
+
+# Canonical health-check row order for the comparison grid.
+# Listing checks (W/D, Central air, Size, Bedrooms) excluded — not health.
+_COMPARE_HEALTH_CHECKS: List[Tuple[str, str]] = [
+    # (check_name, display_label)
+    ("Flood zone", "Flood zone"),
+    ("Superfund (NPL)", "Superfund"),
+    ("TRI facility", "Toxic release"),
+    ("ust_proximity", "Underground tanks"),
+    ("Gas station", "Gas station"),
+    ("hifld_power_lines", "Power lines"),
+    ("Power lines", "Power lines"),          # legacy fallback
+    ("rail_proximity", "Rail corridor"),
+    ("High-traffic road", "High-traffic road"),
+    ("Industrial zone", "Industrial zone"),
+    ("Electrical substation", "Substation"),
+    ("Cell tower", "Cell tower"),
+]
+
+# Phase 1B spatial checks that supersede their legacy equivalents.
+_SPATIAL_SUPERSEDES: Dict[str, str] = {
+    "hifld_power_lines": "Power lines",
+}
+
+# EJScreen indicators collapsed into one summary row.
+_EJSCREEN_INDICATOR_NAMES = {
+    "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+    "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
+}
+
+_CHECK_RESULT_SEVERITY = {"FAIL": 3, "WARNING": 2, "UNKNOWN": 1, "PASS": 0}
+
+
+def _build_comparison_data(
+    evaluations: List[dict],
+) -> Tuple[dict, List[dict], List[dict], bool]:
+    """Compute structured comparison data for the compare template.
+
+    Returns (health_grid, dimension_rows, key_differences).
+    """
+    # ── Health flags grid ──────────────────────────────────────────────
+    # Build per-evaluation check lookup: {check_name: result_string}
+    check_lookups: List[Dict[str, str]] = []
+    for ev in evaluations:
+        result = ev.get("result", {})
+        lookup: Dict[str, str] = {}
+        for check in result.get("tier1_checks", []):
+            lookup[check["name"]] = check["result"]
+        check_lookups.append(lookup)
+
+    # Determine which spatial checks are present so we can skip their
+    # legacy equivalents.
+    all_check_names: set = set()
+    for lookup in check_lookups:
+        all_check_names.update(lookup.keys())
+
+    skip_legacy: set = set()
+    for spatial_name, legacy_name in _SPATIAL_SUPERSEDES.items():
+        if spatial_name in all_check_names:
+            skip_legacy.add(legacy_name)
+
+    # Build grid rows — only include if ≥1 address has the check.
+    grid_rows: List[dict] = []
+    seen_labels: set = set()
+    for check_name, display_label in _COMPARE_HEALTH_CHECKS:
+        if check_name in skip_legacy:
+            continue
+        # Avoid duplicate labels (legacy + spatial both labelled "Power lines")
+        if display_label in seen_labels:
+            continue
+        cells = [lookup.get(check_name) for lookup in check_lookups]
+        if not any(c is not None for c in cells):
+            continue  # no address has this check
+        seen_labels.add(display_label)
+        grid_rows.append({"label": display_label, "cells": cells})
+
+    # EJScreen summary row — worst-case across 6 indicators per address.
+    ej_cells: List[Optional[str]] = []
+    any_ej = False
+    for lookup in check_lookups:
+        ej_results = [
+            lookup[name] for name in _EJSCREEN_INDICATOR_NAMES
+            if name in lookup
+        ]
+        if ej_results:
+            any_ej = True
+            worst = max(ej_results, key=lambda r: _CHECK_RESULT_SEVERITY.get(r, 0))
+            ej_cells.append(worst)
+        else:
+            ej_cells.append(None)
+    if any_ej:
+        grid_rows.append({"label": "Environmental justice", "cells": ej_cells})
+
+    has_any_issues = any(
+        c in ("FAIL", "WARNING")
+        for row in grid_rows
+        for c in row["cells"]
+        if c is not None
+    )
+    health_grid = {"rows": grid_rows, "has_any_issues": has_any_issues}
+
+    # ── Dimension score comparison ─────────────────────────────────────
+    dimension_order = list(TIER2_NAME_TO_DIMENSION.keys())
+    dimension_rows: List[dict] = []
+    for dim_name in dimension_order:
+        display_name = TIER2_NAME_TO_DIMENSION[dim_name]
+        scores: List[Optional[int]] = []
+        for ev in evaluations:
+            result = ev.get("result", {})
+            tier2 = result.get("tier2_scores", [])
+            matched = next(
+                (s for s in tier2 if s["name"] == dim_name), None
+            )
+            scores.append(matched["points"] if matched else None)
+
+        valid_scores = [s for s in scores if s is not None]
+        if valid_scores:
+            best_val = max(valid_scores)
+            all_tied = len(set(valid_scores)) == 1
+            best_index = scores.index(best_val) if not all_tied else None
+        else:
+            best_index = None
+            all_tied = True
+
+        dimension_rows.append({
+            "name": display_name,
+            "scores": scores,
+            "max_score": 10,
+            "best_index": best_index,
+            "all_tied": all_tied,
+        })
+
+    # ── Key differences callout ────────────────────────────────────────
+    key_differences: List[dict] = []
+    for dim_row in dimension_rows:
+        valid = [
+            (i, s) for i, s in enumerate(dim_row["scores"])
+            if s is not None
+        ]
+        if len(valid) < 2:
+            continue
+        high_idx, high_val = max(valid, key=lambda x: x[1])
+        low_idx, low_val = min(valid, key=lambda x: x[1])
+        gap = high_val - low_val
+        if gap >= 2:
+            key_differences.append({
+                "dimension": dim_row["name"],
+                "high": high_val,
+                "high_address": evaluations[high_idx].get("address", ""),
+                "low": low_val,
+                "low_address": evaluations[low_idx].get("address", ""),
+                "gap": gap,
+            })
+    key_differences.sort(key=lambda d: d["gap"], reverse=True)
+    key_differences = key_differences[:3]
+
+    has_any_scores = any(
+        s is not None
+        for dim_row in dimension_rows
+        for s in dim_row["scores"]
+    )
+
+    return health_grid, dimension_rows, key_differences, has_any_scores
+
 
 _CLEAR_HEADLINES = {
     "Gas station": "No gas stations within 500 ft setback",
@@ -2392,12 +2561,20 @@ def compare():
         sum(1 for e in evaluations if e.get("final_score", 0) == top_score) == 1
     )
 
+    health_grid, dimension_rows, key_differences, has_any_scores = (
+        _build_comparison_data(evaluations)
+    )
+
     return render_template(
         "compare.html",
         evaluations=evaluations,
         evaluation_count=len(evaluations),
         top_score=top_score,
         top_score_unique=top_score_unique,
+        health_grid=health_grid,
+        dimension_rows=dimension_rows,
+        key_differences=key_differences,
+        has_any_scores=has_any_scores,
     )
 
 
