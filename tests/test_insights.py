@@ -777,6 +777,20 @@ class TestProximitySynthesisUnverifiedOnly:
         assert "Gas Station" in result
         assert "could not be verified" in result.lower()
 
+    def test_single_unverified_name_field_only(self):
+        """Regression: present_checks() builds dicts with 'name' not 'display_name'.
+
+        Without the 'name' fallback in _display_label(), this produces
+        "Proximity to could not be verified" — a sentence fragment.
+        """
+        checks = [
+            {"category": "SAFETY", "result_type": "CLEAR", "name": "Power lines"},
+            {"category": "SAFETY", "result_type": "VERIFICATION_NEEDED", "name": "Gas station"},
+        ]
+        result = proximity_synthesis(checks)
+        assert "Gas station" in result
+        assert "Proximity to  could" not in result  # no empty name
+
     def test_two_unverified(self):
         checks = [
             _make_check("highway", "VERIFICATION_NEEDED"),

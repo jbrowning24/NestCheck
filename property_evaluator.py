@@ -5419,11 +5419,12 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
     def _label_with_article(c):
         """Return the label with article from _PROXIMITY_LABELS, or display_name."""
         cid = c.get("check_id", "")
-        return _PROXIMITY_LABELS.get(cid, c.get("display_name", cid))
+        fallback = c.get("display_name", "") or c.get("name", "") or cid
+        return _PROXIMITY_LABELS.get(cid, fallback)
 
     def _display_label(c):
         """Return the display_name as-is (capitalized, no article)."""
-        return c.get("display_name", "") or c.get("check_id", "")
+        return c.get("display_name", "") or c.get("name", "") or c.get("check_id", "")
 
     # All clear
     if not confirmed and not unverified:
