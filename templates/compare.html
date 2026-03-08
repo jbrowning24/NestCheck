@@ -14,7 +14,7 @@
 
 {% block content %}
 
-{# ── SUMMARY BAR ─────────────────────────────────────────────── #}
+{# ── ADDRESS HEADER BAR ─────────────────────────────────────── #}
 <div class="compare-summary">
   <h1 class="compare-title">Compare Addresses</h1>
   <div class="compare-summary-cards">
@@ -30,43 +30,109 @@
       <div class="compare-summary-score-row">
         {{ score_ring(eval.final_score, band_class, 'compare-score-ring', show_value=False) }}
         <div class="compare-summary-details">
-          <div class="score-band {{ band_class }}">{{ band_label }}</div>
+          <span class="verdict-chip {{ band_class }}">{{ band_label }}</span>
         </div>
       </div>
+      <a href="/s/{{ eval.snapshot_id }}" class="compare-full-report-link">View full report</a>
     </div>
     {% endfor %}
   </div>
 </div>
 
-{# ── COMPARISON GRID ─────────────────────────────────────────── #}
-<div class="compare-grid compare-grid--{{ evaluation_count }}">
-  {% for eval in evaluations %}
-  <div class="compare-column">
-    {# Column header (visible always; toggles on mobile) #}
-    {% set col_band_class = eval.score_band.css_class if eval.score_band is mapping else '' %}
-    {% set col_band_label = eval.score_band.label if eval.score_band is mapping else eval.verdict %}
-    <div class="compare-column-header" role="button" tabindex="0"
-         aria-label="Toggle details for {{ eval.address }}" aria-expanded="true"
-         onclick="toggleCompareColumn(this)"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCompareColumn(this);}">
-      <h2 class="compare-column-address">{{ eval.address }}</h2>
-      <span class="compare-column-score score-band {{ col_band_class }}">{{ col_band_label }}</span>
-      <span class="compare-collapse-icon">&#9660;</span>
-    </div>
-    <div class="compare-column-body">
-      {# Set context variables for the include #}
-      {% set result = eval.result %}
-      {% set snapshot_id = eval.snapshot_id %}
-      {% set is_snapshot = true %}
-      {% set is_preview = eval.is_preview %}
-      {% set compare_index = loop.index %}
-      {% include '_result_sections.html' %}
-    </div>
+{# ── 1. HEALTH FLAGS GRID ───────────────────────────────────── #}
+{% if health_grid.rows %}
+<section class="compare-section">
+  <h2 class="compare-section-title">Health &amp; Safety Flags</h2>
+  <div class="health-grid-wrapper">
+    <table class="health-grid">
+      <thead>
+        <tr>
+          <th class="health-grid__label-col">Check</th>
+          {% for eval in evaluations %}
+          <th class="health-grid__addr-col" title="{{ eval.address }}">{{ eval.address }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in health_grid.rows %}
+        <tr>
+          <td class="health-grid__label">{{ row.label }}</td>
+          {% for cell in row.cells %}
+          <td class="health-grid__cell">
+            {% if cell == 'PASS' %}
+              <span class="health-badge health-badge--pass" title="Clear" aria-label="Clear">&#10003;</span>
+            {% elif cell == 'FAIL' %}
+              <span class="health-badge health-badge--fail" title="Issue detected" aria-label="Issue detected">&#10007;</span>
+            {% elif cell == 'WARNING' %}
+              <span class="health-badge health-badge--warning" title="Warning" aria-label="Warning">&#9888;</span>
+            {% elif cell == 'UNKNOWN' %}
+              <span class="health-badge health-badge--unknown" title="Unable to verify" aria-label="Unable to verify">?</span>
+            {% else %}
+              <span class="health-badge health-badge--na" title="Not available" aria-label="Not available">&mdash;</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  {% endfor %}
-</div>
+</section>
+{% endif %}
 
-{# ── BOTTOM CTA ──────────────────────────────────────────────── #}
+{# ── 2. DIMENSION SCORES ────────────────────────────────────── #}
+{% if dimension_rows and dimension_rows[0].scores | select('ne', None) | list | length > 0 %}
+<section class="compare-section">
+  <h2 class="compare-section-title">Dimension Scores</h2>
+  <div class="dimension-table-wrapper">
+    <table class="dimension-table">
+      <thead>
+        <tr>
+          <th class="dimension-table__label-col">Dimension</th>
+          {% for eval in evaluations %}
+          <th class="dimension-table__addr-col" title="{{ eval.address }}">{{ eval.address }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for dim in dimension_rows %}
+        <tr>
+          <td class="dimension-table__label">{{ dim.name }}</td>
+          {% for score in dim.scores %}
+          <td class="dimension-table__cell{% if not dim.all_tied and loop.index0 == dim.best_index %} dimension-table__cell--best{% endif %}">
+            {% if score is not none %}
+              {{ score }}<span class="dimension-table__max">/{{ dim.max_score }}</span>
+            {% else %}
+              <span class="dimension-table__na">&mdash;</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{# ── 3. KEY DIFFERENCES ─────────────────────────────────────── #}
+{% if key_differences %}
+<section class="compare-section">
+  <div class="key-differences">
+    <h2 class="key-differences__title">Biggest Differences</h2>
+    <ul class="key-differences__list">
+      {% for diff in key_differences %}
+      <li class="key-differences__item">
+        <strong>{{ diff.dimension }}</strong>: {{ diff.high }} vs {{ diff.low }}
+        <span class="key-differences__leader">({{ diff.high_address }} leads)</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{# ── BOTTOM CTA ─────────────────────────────────────────────── #}
 <div class="compare-bottom-cta">
   <a href="/" class="share-btn">Add another address</a>
   {% if evaluation_count < 4 %}
@@ -76,75 +142,4 @@
   {% endif %}
 </div>
 
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // Required by _result_sections.html collapsible toggles (road noise, sidewalks, how-we-score)
-  function toggleSection(el) {
-    var body = el.nextElementSibling;
-    var icon = el.querySelector('.collapse-icon');
-    if (body.classList.contains('collapsed')) {
-      body.classList.remove('collapsed');
-      if (icon) icon.classList.add('is-expanded');
-    } else {
-      body.classList.add('collapsed');
-      if (icon) icon.classList.remove('is-expanded');
-    }
-    var isExpanded = !body.classList.contains('collapsed');
-    el.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-  }
-
-  // Keyboard support for collapsible toggles
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      var toggle = e.target.closest('.collapsible-toggle');
-      if (toggle) {
-        e.preventDefault();
-        toggle.click();
-      }
-    }
-  });
-
-  function toggleCompareColumn(headerEl) {
-    // Only activate on mobile (< 768px)
-    if (window.innerWidth >= 768) return;
-    var body = headerEl.nextElementSibling;
-    var icon = headerEl.querySelector('.compare-collapse-icon');
-    if (body.classList.contains('compare-column--collapsed')) {
-      body.classList.remove('compare-column--collapsed');
-      icon.innerHTML = '&#9660;';
-    } else {
-      body.classList.add('compare-column--collapsed');
-      icon.innerHTML = '&#9654;';
-    }
-    var isExpanded = !body.classList.contains('compare-column--collapsed');
-    headerEl.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-  }
-
-  // Auto-collapse all but the first column on mobile;
-  // on desktop, remove interactive ARIA attrs since toggle is a no-op
-  (function() {
-    var headers = document.querySelectorAll('.compare-column-header');
-    var bodies = document.querySelectorAll('.compare-column-body');
-    var icons = document.querySelectorAll('.compare-collapse-icon');
-    if (window.innerWidth >= 768) {
-      for (var i = 0; i < headers.length; i++) {
-        headers[i].removeAttribute('role');
-        headers[i].removeAttribute('tabindex');
-        headers[i].removeAttribute('aria-expanded');
-        if (icons[i]) icons[i].setAttribute('aria-hidden', 'true');
-      }
-      return;
-    }
-    for (var i = 1; i < bodies.length; i++) {
-      bodies[i].classList.add('compare-column--collapsed');
-      if (icons[i]) icons[i].innerHTML = '&#9654;';
-      if (headers[i]) headers[i].setAttribute('aria-expanded', 'false');
-    }
-  })();
-</script>
-
-{# Multi-instance map init for comparison columns #}
-<script src="{{ url_for('static', filename='js/compare-maps.js') }}"></script>
 {% endblock %}
