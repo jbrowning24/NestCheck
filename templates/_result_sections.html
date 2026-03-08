@@ -346,6 +346,19 @@
       {# ── Normal results: places within walking distance ── #}
       <div class="neighborhood-category">
         <div class="category-label">{{ icon }} {{ label }}</div>
+
+        {# NES-210: Category breakdown chips (coffee only) #}
+        {% if key == "coffee" and result.neighborhood_places.coffee_category_counts is defined %}
+          {% set cc = result.neighborhood_places.coffee_category_counts %}
+          <div class="category-chips">
+            <span class="chip{% if not cc.cafe %} chip--empty{% endif %}">Cafes: {{ cc.cafe }}</span>
+            <span class="chip{% if not cc.bakery %} chip--empty{% endif %}">Bakeries: {{ cc.bakery }}</span>
+            {% if cc.coffee_shop %}
+            <span class="chip">Coffee shops: {{ cc.coffee_shop }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
         <div class="place-cards">
           {% for place in normal_places %}
           {% set is_headline = loop.first and place.review_snippet %}

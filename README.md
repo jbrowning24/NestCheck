@@ -45,7 +45,7 @@ Each report includes:
 | Category | Max Points | What It Measures |
 |----------|-----------|-----------------|
 | Park & Green Access | 10 | Quality park within walking distance |
-| Third Place | 10 | Cafe, bakery, or social space nearby |
+| Coffee & Social Spots | 10 | Cafe, bakery, or social space nearby |
 | Provisioning | 10 | Grocery/supermarket access |
 | Fitness | 10 | Gym or fitness center |
 | Affordability | 10 | Monthly cost vs. thresholds |
