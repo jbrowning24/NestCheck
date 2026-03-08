@@ -82,7 +82,8 @@ class DimensionResult:
     scoring_inputs: dict      # e.g. {"walk_time_min": 18, "rating": 4.3}
     subscores: Optional[dict] = None  # e.g. {"proximity": 7.2, "quality": 0.8} for fitness
     model_version: str = ""
-    # Data confidence indicator (NES-189).  "HIGH" / "MEDIUM" / "LOW" with note.
+    # Confidence tier (Phase 3).  Values: "verified" / "estimated" / "not_scored".
+    # Legacy snapshots may contain "HIGH"/"MEDIUM"/"LOW" — migrated at display.
     data_confidence: Optional[str] = None
     data_confidence_note: Optional[str] = None
 
@@ -393,3 +394,144 @@ for _k, _p in PERSONA_PRESETS.items():
 #   walk_time > ONLY  : drive only
 WALK_DRIVE_BOTH_THRESHOLD = 20
 WALK_DRIVE_ONLY_THRESHOLD = 40
+
+
+# =============================================================================
+# Confidence tiers — unified three-tier system (Phase 3)
+# =============================================================================
+# Replaces the ad-hoc HIGH/MEDIUM/LOW system with semantically clear tiers.
+# Old values are kept as aliases for backward compatibility with stored snapshots.
+
+CONFIDENCE_VERIFIED = "verified"      # Multiple data sources, well-supported score
+CONFIDENCE_ESTIMATED = "estimated"    # Partial data, reasonable inference
+CONFIDENCE_NOT_SCORED = "not_scored"  # Insufficient data, suppress numeric score
+
+# Maps old tier names to new ones for snapshot migration
+_LEGACY_CONFIDENCE_MAP = {
+    "HIGH": CONFIDENCE_VERIFIED,
+    "MEDIUM": CONFIDENCE_ESTIMATED,
+    "LOW": CONFIDENCE_ESTIMATED,  # LOW with a numeric score → estimated
+    # "LOW" with points=0 and not_scored semantics is handled explicitly
+    # during migration by checking if the score was a "benefit of the doubt" fallback
+}
+
+
+# =============================================================================
+# Health check citations — hyperlinked sources for "Why we check this"
+# =============================================================================
+
+HEALTH_CHECK_CITATIONS: Dict[str, list] = {
+    # ── Gas Station ──────────────────────────────────────────────
+    "Gas station": [
+        {
+            "label": "Hilpert et al. 2019",
+            "url": "https://doi.org/10.1016/j.scitotenv.2019.05.316",
+        },
+        {
+            "label": "IARC Monograph 100F (Benzene)",
+            "url": "https://publications.iarc.fr/123",
+        },
+        {
+            "label": "California OEHHA Air Toxics Program",
+            "url": "https://oehha.ca.gov/air/air-toxics-program",
+        },
+    ],
+    # ── Highway ──────────────────────────────────────────────────
+    "Highway": [
+        {
+            "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+        },
+        {
+            "label": "CDC — Living Near Highways and Air Pollution",
+            "url": "https://www.cdc.gov/air/pollutants/highway-air-pollution.html",
+        },
+    ],
+    # ── High-volume road ─────────────────────────────────────────
+    "High-volume road": [
+        {
+            "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+        },
+    ],
+    # ── High-traffic road (HPMS AADT) ────────────────────────────
+    "High-traffic road": [
+        {
+            "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+        },
+        {
+            "label": "FHWA Highway Performance Monitoring System",
+            "url": "https://www.fhwa.dot.gov/policyinformation/hpms.cfm",
+        },
+    ],
+    # ── Power lines ──────────────────────────────────────────────
+    "Power lines": [
+        {
+            "label": "IARC Monograph Vol. 80 (ELF-EMF), 2002",
+            "url": "https://publications.iarc.fr/88",
+        },
+    ],
+    # ── Electrical substation ────────────────────────────────────
+    "Electrical substation": [
+        {
+            "label": "IARC Monograph Vol. 80 (ELF-EMF), 2002",
+            "url": "https://publications.iarc.fr/88",
+        },
+    ],
+    # ── Cell tower ───────────────────────────────────────────────
+    "Cell tower": [
+        {
+            "label": "IARC Press Release No. 208 (RF-EMF), 2011",
+            "url": "https://www.iarc.who.int/wp-content/uploads/2018/07/pr208_E.pdf",
+        },
+    ],
+    # ── Industrial zone ──────────────────────────────────────────
+    "Industrial zone": [],
+    # ── Superfund (NPL) ──────────────────────────────────────────
+    "Superfund (NPL)": [
+        {
+            "label": "EPA Superfund National Priorities List",
+            "url": "https://www.epa.gov/superfund/superfund-national-priorities-list-npl",
+        },
+    ],
+    # ── TRI Facility ─────────────────────────────────────────────
+    "TRI facility": [
+        {
+            "label": "EPA Toxics Release Inventory",
+            "url": "https://www.epa.gov/toxics-release-inventory-tri-program",
+        },
+    ],
+    # ── Underground Storage Tanks (Phase 1B) ─────────────────────
+    "ust_proximity": [
+        {
+            "label": "Hilpert et al. 2019",
+            "url": "https://doi.org/10.1016/j.scitotenv.2019.05.316",
+        },
+    ],
+    # ── Toxic Release Facilities (Phase 1B) ──────────────────────
+    "tri_proximity": [
+        {
+            "label": "EPA Toxics Release Inventory",
+            "url": "https://www.epa.gov/toxics-release-inventory-tri-program",
+        },
+    ],
+    # ── High-Voltage Power Lines / HIFLD (Phase 1B) ──────────────
+    "hifld_power_lines": [
+        {
+            "label": "IARC Monograph Vol. 80 (ELF-EMF), 2002",
+            "url": "https://publications.iarc.fr/88",
+        },
+        {
+            "label": "HIFLD Electric Power Transmission Lines",
+            "url": "https://hifld-geoplatform.opendata.arcgis.com/datasets/electric-power-transmission-lines",
+        },
+    ],
+    # ── Rail Corridor (Phase 1B) ─────────────────────────────────
+    "rail_proximity": [
+        {
+            "label": "FRA Safety Data",
+            "url": "https://safetydata.fra.dot.gov/",
+        },
+    ],
+}

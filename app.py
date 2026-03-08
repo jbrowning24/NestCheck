@@ -24,7 +24,12 @@ from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
     get_score_band, proximity_synthesis,
 )
-from scoring_config import PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION
+from scoring_config import (
+    PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION,
+    HEALTH_CHECK_CITATIONS,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    _LEGACY_CONFIDENCE_MAP,
+)
 from census import serialize_for_result as _serialize_census
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
@@ -1299,6 +1304,9 @@ def present_checks(tier1_checks):
         # Build expanded context for progressive disclosure
         health_context = _build_health_context(name, result, details, value)
 
+        # Attach citation links for "Why we check this" expandable
+        citations = HEALTH_CHECK_CITATIONS.get(name, [])
+
         presented.append({
             "name": name,
             "result": result,
@@ -1308,6 +1316,7 @@ def present_checks(tier1_checks):
             "headline": headline,
             "explanation": explanation,
             "health_context": health_context,
+            "citations": citations,
         })
 
     # --- Collapse groups where ALL checks are VERIFICATION_NEEDED ---
@@ -1483,6 +1492,39 @@ def _migrate_dimension_names(result: dict) -> dict:
         old = dim.get("name", "")
         if old in _LEGACY_DIMENSION_NAMES:
             dim["name"] = _LEGACY_DIMENSION_NAMES[old]
+    return result
+
+
+def _migrate_confidence_tiers(result: dict) -> dict:
+    """Remap legacy HIGH/MEDIUM/LOW confidence values to Phase 3 tiers.
+
+    Mutates tier2_scores and dimension_summaries in-place (caller should
+    shallow-copy the result dict first if mutation is undesirable).
+
+    Special case: if a dimension has data_confidence="LOW" and its details
+    contain "benefit of the doubt", it was a road noise fallback that should
+    now be "not_scored" instead of "estimated".
+    """
+    for score in result.get("tier2_scores", []):
+        old_conf = score.get("data_confidence")
+        if old_conf and old_conf in _LEGACY_CONFIDENCE_MAP:
+            details = score.get("details", "")
+            if old_conf == "LOW" and "benefit of the doubt" in details:
+                score["data_confidence"] = CONFIDENCE_NOT_SCORED
+            else:
+                score["data_confidence"] = _LEGACY_CONFIDENCE_MAP[old_conf]
+    for dim in result.get("dimension_summaries", []):
+        old_conf = dim.get("data_confidence")
+        if old_conf and old_conf in _LEGACY_CONFIDENCE_MAP:
+            details = dim.get("summary", "")
+            if old_conf == "LOW" and "benefit of the doubt" in details:
+                dim["data_confidence"] = CONFIDENCE_NOT_SCORED
+            else:
+                dim["data_confidence"] = _LEGACY_CONFIDENCE_MAP[old_conf]
+    # Migrate aggregate summary level too
+    summary = result.get("data_confidence_summary")
+    if summary and summary.get("level") in _LEGACY_CONFIDENCE_MAP:
+        summary["level"] = _LEGACY_CONFIDENCE_MAP[summary["level"]]
     return result
 
 
@@ -1697,27 +1739,39 @@ def result_to_dict(result):
         for s in output.get("tier2_scores", [])
     ]
 
-    # NES-189: Aggregate data confidence (weakest-link across dimensions).
+    # Aggregate data confidence (weakest-link across scorable dimensions).
     # Only populated when tier2_scores exist (i.e. passed tier 1).
+    # not_scored dimensions are excluded from the aggregate — they already
+    # carry their own "Not scored" badge.
     _confidence_levels = [
         s.get("data_confidence") for s in output.get("tier2_scores", [])
-        if s.get("data_confidence")
+        if s.get("data_confidence") and s.get("data_confidence") != CONFIDENCE_NOT_SCORED
     ]
     if _confidence_levels:
-        _rank = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
+        _rank = {
+            CONFIDENCE_ESTIMATED: 0,
+            CONFIDENCE_VERIFIED: 1,
+            # Legacy aliases for backward compat
+            "LOW": 0, "MEDIUM": 0, "HIGH": 1,
+        }
         _weakest = min(_confidence_levels, key=lambda c: _rank.get(c, 0))
-        _low_dims = [
+        _limited_dims = [
             s["name"] for s in output["tier2_scores"]
-            if s.get("data_confidence") in ("LOW", "MEDIUM")
+            if s.get("data_confidence") in (CONFIDENCE_ESTIMATED, "LOW", "MEDIUM")
+        ]
+        _not_scored_dims = [
+            s["name"] for s in output["tier2_scores"]
+            if s.get("data_confidence") == CONFIDENCE_NOT_SCORED
         ]
         output["data_confidence_summary"] = {
             "level": _weakest,
             "note": (
-                f"Some dimensions have limited data coverage"
-                if _weakest != "HIGH"
+                "Some dimensions have limited data coverage"
+                if _weakest != CONFIDENCE_VERIFIED
                 else "All dimensions have strong data coverage"
             ),
-            "limited_dimensions": _low_dims,
+            "limited_dimensions": _limited_dims,
+            "not_scored_dimensions": _not_scored_dims,
         }
     # Section-level narrative insights (NES-191)
     output["insights"] = generate_insights(output)
@@ -2561,6 +2615,7 @@ def view_snapshot(snapshot_id):
     # NES-210: Migrate legacy dimension names on the shallow copy (not the
     # stored snapshot dict) to avoid corrupting a future caching layer.
     _migrate_dimension_names(result)
+    _migrate_confidence_tiers(result)
 
     return render_template(
         "snapshot.html",
@@ -2580,6 +2635,7 @@ def export_snapshot_json(snapshot_id):
 
     result = snapshot["result"]
     _migrate_dimension_names(result)  # NES-210
+    _migrate_confidence_tiers(result)
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -2605,6 +2661,7 @@ def export_snapshot_csv(snapshot_id):
 
     result = snapshot["result"]
     _migrate_dimension_names(result)  # NES-210
+    _migrate_confidence_tiers(result)
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -2760,6 +2817,7 @@ def compare():
         result = snapshot.get("result", {})
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
+        _migrate_confidence_tiers(result)
         evaluations.append({
             "snapshot_id": snapshot["snapshot_id"],
             "result": result,
