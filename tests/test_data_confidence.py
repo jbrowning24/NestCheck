@@ -384,11 +384,11 @@ class TestResultToDictConfidence:
         result.persona = None
 
         s1 = Tier2Score("Test Dim", 7, 10, "test detail",
-                        data_confidence="HIGH",
+                        data_confidence=CONFIDENCE_VERIFIED,
                         data_confidence_note="good data")
         s2 = Tier2Score("Other Dim", 3, 10, "other detail",
-                        data_confidence="LOW",
-                        data_confidence_note="sparse data")
+                        data_confidence=CONFIDENCE_ESTIMATED,
+                        data_confidence_note="limited data")
         result.tier2_scores = [s1, s2]
         result.tier2_total = 10
         result.tier2_max = 20
@@ -405,16 +405,16 @@ class TestResultToDictConfidence:
 
         # Check tier2_scores carry confidence
         assert len(output["tier2_scores"]) == 2
-        assert output["tier2_scores"][0]["data_confidence"] == "HIGH"
-        assert output["tier2_scores"][1]["data_confidence"] == "LOW"
+        assert output["tier2_scores"][0]["data_confidence"] == CONFIDENCE_VERIFIED
+        assert output["tier2_scores"][1]["data_confidence"] == CONFIDENCE_ESTIMATED
 
         # Check dimension_summaries carry confidence
         assert len(output["dimension_summaries"]) == 2
-        assert output["dimension_summaries"][0]["data_confidence"] == "HIGH"
-        assert output["dimension_summaries"][1]["data_confidence"] == "LOW"
+        assert output["dimension_summaries"][0]["data_confidence"] == CONFIDENCE_VERIFIED
+        assert output["dimension_summaries"][1]["data_confidence"] == CONFIDENCE_ESTIMATED
 
-        # Check aggregate confidence (weakest-link = LOW)
-        assert output["data_confidence_summary"]["level"] == "LOW"
+        # Check aggregate confidence (weakest-link = estimated)
+        assert output["data_confidence_summary"]["level"] == CONFIDENCE_ESTIMATED
         assert "Other Dim" in output["data_confidence_summary"]["limited_dimensions"]
 
     def test_old_snapshot_without_confidence(self):
@@ -453,8 +453,8 @@ class TestResultToDictConfidence:
         assert "data_confidence_summary" not in output
         assert output["dimension_summaries"] == []
 
-    def test_all_high_confidence_summary(self):
-        """When all dimensions are HIGH, aggregate level is HIGH."""
+    def test_all_verified_confidence_summary(self):
+        """When all dimensions are verified, aggregate level is verified."""
         from app import result_to_dict
 
         result = MagicMock()
@@ -473,8 +473,8 @@ class TestResultToDictConfidence:
         result.persona = None
 
         result.tier2_scores = [
-            Tier2Score("A", 8, 10, "a", data_confidence="HIGH", data_confidence_note="x"),
-            Tier2Score("B", 7, 10, "b", data_confidence="HIGH", data_confidence_note="y"),
+            Tier2Score("A", 8, 10, "a", data_confidence=CONFIDENCE_VERIFIED, data_confidence_note="x"),
+            Tier2Score("B", 7, 10, "b", data_confidence=CONFIDENCE_VERIFIED, data_confidence_note="y"),
         ]
         result.tier2_total = 15
         result.tier2_max = 20
@@ -488,7 +488,7 @@ class TestResultToDictConfidence:
         result.tier1_checks = []
 
         output = result_to_dict(result)
-        assert output["data_confidence_summary"]["level"] == "HIGH"
+        assert output["data_confidence_summary"]["level"] == CONFIDENCE_VERIFIED
         assert output["data_confidence_summary"]["limited_dimensions"] == []
 
 

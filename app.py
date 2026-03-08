@@ -1495,6 +1495,17 @@ def _migrate_dimension_names(result: dict) -> dict:
     return result
 
 
+def _migrate_item_confidence(item: dict, details_field: str) -> None:
+    """Remap a single item's legacy confidence value in-place."""
+    old_conf = item.get("data_confidence")
+    if old_conf and old_conf in _LEGACY_CONFIDENCE_MAP:
+        details = item.get(details_field, "")
+        if old_conf == "LOW" and "benefit of the doubt" in details:
+            item["data_confidence"] = CONFIDENCE_NOT_SCORED
+        else:
+            item["data_confidence"] = _LEGACY_CONFIDENCE_MAP[old_conf]
+
+
 def _migrate_confidence_tiers(result: dict) -> dict:
     """Remap legacy HIGH/MEDIUM/LOW confidence values to Phase 3 tiers.
 
@@ -1506,21 +1517,9 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     now be "not_scored" instead of "estimated".
     """
     for score in result.get("tier2_scores", []):
-        old_conf = score.get("data_confidence")
-        if old_conf and old_conf in _LEGACY_CONFIDENCE_MAP:
-            details = score.get("details", "")
-            if old_conf == "LOW" and "benefit of the doubt" in details:
-                score["data_confidence"] = CONFIDENCE_NOT_SCORED
-            else:
-                score["data_confidence"] = _LEGACY_CONFIDENCE_MAP[old_conf]
+        _migrate_item_confidence(score, "details")
     for dim in result.get("dimension_summaries", []):
-        old_conf = dim.get("data_confidence")
-        if old_conf and old_conf in _LEGACY_CONFIDENCE_MAP:
-            details = dim.get("summary", "")
-            if old_conf == "LOW" and "benefit of the doubt" in details:
-                dim["data_confidence"] = CONFIDENCE_NOT_SCORED
-            else:
-                dim["data_confidence"] = _LEGACY_CONFIDENCE_MAP[old_conf]
+        _migrate_item_confidence(dim, "summary")
     # Migrate aggregate summary level too
     summary = result.get("data_confidence_summary")
     if summary and summary.get("level") in _LEGACY_CONFIDENCE_MAP:
@@ -1743,26 +1742,22 @@ def result_to_dict(result):
     # Only populated when tier2_scores exist (i.e. passed tier 1).
     # not_scored dimensions are excluded from the aggregate — they already
     # carry their own "Not scored" badge.
-    _confidence_levels = [
-        s.get("data_confidence") for s in output.get("tier2_scores", [])
-        if s.get("data_confidence") and s.get("data_confidence") != CONFIDENCE_NOT_SCORED
-    ]
+    # Single pass: classify each dimension's confidence for the aggregate.
+    _confidence_levels = []
+    _limited_dims = []
+    _not_scored_dims = []
+    for s in output.get("tier2_scores", []):
+        conf = s.get("data_confidence")
+        if conf == CONFIDENCE_NOT_SCORED:
+            _not_scored_dims.append(s["name"])
+        elif conf == CONFIDENCE_ESTIMATED:
+            _confidence_levels.append(conf)
+            _limited_dims.append(s["name"])
+        elif conf:
+            _confidence_levels.append(conf)
     if _confidence_levels:
-        _rank = {
-            CONFIDENCE_ESTIMATED: 0,
-            CONFIDENCE_VERIFIED: 1,
-            # Legacy aliases for backward compat
-            "LOW": 0, "MEDIUM": 0, "HIGH": 1,
-        }
-        _weakest = min(_confidence_levels, key=lambda c: _rank.get(c, 0))
-        _limited_dims = [
-            s["name"] for s in output["tier2_scores"]
-            if s.get("data_confidence") in (CONFIDENCE_ESTIMATED, "LOW", "MEDIUM")
-        ]
-        _not_scored_dims = [
-            s["name"] for s in output["tier2_scores"]
-            if s.get("data_confidence") == CONFIDENCE_NOT_SCORED
-        ]
+        _has_estimated = CONFIDENCE_ESTIMATED in _confidence_levels
+        _weakest = CONFIDENCE_ESTIMATED if _has_estimated else CONFIDENCE_VERIFIED
         output["data_confidence_summary"] = {
             "level": _weakest,
             "note": (
