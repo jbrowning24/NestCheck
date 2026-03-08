@@ -543,10 +543,8 @@
   color: var(--color-warning-text);
   background: rgba(217, 119, 6, 0.06);
 }
-.confidence-summary.confidence-not_scored {
-  color: var(--color-muted);
-  background: rgba(107, 114, 128, 0.06);
-}
+/* not_scored is excluded from aggregate summary, but kept for
+   defensive rendering in case a future path exposes it. */
 
 /* --- EJScreen Environmental Profile Card --- */
 .ejscreen-indicators {

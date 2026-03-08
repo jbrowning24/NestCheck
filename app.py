@@ -2814,7 +2814,7 @@ def compare():
 
     evaluations = []
     for snapshot in snapshots:
-        result = snapshot.get("result", {})
+        result = {**snapshot.get("result", {})}
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
         _migrate_confidence_tiers(result)
