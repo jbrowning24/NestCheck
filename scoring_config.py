@@ -36,11 +36,41 @@ class QualityMultiplier:
 
 
 @dataclass(frozen=True)
+class QualityCeilingConfig:
+    """Parameters for quality-adjusted score ceiling on a dimension.
+
+    The ceiling prevents high scores when venue options are low-diversity
+    (all one category) or low-signal (few reviews).
+
+    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+    """
+    base_ceiling: float = 5.0       # starting ceiling before bonuses
+    # Category diversity: distinct Google Places sub-types among eligible venues.
+    # _classify_coffee_sub_type returns at most 3 types (bakery/cafe/coffee_shop),
+    # so thresholds above 3 are unreachable with the current classifier.
+    diversity_thresholds: Tuple[Tuple[int, float], ...] = (
+        # (min_distinct_categories, bonus_points)
+        (3, 3.0),   # 3 categories  → +3.0
+        (2, 1.5),   # 2 categories  → +1.5
+        # 1 category  → +0.0 (no bonus)
+    )
+    # Review depth: median user_ratings_total across eligible venues
+    depth_thresholds: Tuple[Tuple[int, float], ...] = (
+        # (min_median_reviews, bonus_points)
+        (200, 2.0),  # median 200+ → +2.0
+        (100, 1.5),  # median 100+ → +1.5
+        (50, 1.0),   # median 50+  → +1.0
+        # median <50  → +0.0 (no bonus)
+    )
+
+
+@dataclass(frozen=True)
 class DimensionConfig:
     """Scoring curve and parameters for one Tier 2 dimension."""
     knots: Tuple[PiecewiseKnot, ...]
     floor: float = 0.0  # minimum score returned (after curve + multiplier)
     quality_multipliers: Tuple[QualityMultiplier, ...] = ()
+    quality_ceiling: Optional[QualityCeilingConfig] = None
 
 
 @dataclass(frozen=True)
@@ -255,11 +285,12 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.4.0",
+    version="1.5.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
         floor=2.0,
+        quality_ceiling=QualityCeilingConfig(),
     ),
 
     grocery=DimensionConfig(
@@ -417,6 +448,26 @@ _LEGACY_CONFIDENCE_MAP = {
 
 
 # =============================================================================
+# Venue eligibility thresholds — minimum reviews & rating for headline venues
+# =============================================================================
+# A venue below these thresholds is excluded from headline selection and
+# dimension scoring.  Raw venue lists are still returned for display so users
+# can see what exists nearby, even when we decline to score it.
+
+VENUE_MIN_REVIEWS: Dict[str, int] = {
+    "coffee_social": 30,    # existing hardcoded value
+    "provisioning": 20,     # existing hardcoded value
+    "fitness": 10,          # NEW — was 0 (no filter)
+}
+
+VENUE_MIN_RATING: Dict[str, float] = {
+    "coffee_social": 4.0,   # existing hardcoded value
+    "provisioning": 3.5,    # existing hardcoded value
+    "fitness": 3.5,         # NEW — reasonable floor
+}
+
+
+# =============================================================================
 # Health check citations — hyperlinked sources for "Why we check this"
 # =============================================================================
 
@@ -535,3 +586,23 @@ HEALTH_CHECK_CITATIONS: Dict[str, list] = {
         },
     ],
 }
+
+
+# =============================================================================
+# Coffee/Social quality ceiling — caps walk-time score by scene diversity
+# =============================================================================
+# Category diversity: distinct social-category buckets among qualifying venues
+# determines a ceiling on the walk-time score.  A close but thin scene
+# (one creamery + delis) can no longer score 10/10.
+
+THIRD_PLACE_CATEGORY_CEILINGS: Dict[int, int] = {
+    1: 5,   # single category = limited scene
+    2: 7,   # two categories = decent variety
+    3: 9,   # three categories = good variety
+    4: 10,  # four+ categories = full scene
+}
+
+# Review depth adjusts the ceiling ±1 based on median review count
+# across qualifying venues — a proxy for establishment maturity.
+THIRD_PLACE_DEPTH_BONUS_THRESHOLD = 200    # median reviews above this → +1
+THIRD_PLACE_DEPTH_PENALTY_THRESHOLD = 50   # median reviews below this → −1

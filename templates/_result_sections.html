@@ -94,6 +94,9 @@
           {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
             {# Not scored — suppress numeric score, show badge #}
             <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
+          {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
+            {# Suppressed dimension — no reliable score available (quality ceiling) #}
+            <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
           {% else %}
             <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
             {% if dim_weight > 1.0 %}
@@ -105,9 +108,17 @@
             {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
               <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
             {% endif %}
-            <div class="dimension-bar">
-              <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
-            </div>
+          {% endif %}
+          {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
+          <div class="dimension-bar dimension-bar-suppressed">
+            <div class="dimension-bar-fill" style="--fill: 0%"></div>
+          </div>
+          {% elif dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
+          {# No bar for not_scored dimensions #}
+          {% else %}
+          <div class="dimension-bar">
+            <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
+          </div>
           {% endif %}
         </div>
         {% endif %}
