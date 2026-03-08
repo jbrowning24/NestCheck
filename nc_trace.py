@@ -238,6 +238,10 @@ class TraceContext:
         summary = self.summary_dict()
         summary["stages"] = self.stages_to_list()
         summary["api_calls"] = self.api_calls_to_list()
+        # Non-physical places removed by _filter_physical_places (NES-211)
+        filtered = getattr(self, "filtered_places", [])
+        if filtered:
+            summary["filtered_places"] = filtered
         return summary
 
 

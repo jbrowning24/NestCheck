@@ -444,17 +444,18 @@ _ONLINE_BUSINESS_EXACT_NAMES: set = {
 }
 
 
-def _is_non_physical_place(place: Dict) -> bool:
-    """Return True if *place* looks like an online-only / non-physical business.
+def _non_physical_reason(place: Dict) -> Optional[str]:
+    """Return a short reason string if *place* is non-physical, else ``None``.
 
-    Checks:
-    1. ``business_status`` is ``CLOSED_PERMANENTLY`` — Google already flagged it.
-    2. Name matches a known online-only service or pattern.
+    Reason values:
+    - ``"closed_permanently"`` — Google ``business_status`` flag.
+    - ``"online_exact:<name>"`` — matched ``_ONLINE_BUSINESS_EXACT_NAMES``.
+    - ``"online_pattern:<regex>"`` — matched an ``_ONLINE_BUSINESS_NAME_PATTERNS`` entry.
     """
     # 1. Permanently closed
     status = place.get("business_status", "")
     if status == "CLOSED_PERMANENTLY":
-        return True
+        return "closed_permanently"
 
     # 2. Name-based heuristics
     name = place.get("name", "")
@@ -462,39 +463,62 @@ def _is_non_physical_place(place: Dict) -> bool:
     # Check exact match (lowercase, ignore trailing location suffix like "- Yonkers")
     name_base = name_stripped.split(" - ")[0].strip().lower()
     if name_base in _ONLINE_BUSINESS_EXACT_NAMES:
-        return True
+        return f"online_exact:{name_base}"
 
     # Check regex patterns
     for pattern in _ONLINE_BUSINESS_NAME_PATTERNS:
         if pattern.search(name_stripped):
-            return True
+            return f"online_pattern:{pattern.pattern}"
 
-    return False
+    return None
+
+
+def _is_non_physical_place(place: Dict) -> bool:
+    """Return True if *place* looks like an online-only / non-physical business."""
+    return _non_physical_reason(place) is not None
 
 
 def _filter_physical_places(places: List[Dict]) -> List[Dict]:
     """Keep only places that appear to be real, physical businesses.
 
-    Filtered-out places are logged at DEBUG level for audit / false-positive
-    review during validation testing.
+    Each filtered place is logged at DEBUG with the filter reason.  A
+    ``filtered_places`` list is appended to the current ``TraceContext``
+    (if one exists) so filtered entries show up in the builder dashboard.
     """
     kept: List[Dict] = []
+    filtered_records: List[Dict] = []
     for p in places:
-        if _is_non_physical_place(p):
+        reason = _non_physical_reason(p)
+        if reason:
+            record = {
+                "name": p.get("name", "?"),
+                "place_id": p.get("place_id", ""),
+                "business_status": p.get("business_status", ""),
+                "reason": reason,
+            }
+            filtered_records.append(record)
             logger.debug(
-                "Filtered non-physical place: %s (status=%s, place_id=%s)",
-                p.get("name", "?"),
-                p.get("business_status", ""),
-                p.get("place_id", ""),
+                "Filtered non-physical place: %s reason=%s place_id=%s",
+                record["name"],
+                reason,
+                record["place_id"],
             )
         else:
             kept.append(p)
-    if len(kept) < len(places):
+
+    if filtered_records:
         logger.info(
             "Filtered %d non-physical place(s) from %d results",
-            len(places) - len(kept),
+            len(filtered_records),
             len(places),
         )
+        # Attach to trace for builder dashboard visibility
+        trace = get_trace()
+        if trace:
+            if not hasattr(trace, "filtered_places"):
+                trace.filtered_places = []
+            trace.filtered_places.extend(filtered_records)
+
     return kept
 
 
