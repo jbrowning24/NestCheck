@@ -451,6 +451,224 @@ def _build_comparison_data(
     return health_grid, dimension_rows, key_differences, has_any_scores
 
 
+def _short_address(address: str) -> str:
+    """Extract street portion from a full address for compact display."""
+    return address.split(",")[0].strip() if address else "Address"
+
+
+_HEALTH_CONCERN_DISPARITY_THRESHOLD = 2
+
+
+def _build_comparative_verdict(
+    evaluations: List[dict],
+    health_grid: dict,
+    key_differences: List[dict],
+    dimension_rows: List[dict],
+) -> Optional[dict]:
+    """Build a plain-English comparative verdict for the compare view.
+
+    Returns {"headline": str, "body": str} or None if < 2 evaluations.
+    Pure function — no side effects.
+    """
+    if len(evaluations) < 2:
+        return None
+
+    num_evals = len(evaluations)
+
+    # ── Per-address health concern counts (FAIL + WARNING in grid) ───
+    concern_counts: List[int] = [0] * num_evals
+    concern_labels: List[List[str]] = [[] for _ in range(num_evals)]
+    for row in health_grid.get("rows", []):
+        cells = row.get("cells", [])
+        label = row.get("label", "")
+        for i, cell in enumerate(cells):
+            if cell in ("FAIL", "WARNING"):
+                concern_counts[i] += 1
+                concern_labels[i].append(label)
+
+    # ── Tier1 pass/fail split ────────────────────────────────────────
+    failed_indices: List[int] = []
+    passed_indices: List[int] = []
+    for i, ev in enumerate(evaluations):
+        result = ev.get("result", {})
+        if result.get("passed_tier1", True):
+            passed_indices.append(i)
+        else:
+            failed_indices.append(i)
+
+    # ── Score spread ─────────────────────────────────────────────────
+    scores = [ev.get("final_score", 0) for ev in evaluations]
+    max_score = max(scores)
+    min_score = min(scores)
+    spread = max_score - min_score
+    top_idx = scores.index(max_score)
+    top_addr = _short_address(evaluations[top_idx].get("address", ""))
+
+    # ── Branch 1: Tier1 failure split ────────────────────────────────
+    if failed_indices:
+        if not passed_indices:
+            # All failed
+            return {
+                "headline": "None of these addresses passed baseline health checks.",
+                "body": "Consider evaluating other properties. All addresses "
+                "in this comparison have unresolved health or safety concerns.",
+            }
+
+        failed_addrs = [
+            _short_address(evaluations[i].get("address", ""))
+            for i in failed_indices
+        ]
+        passed_addrs = [
+            _short_address(evaluations[i].get("address", ""))
+            for i in passed_indices
+        ]
+
+        # Collect failing check names from the first failed address
+        failing_checks: List[str] = []
+        for i in failed_indices:
+            result = evaluations[i].get("result", {})
+            for check in result.get("tier1_checks", []):
+                if check.get("result") == "FAIL" and check.get("required"):
+                    name = check.get("name", "")
+                    if name and name not in failing_checks:
+                        failing_checks.append(name)
+
+        if len(failed_addrs) == 1:
+            headline = f"{failed_addrs[0]} did not pass baseline health checks."
+        else:
+            headline = "Multiple addresses did not pass baseline health checks."
+
+        body_parts = []
+        if failing_checks:
+            body_parts.append(
+                f"Failed checks: {', '.join(failing_checks[:4])}."
+            )
+        if len(passed_addrs) == 1:
+            body_parts.append(f"{passed_addrs[0]} is the viable option.")
+        else:
+            body_parts.append(
+                f"{' and '.join(passed_addrs)} remain viable options."
+            )
+
+        return {"headline": headline, "body": " ".join(body_parts)}
+
+    # ── Branch 2: Health concern disparity ───────────────────────────
+    max_concerns = max(concern_counts)
+    min_concerns = min(concern_counts)
+    if max_concerns - min_concerns >= _HEALTH_CONCERN_DISPARITY_THRESHOLD:
+        cleanest_idx = concern_counts.index(min_concerns)
+        cleanest_addr = _short_address(
+            evaluations[cleanest_idx].get("address", "")
+        )
+
+        # Find the address with the most concerns for the body text
+        worst_idx = concern_counts.index(max_concerns)
+        worst_addr = _short_address(
+            evaluations[worst_idx].get("address", "")
+        )
+        extra_labels = [
+            lbl for lbl in concern_labels[worst_idx]
+            if lbl not in concern_labels[cleanest_idx]
+        ]
+
+        headline = f"{cleanest_addr} has the cleanest health profile."
+        if extra_labels:
+            label_list = ", ".join(extra_labels[:4])
+            body = (
+                f"{worst_addr} has {len(extra_labels)} health "
+                f"concern{'s' if len(extra_labels) != 1 else ''} "
+                f"({label_list}) that {cleanest_addr} does not. "
+                "This is the most important difference."
+            )
+        else:
+            body = (
+                f"{worst_addr} has more flagged health checks than "
+                f"{cleanest_addr}. Review the health grid above for details."
+            )
+
+        return {"headline": headline, "body": body}
+
+    # ── Helper: dimension lead sentences ─────────────────────────────
+    def _dimension_lead_sentence(diff: dict) -> str:
+        high_addr = _short_address(diff.get("high_address", ""))
+        return (
+            f"{high_addr} leads in {diff['dimension']} "
+            f"({diff['high']}/10 vs {diff['low']}/10)"
+        )
+
+    # ── Branch 3: Clear winner (spread >= 10) ────────────────────────
+    if spread >= 10:
+        headline = f"{top_addr} is the stronger choice."
+        if key_differences:
+            leads = [
+                _dimension_lead_sentence(d) for d in key_differences[:2]
+            ]
+            body = ". ".join(leads) + "."
+        else:
+            body = (
+                f"With an overall score of {max_score} vs {min_score}, "
+                f"{top_addr} rates meaningfully higher across the board."
+            )
+        return {"headline": headline, "body": body}
+
+    # ── Branch 6: All similar (spread <= 3) ──────────────────────────
+    if spread <= 3:
+        headline = "These addresses are essentially equivalent."
+        if key_differences:
+            minor = _dimension_lead_sentence(key_differences[0])
+            body = f"The only notable difference: {minor}."
+        else:
+            body = (
+                "Scores are within a few points across all dimensions. "
+                "Choose based on personal preference or location convenience."
+            )
+        return {"headline": headline, "body": body}
+
+    # ── Branch 4: Close race (spread <= 5) ───────────────────────────
+    if spread <= 5:
+        headline = "These addresses are closely matched."
+        # Find where each address leads
+        leads_by_addr: Dict[int, List[str]] = {}
+        for dim_row in dimension_rows:
+            if dim_row.get("best_index") is not None and not dim_row.get(
+                "all_tied"
+            ):
+                idx = dim_row["best_index"]
+                leads_by_addr.setdefault(idx, []).append(dim_row["name"])
+
+        body_parts = []
+        for idx, dims in sorted(leads_by_addr.items()):
+            addr = _short_address(evaluations[idx].get("address", ""))
+            dim_text = " and ".join(dims[:2])
+            body_parts.append(f"{addr} has stronger {dim_text}")
+
+        if body_parts:
+            body = "; ".join(body_parts) + "."
+        else:
+            body = (
+                "Scores are very close across all dimensions. "
+                "The difference comes down to personal priorities."
+            )
+        return {"headline": headline, "body": body}
+
+    # ── Branch 5: Middle ground (5 < spread < 10) ────────────────────
+    headline = f"{top_addr} has an edge."
+    if key_differences:
+        leads = [_dimension_lead_sentence(d) for d in key_differences[:2]]
+        body = ". ".join(leads) + "."
+    else:
+        runner_idx = scores.index(min_score)
+        runner_addr = _short_address(
+            evaluations[runner_idx].get("address", "")
+        )
+        body = (
+            f"Scoring {max_score} overall vs {min_score} for {runner_addr}, "
+            f"but the gap is modest enough that personal priorities could tip "
+            f"the balance."
+        )
+    return {"headline": headline, "body": body}
+
+
 _CLEAR_HEADLINES = {
     "Gas station": "No gas stations within 500 ft setback",
     "High-traffic road": "No high-traffic roads nearby",
@@ -2565,6 +2783,10 @@ def compare():
         _build_comparison_data(evaluations)
     )
 
+    verdict = _build_comparative_verdict(
+        evaluations, health_grid, key_differences, dimension_rows,
+    )
+
     return render_template(
         "compare.html",
         evaluations=evaluations,
@@ -2575,6 +2797,7 @@ def compare():
         dimension_rows=dimension_rows,
         key_differences=key_differences,
         has_any_scores=has_any_scores,
+        verdict=verdict,
     )
 
 
