@@ -42,8 +42,8 @@
         <div class="verdict-scope">Includes health proximity checks, walkability, green space, transit, daily essentials, and fitness access.</div>
       </div>
     </div>
-    {# NES-189: Aggregate data confidence note — only shown for non-HIGH #}
-    {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'HIGH' %}
+    {# Aggregate data confidence note — only shown when not all verified #}
+    {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'verified' and result.data_confidence_summary.level != 'HIGH' %}
     <div class="confidence-summary confidence-{{ result.data_confidence_summary.level | lower }}">
       <span class="confidence-summary-icon">&#9432;</span>
       {{ result.data_confidence_summary.note }}
@@ -91,27 +91,30 @@
       {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
         {% if slot == "right" %}
         <div class="dimension-indicator">
-          {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
-          {# Suppressed dimension — no reliable score available #}
-          <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
+          {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
+            {# Not scored — suppress numeric score, show badge #}
+            <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
+          {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
+            {# Suppressed dimension — no reliable score available (quality ceiling) #}
+            <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
           {% else %}
-          <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
-          {% if dim_weight > 1.0 %}
-            <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
-          {% elif dim_weight < 1.0 %}
-            <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
-          {% endif %}
-          {% endif %}
-          {# NES-189: Data confidence badge — hidden for HIGH (default) #}
-          {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence != 'HIGH' %}
-            <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">
-              {% if dim.data_confidence == 'MEDIUM' %}Limited data{% else %}Sparse data{% endif %}
-            </span>
+            <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
+            {% if dim_weight > 1.0 %}
+              <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
+            {% elif dim_weight < 1.0 %}
+              <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+            {% endif %}
+            {# Confidence badge — hidden for verified/HIGH (default) #}
+            {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
+              <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
+            {% endif %}
           {% endif %}
           {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
           <div class="dimension-bar dimension-bar-suppressed">
             <div class="dimension-bar-fill" style="--fill: 0%"></div>
           </div>
+          {% elif dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
+          {# No bar for not_scored dimensions #}
           {% else %}
           <div class="dimension-bar">
             <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
@@ -235,6 +238,14 @@
               {% for paragraph in pc.health_context %}
                 <p class="health-context-paragraph">{{ paragraph }}</p>
               {% endfor %}
+              {% if pc.citations is defined and pc.citations %}
+              <p class="health-context-citations">
+                <span class="health-citations-label">Sources:</span>
+                {% for cite in pc.citations %}
+                  <a href="{{ cite.url }}" target="_blank" rel="noopener" class="health-citation-link">{{ cite.label }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </p>
+              {% endif %}
             </div>
           {% endif %}
         </div>

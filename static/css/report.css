@@ -332,6 +332,24 @@
 .health-context-paragraph:first-child {
   margin-top: var(--space-xs);
 }
+.health-context-citations {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-border-light, rgba(0,0,0,0.06));
+}
+.health-citations-label {
+  font-weight: var(--font-weight-semibold);
+}
+.health-citation-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.health-citation-link:hover {
+  text-decoration-thickness: 2px;
+}
 
 /* --- Health Stat Row (NES-215) --- */
 .health-stat-row {
@@ -488,6 +506,16 @@
   color: var(--color-danger);
   background: rgba(220, 38, 38, 0.08);
 }
+/* Phase 3 confidence tiers */
+.confidence-estimated {
+  color: var(--color-warning-text);
+  background: rgba(217, 119, 6, 0.08);
+}
+.confidence-not-scored {
+  color: var(--color-muted);
+  background: rgba(107, 114, 128, 0.08);
+  font-style: italic;
+}
 
 /* --- NES-189: Aggregate confidence note below score ring --- */
 .confidence-summary {
@@ -511,6 +539,12 @@
   color: var(--color-danger);
   background: rgba(220, 38, 38, 0.06);
 }
+.confidence-summary.confidence-estimated {
+  color: var(--color-warning-text);
+  background: rgba(217, 119, 6, 0.06);
+}
+/* not_scored is excluded from aggregate summary, but kept for
+   defensive rendering in case a future path exposes it. */
 
 /* --- EJScreen Environmental Profile Card --- */
 .ejscreen-indicators {

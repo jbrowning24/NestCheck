@@ -39,6 +39,7 @@ from green_space import (
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
@@ -188,8 +189,9 @@ class Tier2Score:
     points: Optional[int]
     max_points: int
     details: str
-    # Data confidence indicator (NES-189).  Mirrors the sidewalk_coverage
-    # pattern: "HIGH" / "MEDIUM" / "LOW" with an explanatory note.
+    # Confidence tier (Phase 3).  Values: "verified" (default, no badge),
+    # "estimated" (badge + explanation), "not_scored" (suppress numeric score).
+    # Legacy snapshots may contain "HIGH"/"MEDIUM"/"LOW" — migrated at display.
     data_confidence: Optional[str] = None
     data_confidence_note: Optional[str] = None
     # When set, the dimension could not be reliably scored.  The template
@@ -3904,20 +3906,26 @@ _PLACES_HIGH_COUNT = 3       # eligible places for HIGH
 _PLACES_HIGH_REVIEWS = 100   # best place review count for HIGH
 _PLACES_MED_REVIEWS = 30     # best place review count for MEDIUM
 
-# -- Score caps by confidence level (NES-sparse-data) --------------------------
-# Sparse/limited data should not produce maximum-confidence ratings.
+# -- Score caps by confidence tier --------------------------
+# Estimated data should not produce maximum-confidence ratings.
+# "not_scored" dimensions are excluded from composite scoring entirely.
 _CONFIDENCE_SCORE_CAP = {
-    "LOW": 6,       # sparse data — cap at 6/10
-    "MEDIUM": 8,    # limited data — cap at 8/10
-    "HIGH": 10,     # full confidence — no cap
+    CONFIDENCE_ESTIMATED: 8,    # partial data — cap at 8/10
+    CONFIDENCE_VERIFIED: 10,    # full confidence — no cap
+    CONFIDENCE_NOT_SCORED: 0,   # not scored — excluded from composite
+    # Legacy aliases for backward compat
+    "LOW": 6,
+    "MEDIUM": 8,
+    "HIGH": 10,
 }
 
 
 def _apply_confidence_cap(score: int, confidence: str) -> int:
-    """Cap a dimension score based on data confidence level.
+    """Cap a dimension score based on confidence tier.
 
     Prevents high-confidence ratings (e.g. 10/10) when the underlying
-    data is sparse or limited.
+    data is partial.  Does NOT apply to "not_scored" — those dimensions
+    are excluded from composite scoring instead.
     """
     cap = _CONFIDENCE_SCORE_CAP.get(confidence, 10)
     return min(score, cap)
@@ -3933,23 +3941,23 @@ def _classify_places_confidence(
       - eligible_count: how many places passed quality filters
       - best_review_count: user_ratings_total on the highest-scoring place
 
-    Returns (level, note) tuple.
+    Returns (tier, note) tuple using Phase 3 confidence tiers.
     """
     if eligible_count == 0:
-        return "LOW", "No eligible places found in search area"
+        return CONFIDENCE_ESTIMATED, "No eligible places found in search area"
 
     if eligible_count >= _PLACES_HIGH_COUNT and best_review_count >= _PLACES_HIGH_REVIEWS:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"{eligible_count} places found, best has {best_review_count} reviews"
         )
 
     if best_review_count >= _PLACES_MED_REVIEWS:
-        return "MEDIUM", (
+        return CONFIDENCE_ESTIMATED, (
             f"{eligible_count} place{'s' if eligible_count != 1 else ''} found, "
             f"best has {best_review_count} reviews"
         )
 
-    return "LOW", (
+    return CONFIDENCE_ESTIMATED, (
         f"Only {eligible_count} place{'s' if eligible_count != 1 else ''} found "
         f"with limited review data ({best_review_count} reviews)"
     )
@@ -4025,19 +4033,19 @@ def _classify_transit_confidence(
             has_walk_time = True
 
     if not has_walk_time and node_count == 0:
-        return "LOW", "No transit data available for this location"
+        return CONFIDENCE_ESTIMATED, "No transit data available for this location"
 
     if has_walk_time and node_count >= 10:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"Walk time computed, {node_count} transit nodes in area"
         )
 
     if has_walk_time:
-        return "MEDIUM", (
+        return CONFIDENCE_ESTIMATED, (
             "Walk time computed but limited transit frequency data"
         )
 
-    return "LOW", "Transit stop detected but walk time could not be computed"
+    return CONFIDENCE_ESTIMATED, "Transit stop detected but walk time could not be computed"
 
 
 def _classify_park_confidence(
@@ -4053,7 +4061,7 @@ def _classify_park_confidence(
     Returns (level, note) tuple.
     """
     if not green_escape_eval or not green_escape_eval.best_daily_park:
-        return "LOW", "No green spaces found in search area"
+        return CONFIDENCE_ESTIMATED, "No green spaces found in search area"
 
     best = green_escape_eval.best_daily_park
     reviews = best.user_ratings_total or 0
@@ -4067,7 +4075,7 @@ def _classify_park_confidence(
         )
 
     if osm_enriched and reviews >= 100 and not has_estimates:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"OSM-verified boundaries, {reviews} reviews"
         )
 
@@ -4077,9 +4085,9 @@ def _classify_park_confidence(
             note_parts.append("some metrics estimated")
         if reviews < 100:
             note_parts.append(f"{reviews} reviews")
-        return "MEDIUM", " — ".join(note_parts) if note_parts else "Partial data"
+        return CONFIDENCE_ESTIMATED, " — ".join(note_parts) if note_parts else "Partial data"
 
-    return "LOW", (
+    return CONFIDENCE_ESTIMATED, (
         f"Limited data: {reviews} reviews, "
         f"{'no OSM boundaries' if not osm_enriched else 'estimated metrics'}"
     )
@@ -4088,12 +4096,12 @@ def _classify_park_confidence(
 def _classify_cost_confidence(cost: Optional[int]) -> tuple:
     """Classify data confidence for the cost dimension.
 
-    Simply: HIGH if the user provided a cost, LOW if not.
-    Returns (level, note) tuple.
+    Simply: verified if the user provided a cost, estimated if not.
+    Returns (tier, note) tuple.
     """
     if cost is not None:
-        return "HIGH", "Monthly cost provided by user"
-    return "LOW", "Monthly cost not specified — score reflects missing data"
+        return CONFIDENCE_VERIFIED, "Monthly cost provided by user"
+    return CONFIDENCE_ESTIMATED, "Monthly cost not specified — score reflects missing data"
 
 
 def score_park_access(
@@ -4151,7 +4159,7 @@ def score_park_access(
                 points=0,
                 max_points=10,
                 details="No primary green escape within a 30-minute walk",
-                data_confidence="LOW",
+                data_confidence=CONFIDENCE_ESTIMATED,
                 data_confidence_note="No green spaces found in search area",
             )
 
@@ -4170,7 +4178,7 @@ def score_park_access(
             points=points,
             max_points=10,
             details=details,
-            data_confidence="MEDIUM",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Legacy scoring path — limited quality signals",
         )
 
@@ -4180,7 +4188,7 @@ def score_park_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         )
 
@@ -4422,7 +4430,7 @@ def score_third_place_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0})
 
@@ -4474,15 +4482,16 @@ def score_road_noise(
     estimated dBA through the piecewise curve in SCORING_MODEL.road_noise.
 
     When the assessment is None (Overpass failed or no roads found),
-    returns a benefit-of-the-doubt fallback score of 7/10.
+    returns confidence=not_scored so the dimension is excluded from
+    composite scoring rather than inflating scores with invented data.
     """
     if road_noise_assessment is None:
         return Tier2Score(
             name="Road Noise",
-            points=7,
+            points=0,
             max_points=10,
-            details="Road noise data unavailable — benefit of the doubt",
-            data_confidence="LOW",
+            details="Road noise data unavailable — unable to estimate noise exposure",
+            data_confidence=CONFIDENCE_NOT_SCORED,
             data_confidence_note="Overpass query failed or no roads within search radius",
         )
 
@@ -4506,7 +4515,7 @@ def score_road_noise(
         points=points,
         max_points=10,
         details=details,
-        data_confidence="HIGH",
+        data_confidence=CONFIDENCE_VERIFIED,
         data_confidence_note=(
             f"FHWA TNM estimate from {road_noise_assessment.all_roads_assessed} "
             f"roads within 500 m"
@@ -4669,7 +4678,7 @@ def score_transit_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         )
 
@@ -4820,7 +4829,7 @@ def score_provisioning_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [])
 
@@ -4981,7 +4990,7 @@ def score_fitness_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [])
 
@@ -5416,13 +5425,16 @@ def evaluate_property(
             "parks": _park_places,
         }
 
-        # Raw unweighted totals (for display / backward compat).
-        # Dimensions with suppressed scores (points=None) are excluded from
-        # aggregation — they represent "could not assess", not "scored zero".
-        # NOTE: This exclusion reduces the effective max, inflating the
-        # normalized percentage slightly.  Phase 3 should revisit with a
-        # proper "insufficient data" composite-score strategy.
-        _scorable = [s for s in result.tier2_scores if s.points is not None]
+        # Filter out non-scorable dimensions from composite calculation:
+        # - not_scored: insufficient data, excluded to prevent inflation/deflation
+        # - points=None: suppressed score (quality ceiling), "could not assess"
+        _scorable = [
+            s for s in result.tier2_scores
+            if s.points is not None
+            and getattr(s, "data_confidence", None) != CONFIDENCE_NOT_SCORED
+        ]
+
+        # Raw unweighted totals (for display / backward compat)
         result.tier2_total = sum(s.points for s in _scorable)
         result.tier2_max = sum(s.max_points for s in _scorable)
 
@@ -5839,7 +5851,12 @@ def main():
             "tier2_max": result.tier2_max,
             "tier2_normalized": result.tier2_normalized,
             "tier2_scores": [
-                {"name": s.name, "points": s.points, "max": s.max_points, "details": s.details}
+                {
+                    "name": s.name, "points": s.points,
+                    "max": s.max_points, "details": s.details,
+                    "data_confidence": getattr(s, "data_confidence", None),
+                    "data_confidence_note": getattr(s, "data_confidence_note", None),
+                }
                 for s in result.tier2_scores
             ],
             "tier3_bonus": result.tier3_total,
