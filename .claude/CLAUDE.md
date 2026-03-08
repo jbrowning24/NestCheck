@@ -39,6 +39,7 @@ NestCheck/
 - Custom slash commands in `.claude/commands/` must not shadow built-in commands (e.g., `/review`, `/compact`, `/init`). Check the built-in list before naming a new command. Shadowed built-ins become unreachable.
 - PostToolUse hooks that reference `$CLAUDE_FILE_PATH` must guard with `test -n` and quote the variable. If unset, tools like `ruff format` will silently operate on the entire directory.
 - Subagent definitions live in `.claude/agents/`. Each agent should have a single focused responsibility and explicit verification steps.
+- SessionStart hooks that run `sudo apt install` will hang in environments requiring a password prompt. Always guard with `command -v <tool>` to skip installation when the tool already exists, and end with `|| true` so failures never block the session.
 
 ## Coding Standards
 
