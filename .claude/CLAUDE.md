@@ -50,6 +50,7 @@ NestCheck/
 - Spatial metadata values may arrive as strings after JSON round-tripping — cast to `float()` before numeric formatting (`:,.0f`)
 - When changing template element IDs, update `smoke_test.py` markers (`LANDING_REQUIRED_MARKERS`, `SNAPSHOT_REQUIRED_MARKERS`) in the same commit. Mismatches cause silent post-deploy smoke test failures.
 - When removing HTML elements from templates, remove the corresponding CSS rules in the same commit. Orphaned selectors (e.g., `.snippet-assessment-score` after removing the score div) accumulate silently.
+- When relocating template sections to a different parent container, update surrounding copy (section headings, divider descriptions, context notes) to reflect the new contents. Stale copy (e.g., "Community and school data" after adding EJScreen) silently misleads users.
 - Frontend `fetch()` calls that expect JSON must check `resp.ok` and content-type before calling `.json()`. Non-JSON error responses (CSRF 400, HTML 500) cause Safari-specific `TypeError` ("The string did not match the expected pattern") that hides the real error. Always guard: `if (!resp.ok) { /* handle non-JSON */ }` before `resp.json()`.
 - Frontend polling loops must never give up on a single transient error (404, 5xx, network). Use retry counters with a cap before showing a failure. The job queue is eventually-consistent under load; a freshly-created job may not be visible to the poll endpoint for 1-2 cycles.
 - Flask error handlers (`@app.errorhandler`) must return JSON when `_wants_json()` is true. Without this, JS clients get HTML error pages they can't parse. Add handlers for 400, 404, and 500 at minimum.
@@ -66,6 +67,8 @@ NestCheck/
 - GoogleMapsClient wraps all Maps API calls
 - Always use `timeout=API_REQUEST_TIMEOUT`
 - Handle quota errors gracefully
+- **Non-physical place filtering** (NES-211): `places_nearby()` and `text_search()` centrally filter out permanently closed and online-only businesses before caching/returning results. All downstream consumers get clean data without their own filter logic. To add a new online-only service, add to `_ONLINE_BUSINESS_EXACT_NAMES` (preferred) or `_ONLINE_BUSINESS_NAME_PATTERNS` (for regex). Filtered places are attached to `TraceContext.filtered_places` for audit.
+- **Auditable heuristic filters**: When filtering API results by name/pattern heuristics, return a reason string (not just bool) so filtered items can be traced and false positives audited. Pattern: `_non_physical_reason() → Optional[str]` with typed reasons like `"closed_permanently"`, `"online_exact:<name>"`, `"online_pattern:<regex>"`.
 
 ### Narrative Insights (NES-191+)
 - Insight generators are pure functions: `dict → str | None`. Keep them side-effect-free for testability.
@@ -119,7 +122,7 @@ NestCheck/
 | 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
 | 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
 | 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
-| 2026-03 | NCES replaces Google Places for school discovery | NCES EDGE ArcGIS API provides geocoded school locations (zero API calls at eval time vs ~200+ Google Places calls). 2022-23 vintage is acceptable for established schools; show data year in attribution |
+| 2026-03 | Health checks promoted to top of report (NES-214) | Primary differentiator was buried at position #11. Now `id="health-safety"` section after Summary Narrative. Proximity & Environment dissolved: sidewalk→Getting Around, EJScreen→Area Context |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.

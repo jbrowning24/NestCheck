@@ -36,6 +36,7 @@
 {# ── SECTION NAV ─────────────────────────────────────────────────── #}
 <nav class="report-rail-nav" aria-label="Report sections">
   <a href="#verdict" class="rail-nav__link" data-section="verdict">Verdict</a>
+  <a href="#health-safety" class="rail-nav__link" data-section="health-safety">Health</a>
   <a href="#your-neighborhood" class="rail-nav__link" data-section="your-neighborhood">Neighborhood</a>
   <a href="#getting-around" class="rail-nav__link" data-section="getting-around">Getting Around</a>
   <a href="#parks-green-space" class="rail-nav__link" data-section="parks-green-space">Parks</a>
@@ -48,6 +49,5 @@
   {% if result.nearby_pharmacies is defined and result.nearby_pharmacies is not none %}
   <a href="#pharmacies" class="rail-nav__link" data-section="pharmacies">Pharmacies</a>
   {% endif %}
-  <a href="#proximity-environment" class="rail-nav__link" data-section="proximity-environment">Proximity</a>
   <a href="#how-we-score" class="rail-nav__link" data-section="how-we-score">Scoring</a>
 </nav>
