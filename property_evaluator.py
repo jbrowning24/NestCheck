@@ -185,13 +185,16 @@ class Tier1Check:
 @dataclass
 class Tier2Score:
     name: str
-    points: int
+    points: Optional[int]
     max_points: int
     details: str
     # Data confidence indicator (NES-189).  Mirrors the sidewalk_coverage
     # pattern: "HIGH" / "MEDIUM" / "LOW" with an explanatory note.
     data_confidence: Optional[str] = None
     data_confidence_note: Optional[str] = None
+    # When set, the dimension could not be reliably scored.  The template
+    # suppresses the numeric score and shows this reason text instead.
+    suppressed_reason: Optional[str] = None
 
 
 @dataclass
@@ -4182,6 +4185,34 @@ def score_park_access(
         )
 
 
+# -- Social-scene bucket mapping for quality ceiling (Phase 2) ----------------
+# Maps Google Places types to broader social-category buckets.
+# A venue contributes to every bucket it matches (e.g. a café-restaurant
+# counts toward both "coffee" and "restaurant" — it genuinely serves both).
+_SOCIAL_BUCKET_MAP: Dict[str, str] = {
+    "cafe": "coffee",
+    "coffee_shop": "coffee",
+    "bakery": "bakery",
+    "bar": "bar/nightlife",
+    "wine_bar": "bar/nightlife",
+    "night_club": "bar/nightlife",
+    "restaurant": "restaurant",
+}
+
+
+def _social_buckets_for_venue(types: list) -> set:
+    """Return the set of social-category buckets a venue's types map to.
+
+    Types not in _SOCIAL_BUCKET_MAP fall into "other" — but only if no
+    specific bucket matched, to avoid inflating diversity with generic
+    tags like "food" or "point_of_interest".
+    """
+    buckets = {_SOCIAL_BUCKET_MAP[t] for t in types if t in _SOCIAL_BUCKET_MAP}
+    if not buckets:
+        buckets.add("other")
+    return buckets
+
+
 def _classify_coffee_sub_type(types: list) -> str:
     """Classify a Google Places result into a coffee/social sub-category.
 
@@ -4249,7 +4280,8 @@ def score_third_place_access(
             rating = place.get("rating", 0)
             reviews = place.get("user_ratings_total", 0)
 
-            if rating >= 4.0 and reviews >= 30:
+            if (rating >= VENUE_MIN_RATING["coffee_social"]
+                    and reviews >= VENUE_MIN_REVIEWS["coffee_social"]):
                 eligible_places.append(place)
 
         if not eligible_places:
@@ -4321,6 +4353,36 @@ def score_third_place_access(
             "coffee_shop": _sub_types.count("coffee_shop"),
             "total": len(eligible_places),
         }
+
+        # --- Quality ceiling (Phase 2) ---
+        # Cap the walk-time score by scene diversity + review depth.
+        # 1. Category diversity: count distinct social buckets
+        _all_buckets: set = set()
+        for p in eligible_places:
+            _all_buckets.update(_social_buckets_for_venue(p.get("types", [])))
+        _diversity_count = len(_all_buckets)
+
+        # Look up ceiling from the tier map (4+ uses the max key)
+        _ceiling_key = min(_diversity_count, max(THIRD_PLACE_CATEGORY_CEILINGS))
+        quality_ceiling = THIRD_PLACE_CATEGORY_CEILINGS[_ceiling_key]
+
+        # 2. Review depth: median review count across qualifying venues
+        _review_counts = sorted(
+            p.get("user_ratings_total", 0) for p in eligible_places
+        )
+        _n = len(_review_counts)
+        if _n % 2 == 1:
+            median_reviews = _review_counts[_n // 2]
+        else:
+            median_reviews = (_review_counts[_n // 2 - 1] + _review_counts[_n // 2]) / 2
+
+        if median_reviews > THIRD_PLACE_DEPTH_BONUS_THRESHOLD:
+            quality_ceiling = min(quality_ceiling + 1, 10)
+        elif median_reviews < THIRD_PLACE_DEPTH_PENALTY_THRESHOLD:
+            quality_ceiling = max(quality_ceiling - 1, 1)
+
+        # Final score = min(walk_time_score, ceiling)
+        best_score = min(best_score, quality_ceiling)
 
         # Format details
         name = best_place.get("name", "Coffee spot")
@@ -4666,7 +4728,8 @@ def score_provisioning_access(
             rating = store.get("rating", 0)
             reviews = store.get("user_ratings_total", 0)
 
-            if rating >= 3.5 and reviews >= 20:
+            if (rating >= VENUE_MIN_RATING["provisioning"]
+                    and reviews >= VENUE_MIN_REVIEWS["provisioning"]):
                 eligible_stores.append(store)
 
         if not eligible_stores:
@@ -4798,14 +4861,28 @@ def score_fitness_access(
                 data_confidence_note=conf_note,
             ), [])
 
-        # Batch walking times — 1 API call per 25 facilities instead of 1 each
+        # Eligibility filter — venues below review/rating thresholds are
+        # kept for neighborhood display but excluded from scoring.
+        _min_reviews = VENUE_MIN_REVIEWS["fitness"]
+        _min_rating = VENUE_MIN_RATING["fitness"]
+        eligible_places = [
+            f for f in fitness_places
+            if (f.get("rating", 0) >= _min_rating
+                and f.get("user_ratings_total", 0) >= _min_reviews)
+        ]
+
+        # Batch walking times for ALL places (eligible or not) so
+        # neighborhood cards always show walk times.
         destinations = [
             (f["geometry"]["location"]["lat"], f["geometry"]["location"]["lng"])
             for f in fitness_places
         ]
         walk_times = maps.walking_times_batch((lat, lng), destinations)
 
-        # Find best scored facility and collect all scored facilities
+        # Build a set of eligible place_ids for fast lookup during scoring
+        _eligible_ids = {f.get("place_id") for f in eligible_places}
+
+        # Collect all facilities for neighborhood display; score only eligible
         best_score = 0
         best_facility = None
         best_details = ""
@@ -4813,17 +4890,19 @@ def score_fitness_access(
 
         for facility, walk_time in zip(fitness_places, walk_times):
             rating = facility.get("rating", 0)
+            is_eligible = facility.get("place_id") in _eligible_ids
 
-            # Score based on rating + distance
+            # Score only eligible venues (sufficient reviews + rating)
             score = 0
-            if rating >= 4.2 and walk_time <= 15:
-                score = 10
-            elif rating >= 4.0 and walk_time <= 20:
-                score = 6
-            elif walk_time <= 30:
-                score = 3
+            if is_eligible:
+                if rating >= 4.2 and walk_time <= 15:
+                    score = 10
+                elif rating >= 4.0 and walk_time <= 20:
+                    score = 6
+                elif walk_time <= 30:
+                    score = 3
 
-            if score > best_score:
+            if is_eligible and score > best_score:
                 best_score = score
                 best_facility = facility
                 facility_name = facility.get("name", "Fitness center")
@@ -4831,17 +4910,6 @@ def score_fitness_access(
                 best_details = f"{facility_name} ({rating}★, {reviews} reviews) — {walk_time} min walk"
 
             scored_facilities.append((score, walk_time, facility))
-
-        if best_score == 0 and not scored_facilities:
-            conf, conf_note = _classify_places_confidence(0, 0)
-            return (Tier2Score(
-                name="Fitness access",
-                points=0,
-                max_points=10,
-                details="No gyms or fitness centers found within 30 min walk",
-                data_confidence=conf,
-                data_confidence_note=conf_note,
-            ), [])
 
         # Sort by score desc, then walk time asc; take top 5
         scored_facilities.sort(key=lambda x: (-x[0], x[1]))
@@ -4864,8 +4932,26 @@ def score_fitness_access(
             best_facility.get("user_ratings_total", 0) if best_facility else 0
         )
         conf, conf_note = _classify_places_confidence(
-            len(fitness_places), best_review_count,
+            len(eligible_places), best_review_count,
         )
+
+        # No eligible venues passed the review threshold — suppress the
+        # numeric score but still return the raw venue list for display.
+        if not eligible_places:
+            return (Tier2Score(
+                name="Fitness access",
+                points=None,
+                max_points=10,
+                details="No well-reviewed fitness options found nearby",
+                data_confidence="LOW",
+                data_confidence_note=(
+                    f"All {len(fitness_places)} venue(s) had fewer than "
+                    f"{_min_reviews} reviews or below {_min_rating}★ rating"
+                ),
+                suppressed_reason=(
+                    "No fitness venues with sufficient reviews found"
+                ),
+            ), neighborhood_places)
 
         if best_score == 0:
             return (Tier2Score(
@@ -5330,9 +5416,15 @@ def evaluate_property(
             "parks": _park_places,
         }
 
-        # Raw unweighted totals (for display / backward compat)
-        result.tier2_total = sum(s.points for s in result.tier2_scores)
-        result.tier2_max = sum(s.max_points for s in result.tier2_scores)
+        # Raw unweighted totals (for display / backward compat).
+        # Dimensions with suppressed scores (points=None) are excluded from
+        # aggregation — they represent "could not assess", not "scored zero".
+        # NOTE: This exclusion reduces the effective max, inflating the
+        # normalized percentage slightly.  Phase 3 should revisit with a
+        # proper "insufficient data" composite-score strategy.
+        _scorable = [s for s in result.tier2_scores if s.points is not None]
+        result.tier2_total = sum(s.points for s in _scorable)
+        result.tier2_max = sum(s.max_points for s in _scorable)
 
         # Weighted normalization using persona lens.
         # Map internal Tier2Score names to persona dimension names so
@@ -5340,11 +5432,11 @@ def evaluate_property(
         _weights = persona_preset.weights
         _weighted_total = sum(
             s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in result.tier2_scores
+            for s in _scorable
         )
         _weighted_max = sum(
             s.max_points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in result.tier2_scores
+            for s in _scorable
         )
         if _weighted_max > 0:
             result.tier2_normalized = int(_weighted_total / _weighted_max * 100 + 0.5)

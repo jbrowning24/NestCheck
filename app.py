@@ -1554,6 +1554,7 @@ def result_to_dict(result):
                 # NES-189: per-dimension data confidence
                 "data_confidence": getattr(s, "data_confidence", None),
                 "data_confidence_note": getattr(s, "data_confidence_note", None),
+                "suppressed_reason": getattr(s, "suppressed_reason", None),
             }
             for s in result.tier2_scores
         ],
@@ -1693,6 +1694,7 @@ def result_to_dict(result):
             "summary": s["details"],
             "data_confidence": s.get("data_confidence"),
             "data_confidence_note": s.get("data_confidence_note"),
+            "suppressed_reason": s.get("suppressed_reason"),
         }
         for s in output.get("tier2_scores", [])
     ]
