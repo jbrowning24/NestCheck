@@ -20,7 +20,6 @@ Usage:
 
 import argparse
 import csv
-import json
 import logging
 import os
 import sqlite3
@@ -135,7 +134,7 @@ def ingest(csv_path: str = "", **kwargs):
                         ),
                     )
                     total += 1
-                except (ValueError, KeyError) as e:
+                except (ValueError, KeyError, sqlite3.IntegrityError) as e:
                     logger.warning("Skipping row %s: %s", row.get("geoid", "?"), e)
                     skipped += 1
 

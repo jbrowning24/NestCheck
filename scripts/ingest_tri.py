@@ -222,6 +222,10 @@ def ingest(
     # Build WHERE clause for ArcGIS (STATE uses 2-letter abbrev, e.g. MA)
     where = "1=1"
     if states:
+        for st in states:
+            st_upper = st.upper()
+            if not (len(st_upper) == 2 and st_upper.isalpha()):
+                raise ValueError(f"Invalid state abbreviation: {st!r} (expected 2-letter code, e.g. NY)")
         in_list = ", ".join(f"'{s.upper()}'" for s in states)
         where = f"STATE IN ({in_list})"
     elif state:

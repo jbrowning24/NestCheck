@@ -9,7 +9,8 @@ this script loads a pre-processed CSV with key metrics per district.
 The CSV maps TIGER GEOID → performance metrics, enabling joins with
 the school district polygon table (facilities_school_districts).
 
-Idempotent: drops and recreates the table on each run.
+Idempotent: deletes existing NY rows and re-inserts on each run.
+Does NOT drop or recreate the table — preserves data from other states.
 
 Statewide data expansion:
     The bundled CSV currently covers ~40 Westchester County districts.
@@ -71,9 +72,8 @@ def ingest(csv_path: str = "", **kwargs):
     conn = _connect()
 
     try:
-        conn.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
         conn.execute(f"""
-            CREATE TABLE {TABLE_NAME} (
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 geoid TEXT UNIQUE NOT NULL,
                 district_name TEXT,
@@ -88,7 +88,14 @@ def ingest(csv_path: str = "", **kwargs):
             )
         """)
         conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_geoid ON {TABLE_NAME}(geoid)")
-        conn.commit()  # Commit schema before data load
+
+        # Delete existing NY rows (idempotent — preserves CT/NJ data)
+        deleted = conn.execute(
+            f"DELETE FROM {TABLE_NAME} WHERE state = 'NY'"
+        ).rowcount
+        if deleted > 0:
+            logger.info("Cleared %d existing NY rows", deleted)
+        conn.commit()
 
         total = 0
         skipped = 0
@@ -117,7 +124,7 @@ def ingest(csv_path: str = "", **kwargs):
                         ),
                     )
                     total += 1
-                except (ValueError, KeyError) as e:
+                except (ValueError, KeyError, sqlite3.IntegrityError) as e:
                     logger.warning("Skipping row %s: %s", row.get("geoid", "?"), e)
                     skipped += 1
 

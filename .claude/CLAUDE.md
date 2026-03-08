@@ -111,6 +111,9 @@ NestCheck/
 - **Point geometry ingest**: For point-location datasets (e.g., NCES schools), use `MakePoint(lon, lat, 4326)` instead of `GeomFromText('POINT(...)', 4326)`. Simpler and avoids WKT string building. Geometry comes as `{x: lon, y: lat}` from ArcGIS; always fall back to attribute fields (LAT/LON) if geometry is missing.
 - **Derived percentages from upstream counts**: When computing percentages from two upstream fields (e.g., TOTFRL/MEMBER for FRL%), always cap at 100% — data quality issues in federal datasets can produce numerator > denominator.
 - **Template component duplication**: When the same UI component renders in multiple conditional branches (e.g., school card inside vs. outside school district section), extract into a Jinja macro in `_macros.html` immediately. Copy-paste diverges silently on the next edit.
+- **Multi-state shared table idempotency**: When multiple scripts write to the same table partitioned by `state` column, never use `DROP TABLE` — use `CREATE TABLE IF NOT EXISTS` + `DELETE FROM ... WHERE state = 'X'` + INSERT. The DROP pattern destroys other states' data when run standalone.
+- **Per-state data checking in startup_ingest**: When a table has rows from multiple independent ingestion sources (e.g., `state_education_performance` with NY/NJ/CT), use `_table_has_state_data(db_path, table, state)` to check each state independently. Using `_table_has_data()` (checks total rows) will skip ingestion for state B if state A's data already exists.
+- **Catch `IntegrityError` in CSV ingest loops**: When inserting from bundled CSVs into tables with UNIQUE constraints, always catch `sqlite3.IntegrityError` alongside `ValueError`/`KeyError`. A duplicate key in the CSV would otherwise crash the entire ingest, leaving partial data.
 
 ### Comparison View (app.py + compare.html)
 - **Structured differential pattern** (NES-207): Multi-snapshot comparison views compute differential data in a pure helper (`_build_comparison_data()`) called from the route handler, not in Jinja templates. The helper returns typed data structures (health grid, dimension rows, key differences) — the template only renders. This keeps business logic testable and templates simple.
@@ -141,6 +144,7 @@ NestCheck/
 | 2026-03 | Centralized walk/drive display thresholds (NES-213) | `WALK_DRIVE_BOTH_THRESHOLD=20` and `WALK_DRIVE_ONLY_THRESHOLD=40` in `scoring_config.py`. Lowered park drive-time fetch from 30→20 to align with display band |
 | 2026-03 | Compare view structured differentials (NES-207) | Replaced side-by-side full reports with health grid + dimension scores + key differences. Cuts 1,210 lines of `_result_sections.html` per column. Zero API cost — pure presentation over existing snapshots |
 | 2026-03 | Comparative verdict as pure function (NES-218) | `_build_comparative_verdict()` synthesizes headline+body from existing comparison data. 6 priority-ordered branches (tier1 failure → health disparity → score spread). Pure function for testability, not a template filter |
+| 2026-03 | Tri-state expansion (NY+CT+NJ) | All spatial datasets expanded from Westchester/NY to tri-state. State-filtered datasets use `states` list with IN clauses; bbox-filtered use `(-75.6, 38.9, -71.8, 42.1)`. Education performance uses shared `state_education_performance` table with per-state idempotent ingestion |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.

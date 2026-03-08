@@ -207,12 +207,12 @@ def _check_and_ingest_all(db_path: str) -> None:
 
     # --- State Education Performance (school district performance metrics, multi-state) ---
     # NY (NYSED) — creates the table and loads NY data
-    has_data, count = _table_has_data(db_path, "state_education_performance")
-    if has_data:
-        logger.info("Dataset state_education_performance: present (%d records), skipping NY", count)
+    has_ny, ny_count = _table_has_state_data(db_path, "state_education_performance", "NY")
+    if has_ny:
+        logger.info("Dataset state_education_performance NY: present (%d records), skipping", ny_count)
     else:
-        logger.info("Dataset state_education_performance: missing or empty, starting NY ingestion...")
-        _run_ingest("state_education_performance", _ingest_nysed)
+        logger.info("Dataset state_education_performance NY: missing, starting ingestion...")
+        _run_ingest("state_education_performance_ny", _ingest_nysed)
 
     # NJ — appends NJ data (table must exist from NYSED step or NJ creates it)
     has_nj, nj_count = _table_has_state_data(db_path, "state_education_performance", "NJ")

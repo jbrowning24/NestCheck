@@ -156,6 +156,9 @@ def ingest(
         discover: Print sample record and exit.
     """
     if states:
+        for s in states:
+            if not s.isdigit():
+                raise ValueError(f"Invalid state FIPS code: {s!r} (expected numeric, e.g. '36')")
         in_list = ", ".join(f"'{s}'" for s in states)
         where = f"STATE IN ({in_list})"
         state_label = "+".join(states)

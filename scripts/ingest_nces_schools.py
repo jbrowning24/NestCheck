@@ -115,7 +115,10 @@ def ingest(
         _skip_table_create: If True, skip init_spatial_db/create_facility_table
             (used when caller handles table creation for multi-state loops).
     """
-    where = f"STABR='{stabr.upper()}'"
+    st = stabr.upper()
+    if not (len(st) == 2 and st.isalpha()):
+        raise ValueError(f"Invalid state abbreviation: {stabr!r} (expected 2-letter code, e.g. NY)")
+    where = f"STABR='{st}'"
 
     if discover:
         params = {
