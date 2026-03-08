@@ -2138,9 +2138,6 @@ def view_snapshot(snapshot_id):
 
     # Backfill presented_checks for old snapshots
     result = snapshot["result"]
-
-    # NES-210: Migrate legacy dimension names (e.g. "Third Place" → "Coffee & Social Spots")
-    _migrate_dimension_names(result)
     if "presented_checks" not in result:
         result["presented_checks"] = present_checks(
             result.get("tier1_checks", [])
@@ -2172,6 +2169,10 @@ def view_snapshot(snapshot_id):
         "presented_checks": filtered_checks,
         "suppressed_unknown_count": suppressed_unknown_count,
     }
+
+    # NES-210: Migrate legacy dimension names on the shallow copy (not the
+    # stored snapshot dict) to avoid corrupting a future caching layer.
+    _migrate_dimension_names(result)
 
     return render_template(
         "snapshot.html",
@@ -2215,6 +2216,7 @@ def export_snapshot_csv(snapshot_id):
         return jsonify({"error": "Snapshot not found"}), 404
 
     result = snapshot["result"]
+    _migrate_dimension_names(result)  # NES-210
     output = io.StringIO()
     writer = csv.writer(output)
 

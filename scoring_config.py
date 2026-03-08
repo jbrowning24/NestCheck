@@ -367,7 +367,6 @@ DEFAULT_PERSONA = "balanced"
 # get a default weight of 1.0 across all personas.
 TIER2_NAME_TO_DIMENSION: Dict[str, str] = {
     "Primary Green Escape": "Parks & Green Space",
-    "Coffee & Social Spots": "Coffee & Social Spots",  # identity; kept for uniformity
     "Third Place": "Coffee & Social Spots",  # backward compat for old snapshots
     "Provisioning": "Daily Essentials",
     "Fitness access": "Fitness & Recreation",
