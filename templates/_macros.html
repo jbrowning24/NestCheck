@@ -95,3 +95,35 @@
   {% endif %}
 </div>
 {% endmacro %}
+
+
+{# ── school_card ──────────────────────────────────────────────────
+   Compact card for an individual school from NCES data (NES-216).
+
+   Args:
+     school: dict with name, level, grades, distance_miles, enrollment,
+             frl_pct, is_charter.
+#}
+{% macro school_card(school) %}
+<div class="nearby-school-card">
+  <div class="nearby-school-card__header">
+    <span class="nearby-school-card__name">{{ school.name }}</span>
+    <span class="nearby-school-card__distance">{{ "%.1f"|format(school.distance_miles) }} mi</span>
+  </div>
+  <div class="nearby-school-card__details">
+    <span class="nearby-school-card__level nearby-school-card__level--{{ school.level|lower|replace(' ', '-') }}">{{ school.level }}</span>
+    {% if school.grades %}
+      <span class="nearby-school-card__grades">Grades {{ school.grades }}</span>
+    {% endif %}
+    {% if school.enrollment is not none %}
+      <span class="nearby-school-card__enrollment">{{ "{:,}".format(school.enrollment) }} students</span>
+    {% endif %}
+    {% if school.frl_pct is not none %}
+      <span class="nearby-school-card__frl">{{ "%.0f"|format(school.frl_pct) }}% free/reduced lunch</span>
+    {% endif %}
+    {% if school.is_charter %}
+      <span class="nearby-school-card__charter">Charter</span>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}

@@ -96,12 +96,15 @@ NestCheck/
 
 ### Spatial Ingest (startup_ingest.py + scripts/ingest_*.py)
 - `startup_ingest.py` calls `ingest()` directly with keyword args — scripts must accept kwargs, not just argparse.
-- State filter format varies by dataset: 2-letter (`"NY"`) for EJScreen/TRI, full name (`"New York"`) for UST, FIPS code (`"36"`) for TIGER. Always check the upstream API field.
+- State filter format varies by dataset: 2-letter (`"NY"`) for EJScreen/TRI/NCES, full name (`"New York"`) for UST, FIPS code (`"36"`) for TIGER, postal abbreviation (`STABR='NY'`) for NCES. Always check the upstream API field.
 - ArcGIS bbox filtering: `geometry` (JSON envelope), `geometryType=esriGeometryEnvelope`, `inSR=4326`. Server-side filter.
 - Wiring pattern: lazy-import wrapper → `_table_has_data()` → `_run_ingest()`. One failure never blocks others.
 - **ArcGIS polygon ring orientation**: Clockwise = outer boundary, counter-clockwise = hole. Use shoelace formula (`_ring_is_clockwise()`) to classify rings when features may have disjoint parts (e.g., school districts with enclaves). The simpler `MULTIPOLYGON(((ring1),(ring2)))` pattern used by SEMS/FEMA only works when all rings belong to one contiguous polygon.
 - **Two-table join pattern** (NES-206): Spatial polygon table (`facilities_school_districts`) for point-in-polygon → extract GEOID → join to a separate lookup table (`nysed_performance`) for enrichment data. Different from single-table spatial checks.
 - **Bundled CSV for data without stable APIs**: When upstream data is only available as Access DBs or manual downloads (e.g., NYSED), ship a curated CSV in `data/` and flag as `MANUAL REFRESH` in the `dataset_registry` notes. Include refresh cadence.
+- **Point geometry ingest**: For point-location datasets (e.g., NCES schools), use `MakePoint(lon, lat, 4326)` instead of `GeomFromText('POINT(...)', 4326)`. Simpler and avoids WKT string building. Geometry comes as `{x: lon, y: lat}` from ArcGIS; always fall back to attribute fields (LAT/LON) if geometry is missing.
+- **Derived percentages from upstream counts**: When computing percentages from two upstream fields (e.g., TOTFRL/MEMBER for FRL%), always cap at 100% — data quality issues in federal datasets can produce numerator > denominator.
+- **Template component duplication**: When the same UI component renders in multiple conditional branches (e.g., school card inside vs. outside school district section), extract into a Jinja macro in `_macros.html` immediately. Copy-paste diverges silently on the next edit.
 
 ## Decision Log
 
@@ -116,6 +119,7 @@ NestCheck/
 | 2026-03 | School district data is informational only | Like census demographics, shown as context under "Area Context" divider — never scored. FHA architectural separation from rated dimensions |
 | 2026-03 | PostToolUse hook for ruff auto-format | Catches the last 10% of formatting issues Claude misses; `|| true` ensures it never blocks work |
 | 2026-03 | Renamed `/review` → `/code-review` | Custom command was shadowing the built-in PR review; custom commands must use unique names |
+| 2026-03 | NCES replaces Google Places for school discovery | NCES EDGE ArcGIS API provides geocoded school locations (zero API calls at eval time vs ~200+ Google Places calls). 2022-23 vintage is acceptable for established schools; show data year in attribution |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.

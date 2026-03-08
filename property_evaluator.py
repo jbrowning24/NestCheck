@@ -2564,8 +2564,9 @@ def get_nearby_schools(
                 and enrollment > 0
             ):
                 try:
-                    frl_pct = round(
-                        float(str(totfrl_raw)) / enrollment * 100, 1,
+                    frl_pct = min(
+                        round(float(str(totfrl_raw)) / enrollment * 100, 1),
+                        100.0,
                     )
                 except (TypeError, ValueError):
                     pass
@@ -5567,6 +5568,14 @@ def main():
                 "pupil_expenditure": result.school_district.pupil_expenditure,
                 "source_year": result.school_district.source_year,
             } if result.school_district else None,
+            "nearby_schools": [
+                {
+                    "name": s.name, "level": s.level, "grades": s.grades,
+                    "distance_miles": s.distance_miles, "enrollment": s.enrollment,
+                    "frl_pct": s.frl_pct, "is_charter": s.is_charter,
+                }
+                for s in (result.nearby_schools or [])
+            ] if result.nearby_schools is not None else None,
         }
         print(json.dumps(output, indent=2))
     else:

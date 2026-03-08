@@ -7,7 +7,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card %}
 
 <div class="report">
 
@@ -1069,27 +1069,7 @@
       <h3 class="nearby-schools-heading">Nearby Schools</h3>
       <div class="nearby-schools-list">
         {% for school in result.nearby_schools %}
-        <div class="nearby-school-card">
-          <div class="nearby-school-card__header">
-            <span class="nearby-school-card__name">{{ school.name }}</span>
-            <span class="nearby-school-card__distance">{{ "%.1f"|format(school.distance_miles) }} mi</span>
-          </div>
-          <div class="nearby-school-card__details">
-            <span class="nearby-school-card__level nearby-school-card__level--{{ school.level|lower|replace(' ', '-') }}">{{ school.level }}</span>
-            {% if school.grades %}
-              <span class="nearby-school-card__grades">Grades {{ school.grades }}</span>
-            {% endif %}
-            {% if school.enrollment is not none %}
-              <span class="nearby-school-card__enrollment">{{ "{:,}".format(school.enrollment) }} students</span>
-            {% endif %}
-            {% if school.frl_pct is not none %}
-              <span class="nearby-school-card__frl">{{ "%.0f"|format(school.frl_pct) }}% free/reduced lunch</span>
-            {% endif %}
-            {% if school.is_charter %}
-              <span class="nearby-school-card__charter">Charter</span>
-            {% endif %}
-          </div>
-        </div>
+          {{ school_card(school) }}
         {% endfor %}
       </div>
     </div>
@@ -1113,27 +1093,7 @@
     <h2>Nearby Schools</h2>
     <div class="nearby-schools-list">
       {% for school in result.nearby_schools %}
-      <div class="nearby-school-card">
-        <div class="nearby-school-card__header">
-          <span class="nearby-school-card__name">{{ school.name }}</span>
-          <span class="nearby-school-card__distance">{{ "%.1f"|format(school.distance_miles) }} mi</span>
-        </div>
-        <div class="nearby-school-card__details">
-          <span class="nearby-school-card__level nearby-school-card__level--{{ school.level|lower|replace(' ', '-') }}">{{ school.level }}</span>
-          {% if school.grades %}
-            <span class="nearby-school-card__grades">Grades {{ school.grades }}</span>
-          {% endif %}
-          {% if school.enrollment is not none %}
-            <span class="nearby-school-card__enrollment">{{ "{:,}".format(school.enrollment) }} students</span>
-          {% endif %}
-          {% if school.frl_pct is not none %}
-            <span class="nearby-school-card__frl">{{ "%.0f"|format(school.frl_pct) }}% free/reduced lunch</span>
-          {% endif %}
-          {% if school.is_charter %}
-            <span class="nearby-school-card__charter">Charter</span>
-          {% endif %}
-        </div>
-      </div>
+        {{ school_card(school) }}
       {% endfor %}
     </div>
     <p class="community-profile-source">

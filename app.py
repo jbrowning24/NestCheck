@@ -1218,6 +1218,7 @@ def result_to_dict(result):
                 "enrollment": int(s.enrollment) if s.enrollment is not None else None,
                 "frl_pct": float(s.frl_pct) if s.frl_pct is not None else None,
                 "is_charter": s.is_charter,
+                "leaid": s.leaid,
             }
             for s in ns_list
         ]
