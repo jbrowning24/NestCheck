@@ -440,25 +440,25 @@ HEALTH_CHECK_CITATIONS: Dict[str, list] = {
     "Highway": [
         {
             "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
-            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature-emissions-exposure-and-health",
         },
         {
-            "label": "CDC — Living Near Highways and Air Pollution",
-            "url": "https://www.cdc.gov/air/pollutants/highway-air-pollution.html",
+            "label": "CDC — Residential Proximity to Major Highways",
+            "url": "https://www.cdc.gov/mmwr/preview/mmwrhtml/su6203a8.htm",
         },
     ],
     # ── High-volume road ─────────────────────────────────────────
     "High-volume road": [
         {
             "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
-            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature-emissions-exposure-and-health",
         },
     ],
     # ── High-traffic road (HPMS AADT) ────────────────────────────
     "High-traffic road": [
         {
             "label": "HEI Panel on Traffic-Related Air Pollution, 2010",
-            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature",
+            "url": "https://www.healtheffects.org/publication/traffic-related-air-pollution-critical-review-literature-emissions-exposure-and-health",
         },
         {
             "label": "FHWA Highway Performance Monitoring System",
@@ -530,8 +530,8 @@ HEALTH_CHECK_CITATIONS: Dict[str, list] = {
     # ── Rail Corridor (Phase 1B) ─────────────────────────────────
     "rail_proximity": [
         {
-            "label": "FRA Safety Data",
-            "url": "https://safetydata.fra.dot.gov/",
+            "label": "FRA Safety Data & Reporting",
+            "url": "https://cms8.fra.dot.gov/safety-data",
         },
     ],
 }
