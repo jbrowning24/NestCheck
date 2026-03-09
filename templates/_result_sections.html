@@ -36,7 +36,7 @@
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      {% set _show_value = result.show_numeric_score if result.show_numeric_score is defined else true %}
+      {% set _show_value = result.show_numeric_score if result.show_numeric_score is defined else false %}
       {{ score_ring(result.final_score, band_class, 'score-ring-container', show_value=_show_value) }}
       <div class="score-details">
         <div class="score-band {{ band_class }}">{{ band_label }}</div>

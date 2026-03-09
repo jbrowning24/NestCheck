@@ -1537,8 +1537,14 @@ def _compute_show_numeric_score(dimension_summaries: list) -> bool:
     not_scored dimensions are excluded from the check — they already
     carry their own "Not scored" badge and don't imply overall data
     quality issues in the same way sparse does.
+
+    Assumes _migrate_confidence_tiers() has already run — do not add
+    legacy tier names here; a mismatch should surface visibly.
+
+    None means the dimension predates confidence tracking; treated as OK
+    so old snapshots still show their scores.
     """
-    _OK_TIERS = {CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, "HIGH", "MEDIUM", None}
+    _OK_TIERS = {CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, None}
     for dim in dimension_summaries:
         conf = dim.get("data_confidence")
         if conf == CONFIDENCE_NOT_SCORED:
