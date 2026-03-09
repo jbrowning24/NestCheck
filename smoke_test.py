@@ -46,7 +46,7 @@ SNAPSHOT_MIN_MARKERS = 2
 # Content markers for the landing page
 LANDING_REQUIRED_MARKERS = [
     'id="address-input"',     # The address input form
-    "Evaluate",               # Submit button text
+    "Generate Report",        # Submit button text
 ]
 
 # Minimum response size (bytes) to catch empty/error pages

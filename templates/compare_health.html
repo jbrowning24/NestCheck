@@ -8,7 +8,7 @@
 
 {% block head_extra %}
 {% if google_maps_api_key %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async&callback=onMapsReady"></script>
 <style>
   .pac-container > div:not(.pac-item) {
     display: none !important;
@@ -232,13 +232,29 @@
     });
   }
 
-  // Init on existing fields
-  var inputs = fieldContainer.querySelectorAll('.compare-address-input');
-  for (var i = 0; i < inputs.length; i++) {
-    initAutocompleteOnInput(inputs[i]);
+  // Init autocomplete on existing fields (called once when Maps API is ready)
+  var _autocompleteInitDone = false;
+  window._initCompareAutocomplete = function() {
+    if (_autocompleteInitDone) return;
+    _autocompleteInitDone = true;
+    var inputs = fieldContainer.querySelectorAll('.compare-address-input');
+    for (var i = 0; i < inputs.length; i++) {
+      initAutocompleteOnInput(inputs[i]);
+    }
+  };
+
+  // If Maps API already loaded (cached), init now
+  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+    window._initCompareAutocomplete();
   }
 
   updateAddBtn();
 })();
+
+function onMapsReady() {
+  if (typeof window._initCompareAutocomplete === 'function') {
+    window._initCompareAutocomplete();
+  }
+}
 </script>
 {% endblock %}
