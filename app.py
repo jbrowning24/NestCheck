@@ -1527,6 +1527,27 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     return result
 
 
+def _compute_show_numeric_score(dimension_summaries: list) -> bool:
+    """Decide whether the verdict gauge should display the numeric score.
+
+    Returns True when all scored dimensions have confidence of 'verified'
+    or 'estimated'.  Returns False when any dimension is 'sparse' (thin
+    data that shouldn't be presented as a precise number).
+
+    not_scored dimensions are excluded from the check — they already
+    carry their own "Not scored" badge and don't imply overall data
+    quality issues in the same way sparse does.
+    """
+    _OK_TIERS = {CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, "HIGH", "MEDIUM", None}
+    for dim in dimension_summaries:
+        conf = dim.get("data_confidence")
+        if conf == CONFIDENCE_NOT_SCORED:
+            continue  # excluded from this check
+        if conf not in _OK_TIERS:
+            return False
+    return True
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -1799,6 +1820,13 @@ def result_to_dict(result):
     output["unknown_check_count"] = sum(
         1 for c in output.get("tier1_checks", [])
         if c.get("result") == "UNKNOWN"
+    )
+
+    # Phase B2: Determine whether to show numeric score in verdict gauge.
+    # Show the number only when all scored dimensions have sufficient data
+    # quality (verified or estimated). Any sparse dimension hides the number.
+    output["show_numeric_score"] = _compute_show_numeric_score(
+        output.get("dimension_summaries", [])
     )
 
     return output
@@ -2628,6 +2656,13 @@ def view_snapshot(snapshot_id):
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
 
+    # Phase B2: Backfill show_numeric_score for old snapshots that don't
+    # have it stored. Uses the same logic as result_to_dict().
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
@@ -2647,6 +2682,10 @@ def export_snapshot_json(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -2673,6 +2712,10 @@ def export_snapshot_csv(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -2829,6 +2872,10 @@ def compare():
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
         _migrate_confidence_tiers(result)
+        if "show_numeric_score" not in result:
+            result["show_numeric_score"] = _compute_show_numeric_score(
+                result.get("dimension_summaries", [])
+            )
         evaluations.append({
             "snapshot_id": snapshot["snapshot_id"],
             "result": result,
