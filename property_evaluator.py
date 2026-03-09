@@ -38,7 +38,8 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
+    TIER2_NAME_TO_DIMENSION, apply_piecewise, apply_quality_multiplier,
+    QualityCeilingConfig,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     THIRD_PLACE_CATEGORY_CEILINGS,
@@ -4383,16 +4384,8 @@ def score_third_place_access(
         scored_places = []
 
         for place, walk_time in zip(eligible_places, walk_times):
-            # Score based on walk time
-            score = 0
-            if walk_time <= 15:
-                score = 10
-            elif walk_time <= 20:
-                score = 7
-            elif walk_time <= 30:
-                score = 4
-            else:
-                score = 2
+            # Score based on walk time (smooth piecewise curve)
+            score = apply_piecewise(SCORING_MODEL.coffee.knots, walk_time)
 
             if score > best_score or (score == best_score and walk_time < best_walk_time):
                 best_score = score
@@ -4481,9 +4474,12 @@ def score_third_place_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.coffee.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Coffee & Social Spots",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4832,16 +4828,8 @@ def score_provisioning_access(
         scored_stores = []
 
         for store, walk_time in zip(eligible_stores, walk_times):
-            # Score based on walk time
-            score = 0
-            if walk_time <= 15:
-                score = 10
-            elif walk_time <= 20:
-                score = 7
-            elif walk_time <= 30:
-                score = 4
-            else:
-                score = 2
+            # Score based on walk time (smooth piecewise curve)
+            score = apply_piecewise(SCORING_MODEL.grocery.knots, walk_time)
 
             if score > best_score or (score == best_score and walk_time < best_walk_time):
                 best_score = score
@@ -4880,9 +4868,12 @@ def score_provisioning_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.grocery.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Provisioning",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4967,15 +4958,14 @@ def score_fitness_access(
             rating = facility.get("rating", 0)
             is_eligible = facility.get("place_id") in _eligible_ids
 
-            # Score only eligible venues (sufficient reviews + rating)
+            # Score only eligible venues (smooth piecewise curve × quality)
             score = 0
             if is_eligible:
-                if rating >= 4.2 and walk_time <= 15:
-                    score = 10
-                elif rating >= 4.0 and walk_time <= 20:
-                    score = 6
-                elif walk_time <= 30:
-                    score = 3
+                base_score = apply_piecewise(SCORING_MODEL.fitness.knots, walk_time)
+                quality_mult = apply_quality_multiplier(
+                    SCORING_MODEL.fitness.quality_multipliers, rating,
+                )
+                score = base_score * quality_mult
 
             if is_eligible and score > best_score:
                 best_score = score
@@ -5041,9 +5031,12 @@ def score_fitness_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.fitness.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Fitness access",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=best_details,
             data_confidence=conf,

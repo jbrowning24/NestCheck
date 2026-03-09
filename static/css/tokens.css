@@ -254,6 +254,13 @@
   --transition-base: 200ms ease;
   --transition-slow: 300ms ease;
 
+  /* ---- Landing page redesign ---------------------------------- */
+  --color-bg-app: #F5F5F3;        /* App-level page background */
+  --color-yellow: #F4C118;        /* Strong band badge */
+  --color-yellow-light: #FEF9E4;  /* Yellow tint backgrounds */
+  --color-orange: #F17317;        /* Moderate band badge */
+  --color-orange-light: #FDE1CB;  /* Orange tint backgrounds */
+
   /* ---- Breakpoints (reference only) --------------------------- */
   /* CSS custom properties cannot be used in @media queries.
      Mobile:  max-width: 640px   — phones
