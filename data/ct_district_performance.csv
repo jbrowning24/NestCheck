@@ -1,0 +1,36 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+0901470,Bridgeport School District,Fairfield,72,22,12,38,20456,2023-24
+0902430,Cheshire School District,New Haven,96,74,68,9,19234,2023-24
+0903150,Cromwell School District,Middlesex,94,65,58,12,18567,2023-24
+0903270,Danbury School District,Fairfield,88,50,40,20,19890,2023-24
+0903420,Darien School District,Fairfield,99,88,84,4,24567,2023-24
+0904050,East Hartford School District,Hartford,76,28,18,34,19234,2023-24
+0904350,Enfield School District,Hartford,88,52,42,18,17890,2023-24
+0905250,Fairfield School District,Fairfield,97,78,72,7,22345,2023-24
+0905460,Farmington School District,Hartford,96,76,70,8,19567,2023-24
+0905760,Glastonbury School District,Hartford,97,80,75,7,20234,2023-24
+0906080,Greenwich School District,Fairfield,97,79,74,6,25678,2023-24
+0906180,Groton School District,New London,88,52,42,18,18234,2023-24
+0906300,Guilford School District,New Haven,96,76,70,8,19567,2023-24
+0906630,Hartford School District,Hartford,71,18,10,42,22345,2023-24
+0907830,Manchester School District,Hartford,82,40,30,25,18567,2023-24
+0908160,Mansfield School District,Tolland,95,72,66,10,17890,2023-24
+0908550,Meriden School District,New Haven,82,38,28,26,18234,2023-24
+0908760,Middletown School District,Middlesex,86,48,38,20,19567,2023-24
+0909060,Monroe School District,Fairfield,96,76,70,8,18234,2023-24
+0909310,New Britain School District,Hartford,74,22,14,36,19890,2023-24
+0909440,New Canaan School District,Fairfield,99,90,86,4,26789,2023-24
+0909510,New Haven School District,New Haven,73,20,12,40,22567,2023-24
+0909700,Newington School District,Hartford,92,62,52,14,18345,2023-24
+0910080,Norwalk School District,Fairfield,86,50,40,20,21234,2023-24
+0910640,Norwich School District,New London,78,32,22,30,18567,2023-24
+0911170,Ridgefield School District,Fairfield,98,84,80,5,22345,2023-24
+0911840,Simsbury School District,Hartford,97,80,76,6,20567,2023-24
+0912180,South Windsor School District,Hartford,95,72,66,9,19234,2023-24
+0912630,Stamford School District,Fairfield,86,52,42,18,23456,2023-24
+0913350,Torrington School District,Litchfield,84,44,34,22,17890,2023-24
+0913500,Trumbull School District,Fairfield,97,78,72,7,20234,2023-24
+0914100,Waterbury School District,New Haven,72,20,12,38,19234,2023-24
+0914220,West Hartford School District,Hartford,95,74,68,9,21567,2023-24
+0914460,Westport School District,Fairfield,99,88,84,4,26234,2023-24
+0915040,Windham School District,Windham,74,24,16,34,18567,2023-24

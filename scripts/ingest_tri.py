@@ -207,7 +207,12 @@ def _try_arcgis_first() -> bool:
         return False
 
 
-def ingest(limit: int = 0, state: str = "", discover: bool = False):
+def ingest(
+    limit: int = 0,
+    state: str = "",
+    states: list[str] | None = None,
+    discover: bool = False,
+):
     """Main ingestion loop."""
 
     if discover:
@@ -216,7 +221,14 @@ def ingest(limit: int = 0, state: str = "", discover: bool = False):
 
     # Build WHERE clause for ArcGIS (STATE uses 2-letter abbrev, e.g. MA)
     where = "1=1"
-    if state:
+    if states:
+        for st in states:
+            st_upper = st.upper()
+            if not (len(st_upper) == 2 and st_upper.isalpha()):
+                raise ValueError(f"Invalid state abbreviation: {st!r} (expected 2-letter code, e.g. NY)")
+        in_list = ", ".join(f"'{s.upper()}'" for s in states)
+        where = f"STATE IN ({in_list})"
+    elif state:
         where = f"STATE = '{state.upper()}'"
 
     logger.info("Starting TRI facility ingestion")

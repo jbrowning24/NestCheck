@@ -9,7 +9,20 @@ this script loads a pre-processed CSV with key metrics per district.
 The CSV maps TIGER GEOID → performance metrics, enabling joins with
 the school district polygon table (facilities_school_districts).
 
-Idempotent: drops and recreates the table on each run.
+Idempotent: deletes existing NY rows and re-inserts on each run.
+Does NOT drop or recreate the table — preserves data from other states.
+
+Statewide data expansion:
+    The bundled CSV currently covers ~40 Westchester County districts.
+    Full statewide data (~730+ districts) is available from:
+    - Graduation rates: https://data.nysed.gov/files/gradrate/24-25/gradrate.zip
+    - Report Card (ELA/Math): https://data.nysed.gov/files/essa/24-25/SRC2025.zip
+    Both are Access .mdb databases. To extract:
+    1. Install mdbtools: apt install mdbtools
+    2. List tables: mdb-tables <file>.mdb
+    3. Export: mdb-export <file>.mdb <table> > output.csv
+    4. Map NYSED BEDS codes to TIGER GEOIDs (NCES LEAID = GEOID)
+    5. Replace data/nysed_district_performance.csv with full statewide version
 
 Usage:
     python scripts/ingest_nysed.py
@@ -41,7 +54,7 @@ NYSED_CSV_PATH = os.path.join(
     "data", "nysed_district_performance.csv",
 )
 
-TABLE_NAME = "nysed_performance"
+TABLE_NAME = "state_education_performance"
 
 
 def ingest(csv_path: str = "", **kwargs):
@@ -59,9 +72,8 @@ def ingest(csv_path: str = "", **kwargs):
     conn = _connect()
 
     try:
-        conn.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
         conn.execute(f"""
-            CREATE TABLE {TABLE_NAME} (
+            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 geoid TEXT UNIQUE NOT NULL,
                 district_name TEXT,
@@ -71,11 +83,19 @@ def ingest(csv_path: str = "", **kwargs):
                 math_proficiency_pct REAL,
                 chronic_absenteeism_pct REAL,
                 pupil_expenditure REAL,
-                source_year TEXT
+                source_year TEXT,
+                state TEXT
             )
         """)
         conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{TABLE_NAME}_geoid ON {TABLE_NAME}(geoid)")
-        conn.commit()  # Commit schema before data load
+
+        # Delete existing NY rows (idempotent — preserves CT/NJ data)
+        deleted = conn.execute(
+            f"DELETE FROM {TABLE_NAME} WHERE state = 'NY'"
+        ).rowcount
+        if deleted > 0:
+            logger.info("Cleared %d existing NY rows", deleted)
+        conn.commit()
 
         total = 0
         skipped = 0
@@ -87,8 +107,9 @@ def ingest(csv_path: str = "", **kwargs):
                         f"""INSERT INTO {TABLE_NAME}
                             (geoid, district_name, county, graduation_rate_pct,
                              ela_proficiency_pct, math_proficiency_pct,
-                             chronic_absenteeism_pct, pupil_expenditure, source_year)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             chronic_absenteeism_pct, pupil_expenditure, source_year,
+                             state)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             row["geoid"],
                             row["district_name"],
@@ -99,10 +120,11 @@ def ingest(csv_path: str = "", **kwargs):
                             float(row["chronic_absenteeism_pct"]) if row.get("chronic_absenteeism_pct") else None,
                             float(row["pupil_expenditure"]) if row.get("pupil_expenditure") else None,
                             row.get("source_year", ""),
+                            "NY",
                         ),
                     )
                     total += 1
-                except (ValueError, KeyError) as e:
+                except (ValueError, KeyError, sqlite3.IntegrityError) as e:
                     logger.warning("Skipping row %s: %s", row.get("geoid", "?"), e)
                     skipped += 1
 
@@ -111,7 +133,7 @@ def ingest(csv_path: str = "", **kwargs):
                (facility_type, source_url, ingested_at, record_count, notes)
                VALUES (?, ?, ?, ?, ?)""",
             (
-                "nysed_performance",
+                "state_education_performance",
                 "data.nysed.gov (curated CSV)",
                 datetime.now(timezone.utc).isoformat(),
                 total,

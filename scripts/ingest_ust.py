@@ -138,7 +138,12 @@ def discover_fields():
     return data
 
 
-def ingest(limit: int = 0, state: str = "", discover: bool = False):
+def ingest(
+    limit: int = 0,
+    state: str = "",
+    states: list[str] | None = None,
+    discover: bool = False,
+):
     """Main ingestion loop."""
 
     if discover:
@@ -147,7 +152,13 @@ def ingest(limit: int = 0, state: str = "", discover: bool = False):
 
     # Build WHERE clause (State field uses full names, e.g. "New York")
     where = "1=1"
-    if state:
+    if states:
+        for s in states:
+            if not s.replace(" ", "").isalpha():
+                raise ValueError(f"Invalid state name: {s!r} (expected full name, e.g. 'New York')")
+        in_list = ", ".join(f"'{s}'" for s in states)
+        where = f"State IN ({in_list})"
+    elif state:
         if not state.replace(" ", "").isalpha():
             raise ValueError(f"Invalid state name: {state!r} (expected full name, e.g. 'New York')")
         where = f"State = '{state}'"

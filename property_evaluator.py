@@ -2561,7 +2561,8 @@ def get_school_district(
     """Identify the school district for a location using TIGER boundaries.
 
     Uses point-in-polygon against TIGER unified school district boundaries,
-    then enriches with NYSED performance data from the nysed_performance table.
+    then enriches with performance data from the state_education_performance table
+    (contains multi-state data: NY, CT, NJ). GEOID is unique across states.
 
     Zero API calls — pure local SpatiaLite query.
     """
@@ -2586,7 +2587,7 @@ def get_school_district(
             grade_range=grade_range,
         )
 
-        # Enrich with NYSED performance data
+        # Enrich with education performance data (multi-state: NY, CT, NJ)
         if geoid:
             try:
                 from spatial_data import _connect as _spatial_connect
@@ -2596,7 +2597,7 @@ def get_school_district(
                         """SELECT graduation_rate_pct, ela_proficiency_pct,
                                   math_proficiency_pct, chronic_absenteeism_pct,
                                   pupil_expenditure, source_year
-                           FROM nysed_performance WHERE geoid = ?""",
+                           FROM state_education_performance WHERE geoid = ?""",
                         (geoid,),
                     )
                     row = cursor.fetchone()
@@ -2610,7 +2611,7 @@ def get_school_district(
                 finally:
                     conn.close()
             except Exception as e:
-                logger.debug("NYSED performance lookup failed for %s: %s", geoid, e)
+                logger.debug("Education performance lookup failed for %s: %s", geoid, e)
 
         return info
 

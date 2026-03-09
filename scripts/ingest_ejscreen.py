@@ -191,6 +191,7 @@ def _get_indicator_fields(attrs: dict) -> dict:
 def ingest(
     limit: int = 0,
     state: str = "",
+    states: list[str] | None = None,
     discover: bool = False,
 ):
     """Main ingestion loop."""
@@ -234,7 +235,14 @@ def ingest(
 
     endpoint = _probe_endpoint()
     where = "1=1"
-    if state:
+    if states:
+        for st in states:
+            st_upper = st.upper()
+            if not (len(st_upper) == 2 and st_upper.isalpha()):
+                raise ValueError(f"Invalid state abbreviation: {st!r} (expected 2-letter code, e.g. NY)")
+        in_list = ", ".join(f"'{s.upper()}'" for s in states)
+        where = f"ST_ABBREV IN ({in_list})"
+    elif state:
         st = state.upper()
         if not (len(st) == 2 and st.isalpha()):
             raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")

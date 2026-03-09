@@ -142,6 +142,7 @@ def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
 
 def ingest(
     state: str = "36",
+    states: list[str] | None = None,
     limit: int = 0,
     discover: bool = False,
     **kwargs,
@@ -150,10 +151,20 @@ def ingest(
 
     Args:
         state: State FIPS code (default "36" for NY).
+        states: List of FIPS codes to ingest (overrides state if provided).
         limit: Max pages to ingest (0 = all).
         discover: Print sample record and exit.
     """
-    where = f"STATE='{state}'" if state else "1=1"
+    if states:
+        for s in states:
+            if not s.isdigit():
+                raise ValueError(f"Invalid state FIPS code: {s!r} (expected numeric, e.g. '36')")
+        in_list = ", ".join(f"'{s}'" for s in states)
+        where = f"STATE IN ({in_list})"
+        state_label = "+".join(states)
+    else:
+        where = f"STATE='{state}'" if state else "1=1"
+        state_label = state
 
     if discover:
         params = {
@@ -189,7 +200,7 @@ def ingest(
                 logger.info("First ring: %d points", len(rings[0]))
         return
 
-    logger.info("Starting school district boundary ingestion (state=%s)", state)
+    logger.info("Starting school district boundary ingestion (state=%s)", state_label)
     if limit:
         logger.info("  LIMIT: %d pages (%d records)", limit, limit * PAGE_SIZE)
 
@@ -282,7 +293,7 @@ def ingest(
                 TIGER_SD_ENDPOINT,
                 datetime.now(timezone.utc).isoformat(),
                 total_inserted,
-                f"State FIPS: {state}" + (f", LIMIT: {limit} pages" if limit else ""),
+                f"State FIPS: {state_label}" + (f", LIMIT: {limit} pages" if limit else ""),
             ),
         )
         conn.commit()
