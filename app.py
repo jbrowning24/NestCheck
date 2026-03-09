@@ -27,7 +27,7 @@ from property_evaluator import (
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION,
     HEALTH_CHECK_CITATIONS,
-    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     _LEGACY_CONFIDENCE_MAP,
 )
 from census import serialize_for_result as _serialize_census
@@ -1747,27 +1747,41 @@ def result_to_dict(result):
     # Single pass: classify each dimension's confidence for the aggregate.
     _confidence_levels = []
     _limited_dims = []
+    _sparse_dims = []
     _not_scored_dims = []
     for s in output.get("tier2_scores", []):
         conf = s.get("data_confidence")
         if conf == CONFIDENCE_NOT_SCORED:
             _not_scored_dims.append(s["name"])
+        elif conf == CONFIDENCE_SPARSE:
+            _confidence_levels.append(conf)
+            _sparse_dims.append(s["name"])
+            _limited_dims.append(s["name"])
         elif conf == CONFIDENCE_ESTIMATED:
             _confidence_levels.append(conf)
             _limited_dims.append(s["name"])
         elif conf:
             _confidence_levels.append(conf)
     if _confidence_levels:
+        _has_sparse = CONFIDENCE_SPARSE in _confidence_levels
         _has_estimated = CONFIDENCE_ESTIMATED in _confidence_levels
-        _weakest = CONFIDENCE_ESTIMATED if _has_estimated else CONFIDENCE_VERIFIED
+        if _has_sparse:
+            _weakest = CONFIDENCE_SPARSE
+        elif _has_estimated:
+            _weakest = CONFIDENCE_ESTIMATED
+        else:
+            _weakest = CONFIDENCE_VERIFIED
         output["data_confidence_summary"] = {
             "level": _weakest,
             "note": (
-                "Some dimensions have limited data coverage"
-                if _weakest != CONFIDENCE_VERIFIED
+                "Some dimensions have very limited data"
+                if _weakest == CONFIDENCE_SPARSE
+                else "Some dimensions have limited data coverage"
+                if _weakest == CONFIDENCE_ESTIMATED
                 else "All dimensions have strong data coverage"
             ),
             "limited_dimensions": _limited_dims,
+            "sparse_dimensions": _sparse_dims,
             "not_scored_dimensions": _not_scored_dims,
         }
     # Section-level narrative insights (NES-191)

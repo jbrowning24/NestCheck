@@ -112,7 +112,7 @@ class DimensionResult:
     scoring_inputs: dict      # e.g. {"walk_time_min": 18, "rating": 4.3}
     subscores: Optional[dict] = None  # e.g. {"proximity": 7.2, "quality": 0.8} for fitness
     model_version: str = ""
-    # Confidence tier (Phase 3).  Values: "verified" / "estimated" / "not_scored".
+    # Confidence tier (Phase 3).  Values: "verified" / "estimated" / "sparse" / "not_scored".
     # Legacy snapshots may contain "HIGH"/"MEDIUM"/"LOW" — migrated at display.
     data_confidence: Optional[str] = None
     data_confidence_note: Optional[str] = None
@@ -435,13 +435,14 @@ WALK_DRIVE_ONLY_THRESHOLD = 40
 
 CONFIDENCE_VERIFIED = "verified"      # Multiple data sources, well-supported score
 CONFIDENCE_ESTIMATED = "estimated"    # Partial data, reasonable inference
+CONFIDENCE_SPARSE = "sparse"          # Data exists but too thin for trustworthy score
 CONFIDENCE_NOT_SCORED = "not_scored"  # Insufficient data, suppress numeric score
 
 # Maps old tier names to new ones for snapshot migration
 _LEGACY_CONFIDENCE_MAP = {
     "HIGH": CONFIDENCE_VERIFIED,
     "MEDIUM": CONFIDENCE_ESTIMATED,
-    "LOW": CONFIDENCE_ESTIMATED,  # LOW with a numeric score → estimated
+    "LOW": CONFIDENCE_SPARSE,  # LOW with a numeric score → sparse (thin data)
     # "LOW" with points=0 and not_scored semantics is handled explicitly
     # during migration by checking if the score was a "benefit of the doubt" fallback
 }
