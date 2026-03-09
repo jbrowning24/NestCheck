@@ -40,6 +40,7 @@ from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
