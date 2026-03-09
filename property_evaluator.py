@@ -2843,6 +2843,9 @@ def get_neighborhood_snapshot(
             places = maps.places_nearby(lat, lng, primary_type, radius_meters=3000)
             if secondary_type:
                 places.extend(maps.places_nearby(lat, lng, secondary_type, radius_meters=3000))
+            # Coffee & Social Spots needs "coffee_shop" as a third type
+            if category == "Coffee & Social Spots":
+                places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
             places = _dedupe_by_place_id(places)
 
             # Special handling for Provisioning - apply household provisioning filter
@@ -4253,6 +4256,7 @@ def score_third_place_access(
         all_places = []
         all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000))
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=3000))
+        all_places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
         all_places = _dedupe_by_place_id(all_places)
 
         _empty_counts = {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}
