@@ -22,6 +22,7 @@ import time
 import logging
 import argparse
 import re
+import statistics
 from dataclasses import dataclass, field
 from typing import Callable, Optional, List, Tuple, Dict, Any
 from enum import Enum
@@ -37,7 +38,8 @@ from green_space import (
 )
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION, apply_piecewise,
+    TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
@@ -184,13 +186,17 @@ class Tier1Check:
 @dataclass
 class Tier2Score:
     name: str
-    points: int
+    points: Optional[int]
     max_points: int
     details: str
-    # Data confidence indicator (NES-189).  Mirrors the sidewalk_coverage
-    # pattern: "HIGH" / "MEDIUM" / "LOW" with an explanatory note.
+    # Confidence tier (Phase 3).  Values: "verified" (default, no badge),
+    # "estimated" (badge + explanation), "not_scored" (suppress numeric score).
+    # Legacy snapshots may contain "HIGH"/"MEDIUM"/"LOW" — migrated at display.
     data_confidence: Optional[str] = None
     data_confidence_note: Optional[str] = None
+    # When set, the dimension could not be reliably scored.  The template
+    # suppresses the numeric score and shows this reason text instead.
+    suppressed_reason: Optional[str] = None
 
 
 @dataclass
@@ -3901,20 +3907,26 @@ _PLACES_HIGH_COUNT = 3       # eligible places for HIGH
 _PLACES_HIGH_REVIEWS = 100   # best place review count for HIGH
 _PLACES_MED_REVIEWS = 30     # best place review count for MEDIUM
 
-# -- Score caps by confidence level (NES-sparse-data) --------------------------
-# Sparse/limited data should not produce maximum-confidence ratings.
+# -- Score caps by confidence tier --------------------------
+# Estimated data should not produce maximum-confidence ratings.
+# "not_scored" dimensions are excluded from composite scoring entirely.
 _CONFIDENCE_SCORE_CAP = {
-    "LOW": 6,       # sparse data — cap at 6/10
-    "MEDIUM": 8,    # limited data — cap at 8/10
-    "HIGH": 10,     # full confidence — no cap
+    CONFIDENCE_ESTIMATED: 8,    # partial data — cap at 8/10
+    CONFIDENCE_VERIFIED: 10,    # full confidence — no cap
+    CONFIDENCE_NOT_SCORED: 0,   # not scored — excluded from composite
+    # Legacy aliases for backward compat
+    "LOW": 6,
+    "MEDIUM": 8,
+    "HIGH": 10,
 }
 
 
 def _apply_confidence_cap(score: int, confidence: str) -> int:
-    """Cap a dimension score based on data confidence level.
+    """Cap a dimension score based on confidence tier.
 
     Prevents high-confidence ratings (e.g. 10/10) when the underlying
-    data is sparse or limited.
+    data is partial.  Does NOT apply to "not_scored" — those dimensions
+    are excluded from composite scoring instead.
     """
     cap = _CONFIDENCE_SCORE_CAP.get(confidence, 10)
     return min(score, cap)
@@ -3930,26 +3942,71 @@ def _classify_places_confidence(
       - eligible_count: how many places passed quality filters
       - best_review_count: user_ratings_total on the highest-scoring place
 
-    Returns (level, note) tuple.
+    Returns (tier, note) tuple using Phase 3 confidence tiers.
     """
     if eligible_count == 0:
-        return "LOW", "No eligible places found in search area"
+        return CONFIDENCE_ESTIMATED, "No eligible places found in search area"
 
     if eligible_count >= _PLACES_HIGH_COUNT and best_review_count >= _PLACES_HIGH_REVIEWS:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"{eligible_count} places found, best has {best_review_count} reviews"
         )
 
     if best_review_count >= _PLACES_MED_REVIEWS:
-        return "MEDIUM", (
+        return CONFIDENCE_ESTIMATED, (
             f"{eligible_count} place{'s' if eligible_count != 1 else ''} found, "
             f"best has {best_review_count} reviews"
         )
 
-    return "LOW", (
+    return CONFIDENCE_ESTIMATED, (
         f"Only {eligible_count} place{'s' if eligible_count != 1 else ''} found "
         f"with limited review data ({best_review_count} reviews)"
     )
+
+
+def _compute_quality_ceiling(
+    eligible_places: list,
+    ceiling_config: QualityCeilingConfig,
+) -> int:
+    """Compute quality-adjusted score ceiling from venue diversity and depth.
+
+    The ceiling prevents proximity-only high scores when venues are
+    low-diversity (all delis/one category) or low-signal (few reviews).
+
+    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+
+    Returns an integer ceiling (0-10).
+    """
+    if not eligible_places:
+        return round(ceiling_config.base_ceiling)
+
+    # --- Category diversity: count distinct sub-types ---
+    distinct_types = set()
+    for place in eligible_places:
+        sub_type = _classify_coffee_sub_type(place.get("types", []))
+        distinct_types.add(sub_type)
+    num_categories = len(distinct_types)
+
+    diversity_bonus = 0.0
+    for min_cats, bonus in ceiling_config.diversity_thresholds:
+        if num_categories >= min_cats:
+            diversity_bonus = bonus
+            break
+
+    # --- Review depth: median user_ratings_total ---
+    review_counts = [
+        place.get("user_ratings_total", 0) for place in eligible_places
+    ]
+    median_reviews = statistics.median(review_counts)
+
+    depth_bonus = 0.0
+    for min_median, bonus in ceiling_config.depth_thresholds:
+        if median_reviews >= min_median:
+            depth_bonus = bonus
+            break
+
+    raw_ceiling = ceiling_config.base_ceiling + diversity_bonus + depth_bonus
+    return min(round(raw_ceiling), 10)
 
 
 def _classify_transit_confidence(
@@ -3977,19 +4034,19 @@ def _classify_transit_confidence(
             has_walk_time = True
 
     if not has_walk_time and node_count == 0:
-        return "LOW", "No transit data available for this location"
+        return CONFIDENCE_ESTIMATED, "No transit data available for this location"
 
     if has_walk_time and node_count >= 10:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"Walk time computed, {node_count} transit nodes in area"
         )
 
     if has_walk_time:
-        return "MEDIUM", (
+        return CONFIDENCE_ESTIMATED, (
             "Walk time computed but limited transit frequency data"
         )
 
-    return "LOW", "Transit stop detected but walk time could not be computed"
+    return CONFIDENCE_ESTIMATED, "Transit stop detected but walk time could not be computed"
 
 
 def _classify_park_confidence(
@@ -4005,7 +4062,7 @@ def _classify_park_confidence(
     Returns (level, note) tuple.
     """
     if not green_escape_eval or not green_escape_eval.best_daily_park:
-        return "LOW", "No green spaces found in search area"
+        return CONFIDENCE_ESTIMATED, "No green spaces found in search area"
 
     best = green_escape_eval.best_daily_park
     reviews = best.user_ratings_total or 0
@@ -4019,7 +4076,7 @@ def _classify_park_confidence(
         )
 
     if osm_enriched and reviews >= 100 and not has_estimates:
-        return "HIGH", (
+        return CONFIDENCE_VERIFIED, (
             f"OSM-verified boundaries, {reviews} reviews"
         )
 
@@ -4029,9 +4086,9 @@ def _classify_park_confidence(
             note_parts.append("some metrics estimated")
         if reviews < 100:
             note_parts.append(f"{reviews} reviews")
-        return "MEDIUM", " — ".join(note_parts) if note_parts else "Partial data"
+        return CONFIDENCE_ESTIMATED, " — ".join(note_parts) if note_parts else "Partial data"
 
-    return "LOW", (
+    return CONFIDENCE_ESTIMATED, (
         f"Limited data: {reviews} reviews, "
         f"{'no OSM boundaries' if not osm_enriched else 'estimated metrics'}"
     )
@@ -4040,12 +4097,12 @@ def _classify_park_confidence(
 def _classify_cost_confidence(cost: Optional[int]) -> tuple:
     """Classify data confidence for the cost dimension.
 
-    Simply: HIGH if the user provided a cost, LOW if not.
-    Returns (level, note) tuple.
+    Simply: verified if the user provided a cost, estimated if not.
+    Returns (tier, note) tuple.
     """
     if cost is not None:
-        return "HIGH", "Monthly cost provided by user"
-    return "LOW", "Monthly cost not specified — score reflects missing data"
+        return CONFIDENCE_VERIFIED, "Monthly cost provided by user"
+    return CONFIDENCE_ESTIMATED, "Monthly cost not specified — score reflects missing data"
 
 
 def score_park_access(
@@ -4103,7 +4160,7 @@ def score_park_access(
                 points=0,
                 max_points=10,
                 details="No primary green escape within a 30-minute walk",
-                data_confidence="LOW",
+                data_confidence=CONFIDENCE_ESTIMATED,
                 data_confidence_note="No green spaces found in search area",
             )
 
@@ -4122,7 +4179,7 @@ def score_park_access(
             points=points,
             max_points=10,
             details=details,
-            data_confidence="MEDIUM",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Legacy scoring path — limited quality signals",
         )
 
@@ -4132,9 +4189,37 @@ def score_park_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         )
+
+
+# -- Social-scene bucket mapping for quality ceiling (Phase 2) ----------------
+# Maps Google Places types to broader social-category buckets.
+# A venue contributes to every bucket it matches (e.g. a café-restaurant
+# counts toward both "coffee" and "restaurant" — it genuinely serves both).
+_SOCIAL_BUCKET_MAP: Dict[str, str] = {
+    "cafe": "coffee",
+    "coffee_shop": "coffee",
+    "bakery": "bakery",
+    "bar": "bar/nightlife",
+    "wine_bar": "bar/nightlife",
+    "night_club": "bar/nightlife",
+    "restaurant": "restaurant",
+}
+
+
+def _social_buckets_for_venue(types: list) -> set:
+    """Return the set of social-category buckets a venue's types map to.
+
+    Types not in _SOCIAL_BUCKET_MAP fall into "other" — but only if no
+    specific bucket matched, to avoid inflating diversity with generic
+    tags like "food" or "point_of_interest".
+    """
+    buckets = {_SOCIAL_BUCKET_MAP[t] for t in types if t in _SOCIAL_BUCKET_MAP}
+    if not buckets:
+        buckets.add("other")
+    return buckets
 
 
 def _classify_coffee_sub_type(types: list) -> str:
@@ -4204,7 +4289,8 @@ def score_third_place_access(
             rating = place.get("rating", 0)
             reviews = place.get("user_ratings_total", 0)
 
-            if rating >= 4.0 and reviews >= 30:
+            if (rating >= VENUE_MIN_RATING["coffee_social"]
+                    and reviews >= VENUE_MIN_REVIEWS["coffee_social"]):
                 eligible_places.append(place)
 
         if not eligible_places:
@@ -4277,6 +4363,36 @@ def score_third_place_access(
             "total": len(eligible_places),
         }
 
+        # --- Quality ceiling (Phase 2) ---
+        # Cap the walk-time score by scene diversity + review depth.
+        # 1. Category diversity: count distinct social buckets
+        _all_buckets: set = set()
+        for p in eligible_places:
+            _all_buckets.update(_social_buckets_for_venue(p.get("types", [])))
+        _diversity_count = len(_all_buckets)
+
+        # Look up ceiling from the tier map (4+ uses the max key)
+        _ceiling_key = min(_diversity_count, max(THIRD_PLACE_CATEGORY_CEILINGS))
+        quality_ceiling = THIRD_PLACE_CATEGORY_CEILINGS[_ceiling_key]
+
+        # 2. Review depth: median review count across qualifying venues
+        _review_counts = sorted(
+            p.get("user_ratings_total", 0) for p in eligible_places
+        )
+        _n = len(_review_counts)
+        if _n % 2 == 1:
+            median_reviews = _review_counts[_n // 2]
+        else:
+            median_reviews = (_review_counts[_n // 2 - 1] + _review_counts[_n // 2]) / 2
+
+        if median_reviews > THIRD_PLACE_DEPTH_BONUS_THRESHOLD:
+            quality_ceiling = min(quality_ceiling + 1, 10)
+        elif median_reviews < THIRD_PLACE_DEPTH_PENALTY_THRESHOLD:
+            quality_ceiling = max(quality_ceiling - 1, 1)
+
+        # Final score = min(walk_time_score, ceiling)
+        best_score = min(best_score, quality_ceiling)
+
         # Format details
         name = best_place.get("name", "Coffee spot")
         rating = best_place.get("rating", 0)
@@ -4287,6 +4403,15 @@ def score_third_place_access(
         conf, conf_note = _classify_places_confidence(
             len(eligible_places), reviews,
         )
+
+        # Quality ceiling: cap score based on venue diversity and review depth.
+        # Applied before confidence cap so both constraints compose.
+        ceiling_config = SCORING_MODEL.coffee.quality_ceiling
+        if ceiling_config is not None:
+            quality_ceiling = _compute_quality_ceiling(
+                eligible_places, ceiling_config,
+            )
+            best_score = min(best_score, quality_ceiling)
 
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
@@ -4306,7 +4431,7 @@ def score_third_place_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0})
 
@@ -4358,15 +4483,16 @@ def score_road_noise(
     estimated dBA through the piecewise curve in SCORING_MODEL.road_noise.
 
     When the assessment is None (Overpass failed or no roads found),
-    returns a benefit-of-the-doubt fallback score of 7/10.
+    returns confidence=not_scored so the dimension is excluded from
+    composite scoring rather than inflating scores with invented data.
     """
     if road_noise_assessment is None:
         return Tier2Score(
             name="Road Noise",
-            points=7,
+            points=0,
             max_points=10,
-            details="Road noise data unavailable — benefit of the doubt",
-            data_confidence="LOW",
+            details="Road noise data unavailable — unable to estimate noise exposure",
+            data_confidence=CONFIDENCE_NOT_SCORED,
             data_confidence_note="Overpass query failed or no roads within search radius",
         )
 
@@ -4390,7 +4516,7 @@ def score_road_noise(
         points=points,
         max_points=10,
         details=details,
-        data_confidence="HIGH",
+        data_confidence=CONFIDENCE_VERIFIED,
         data_confidence_note=(
             f"FHWA TNM estimate from {road_noise_assessment.all_roads_assessed} "
             f"roads within 500 m"
@@ -4553,7 +4679,7 @@ def score_transit_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         )
 
@@ -4612,7 +4738,8 @@ def score_provisioning_access(
             rating = store.get("rating", 0)
             reviews = store.get("user_ratings_total", 0)
 
-            if rating >= 3.5 and reviews >= 20:
+            if (rating >= VENUE_MIN_RATING["provisioning"]
+                    and reviews >= VENUE_MIN_REVIEWS["provisioning"]):
                 eligible_stores.append(store)
 
         if not eligible_stores:
@@ -4703,7 +4830,7 @@ def score_provisioning_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [])
 
@@ -4744,14 +4871,28 @@ def score_fitness_access(
                 data_confidence_note=conf_note,
             ), [])
 
-        # Batch walking times — 1 API call per 25 facilities instead of 1 each
+        # Eligibility filter — venues below review/rating thresholds are
+        # kept for neighborhood display but excluded from scoring.
+        _min_reviews = VENUE_MIN_REVIEWS["fitness"]
+        _min_rating = VENUE_MIN_RATING["fitness"]
+        eligible_places = [
+            f for f in fitness_places
+            if (f.get("rating", 0) >= _min_rating
+                and f.get("user_ratings_total", 0) >= _min_reviews)
+        ]
+
+        # Batch walking times for ALL places (eligible or not) so
+        # neighborhood cards always show walk times.
         destinations = [
             (f["geometry"]["location"]["lat"], f["geometry"]["location"]["lng"])
             for f in fitness_places
         ]
         walk_times = maps.walking_times_batch((lat, lng), destinations)
 
-        # Find best scored facility and collect all scored facilities
+        # Build a set of eligible place_ids for fast lookup during scoring
+        _eligible_ids = {f.get("place_id") for f in eligible_places}
+
+        # Collect all facilities for neighborhood display; score only eligible
         best_score = 0
         best_facility = None
         best_details = ""
@@ -4759,17 +4900,19 @@ def score_fitness_access(
 
         for facility, walk_time in zip(fitness_places, walk_times):
             rating = facility.get("rating", 0)
+            is_eligible = facility.get("place_id") in _eligible_ids
 
-            # Score based on rating + distance
+            # Score only eligible venues (sufficient reviews + rating)
             score = 0
-            if rating >= 4.2 and walk_time <= 15:
-                score = 10
-            elif rating >= 4.0 and walk_time <= 20:
-                score = 6
-            elif walk_time <= 30:
-                score = 3
+            if is_eligible:
+                if rating >= 4.2 and walk_time <= 15:
+                    score = 10
+                elif rating >= 4.0 and walk_time <= 20:
+                    score = 6
+                elif walk_time <= 30:
+                    score = 3
 
-            if score > best_score:
+            if is_eligible and score > best_score:
                 best_score = score
                 best_facility = facility
                 facility_name = facility.get("name", "Fitness center")
@@ -4777,17 +4920,6 @@ def score_fitness_access(
                 best_details = f"{facility_name} ({rating}★, {reviews} reviews) — {walk_time} min walk"
 
             scored_facilities.append((score, walk_time, facility))
-
-        if best_score == 0 and not scored_facilities:
-            conf, conf_note = _classify_places_confidence(0, 0)
-            return (Tier2Score(
-                name="Fitness access",
-                points=0,
-                max_points=10,
-                details="No gyms or fitness centers found within 30 min walk",
-                data_confidence=conf,
-                data_confidence_note=conf_note,
-            ), [])
 
         # Sort by score desc, then walk time asc; take top 5
         scored_facilities.sort(key=lambda x: (-x[0], x[1]))
@@ -4810,8 +4942,26 @@ def score_fitness_access(
             best_facility.get("user_ratings_total", 0) if best_facility else 0
         )
         conf, conf_note = _classify_places_confidence(
-            len(fitness_places), best_review_count,
+            len(eligible_places), best_review_count,
         )
+
+        # No eligible venues passed the review threshold — suppress the
+        # numeric score but still return the raw venue list for display.
+        if not eligible_places:
+            return (Tier2Score(
+                name="Fitness access",
+                points=None,
+                max_points=10,
+                details="No well-reviewed fitness options found nearby",
+                data_confidence="LOW",
+                data_confidence_note=(
+                    f"All {len(fitness_places)} venue(s) had fewer than "
+                    f"{_min_reviews} reviews or below {_min_rating}★ rating"
+                ),
+                suppressed_reason=(
+                    "No fitness venues with sufficient reviews found"
+                ),
+            ), neighborhood_places)
 
         if best_score == 0:
             return (Tier2Score(
@@ -4841,7 +4991,7 @@ def score_fitness_access(
             points=0,
             max_points=10,
             details=f"Error: {str(e)}",
-            data_confidence="LOW",
+            data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
         ), [])
 
@@ -5276,9 +5426,18 @@ def evaluate_property(
             "parks": _park_places,
         }
 
+        # Filter out non-scorable dimensions from composite calculation:
+        # - not_scored: insufficient data, excluded to prevent inflation/deflation
+        # - points=None: suppressed score (quality ceiling), "could not assess"
+        _scorable = [
+            s for s in result.tier2_scores
+            if s.points is not None
+            and getattr(s, "data_confidence", None) != CONFIDENCE_NOT_SCORED
+        ]
+
         # Raw unweighted totals (for display / backward compat)
-        result.tier2_total = sum(s.points for s in result.tier2_scores)
-        result.tier2_max = sum(s.max_points for s in result.tier2_scores)
+        result.tier2_total = sum(s.points for s in _scorable)
+        result.tier2_max = sum(s.max_points for s in _scorable)
 
         # Weighted normalization using persona lens.
         # Map internal Tier2Score names to persona dimension names so
@@ -5286,11 +5445,11 @@ def evaluate_property(
         _weights = persona_preset.weights
         _weighted_total = sum(
             s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in result.tier2_scores
+            for s in _scorable
         )
         _weighted_max = sum(
             s.max_points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in result.tier2_scores
+            for s in _scorable
         )
         if _weighted_max > 0:
             result.tier2_normalized = int(_weighted_total / _weighted_max * 100 + 0.5)
@@ -5418,13 +5577,15 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
     clear = [c for c in safety if c.get("result_type") == "CLEAR"]
 
     def _label_with_article(c):
-        """Return the label with article from _PROXIMITY_LABELS, or display_name."""
+        """Return the label with article from _PROXIMITY_LABELS, or name."""
         cid = c.get("check_id", "")
-        return _PROXIMITY_LABELS.get(cid, c.get("display_name", cid))
+        fallback = c.get("display_name", "") or c.get("name", "") or cid
+        return _PROXIMITY_LABELS.get(cid, fallback) or "this hazard"
 
     def _display_label(c):
         """Return the display_name as-is (capitalized, no article)."""
-        return c.get("display_name", "") or c.get("check_id", "")
+        label = c.get("display_name", "") or c.get("name", "") or c.get("check_id", "")
+        return label or "this hazard"
 
     # All clear
     if not confirmed and not unverified:
@@ -5448,7 +5609,7 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
         if len(unverified) >= 3 and not confirmed:
             parts.append("None of the proximity checks could be verified with available data.")
         elif len(unverified) == 1 and not confirmed:
-            # Single unverified: use display_name directly for specificity
+            # Single unverified: use name/display_name for specificity
             label = _display_label(unverified[0])
             parts.append(f"Proximity to {label} could not be verified with available data.")
         else:
@@ -5691,7 +5852,12 @@ def main():
             "tier2_max": result.tier2_max,
             "tier2_normalized": result.tier2_normalized,
             "tier2_scores": [
-                {"name": s.name, "points": s.points, "max": s.max_points, "details": s.details}
+                {
+                    "name": s.name, "points": s.points,
+                    "max": s.max_points, "details": s.details,
+                    "data_confidence": getattr(s, "data_confidence", None),
+                    "data_confidence_note": getattr(s, "data_confidence_note", None),
+                }
                 for s in result.tier2_scores
             ],
             "tier3_bonus": result.tier3_total,
