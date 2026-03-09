@@ -33,7 +33,7 @@ from property_evaluator import (
 )
 from scoring_config import (
     DimensionResult,
-    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
 )
 
 
@@ -119,9 +119,10 @@ class TestClassifyPlacesConfidence:
         level, _ = _classify_places_confidence(2, 10)
         assert level == CONFIDENCE_ESTIMATED
 
-    def test_estimated_one_place_few_reviews(self):
+    def test_sparse_one_place_few_reviews(self):
+        """Single venue with few reviews → sparse confidence."""
         level, note = _classify_places_confidence(1, 5)
-        assert level == CONFIDENCE_ESTIMATED
+        assert level == CONFIDENCE_SPARSE
         assert "1 place" in note  # singular
 
     def test_verified_requires_both_conditions(self):
@@ -177,6 +178,15 @@ class TestApplyConfidenceCap:
     def test_estimated_no_cap_when_below(self):
         assert _apply_confidence_cap(6, CONFIDENCE_ESTIMATED) == 6
 
+    def test_sparse_caps_at_6(self):
+        assert _apply_confidence_cap(10, CONFIDENCE_SPARSE) == 6
+
+    def test_sparse_caps_score_of_7(self):
+        assert _apply_confidence_cap(7, CONFIDENCE_SPARSE) == 6
+
+    def test_sparse_no_cap_when_below(self):
+        assert _apply_confidence_cap(4, CONFIDENCE_SPARSE) == 4
+
     def test_not_scored_caps_at_0(self):
         assert _apply_confidence_cap(10, CONFIDENCE_NOT_SCORED) == 0
 
@@ -190,8 +200,8 @@ class TestClassifyTransitConfidence:
 
     def test_no_data(self):
         level, note = _classify_transit_confidence(None, None)
-        assert level == CONFIDENCE_ESTIMATED
-        assert "No transit data" in note
+        assert level == CONFIDENCE_SPARSE
+        assert "Sparse transit data" in note
 
     def test_verified_walk_time_and_nodes(self):
         transit = MagicMock()
@@ -218,16 +228,18 @@ class TestClassifyTransitConfidence:
         level, _ = _classify_transit_confidence(transit, urban)
         assert level == CONFIDENCE_ESTIMATED
 
-    def test_estimated_no_walk_time(self):
+    def test_sparse_no_walk_time_no_nodes(self):
+        """No walk time, no nodes, no frequency → sparse."""
         transit = MagicMock()
         transit.nearby_node_count = 0
         transit.walk_minutes = None
+        transit.frequency_bucket = None
 
         urban = MagicMock()
         urban.primary_transit = None
 
         level, _ = _classify_transit_confidence(transit, urban)
-        assert level == CONFIDENCE_ESTIMATED
+        assert level == CONFIDENCE_SPARSE
 
 
 # =============================================================================
@@ -285,7 +297,8 @@ class TestClassifyParkConfidence:
         level, _ = _classify_park_confidence(eval_)
         assert level == CONFIDENCE_ESTIMATED
 
-    def test_estimated_few_reviews_no_osm(self):
+    def test_sparse_few_reviews_no_osm(self):
+        """Park with < 15 reviews and no OSM enrichment → sparse."""
         park = MagicMock()
         park.user_ratings_total = 5
         park.osm_enriched = False
@@ -295,8 +308,21 @@ class TestClassifyParkConfidence:
         eval_.best_daily_park = park
 
         level, note = _classify_park_confidence(eval_)
-        assert level == CONFIDENCE_ESTIMATED
+        assert level == CONFIDENCE_SPARSE
         assert "5 reviews" in note
+
+    def test_estimated_moderate_reviews_no_osm(self):
+        """Park with 15-29 reviews and no OSM → estimated (not sparse)."""
+        park = MagicMock()
+        park.user_ratings_total = 20
+        park.osm_enriched = False
+        park.subscores = []
+
+        eval_ = MagicMock()
+        eval_.best_daily_park = park
+
+        level, _ = _classify_park_confidence(eval_)
+        assert level == CONFIDENCE_ESTIMATED
 
     def test_estimated_when_estimates_present(self):
         """OSM-enriched + many reviews BUT some estimated subscores → estimated, not verified."""
@@ -680,6 +706,22 @@ class TestCompositeExcludesNotScored:
         assert total == 14
         assert max_total == 20
 
+    def test_sparse_included_in_composite(self):
+        """Sparse dimensions still contribute to composite (unlike not_scored)."""
+        s1 = Tier2Score("A", 8, 10, "a", data_confidence=CONFIDENCE_VERIFIED)
+        s2 = Tier2Score("B", 5, 10, "b", data_confidence=CONFIDENCE_SPARSE)
+        s3 = Tier2Score("C", 0, 10, "c", data_confidence=CONFIDENCE_NOT_SCORED)
+
+        scorable = [
+            s for s in [s1, s2, s3]
+            if getattr(s, "data_confidence", None) != CONFIDENCE_NOT_SCORED
+        ]
+        total = sum(s.points for s in scorable)
+        max_total = sum(s.max_points for s in scorable)
+
+        assert total == 13  # A(8) + B(5), not C
+        assert max_total == 20  # A(10) + B(10), not C
+
 
 # =============================================================================
 # Phase 3: Confidence tier migration for old snapshots
@@ -728,7 +770,8 @@ class TestConfidenceTierMigration:
         _migrate_confidence_tiers(result)
         assert result["tier2_scores"][0]["data_confidence"] == CONFIDENCE_NOT_SCORED
 
-    def test_low_non_road_noise_to_estimated(self):
+    def test_low_non_road_noise_to_sparse(self):
+        """Legacy LOW confidence (non-road-noise) now maps to sparse."""
         from app import _migrate_confidence_tiers
         result = {
             "tier2_scores": [
@@ -737,7 +780,7 @@ class TestConfidenceTierMigration:
             "dimension_summaries": [],
         }
         _migrate_confidence_tiers(result)
-        assert result["tier2_scores"][0]["data_confidence"] == CONFIDENCE_ESTIMATED
+        assert result["tier2_scores"][0]["data_confidence"] == CONFIDENCE_SPARSE
 
     def test_new_tier_names_unchanged(self):
         from app import _migrate_confidence_tiers
@@ -745,12 +788,14 @@ class TestConfidenceTierMigration:
             "tier2_scores": [
                 {"name": "A", "points": 8, "data_confidence": CONFIDENCE_VERIFIED, "details": "ok"},
                 {"name": "B", "points": 0, "data_confidence": CONFIDENCE_NOT_SCORED, "details": "no data"},
+                {"name": "C", "points": 4, "data_confidence": CONFIDENCE_SPARSE, "details": "thin data"},
             ],
             "dimension_summaries": [],
         }
         _migrate_confidence_tiers(result)
         assert result["tier2_scores"][0]["data_confidence"] == CONFIDENCE_VERIFIED
         assert result["tier2_scores"][1]["data_confidence"] == CONFIDENCE_NOT_SCORED
+        assert result["tier2_scores"][2]["data_confidence"] == CONFIDENCE_SPARSE
 
 
 # =============================================================================

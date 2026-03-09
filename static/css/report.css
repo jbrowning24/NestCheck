@@ -511,9 +511,18 @@
   color: var(--color-warning-text);
   background: rgba(217, 119, 6, 0.08);
 }
+.confidence-sparse {
+  color: var(--color-danger);
+  background: rgba(220, 38, 38, 0.08);
+}
 .confidence-not-scored {
   color: var(--color-muted);
   background: rgba(107, 114, 128, 0.08);
+  font-style: italic;
+}
+.dimension-score-sparse {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
   font-style: italic;
 }
 
@@ -542,6 +551,10 @@
 .confidence-summary.confidence-estimated {
   color: var(--color-warning-text);
   background: rgba(217, 119, 6, 0.06);
+}
+.confidence-summary.confidence-sparse {
+  color: var(--color-danger);
+  background: rgba(220, 38, 38, 0.06);
 }
 /* not_scored is excluded from aggregate summary, but kept for
    defensive rendering in case a future path exposes it. */

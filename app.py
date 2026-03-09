@@ -27,7 +27,7 @@ from property_evaluator import (
 from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION,
     HEALTH_CHECK_CITATIONS,
-    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     _LEGACY_CONFIDENCE_MAP,
 )
 from census import serialize_for_result as _serialize_census
@@ -1527,6 +1527,33 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     return result
 
 
+def _compute_show_numeric_score(dimension_summaries: list) -> bool:
+    """Decide whether the verdict gauge should display the numeric score.
+
+    Returns True when all scored dimensions have confidence of 'verified'
+    or 'estimated'.  Returns False when any dimension is 'sparse' (thin
+    data that shouldn't be presented as a precise number).
+
+    not_scored dimensions are excluded from the check — they already
+    carry their own "Not scored" badge and don't imply overall data
+    quality issues in the same way sparse does.
+
+    Assumes _migrate_confidence_tiers() has already run — do not add
+    legacy tier names here; a mismatch should surface visibly.
+
+    None means the dimension predates confidence tracking; treated as OK
+    so old snapshots still show their scores.
+    """
+    _OK_TIERS = {CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, None}
+    for dim in dimension_summaries:
+        conf = dim.get("data_confidence")
+        if conf == CONFIDENCE_NOT_SCORED:
+            continue  # excluded from this check
+        if conf not in _OK_TIERS:
+            return False
+    return True
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -1747,27 +1774,41 @@ def result_to_dict(result):
     # Single pass: classify each dimension's confidence for the aggregate.
     _confidence_levels = []
     _limited_dims = []
+    _sparse_dims = []
     _not_scored_dims = []
     for s in output.get("tier2_scores", []):
         conf = s.get("data_confidence")
         if conf == CONFIDENCE_NOT_SCORED:
             _not_scored_dims.append(s["name"])
+        elif conf == CONFIDENCE_SPARSE:
+            _confidence_levels.append(conf)
+            _sparse_dims.append(s["name"])
+            _limited_dims.append(s["name"])
         elif conf == CONFIDENCE_ESTIMATED:
             _confidence_levels.append(conf)
             _limited_dims.append(s["name"])
         elif conf:
             _confidence_levels.append(conf)
     if _confidence_levels:
+        _has_sparse = CONFIDENCE_SPARSE in _confidence_levels
         _has_estimated = CONFIDENCE_ESTIMATED in _confidence_levels
-        _weakest = CONFIDENCE_ESTIMATED if _has_estimated else CONFIDENCE_VERIFIED
+        if _has_sparse:
+            _weakest = CONFIDENCE_SPARSE
+        elif _has_estimated:
+            _weakest = CONFIDENCE_ESTIMATED
+        else:
+            _weakest = CONFIDENCE_VERIFIED
         output["data_confidence_summary"] = {
             "level": _weakest,
             "note": (
-                "Some dimensions have limited data coverage"
-                if _weakest != CONFIDENCE_VERIFIED
+                "Some dimensions have very limited data"
+                if _weakest == CONFIDENCE_SPARSE
+                else "Some dimensions have limited data coverage"
+                if _weakest == CONFIDENCE_ESTIMATED
                 else "All dimensions have strong data coverage"
             ),
             "limited_dimensions": _limited_dims,
+            "sparse_dimensions": _sparse_dims,
             "not_scored_dimensions": _not_scored_dims,
         }
     # Section-level narrative insights (NES-191)
@@ -1785,6 +1826,13 @@ def result_to_dict(result):
     output["unknown_check_count"] = sum(
         1 for c in output.get("tier1_checks", [])
         if c.get("result") == "UNKNOWN"
+    )
+
+    # Phase B2: Determine whether to show numeric score in verdict gauge.
+    # Show the number only when all scored dimensions have sufficient data
+    # quality (verified or estimated). Any sparse dimension hides the number.
+    output["show_numeric_score"] = _compute_show_numeric_score(
+        output.get("dimension_summaries", [])
     )
 
     return output
@@ -2614,6 +2662,13 @@ def view_snapshot(snapshot_id):
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
 
+    # Phase B2: Backfill show_numeric_score for old snapshots that don't
+    # have it stored. Uses the same logic as result_to_dict().
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
@@ -2633,6 +2688,10 @@ def export_snapshot_json(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -2659,6 +2718,10 @@ def export_snapshot_csv(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -2815,6 +2878,10 @@ def compare():
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
         _migrate_confidence_tiers(result)
+        if "show_numeric_score" not in result:
+            result["show_numeric_score"] = _compute_show_numeric_score(
+                result.get("dimension_summaries", [])
+            )
         evaluations.append({
             "snapshot_id": snapshot["snapshot_id"],
             "result": result,

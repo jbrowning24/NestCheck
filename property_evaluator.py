@@ -40,7 +40,7 @@ from scoring_config import (
     PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION, apply_piecewise, apply_quality_multiplier,
     QualityCeilingConfig,
-    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
+    CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     THIRD_PLACE_CATEGORY_CEILINGS,
     THIRD_PLACE_DEPTH_BONUS_THRESHOLD, THIRD_PLACE_DEPTH_PENALTY_THRESHOLD,
@@ -3944,8 +3944,9 @@ _PLACES_MED_REVIEWS = 30     # best place review count for MEDIUM
 # Estimated data should not produce maximum-confidence ratings.
 # "not_scored" dimensions are excluded from composite scoring entirely.
 _CONFIDENCE_SCORE_CAP = {
-    CONFIDENCE_ESTIMATED: 8,    # partial data — cap at 8/10
     CONFIDENCE_VERIFIED: 10,    # full confidence — no cap
+    CONFIDENCE_ESTIMATED: 8,    # partial data — cap at 8/10
+    CONFIDENCE_SPARSE: 6,       # thin data — aggressive cap at 6/10
     CONFIDENCE_NOT_SCORED: 0,   # not scored — excluded from composite
     # Legacy aliases for backward compat
     "LOW": 6,
@@ -3975,7 +3976,11 @@ def _classify_places_confidence(
       - eligible_count: how many places passed quality filters
       - best_review_count: user_ratings_total on the highest-scoring place
 
-    Returns (tier, note) tuple using Phase 3 confidence tiers.
+    Returns (tier, note) tuple using Phase 3 confidence tiers:
+      - verified: >= 3 eligible places AND best has >= 100 reviews
+      - estimated: >= 1 eligible place with >= 30 reviews on best
+      - sparse: exactly 1 eligible place AND best has < 30 reviews
+      - estimated (fallback): eligible_count == 0 (no venues at all)
     """
     if eligible_count == 0:
         return CONFIDENCE_ESTIMATED, "No eligible places found in search area"
@@ -3989,6 +3994,12 @@ def _classify_places_confidence(
         return CONFIDENCE_ESTIMATED, (
             f"{eligible_count} place{'s' if eligible_count != 1 else ''} found, "
             f"best has {best_review_count} reviews"
+        )
+
+    # Sparse: data exists but too thin — single venue with few reviews
+    if eligible_count == 1 and best_review_count < _PLACES_MED_REVIEWS:
+        return CONFIDENCE_SPARSE, (
+            f"Only 1 place found with limited review data ({best_review_count} reviews)"
         )
 
     return CONFIDENCE_ESTIMATED, (
@@ -4066,7 +4077,23 @@ def _classify_transit_confidence(
         if not has_walk_time and transit_access.walk_minutes is not None:
             has_walk_time = True
 
+    # Determine frequency class for sparse detection
+    frequency_class = None
+    if urban_access and urban_access.primary_transit:
+        frequency_class = urban_access.primary_transit.frequency_class
+    if frequency_class is None and transit_access:
+        frequency_class = getattr(transit_access, "frequency_bucket", None)
+
+    has_hub = False
+    # Hub data presence is inferred from node count — areas with hub access
+    # typically have high transit node density.
+    if node_count >= 5:
+        has_hub = True
+
     if not has_walk_time and node_count == 0:
+        # No transit data at all — sparse if frequency unknown and no hub
+        if frequency_class in (None, "unknown", "Very low frequency") and not has_hub:
+            return CONFIDENCE_SPARSE, "Sparse transit data for this location"
         return CONFIDENCE_ESTIMATED, "No transit data available for this location"
 
     if has_walk_time and node_count >= 10:
@@ -4120,6 +4147,12 @@ def _classify_park_confidence(
         if reviews < 100:
             note_parts.append(f"{reviews} reviews")
         return CONFIDENCE_ESTIMATED, " — ".join(note_parts) if note_parts else "Partial data"
+
+    # Sparse: park found but very thin data — few reviews and no OSM enrichment
+    if reviews < 15 and not osm_enriched:
+        return CONFIDENCE_SPARSE, (
+            f"Sparse data: {reviews} reviews, no OSM boundaries"
+        )
 
     return CONFIDENCE_ESTIMATED, (
         f"Limited data: {reviews} reviews, "

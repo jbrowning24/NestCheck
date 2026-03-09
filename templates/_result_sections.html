@@ -36,7 +36,8 @@
     {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
     {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
     <div class="score-header">
-      {{ score_ring(result.final_score, band_class, 'score-ring-container', show_value=False) }}
+      {% set _show_value = result.show_numeric_score if result.show_numeric_score is defined else false %}
+      {{ score_ring(result.final_score, band_class, 'score-ring-container', show_value=_show_value) }}
       <div class="score-details">
         <div class="score-band {{ band_class }}">{{ band_label }}</div>
         <div class="verdict-scope">Includes health proximity checks, walkability, green space, transit, daily essentials, and fitness access.</div>
@@ -94,6 +95,11 @@
           {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
             {# Not scored — suppress numeric score, show badge #}
             <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
+          {% elif dim.data_confidence is defined and dim.data_confidence == 'sparse' %}
+            {# Sparse data — hide numeric score, show "Limited data" badge.
+               Dimension still contributes to composite at its capped value. #}
+            <span class="dimension-score dimension-score-sparse">Limited data</span>
+            <span class="confidence-badge confidence-sparse" title="{{ dim.data_confidence_note or '' }}">Sparse data</span>
           {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
             {# Suppressed dimension — no reliable score available (quality ceiling) #}
             <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
@@ -113,8 +119,8 @@
           <div class="dimension-bar dimension-bar-suppressed">
             <div class="dimension-bar-fill" style="--fill: 0%"></div>
           </div>
-          {% elif dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
-          {# No bar for not_scored dimensions #}
+          {% elif dim.data_confidence is defined and dim.data_confidence in ('not_scored', 'sparse') %}
+          {# No bar for not_scored or sparse dimensions #}
           {% else %}
           <div class="dimension-bar">
             <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
