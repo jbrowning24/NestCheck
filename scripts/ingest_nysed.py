@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
 """
-Load NYSED school district performance data into the NestCheck spatial database.
+Load NY school district performance data into the NestCheck spatial database.
 
-Data source: Curated CSV derived from NYSED Report Card data
-(https://data.nysed.gov). NYSED publishes bulk data as Access databases;
-this script loads a pre-processed CSV with key metrics per district.
+Data source: Curated CSV at data/nysed_district_performance.csv, covering all
+691 regular school districts in New York State. Built from three sources:
+
+1. NCES CCD Directory (2022-23): District names, GEOIDs, counties
+   - GEOIDs match Census TIGER unified school district boundaries
+   - Urban Institute Education Data API (educationdata.urban.org)
+
+2. EDFacts Graduation Rates (2019): 4-year adjusted cohort graduation rates
+   - Federal data via Urban Institute API; most recent available year
+
+3. CCD Finance (2020): Per-pupil expenditure (exp_current_elsec_total / enrollment)
+
+4. NYSED Report Card (2023-24): ELA/Math proficiency, chronic absenteeism
+   - Currently available for ~40 Westchester County districts only
+   - Full statewide data requires NYSED Access DB extraction (see below)
 
 The CSV maps TIGER GEOID → performance metrics, enabling joins with
 the school district polygon table (facilities_school_districts).
@@ -12,17 +24,24 @@ the school district polygon table (facilities_school_districts).
 Idempotent: deletes existing NY rows and re-inserts on each run.
 Does NOT drop or recreate the table — preserves data from other states.
 
-Statewide data expansion:
-    The bundled CSV currently covers ~40 Westchester County districts.
-    Full statewide data (~730+ districts) is available from:
+Rebuilding the statewide CSV:
+    python scripts/build_nysed_statewide_csv.py
+
+Expanding NYSED-specific data (ELA, Math, absenteeism) statewide:
+    NYSED publishes full data as Access .mdb databases:
     - Graduation rates: https://data.nysed.gov/files/gradrate/24-25/gradrate.zip
     - Report Card (ELA/Math): https://data.nysed.gov/files/essa/24-25/SRC2025.zip
-    Both are Access .mdb databases. To extract:
+    To extract:
     1. Install mdbtools: apt install mdbtools
     2. List tables: mdb-tables <file>.mdb
     3. Export: mdb-export <file>.mdb <table> > output.csv
     4. Map NYSED BEDS codes to TIGER GEOIDs (NCES LEAID = GEOID)
-    5. Replace data/nysed_district_performance.csv with full statewide version
+    5. Merge into data/nysed_district_performance.csv
+
+Note: NYC DOE (GEOID 3620580) exists in TIGER as a unified district but
+is agency_type=3 (supervisory union) in CCD, not type 1 (regular). NYC's
+32 geographic sub-districts are type 2. The CSV excludes NYC since it
+doesn't have district-level metrics comparable to other districts.
 
 Usage:
     python scripts/ingest_nysed.py
