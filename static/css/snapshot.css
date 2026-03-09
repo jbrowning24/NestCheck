@@ -206,9 +206,6 @@
     max-height: calc(100dvh - 100px);
     overflow-y: auto;
   }
-  .report-map-inline {
-    display: none;
-  }
 }
 
 /* ================================================================
@@ -254,5 +251,4 @@
   .snapshot-cta, .share-prompt { display: none; }
   .report-layout__rail { display: none; }
   .report-layout { display: block; max-width: 800px; }
-  .report-map-inline { display: block; }
 }

@@ -15,9 +15,15 @@ body {
   background-color: var(--color-bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Ensure Safari mobile URL bar can properly show/hide */
+  /* Sticky footer: flex column so <main> grows to push footer down */
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+#main-content {
+  flex: 1 0 auto;
 }
 
 h1, h2, h3, h4 {
@@ -40,6 +46,8 @@ nav {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 100;
 }
 nav .logo {
   font-family: var(--font-heading);
@@ -62,6 +70,7 @@ nav a.nav-link:hover { color: var(--color-text-inverse); }
 
 /* --- Footer --- */
 footer {
+  flex-shrink: 0;
   font-size: var(--font-size-small);
   color: var(--color-text-faint);
   padding: var(--space-2xl) var(--space-lg);
