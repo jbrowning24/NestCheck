@@ -3253,7 +3253,10 @@ def csrf_token_endpoint():
 def bad_request(e):
     msg = getattr(e, "description", "Bad request")
     if _wants_json():
-        return jsonify({"error": msg}), 400
+        resp = {"error": msg}
+        if "csrf" in msg.lower():
+            resp["error_code"] = "csrf_expired"
+        return jsonify(resp), 400
     return render_template("404.html"), 400
 
 
