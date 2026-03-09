@@ -13,7 +13,6 @@ Structure:
 """
 
 import json
-import math
 from pathlib import Path
 
 import pytest
@@ -273,12 +272,14 @@ def _score_coffee(inputs: dict) -> float:
     two ceilings (category diversity + quality ceiling) that depend on
     the full place list — not testable from synthetic scalar inputs.
     """
-    return apply_piecewise(SCORING_MODEL.coffee.knots, inputs["walk_time_min"])
+    score = apply_piecewise(SCORING_MODEL.coffee.knots, inputs["walk_time_min"])
+    return max(SCORING_MODEL.coffee.floor, score)
 
 
 def _score_grocery(inputs: dict) -> float:
     """Compute raw grocery score from walk_time_min via piecewise curve."""
-    return apply_piecewise(SCORING_MODEL.grocery.knots, inputs["walk_time_min"])
+    score = apply_piecewise(SCORING_MODEL.grocery.knots, inputs["walk_time_min"])
+    return max(SCORING_MODEL.grocery.floor, score)
 
 
 def _score_fitness(inputs: dict) -> float:
@@ -287,7 +288,7 @@ def _score_fitness(inputs: dict) -> float:
     mult = apply_quality_multiplier(
         SCORING_MODEL.fitness.quality_multipliers, inputs["rating"],
     )
-    return round(base * mult, 1)
+    return max(SCORING_MODEL.fitness.floor, round(base * mult, 1))
 
 
 _DIMENSION_SCORERS = {
