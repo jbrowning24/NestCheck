@@ -3232,6 +3232,20 @@ _register_ingest_command()
 
 
 # ---------------------------------------------------------------------------
+# CSRF token refresh endpoint
+# ---------------------------------------------------------------------------
+
+@app.route('/csrf-token', methods=['GET'])
+def csrf_token_endpoint():
+    """Return a fresh CSRF token for long-lived pages."""
+    try:
+        from flask_wtf.csrf import generate_csrf
+        return jsonify({"csrf_token": generate_csrf()})
+    except Exception:
+        return jsonify({"csrf_token": ""})
+
+
+# ---------------------------------------------------------------------------
 # Error handlers
 # ---------------------------------------------------------------------------
 

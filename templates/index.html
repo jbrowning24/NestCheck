@@ -9,7 +9,7 @@
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=initAutocomplete"></script>
 <style>
   .pac-container > div:not(.pac-item) {
     display: none !important;
@@ -248,8 +248,20 @@
   const REQUIRE_PAYMENT = {{ 'true' if require_payment else 'false' }};
 
   // CSRF token from <meta> tag — included as X-CSRFToken header on every POST.
+  // Refreshed from server on demand when stale (e.g. tab left open > 1 hour).
   function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  }
+
+  function refreshCsrfToken() {
+    return fetch('/csrf-token', { method: 'GET', headers: { 'Accept': 'application/json' } })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        if (data.csrf_token) {
+          document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
+        }
+        return data.csrf_token || '';
+      });
   }
 
   (function() {
@@ -440,23 +452,37 @@
         body.append('persona', personaInput.value);
       }
 
-      fetch('/', {
-        method: 'POST',
-        body: body,
-        headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
-      })
-        .then(function(resp) {
-          if (!resp.ok) {
-            var ct = resp.headers.get('content-type') || '';
-            if (ct.indexOf('application/json') !== -1) {
-              return resp.json();
-            }
-            return resp.text().then(function(text) {
-              throw new Error('Server error (' + resp.status + '). Please try again.');
+      function doPost(token) {
+        return fetch('/', {
+          method: 'POST',
+          body: body,
+          headers: { 'Accept': 'application/json', 'X-CSRFToken': token }
+        });
+      }
+
+      function handleResponse(resp, isRetry) {
+        if (!resp.ok) {
+          var ct = resp.headers.get('content-type') || '';
+          if (ct.indexOf('application/json') !== -1) {
+            return resp.json().then(function(data) {
+              // Auto-refresh CSRF token and retry once on expiry
+              if (!isRetry && resp.status === 400 && data.error && data.error.toLowerCase().indexOf('csrf') !== -1) {
+                return refreshCsrfToken().then(function(newToken) {
+                  return doPost(newToken).then(function(r) { return handleResponse(r, true); });
+                });
+              }
+              return data;
             });
           }
-          return resp.json();
-        })
+          return resp.text().then(function() {
+            throw new Error('Server error (' + resp.status + '). Please try again.');
+          });
+        }
+        return resp.json();
+      }
+
+      doPost(csrfToken())
+        .then(function(resp) { return handleResponse(resp, false); })
         .then(function(data) {
           if (data.error === 'free_tier_exhausted') {
             // Free tier used — offer paid path
@@ -538,17 +564,34 @@
         checkoutBody.append('email', emailForCheckout.value.trim());
       }
 
-      fetch('/checkout/create', {
-        method: 'POST',
-        body: checkoutBody,
-        headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
-      })
-        .then(function(resp) {
-          if (!resp.ok && (resp.headers.get('content-type') || '').indexOf('application/json') === -1) {
-            throw new Error('Server error (' + resp.status + ')');
-          }
-          return resp.json();
-        })
+      function doCheckoutPost(token) {
+        return fetch('/checkout/create', {
+          method: 'POST',
+          body: checkoutBody,
+          headers: { 'Accept': 'application/json', 'X-CSRFToken': token }
+        });
+      }
+
+      function handleCheckoutResp(resp, isRetry) {
+        var ct = resp.headers.get('content-type') || '';
+        if (!resp.ok && ct.indexOf('application/json') !== -1) {
+          return resp.json().then(function(data) {
+            if (!isRetry && resp.status === 400 && data.error && data.error.toLowerCase().indexOf('csrf') !== -1) {
+              return refreshCsrfToken().then(function(newToken) {
+                return doCheckoutPost(newToken).then(function(r) { return handleCheckoutResp(r, true); });
+              });
+            }
+            return data;
+          });
+        }
+        if (!resp.ok) {
+          throw new Error('Server error (' + resp.status + ')');
+        }
+        return resp.json();
+      }
+
+      doCheckoutPost(csrfToken())
+        .then(function(resp) { return handleCheckoutResp(resp, false); })
         .then(function(data) {
           if (data.error) {
             showError(data.error, overlay, btn, form);
@@ -746,8 +789,8 @@
 
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script>
-  // Google Places Autocomplete — classic Autocomplete widget
-  (function() {
+  // Google Places Autocomplete — initialised by Maps API async callback
+  function initAutocomplete() {
     var input = document.getElementById('address-input');
     if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) return;
 
@@ -773,7 +816,7 @@
       var pid = document.getElementById('place-id-input');
       if (pid) pid.value = '';
     });
-  })();
+  }
 </script>
 {% endif %}
 
