@@ -115,53 +115,47 @@ body:has(.landing-container) {
   transform: none;
 }
 
-/* ── Persona pills ────────────────────────────────────────── */
-.persona-row {
+/* ── Recent searches pills ─────────────────────────────────── */
+.recent-searches-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   justify-content: center;
 }
 
-.persona-option {
-  cursor: pointer;
+.recent-searches-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #8E8E8E;
+  text-transform: uppercase;
 }
 
-.persona-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  width: 1px;
-  height: 1px;
-}
-
-.persona-option input[type="radio"]:focus-visible + .persona-pill {
-  outline: 2px solid #111111;
-  outline-offset: 2px;
-}
-
-.persona-pill {
+.recent-pill {
   display: inline-block;
   padding: 8px 20px;
   font-size: 13px;
+  font-family: inherit;
+  border: none;
   border-radius: 100px;
   background: #EBEBEB;
   color: #555555;
   white-space: nowrap;
+  cursor: pointer;
   transition: background 150ms ease, color 150ms ease;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.persona-option--active .persona-pill {
-  background: #111111;
-  color: #FFFFFF;
-}
-
-.persona-pill:hover {
+.recent-pill:hover {
   background: #DDDDDD;
 }
 
-.persona-option--active .persona-pill:hover {
-  background: #333333;
+.recent-pill:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 2px;
 }
 
 /* ── Email row ────────────────────────────────────────────── */
@@ -528,7 +522,4 @@ body:has(.landing-container) {
     width: 100%;
   }
 
-  .persona-row {
-    justify-content: center;
-  }
 }
