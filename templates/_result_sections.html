@@ -1,7 +1,8 @@
 {# ================================================================== #}
 {# Shared result rendering partial — included by index.html and       #}
 {# snapshot.html. Expects: result, snapshot_id, is_snapshot,          #}
-{# is_builder (optional), is_preview (optional, NES-132).             #}
+{# is_builder (optional), is_preview (optional, NES-132),             #}
+{# snapshot (optional — passed by snapshot.html context).              #}
 {# ================================================================== #}
 
 {# NES-132: Default is_preview to false for backward compatibility #}
@@ -9,1243 +10,1244 @@
 
 {% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon %}
 
+{# ── Pre-compute sidebar data ── #}
+{% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
+{% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
+{% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
+{% set safety_checks = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+{% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+{% set warning_count = safety_checks | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
+{% set issue_count = safety_checks | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+{% set safety_concerns = safety_checks | selectattr('result_type', 'ne', 'CLEAR') | list %}
+
 <div class="report">
+  <div class="report-container">
 
-  {# ── 1. VERDICT + SCORE ────────────────────────────────────── #}
-  {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
-  <div id="verdict" class="verdict-card{% if is_preview %} verdict-card--preview{% elif not show_score %} score-failed{% endif %}">
-    <div class="verdict-address">{{ result.address }}</div>
-
-    {% if is_preview %}
-    {# NES-132: Health status banner instead of score ring #}
-    {% set safety_checks = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
-    {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
-    <div class="preview-health-banner">
-      <div class="preview-health-title">Health &amp; Safety Check</div>
-      {% if safety_checks %}
-      <div class="preview-health-status {% if clear_count == (safety_checks | length) %}preview-status-clear{% else %}preview-status-concern{% endif %}">
-        {{ clear_count }} of {{ safety_checks | length }} checks clear
+    {# ── REPORT HEADER ── #}
+    <header class="report-header">
+      <div class="logo-area">
+        <div class="logo-icon"><span></span><span></span></div>
+        <div class="logo-wordmark">NestCheck</div>
       </div>
-      {% else %}
-      <div class="preview-health-status preview-status-clear">
-        No environmental concerns detected near this address.
+      <div class="report-header-meta">
+        <div><span class="rh-label">Report for</span> <span class="rh-value">{{ result.address }}</span></div>
+        <div><span class="rh-label">Generated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:7] | replace('-', '/') }}{% endif %}</span></div>
       </div>
-      {% endif %}
-    </div>
-    {% elif show_score %}
-    {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
-    {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
-    <div class="score-header">
-      {% set _show_value = result.show_numeric_score if result.show_numeric_score is defined else false %}
-      {{ score_ring(result.final_score, band_class, 'score-ring-container', show_value=_show_value) }}
-      <div class="score-details">
-        <div class="score-band {{ band_class }}">{{ band_label }}</div>
-        <div class="verdict-scope">Includes health proximity checks, walkability, green space, transit, daily essentials, and fitness access.</div>
-      </div>
-    </div>
-    {# Aggregate data confidence note — only shown when not all verified #}
-    {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'verified' and result.data_confidence_summary.level != 'HIGH' %}
-    <div class="confidence-summary confidence-{{ result.data_confidence_summary.level | lower }}">
-      <span class="confidence-summary-icon">&#9432;</span>
-      {{ result.data_confidence_summary.note }}
-    </div>
-    {% endif %}
-    {% else %}
-    {# Disqualified — property failed tier 1 safety checks (NES-164) #}
-    {% set all_safety = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
-    {% set clear_safety = all_safety | selectattr('result_type', 'equalto', 'CLEAR') | list %}
-    <div class="verdict-failed-banner">
-      <div class="verdict-failed-title">Health &amp; Safety Concerns</div>
-      {% if result.structured_summary is defined and result.structured_summary %}
-        <div class="verdict-failed-summary">{{ result.structured_summary }}</div>
-      {% endif %}
-      {% if all_safety %}
-      <div class="verdict-failed-score">
-        <span class="verdict-failed-score-num">{{ clear_safety | length }}</span>
-        <span class="verdict-failed-score-sep">of</span>
-        <span class="verdict-failed-score-num">{{ all_safety | length }}</span>
-        <span class="verdict-failed-score-label">safety checks clear</span>
-      </div>
-      {% endif %}
-      {% if all_safety %}
-      <div class="verdict-failed-explanation">
-        NestCheck runs {{ all_safety | length }} proximity checks for environmental and health hazards.
-        Addresses must pass all safety checks before walkability, amenities, and lifestyle scoring can proceed.
-        See the detailed results below.
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
+    </header>
 
-    {# Persona badge — only shown for non-balanced personas (NES-133) #}
-    {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
-    <div class="persona-badge">
-      Scored as: <strong>{{ result.persona.label }}</strong>
-    </div>
-    {% endif %}
+    {# ── TWO-COLUMN GRID ── #}
+    <div class="report-grid">
 
-    {# Dimension summaries — full report only #}
-    {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
-    <div class="dimension-list">
-      {% for dim in result.dimension_summaries %}
-      {% set dim_weight = result.persona.weights[dim.name] if result.persona is defined and result.persona and result.persona.weights is defined and dim.name in (result.persona.weights or {}) else 1.0 %}
-      {% call(slot) data_row(name=dim.name, detail=dim.summary, variant="dimension") %}
-        {% if slot == "right" %}
-        <div class="dimension-indicator">
-          {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
-            {# Not scored — suppress numeric score, show badge #}
-            <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
-          {% elif dim.data_confidence is defined and dim.data_confidence == 'sparse' %}
-            {# Sparse data — hide numeric score, show "Limited data" badge.
-               Dimension still contributes to composite at its capped value. #}
-            <span class="dimension-score dimension-score-sparse">Limited data</span>
-            <span class="confidence-badge confidence-sparse" title="{{ dim.data_confidence_note or '' }}">Sparse data</span>
-          {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
-            {# Suppressed dimension — no reliable score available (quality ceiling) #}
-            <span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span>
-          {% else %}
-            <span class="dimension-score">{{ dim.score }}/{{ dim.max_score }}</span>
-            {% if dim_weight > 1.0 %}
-              <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
-            {% elif dim_weight < 1.0 %}
-              <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
-            {% endif %}
-            {# Confidence badge — hidden for verified/HIGH (default) #}
-            {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
-              <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
-            {% endif %}
-          {% endif %}
-          {% if dim.suppressed_reason is defined and dim.suppressed_reason %}
-          <div class="dimension-bar dimension-bar-suppressed">
-            <div class="dimension-bar-fill" style="--fill: 0%"></div>
-          </div>
-          {% elif dim.data_confidence is defined and dim.data_confidence in ('not_scored', 'sparse') %}
-          {# No bar for not_scored or sparse dimensions #}
-          {% else %}
-          <div class="dimension-bar">
-            <div class="dimension-bar-fill" style="--fill: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
-      {% endcall %}
-      {% endfor %}
-    </div>
-    {% endif %}
+      {# ════════════════════════════════════════════════════════════════ #}
+      {# MAIN COLUMN                                                     #}
+      {# ════════════════════════════════════════════════════════════════ #}
+      <div class="report-main">
 
-    {# Safety concern pills — shown in BOTH preview and full #}
-    {% set safety_concerns = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
-    {% if safety_concerns %}
-    <div class="verdict-proximity-flags">
-      {% for pc in safety_concerns %}
-      <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">⚠ {{ pc.headline }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </div>
+        {# ── VERDICT (hidden element for section anchor + backward compat) ── #}
+        <div id="verdict" class="sr-only"></div>
 
-  {# ── CONTEXTUAL SHARE PROMPT (snapshot only — NES-123) ──── #}
-  {% if is_snapshot is defined and is_snapshot %}
-  {% set band = result.score_band.css_class if result.score_band is mapping else '' %}
-  {% set unresolved = result.unknown_check_count|default(0) > 0 %}
-  <div class="share-prompt {{ band }}">
-    <div class="share-prompt-text">
-      {% if unresolved %}
-        Some safety checks could not be verified — review the details and decide if this address is worth a closer look.
-      {% elif band == 'band-exceptional' %}
-        This property is a standout — share this report with your household.
-      {% elif band == 'band-strong' %}
-        A strong evaluation — share this report and discuss the details.
-      {% elif band == 'band-moderate' %}
-        Considering this property? Share the evaluation and talk it over.
-      {% elif band == 'band-limited' %}
-        Some trade-offs here — share this report and get another perspective.
-      {% else %}
-        Every evaluation helps narrow the search — share to keep everyone in the loop.
-      {% endif %}
-    </div>
-    <button class="share-btn" onclick="(typeof nativeShare==='function' && navigator.share ? nativeShare : copyShareLink)(this)" aria-label="Share this report">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      Share this report
-    </button>
-  </div>
-  {% endif %}
-
-  {# ── SUMMARY NARRATIVE ─── #}
-  {% if result.summary_narrative is defined and result.summary_narrative %}
-  <div class="summary-narrative">
-    {{ result.summary_narrative | safe }}
-  </div>
-  {% endif %}
-
-  {# ── HEALTH & ENVIRONMENT — primary differentiator, shown first (NES-214) ── #}
-  <div id="health-safety" class="report-section">
-    <h2>Health &amp; Environment</h2>
-
-    {# Section-level synthesis insight #}
-    {% if result.insights is defined and result.insights and result.insights.proximity %}
-      <p class="section-insight">{{ result.insights.proximity }}</p>
-    {% endif %}
-
-    {# presented_checks is guaranteed by load-time backfill (NES-80) #}
-    {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
-    {% if safety_items %}
-      {% set clear_count = safety_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
-      {% set warning_count = safety_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
-      {% set issue_count = safety_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
-      <div class="health-stat-row">
-        {% if clear_count %}<span class="health-stat-badge health-stat-badge--clear">{{ clear_count }} Clear</span>{% endif %}
-        {% if warning_count %}<span class="health-stat-badge health-stat-badge--warning">{{ warning_count }} Warning{{ 's' if warning_count != 1 }}</span>{% endif %}
-        {% if issue_count %}<span class="health-stat-badge health-stat-badge--issue">{{ issue_count }} Issue{{ 's' if issue_count != 1 }}</span>{% endif %}
-      </div>
-      {% for pc in safety_items %}
-        {% if pc.is_grouped | default(false) %}
-        <div class="proximity-item proximity-notable proximity-grouped">
-          <div class="proximity-name">
-            {{ health_check_icon("unverified") }}
-            {{ pc.headline }}
-          </div>
-          <div class="proximity-explanation">{{ pc.explanation }}</div>
-          <div class="proximity-grouped-checks">
-            We check for: {{ pc.grouped_checks | join(', ') }}
-          </div>
-          {% if result.coordinates is defined and result.coordinates %}
-            <a class="proximity-satellite-link"
-               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
-               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
-          {% endif %}
-        </div>
+        {# ── NARRATIVE SUMMARY ── #}
+        {% if result.summary_narrative is defined and result.summary_narrative %}
+        <div class="narrative-summary">{{ result.summary_narrative | safe }}</div>
         {% else %}
-        {# --- Individual check rendering --- #}
-        {% set band_class = "proximity-" + pc.proximity_band | lower %}
-        {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
-        <div class="proximity-item {{ band_class }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
-          <div class="proximity-name">
-            {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
-            {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
-            {{ pc.headline }}
-          </div>
-          {% if pc.explanation %}
-            <div class="proximity-detail">{{ pc.explanation }}</div>
-          {% endif %}
-          {# Satellite link for unverified checks #}
-          {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
-            <a class="proximity-satellite-link"
-               href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
-               target="_blank" rel="noopener">View satellite imagery &rarr;</a>
-          {% endif %}
-          {# Progressive disclosure — expanded health context #}
-          {% if pc.health_context is defined and pc.health_context %}
-            <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-              <span class="collapse-icon health-context-label">&#9654;</span>
-              <span class="health-context-label">Why we check this</span>
-            </div>
-            <div class="collapsible-body collapsed health-context-body">
-              {% for paragraph in pc.health_context %}
-                <p class="health-context-paragraph">{{ paragraph }}</p>
-              {% endfor %}
-              {% if pc.citations is defined and pc.citations %}
-              <p class="health-context-citations">
-                <span class="health-citations-label">Sources:</span>
-                {% for cite in pc.citations %}
-                  <a href="{{ cite.url }}" target="_blank" rel="noopener" class="health-citation-link">{{ cite.label }}</a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
-              </p>
-              {% endif %}
-            </div>
-          {% endif %}
-        </div>
-        {% endif %}
-      {% endfor %}
-    {% else %}
-      <div class="proximity-item proximity-neutral health-check--quiet">
-        <div class="proximity-name">
-          {{ health_check_icon("clear", quiet=true) }}
-          No environmental concerns detected near this address.
-        </div>
-      </div>
-    {% endif %}
-
-    {# NES-196: Note when UNKNOWN spatial checks were suppressed #}
-    {% set _suc = result.suppressed_unknown_count | default(0) %}
-    {% if _suc > 0 %}
-    <div class="confidence-summary confidence-medium">
-      <span class="confidence-summary-icon">&#9432;</span>
-      Environmental database expansion in progress — {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} coming soon.
-    </div>
-    {% endif %}
-
-    {# ── Road Noise Estimate card ── #}
-    {# Three-state guard: key absent → old snapshot, hide card.           #}
-    {# value=none → Overpass failed / no roads, hide card.                #}
-    {# value={..} → show card with severity-based styling.                #}
-    {% if result.road_noise is defined and result.road_noise %}
-      {% set rn = result.road_noise %}
-      {% set sev = rn.severity %}
-      {% if sev == "VERY_LOUD" or sev == "LOUD" %}
-        {% set noise_css = "proximity-very_close" %}
-      {% elif sev == "MODERATE" %}
-        {% set noise_css = "proximity-notable" %}
-      {% else %}
-        {% set noise_css = "proximity-neutral" %}
-      {% endif %}
-      {% set _noise_mod = "health-check--elevated" if sev in ("LOUD", "VERY_LOUD") else ("health-check--quiet" if sev == "QUIET" else "") %}
-      <div class="proximity-item {{ noise_css }} {{ _noise_mod }}">
-        <div class="proximity-name">
-          {% set _noise_icon = "clear" if sev == "QUIET" else ("warning" if sev == "MODERATE" else "issue") %}
-          {{ health_check_icon(_noise_icon, quiet=(sev == 'QUIET')) }}
-          Road Noise Estimate
-        </div>
-        <div class="proximity-detail">{{ rn.severity_label }}</div>
-        <div class="proximity-detail road-noise-detail">
-          Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
-        </div>
-        <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon road-noise-label">&#9654;</span>
-          <span class="road-noise-label">About the estimate</span>
-        </div>
-        <div class="collapsible-body collapsed road-noise-methodology">
-          {{ rn.methodology_note }}
-        </div>
-      </div>
-    {% endif %}
-
-  </div>
-
-  {# ── 2. NEIGHBORHOOD MAP (interactive Leaflet.js — NES-38) ─── #}
-  {% set has_map_data = result.coordinates is defined and result.coordinates
-                        and result.neighborhood_places is defined and result.neighborhood_places %}
-  {% if has_map_data %}
-  {% set _map_suffix = '-' ~ compare_index if compare_index is defined and compare_index else '' %}
-  <div id="neighborhood-map{{ _map_suffix }}" class="report-section map-container report-map-inline">
-    <div id="neighborhood-map-leaflet{{ _map_suffix }}" class="map-leaflet"></div>
-  </div>
-  {# Embed map data as JSON for neighborhood-map.js — no extra API calls #}
-  {% set transit = (result.urban_access.primary_transit
-                    if result.urban_access is defined and result.urban_access
-                       and result.urban_access.primary_transit is defined
-                    else none) %}
-  <script id="nc-map-data{{ _map_suffix }}" type="application/json">
-  {{ {
-    "coordinates": result.coordinates,
-    "neighborhood_places": result.neighborhood_places,
-    "transit": {"name": transit.name, "lat": transit.lat, "lng": transit.lng,
-                "walk_time_min": transit.walk_time_min} if transit and transit.lat is defined else none
-  } | tojson }}
-  </script>
-  {% else %}
-  {% set _map_suffix = '-' ~ compare_index if compare_index is defined and compare_index else '' %}
-  <div id="neighborhood-map{{ _map_suffix }}" class="report-section map-placeholder report-map-inline">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-      <line x1="9" y1="9" x2="15" y2="9"/>
-    </svg>
-    Map not available for this evaluation
-  </div>
-  {% endif %}
-
-  {# ── 3. YOUR NEIGHBORHOOD ──────────────────────────────────── #}
-  {% if result.neighborhood_places is defined and result.neighborhood_places %}
-  <div id="your-neighborhood" class="report-section">
-    <h2>Your Neighborhood</h2>
-
-    {% if result.insights is defined and result.insights and result.insights.your_neighborhood %}
-      <p class="section-insight">{{ result.insights.your_neighborhood }}</p>
-    {% endif %}
-
-    {% set categories = [
-      ("coffee", "☕", "Coffee & Social Spots"),
-      ("grocery", "🛒", "Grocery & Essentials"),
-      ("fitness", "💪", "Fitness & Recreation"),
-      ("parks", "🌳", "Parks & Green Space"),
-    ] %}
-
-    {% for key, icon, label in categories %}
-      {% set places = result.neighborhood_places[key] | default([]) %}
-      {# Separate normal results from expanded-search (wider radius) results #}
-      {% set normal_places = places | selectattr("expanded_search", "undefined") | list
-         if places else [] %}
-      {% set expanded_places = places | selectattr("expanded_search", "defined")
-         | selectattr("expanded_search") | list if places else [] %}
-
-      {% if normal_places %}
-      {# ── Normal results: places within walking distance ── #}
-      <div class="neighborhood-category">
-        <div class="category-label">{{ icon }} {{ label }}</div>
-
-        {# NES-210: Category breakdown chips (coffee only) #}
-        {% if key == "coffee" and result.neighborhood_places.coffee_category_counts is defined %}
-          {% set cc = result.neighborhood_places.coffee_category_counts %}
-          <div class="category-chips">
-            <span class="chip{% if not cc.cafe %} chip--empty{% endif %}">Cafes: {{ cc.cafe }}</span>
-            <span class="chip{% if not cc.bakery %} chip--empty{% endif %}">Bakeries: {{ cc.bakery }}</span>
-            {% if cc.coffee_shop %}
-            <span class="chip">Coffee shops: {{ cc.coffee_shop }}</span>
-            {% endif %}
-          </div>
+        <h1 class="narrative-summary">
+          This address {% if result.passed_tier1 %}has <strong>passed</strong> health screening{% else %}has <strong>health concerns</strong> that need attention{% endif %}{% if show_score %}, rated as a <strong>{{ band_label }}</strong> for daily living{% endif %}.
+        </h1>
         {% endif %}
 
-        <div class="place-cards">
-          {% for place in normal_places %}
-          {% set is_headline = loop.first and place.review_snippet %}
-          <div class="place-card{% if is_headline %} place-card--headline{% endif %}">
-            <div class="place-name">
-              {% if place.place_id %}
-                <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
-                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-              {% elif place.lat and place.lng %}
-                <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
-                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-              {% else %}
-                {{ place.name }}
-              {% endif %}
-            </div>
-            <div class="place-meta">
-              {% if place.rating %}
-                <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
-              {% endif %}
-              {% if place.review_count %}
-                <span class="place-reviews">({{ place.review_count }})</span>
-              {% endif %}
-            </div>
-            {% if place.review_snippet %}
-            <div class="place-snippet">
-              "{{ place.review_snippet }}"
-              {% if place.review_time %}
-                <span class="place-snippet-time">&mdash; {{ place.review_time }}</span>
-              {% endif %}
-            </div>
-            {% endif %}
-            <div class="place-time">
-              {# Drive/walk display: ≤20 walk only, 21-40 both, >40 drive only #}
-              {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
-                {{ fmt_time(place.drive_time_min, "drive") }}
-              {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
-                {{ fmt_time(place.walk_time_min, "walk") }} · {{ fmt_time(place.drive_time_min, "drive") }}
-              {% else %}
-                {{ fmt_time(place.walk_time_min, "walk") }}
-              {% endif %}
-            </div>
+        {# ── PREVIEW: Health status banner ── #}
+        {% if is_preview %}
+        <div class="preview-health-banner">
+          <div class="preview-health-title">Health &amp; Safety Check</div>
+          {% if safety_checks %}
+          <div class="preview-health-status {% if clear_count == (safety_checks | length) %}preview-status-clear{% else %}preview-status-concern{% endif %}">
+            {{ clear_count }} of {{ safety_checks | length }} checks clear
           </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      {% elif expanded_places and key != "parks" %}
-      {# ── Expanded results: nearest by car when nothing walkable ── #}
-      <div class="neighborhood-category neighborhood-category--expanded">
-        <div class="category-label">{{ icon }} {{ label }}</div>
-        <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
-        <div class="place-cards">
-          {% for place in expanded_places %}
-          <div class="place-card place-card--muted">
-            <div class="place-name">
-              {% if place.place_id %}
-                <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
-                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-              {% elif place.lat and place.lng %}
-                <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
-                   target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-              {% else %}
-                {{ place.name }}
-              {% endif %}
-            </div>
-            <div class="place-meta">
-              {% if place.rating %}
-                <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
-              {% endif %}
-            </div>
-            <div class="place-time">
-              {% if place.drive_time_min %}
-                {{ fmt_time(place.drive_time_min, "drive") }}
-              {% else %}
-                Drive time unavailable
-              {% endif %}
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      {% elif key != "parks" %}
-      {# ── Truly empty: nothing found even at wider radius ── #}
-      <div class="neighborhood-category neighborhood-category--empty">
-        <div class="category-label">{{ icon }} {{ label }}</div>
-        <p class="section-empty">No {{ label | lower }} found within about 3 miles.</p>
-      </div>
-      {% endif %}
-    {% endfor %}
-
-  </div>
-  {% else %}
-  <div id="your-neighborhood" class="report-section hidden">
-    {# Fallback for old snapshots without neighborhood_places #}
-  </div>
-  {% endif %}
-
-  {# ── 4. GETTING AROUND ─────────────────────────────────────── #}
-  <div id="getting-around" class="report-section">
-    <h2>Getting Around</h2>
-
-    {% if result.insights is defined and result.insights and result.insights.getting_around %}
-      <p class="section-insight">{{ result.insights.getting_around }}</p>
-    {% endif %}
-
-    {# Primary Transit Node — rail stations, or bus stop fallback #}
-    {% if result.urban_access and result.urban_access.primary_transit %}
-      {% set pt = result.urban_access.primary_transit %}
-      <div class="section-label">Nearest Transit</div>
-      {% set pt_detail %}{{ pt.mode }}{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% if pt.parking_available %} &middot; parking available{% endif %}{% endset %}
-      {% call(slot) data_row(name=pt.name, detail=pt_detail, variant="hub") %}
-        {% if slot == "right" %}
-          <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
-          {% if pt.drive_time_min %}
-            <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
-          {% endif %}
-        {% endif %}
-      {% endcall %}
-
-      {# Accessibility annotations — rail stations only (NES-31) #}
-      <div class="accessibility-lines">
-        <div class="accessibility-attr">
-          <span class="accessibility-label">Step-free entrance:</span>
-          {% if pt.wheelchair_accessible_entrance is true %}
-            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
-          {% elif pt.wheelchair_accessible_entrance is false %}
-            <span class="accessibility-val accessibility-no">No</span>
           {% else %}
-            <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+          <div class="preview-health-status preview-status-clear">
+            No environmental concerns detected near this address.
+          </div>
           {% endif %}
         </div>
-        <div class="accessibility-attr">
-          <span class="accessibility-label">Elevator:</span>
-          {% if pt.elevator_available is true %}
-            <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
-          {% elif pt.elevator_available is false %}
-            <span class="accessibility-val accessibility-no">No</span>
-          {% else %}
-            <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
-          {% endif %}
-        </div>
-      </div>
+        {% endif %}
 
-    {% elif result.transit_access and result.transit_access.primary_stop %}
-      <div class="section-label">Nearest Transit</div>
-      {% set bus_detail %}🚌 Bus{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% endset %}
-      {{ data_row(
-          name=result.transit_access.primary_stop,
-          detail=bus_detail,
-          value=fmt_time(result.transit_access.walk_minutes, "walk") if result.transit_access.walk_minutes is not none else None,
-          variant="hub"
-      ) }}
-    {% endif %}
-
-
-    {# Walk / Transit / Bike Scores #}
-    {% set has_walk_data = result.walk_scores and (
-        result.walk_scores.walk_score is not none or
-        result.walk_scores.transit_score is not none or
-        result.walk_scores.bike_score is not none) %}
-    {% if has_walk_data %}
-      <div class="walkscore-row">
-        {% if result.walk_scores.walk_score is not none %}
-          <div class="walkscore-pill">
-            <div class="ws-label">Walk Score</div>
-            <div class="ws-value">{{ result.walk_scores.walk_score }}</div>
-            {% if result.walk_scores.walk_description %}
-              <div class="ws-desc">{{ result.walk_scores.walk_description }}</div>
+        {# ── FAILED TIER 1 BANNER ── #}
+        {% if not is_preview and not show_score %}
+        <div class="verdict-card score-failed">
+          <div class="verdict-failed-banner">
+            <div class="verdict-failed-title">Health &amp; Safety Concerns</div>
+            {% if result.structured_summary is defined and result.structured_summary %}
+              <div class="verdict-failed-summary">{{ result.structured_summary }}</div>
+            {% endif %}
+            {% if safety_checks %}
+            <div class="verdict-failed-score">
+              <span class="verdict-failed-score-num">{{ clear_count }}</span>
+              <span class="verdict-failed-score-sep">of</span>
+              <span class="verdict-failed-score-num">{{ safety_checks | length }}</span>
+              <span class="verdict-failed-score-label">safety checks clear</span>
+            </div>
+            <div class="verdict-failed-explanation">
+              NestCheck runs {{ safety_checks | length }} proximity checks for environmental and health hazards.
+              Addresses must pass all safety checks before walkability, amenities, and lifestyle scoring can proceed.
+              See the detailed results below.
+            </div>
             {% endif %}
           </div>
-        {% endif %}
-        {% if result.walk_scores.transit_score is not none %}
-          <div class="walkscore-pill">
-            <div class="ws-label">Transit Score</div>
-            <div class="ws-value">{{ result.walk_scores.transit_score }}</div>
-            {% if result.walk_scores.transit_description %}
-              <div class="ws-desc">{{ result.walk_scores.transit_description }}</div>
-            {% endif %}
-          </div>
-        {% endif %}
-        {% if result.walk_scores.bike_score is not none %}
-          <div class="walkscore-pill">
-            <div class="ws-label">Bike Score</div>
-            <div class="ws-value">{{ result.walk_scores.bike_score }}</div>
-            {% if result.walk_scores.bike_description %}
-              <div class="ws-desc">{{ result.walk_scores.bike_description }}</div>
-            {% endif %}
-          </div>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    {# ── Walk Quality (MAPS-Mini) card (NES-192) ── #}
-    {% if result.walk_quality is defined and result.walk_quality %}
-      {% set wq = result.walk_quality %}
-      {% if wq.walk_quality_score >= 70 %}
-        {% set wq_css = "proximity-neutral" %}
-      {% elif wq.walk_quality_score >= 45 %}
-        {% set wq_css = "proximity-notable" %}
-      {% else %}
-        {% set wq_css = "proximity-very_close" %}
-      {% endif %}
-      <div class="walk-quality-card {{ wq_css }}">
-        <div class="walk-quality-header">
-          <div class="walk-quality-title">
-            <span class="proximity-icon proximity-icon-clear">&#128694;</span>
-            Walk Quality
-            <span class="walk-quality-badge">MAPS-Mini</span>
-          </div>
-          <div class="walk-quality-score-pill">
-            <span class="walk-quality-score-value">{{ wq.walk_quality_score }}</span>
-            <span class="walk-quality-score-label">/ 100</span>
-          </div>
         </div>
-        <div class="walk-quality-rating">{{ wq.walk_quality_rating }}</div>
-
-        {% if wq.walk_score_comparison %}
-          <div class="walk-quality-comparison">{{ wq.walk_score_comparison }}</div>
         {% endif %}
 
-        {# Feature breakdown bars #}
-        <div class="walk-quality-features">
-          {% for fs in wq.feature_scores %}
-            <div class="wq-feature-row">
-              <div class="wq-feature-label">
-                {{ fs.feature }}
-                <span class="wq-feature-source wq-source-{{ fs.source|lower }}">{{ fs.source }}</span>
+        {# ── DIMENSION SCORES ── #}
+        {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
+        <div class="data-section">
+          <h2 class="section-title">DIMENSION SCORES</h2>
+          <div class="metrics-list metrics-list--dimensions">
+            {% for dim in result.dimension_summaries %}
+            {% set dim_weight = result.persona.weights[dim.name] if result.persona is defined and result.persona and result.persona.weights is defined and dim.name in (result.persona.weights or {}) else 1.0 %}
+            {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
+            <div class="progress-item progress-item--not-scored">
+              <div class="progress-header">
+                <span class="label">{{ dim.name }}</span>
+                <span class="value">
+                  <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
+                </span>
               </div>
-              <div class="wq-feature-bar-container">
-                <div class="wq-feature-bar" style="width: {{ fs.score }}%"></div>
+              {% if dim.summary %}
+              <div class="progress-detail">{{ dim.summary }}</div>
+              {% endif %}
+            </div>
+            {% elif dim.data_confidence is defined and dim.data_confidence == 'sparse' %}
+            <div class="progress-item progress-item--sparse">
+              <div class="progress-header">
+                <span class="label">{{ dim.name }}</span>
+                <span class="value">
+                  <span class="dimension-score dimension-score-sparse">Limited data</span>
+                  <span class="confidence-badge confidence-sparse" title="{{ dim.data_confidence_note or '' }}">Sparse data</span>
+                </span>
               </div>
-              <div class="wq-feature-score">{{ fs.score }}</div>
+              {% if dim.summary %}
+              <div class="progress-detail">{{ dim.summary }}</div>
+              {% endif %}
             </div>
-          {% endfor %}
-        </div>
-
-        {# GSV coverage summary #}
-        {% if wq.gsv_available %}
-          <div class="walk-quality-gsv-summary">
-            Street View analyzed at {{ wq.sample_points_with_coverage }} of {{ wq.sample_points_total }} sample points
-            &bull; {{ wq.avg_greenery_pct }}% avg greenery
-          </div>
-        {% endif %}
-
-        {# Infrastructure summary #}
-        {% if wq.infrastructure %}
-          <div class="walk-quality-infra-summary">
-            {% set inf = wq.infrastructure %}
-            {{ inf.crosswalk_count }} crosswalks
-            &bull; {{ inf.streetlight_count }} street lights
-            &bull; {{ inf.curb_cut_count }} curb cuts
-            &bull; {{ inf.ped_signal_count }} ped signals
-            within 500 m
-          </div>
-        {% endif %}
-
-        {# Data confidence #}
-        <div class="walk-quality-confidence walk-quality-confidence-{{ wq.data_confidence|lower }}">
-          Data confidence: {{ wq.data_confidence }} &mdash; {{ wq.data_confidence_note }}
-        </div>
-
-        {# Collapsible methodology #}
-        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon">&#9654;</span>
-          <span>How walk quality differs from Walk Score</span>
-        </div>
-        <div class="collapsible-body collapsed">
-          <div class="proximity-methodology">
-            {{ wq.methodology_note }}
-          </div>
-        </div>
-      </div>
-    {% endif %}
-
-    {% set has_transit_display = (result.urban_access and result.urban_access.primary_transit) or (result.transit_access and result.transit_access.primary_stop) %}
-    {% if not has_transit_display and not has_walk_data %}
-      <p class="section-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="3" width="16" height="16" rx="2"/>
-          <line x1="4" y1="11" x2="20" y2="11"/>
-          <circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/>
-          <line x1="12" y1="3" x2="12" y2="11"/>
-        </svg>
-        Transit data is not available for this location.
-      </p>
-    {% endif %}
-
-    {# ── Sidewalk & Cycleway Coverage card (NES-110, moved from Proximity NES-214) ── #}
-    {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
-      {% set sc = result.sidewalk_coverage %}
-      {% if sc.data_confidence == "HIGH" %}
-        {% if sc.sidewalk_pct >= 60 %}
-          {% set sw_css = "proximity-neutral" %}
-        {% elif sc.sidewalk_pct >= 30 %}
-          {% set sw_css = "proximity-notable" %}
-        {% else %}
-          {% set sw_css = "proximity-very_close" %}
-        {% endif %}
-      {% else %}
-        {% set sw_css = "proximity-neutral" %}
-      {% endif %}
-      <div class="proximity-item {{ sw_css }}">
-        <div class="proximity-name">
-          <span class="proximity-icon proximity-icon-clear">&#128694;</span>
-          Sidewalk &amp; Cycleway Coverage
-        </div>
-        <div class="proximity-detail">
-          {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
-          &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
-        </div>
-        <div class="proximity-detail">
-          {{ sc.total_road_segments }} road segments assessed within 500 m
-          {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
-          {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
-        </div>
-        <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
-          Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
-        </div>
-        <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-          <span class="collapse-icon">&#9654;</span>
-          <span>About this metric</span>
-        </div>
-        <div class="collapsible-body collapsed">
-          {{ sc.methodology_note }}
-        </div>
-      </div>
-    {% endif %}
-
-  </div>
-
-  {# ── 5. PARKS & GREEN SPACE ────────────────────────────────── #}
-  <div id="parks-green-space" class="report-section">
-    <h2>Parks &amp; Green Space</h2>
-
-    {% if result.insights is defined and result.insights and result.insights.parks %}
-      <p class="section-insight">{{ result.insights.parks }}</p>
-    {% endif %}
-
-    {% if result.green_escape and result.green_escape.messages %}
-      {% for msg in result.green_escape.messages %}
-        <p class="eval-note">{{ msg }}</p>
-      {% endfor %}
-    {% endif %}
-
-    {% if result.green_escape and result.green_escape.best_daily_park %}
-      {% set park = result.green_escape.best_daily_park %}
-      <div class="park-highlight">
-        {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
-        {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
-          {% if slot == "right" %}
-          <div class="text-right">
-            <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
-            <div class="park-daily-value">
-              Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
-            </div>
-          </div>
-          {% endif %}
-        {% endcall %}
-
-        {# Subscore breakdown #}
-        {% if park.subscores %}
-        <div class="subscore-grid">
-          {% for ss in park.subscores %}
-            <div class="subscore-card">
-              <div class="subscore-label">
-                {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
+            {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
+            <div class="progress-item progress-item--suppressed">
+              <div class="progress-header">
+                <span class="label">{{ dim.name }}</span>
+                <span class="value"><span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span></span>
               </div>
-              <div class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</div>
-              <div class="subscore-reason">{{ ss.reason }}</div>
+              {% if dim.summary %}
+              <div class="progress-detail">{{ dim.summary }}</div>
+              {% endif %}
             </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        {# OSM data note #}
-        {% if park.osm_enriched %}
-          <div class="osm-note">
-            OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
-            {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
-            {% if park.osm_has_trail %} &middot; trail detected{% endif %}
-          </div>
-        {% endif %}
-      </div>
-
-    {% else %}
-      <p class="section-empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3 L8 10 H4 L9 15 L7 22 H17 L15 15 L20 10 H16 Z"/>
-        </svg>
-        No major green space found within walking distance.
-      </p>
-    {% endif %}
-
-    {# Other nearby green spaces #}
-    {% if result.green_escape and result.green_escape.nearby_green_spaces %}
-      <div class="subsection-divider">
-        <div class="section-label">Other nearby green spaces</div>
-        {% for space in result.green_escape.nearby_green_spaces[:5] %}
-          {# Distance-based label: ≤10 min Very Close, 11-20 Walkable, 21-30 Moderate, >30 Drive Only #}
-          {% if space.walk_time_min <= 10 %}
-            {% set dist_label, dist_badge = "Very Close", "badge-pass" %}
-          {% elif space.walk_time_min <= 20 %}
-            {% set dist_label, dist_badge = "Walkable", "badge-pass" %}
-          {% elif space.walk_time_min <= 30 %}
-            {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
-          {% else %}
-            {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
-          {% endif %}
-          {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
-          {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}
-          {{ data_row(
-              name=space_name,
-              detail=space_meta,
-              value=fmt_time(space.drive_time_min, "drive") if space.drive_time_min and space.walk_time_min > 30 else fmt_time(space.walk_time_min, "walk"),
-              variant="place"
-          ) }}
-        {% endfor %}
-      </div>
-    {% endif %}
-
-  </div>
-
-  {# ── 5.5 EMERGENCY SERVICES ─────────────────────────────────── #}
-  {# Informational only — nearest fire/police stations by drive time.  #}
-  {# Three-state guard:                                                #}
-  {#   key absent  → old snapshot, hide section                        #}
-  {#   value=none  → lookup failed, hide section (graceful degradation)#}
-  {#   value=[]    → searched, found nothing, show "none found"        #}
-  {#   value=[..]  → found stations, show cards                        #}
-  {% if result.emergency_services is defined and result.emergency_services is not none %}
-  <div id="emergency-services" class="report-section">
-    <h2>Emergency Services</h2>
-
-    {% if result.emergency_services %}
-      {% for svc in result.emergency_services %}
-      {{ data_row(
-          name=svc.name,
-          detail="Fire Station" if svc.type == "fire" else "Police Station",
-          value=fmt_time(svc.drive_time_min, "drive"),
-          variant="hub"
-      ) }}
-      {% endfor %}
-    {% else %}
-      <p class="section-empty">No fire or police stations found within 3 miles.</p>
-    {% endif %}
-
-  </div>
-  {% endif %}
-
-  {# ── 5.6 NEARBY LIBRARIES ───────────────────────────────────── #}
-  {# Informational only — nearest public libraries, estimated walk  #}
-  {# times via haversine (~3 mph). Same three-state guard as         #}
-  {# emergency services.                                             #}
-  {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
-  <div id="libraries" class="report-section">
-    <h2>Libraries</h2>
-
-    {% if result.nearby_libraries %}
-      {% for lib in result.nearby_libraries %}
-      {{ data_row(
-          name=lib.name,
-          detail="Public Library",
-          value="~" ~ lib.est_walk_min ~ " min walk",
-          variant="hub"
-      ) }}
-      {% endfor %}
-      {% if result.library_count is defined and result.library_count > 0 %}
-        <p class="section-footnote">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
-      {% endif %}
-    {% else %}
-      <p class="section-empty">No public libraries found within 1.2 mi.</p>
-    {% endif %}
-
-  </div>
-  {% endif %}
-
-  {# ── 5.7 NEARBY PHARMACIES ──────────────────────────────────── #}
-  {# Informational only — nearest pharmacies, estimated walk       #}
-  {# times via haversine (~3 mph). Same three-state guard as       #}
-  {# emergency services / libraries.                               #}
-  {% if result.nearby_pharmacies is defined and result.nearby_pharmacies is not none %}
-  <div id="pharmacies" class="report-section">
-    <h2>Pharmacies</h2>
-
-    {% if result.nearby_pharmacies %}
-      {% for pharm in result.nearby_pharmacies %}
-      {# Drive/walk display: ≤20 walk only, 21-40 both, >40 drive only #}
-      {% if pharm.drive_time_min and (pharm.est_walk_min or 0) > 40 %}
-        {% set time_val = "~" ~ pharm.drive_time_min ~ " min drive" %}
-      {% elif pharm.drive_time_min and (pharm.est_walk_min or 0) > 20 %}
-        {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk · " ~ pharm.drive_time_min ~ " min drive" %}
-      {% else %}
-        {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk" %}
-      {% endif %}
-      {{ data_row(
-          name=pharm.name,
-          detail="Pharmacy",
-          value=time_val,
-          variant="hub"
-      ) }}
-      {% endfor %}
-      {% if result.pharmacy_count is defined and result.pharmacy_count > 0 %}
-        <p class="section-footnote">{{ result.pharmacy_count }} {{ "pharmacy" if result.pharmacy_count == 1 else "pharmacies" }} within 1.2 mi</p>
-      {% endif %}
-    {% else %}
-      <p class="section-empty">No pharmacies found within 1.2 mi.</p>
-    {% endif %}
-
-  </div>
-  {% endif %}
-
-  {# ── AREA CONTEXT divider — separates scored evaluation from informational data ── #}
-  {# Community Profile + School District are contextual, never scored (FHA separation) #}
-  {% set _has_context = (result.demographics is defined and result.demographics is not none)
-      or (result.school_district is defined and result.school_district is not none)
-      or (result.ejscreen_profile is defined and result.ejscreen_profile is not none) %}
-  {% if _has_context %}
-  <div class="area-context-divider">
-    <h2 class="area-context-heading">Area Context</h2>
-    <p class="area-context-note">Community, school, and environmental data shown for reference — not factored into the livability score.</p>
-  </div>
-  {% endif %}
-
-  {# ── 6b. COMMUNITY PROFILE — shown in both preview and full (NES-134) ── #}
-  {# Three-state guard: key absent = old snapshot (hide),                     #}
-  {#   value=none = API failure (hide), value=dict = show section.            #}
-  {% if result.demographics is defined and result.demographics is not none %}
-  <div id="community-profile" class="report-section">
-    <h2>Community Profile</h2>
-
-    {# Section-level narrative insight #}
-    {% if result.insights is defined and result.insights and result.insights.community_profile %}
-      <p class="section-insight">{{ result.insights.community_profile }}</p>
-    {% endif %}
-
-    {# Stat card grid #}
-    {% set demo = result.demographics %}
-    <div class="stat-card-grid">
-
-      {# Households with children #}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(demo.children_pct) }}%</div>
-        <div class="stat-card__label">Households with children</div>
-        {% if demo.county_children_pct is not none %}
-        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_children_pct) }}%</div>
-        {% endif %}
-      </div>
-
-      {# Renter-occupied #}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(demo.renter_pct) }}%</div>
-        <div class="stat-card__label">Renter-occupied housing</div>
-        {% if demo.county_renter_pct is not none %}
-        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_renter_pct) }}%</div>
-        {% endif %}
-      </div>
-
-      {# Median rent #}
-      {% if demo.median_rent is not none %}
-      <div class="stat-card">
-        <div class="stat-card__value">${{ "{:,}".format(demo.median_rent) }}</div>
-        <div class="stat-card__label">Median gross rent</div>
-        {% if demo.county_median_rent is not none %}
-        <div class="stat-card__compare">{{ demo.county_name or "County" }}: ${{ "{:,}".format(demo.county_median_rent) }}</div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      {# Transit commuters #}
-      {% if demo.commute and demo.commute.transit_pct >= 1 %}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(demo.commute.transit_pct) }}%</div>
-        <div class="stat-card__label">Commute by transit</div>
-        {% if demo.county_commute is not none and demo.county_commute.transit_pct is defined %}
-        <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_commute.transit_pct) }}%</div>
-        {% endif %}
-      </div>
-      {% endif %}
-
-      {# Work from home #}
-      {% if demo.commute and demo.commute.wfh_pct >= 5 %}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(demo.commute.wfh_pct) }}%</div>
-        <div class="stat-card__label">Work from home</div>
-      </div>
-      {% endif %}
-
-    </div>
-
-    {# Data attribution #}
-    <p class="community-profile-source">
-      Source: U.S. Census Bureau, ACS 5-Year Estimates &middot; Tract {{ demo.geoid }}
-    </p>
-
-  </div>
-  {% endif %}
-
-  {# ── 6c. SCHOOL DISTRICT — TIGER boundaries + NYSED (NES-206) ── #}
-  {% if result.school_district is defined and result.school_district is not none %}
-  {% set sd = result.school_district %}
-  <div id="school-district" class="report-section">
-    <h2>School District</h2>
-
-    <div class="school-district-header">
-      <span class="school-district-name">{{ sd.district_name }}</span>
-      {% if sd.grade_range %}
-        <span class="school-district-grades">Grades {{ sd.grade_range }}</span>
-      {% endif %}
-    </div>
-
-    {% if sd.graduation_rate_pct is not none %}
-    <div class="stat-card-grid">
-
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(sd.graduation_rate_pct) }}%</div>
-        <div class="stat-card__label">Graduation rate</div>
-      </div>
-
-      {% if sd.ela_proficiency_pct is not none %}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(sd.ela_proficiency_pct) }}%</div>
-        <div class="stat-card__label">ELA proficiency</div>
-      </div>
-      {% endif %}
-
-      {% if sd.math_proficiency_pct is not none %}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(sd.math_proficiency_pct) }}%</div>
-        <div class="stat-card__label">Math proficiency</div>
-      </div>
-      {% endif %}
-
-      {% if sd.chronic_absenteeism_pct is not none %}
-      <div class="stat-card">
-        <div class="stat-card__value">{{ "%.0f"|format(sd.chronic_absenteeism_pct) }}%</div>
-        <div class="stat-card__label">Chronic absenteeism</div>
-      </div>
-      {% endif %}
-
-      {% if sd.pupil_expenditure is not none %}
-      <div class="stat-card">
-        <div class="stat-card__value">${{ "{:,.0f}".format(sd.pupil_expenditure) }}</div>
-        <div class="stat-card__label">Per-pupil spending</div>
-      </div>
-      {% endif %}
-
-    </div>
-    {% endif %}
-
-    {# ── Nearby Schools (NCES 2022-23) — NES-216 ── #}
-    {% if result.nearby_schools is defined and result.nearby_schools %}
-    <div class="nearby-schools-section">
-      <h3 class="nearby-schools-heading">Nearby Schools</h3>
-      <div class="nearby-schools-list">
-        {% for school in result.nearby_schools %}
-          {{ school_card(school) }}
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <p class="community-profile-source">
-      Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
-      &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
-      {% if result.nearby_schools is defined and result.nearby_schools %}
-        &middot; NCES 2022&ndash;23
-      {% endif %}
-    </p>
-
-  </div>
-  {% endif %}
-
-  {# ── EPA Environmental Profile (EJScreen) — moved from Proximity, NES-214 ── #}
-  {# Three-state guard: key absent → old snapshot, hide card.           #}
-  {# value=none → no EJScreen data, hide card.                          #}
-  {# value={..} → show card with all indicators.                        #}
-  {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
-    {% set ej = result.ejscreen_profile %}
-    {# Indicator display config: field_key, label, is_check_indicator #}
-    {% set ej_indicators = [
-      ("PM25",   "PM2.5 Particulate Matter",    true),
-      ("OZONE",  "Ozone",                       false),
-      ("DSLPM",  "Diesel Particulate Matter",    true),
-      ("CANCER", "Air Toxics Cancer Risk",       true),
-      ("RESP",   "Air Toxics Respiratory HI",    false),
-      ("PTRAF",  "Traffic Proximity",            false),
-      ("PNPL",   "Superfund Proximity",          true),
-      ("PRMP",   "RMP Facility Proximity",       false),
-      ("PTSDF",  "Hazardous Waste Proximity",    true),
-      ("UST",    "Underground Storage Tanks",    false),
-      ("PWDIS",  "Wastewater Discharge",         false),
-      ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
-    ] %}
-  <div id="ejscreen-profile" class="report-section">
-    <h2>EPA Environmental Profile</h2>
-    <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
-    <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-      <span class="collapse-icon">&#9654;</span>
-      <span>View all indicators</span>
-    </div>
-    <div class="collapsible-body collapsed">
-      <div class="ejscreen-indicators">
-        {% for field_key, label, is_check in ej_indicators %}
-          {% if ej[field_key] is defined and ej[field_key] is not none %}
-            {% set pct = ej[field_key] %}
-            {% if pct >= 80 %}
-              {% set indicator_css = "ejscreen-indicator--warning" %}
-            {% elif pct >= 50 %}
-              {% set indicator_css = "ejscreen-indicator--moderate" %}
             {% else %}
-              {% set indicator_css = "ejscreen-indicator--low" %}
-            {% endif %}
-            <div class="ejscreen-indicator {{ indicator_css }}">
-              <span class="ejscreen-indicator__label">{{ label }}</span>
-              <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
-              {% if pct >= 80 %}
-                <span class="ejscreen-indicator__badge">&#9888;</span>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="label">
+                  {{ dim.name }}
+                  {% if dim_weight > 1.0 %}
+                    <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
+                  {% elif dim_weight < 1.0 %}
+                    <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+                  {% endif %}
+                </span>
+                <span class="value">
+                  {{ dim.score }}/{{ dim.max_score }}
+                  {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
+                    <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
+                  {% endif %}
+                </span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" style="width: {{ (dim.score / dim.max_score * 100) | int if dim.max_score else 0 }}%;"></div>
+              </div>
+              {% if dim.summary %}
+              <div class="progress-detail">{{ dim.summary }}</div>
               {% endif %}
             </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── HEALTH & ENVIRONMENT ── #}
+        <div id="health-safety" class="data-section">
+          <h2 class="section-title">HEALTH &amp; ENVIRONMENT</h2>
+
+          {% if result.insights is defined and result.insights and result.insights.proximity %}
+            <p class="section-insight">{{ result.insights.proximity }}</p>
           {% endif %}
-        {% endfor %}
+
+          {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+          <div class="metrics-list metrics-list--health">
+          {% if safety_items %}
+            {% set si_clear = safety_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+            {% set si_warning = safety_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
+            {% set si_issue = safety_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+            <div class="health-stat-row">
+              {% if si_clear %}<span class="health-stat-badge health-stat-badge--clear">{{ si_clear }} Clear</span>{% endif %}
+              {% if si_warning %}<span class="health-stat-badge health-stat-badge--warning">{{ si_warning }} Warning{{ 's' if si_warning != 1 }}</span>{% endif %}
+              {% if si_issue %}<span class="health-stat-badge health-stat-badge--issue">{{ si_issue }} Issue{{ 's' if si_issue != 1 }}</span>{% endif %}
+            </div>
+            {% for pc in safety_items %}
+              {% if pc.is_grouped | default(false) %}
+              <div class="proximity-item proximity-notable proximity-grouped">
+                <div class="proximity-name">
+                  {{ health_check_icon("unverified") }}
+                  {{ pc.headline }}
+                </div>
+                <div class="proximity-detail">{{ pc.explanation }}</div>
+                <div class="proximity-grouped-checks">
+                  We check for: {{ pc.grouped_checks | join(', ') }}
+                </div>
+                {% if result.coordinates is defined and result.coordinates %}
+                  <a class="proximity-satellite-link"
+                     href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
+                     target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+                {% endif %}
+              </div>
+              {% else %}
+              {% set band_css = "proximity-" + pc.proximity_band | lower %}
+              {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
+              <div class="proximity-item {{ band_css }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+                <div class="proximity-name">
+                  {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
+                  {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
+                  {{ pc.headline }}
+                </div>
+                {% if pc.explanation %}
+                  <div class="proximity-detail">{{ pc.explanation }}</div>
+                {% endif %}
+                {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
+                  <a class="proximity-satellite-link"
+                     href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
+                     target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+                {% endif %}
+                {% if pc.health_context is defined and pc.health_context %}
+                  <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                    <span class="collapse-icon health-context-label">&#9654;</span>
+                    <span class="health-context-label">Why we check this</span>
+                  </div>
+                  <div class="collapsible-body collapsed health-context-body">
+                    {% for paragraph in pc.health_context %}
+                      <p class="health-context-paragraph">{{ paragraph }}</p>
+                    {% endfor %}
+                    {% if pc.citations is defined and pc.citations %}
+                    <p class="health-context-citations">
+                      <span class="health-citations-label">Sources:</span>
+                      {% for cite in pc.citations %}
+                        <a href="{{ cite.url }}" target="_blank" rel="noopener" class="health-citation-link">{{ cite.label }}</a>{% if not loop.last %}, {% endif %}
+                      {% endfor %}
+                    </p>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div class="proximity-item proximity-neutral health-check--quiet">
+              <div class="proximity-name">
+                {{ health_check_icon("clear", quiet=true) }}
+                No environmental concerns detected near this address.
+              </div>
+            </div>
+          {% endif %}
+
+          {# NES-196: Note when UNKNOWN spatial checks were suppressed #}
+          {% set _suc = result.suppressed_unknown_count | default(0) %}
+          {% if _suc > 0 %}
+          <div class="confidence-summary confidence-medium">
+            <span class="confidence-summary-icon">&#9432;</span>
+            Environmental database expansion in progress — {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} coming soon.
+          </div>
+          {% endif %}
+
+          {# ── Road Noise Estimate card ── #}
+          {% if result.road_noise is defined and result.road_noise %}
+            {% set rn = result.road_noise %}
+            {% set sev = rn.severity %}
+            {% if sev == "VERY_LOUD" or sev == "LOUD" %}
+              {% set noise_css = "proximity-very_close" %}
+            {% elif sev == "MODERATE" %}
+              {% set noise_css = "proximity-notable" %}
+            {% else %}
+              {% set noise_css = "proximity-neutral" %}
+            {% endif %}
+            {% set _noise_mod = "health-check--elevated" if sev in ("LOUD", "VERY_LOUD") else ("health-check--quiet" if sev == "QUIET" else "") %}
+            <div class="proximity-item {{ noise_css }} {{ _noise_mod }}">
+              <div class="proximity-name">
+                {% set _noise_icon = "clear" if sev == "QUIET" else ("warning" if sev == "MODERATE" else "issue") %}
+                {{ health_check_icon(_noise_icon, quiet=(sev == 'QUIET')) }}
+                Road Noise Estimate
+              </div>
+              <div class="proximity-detail">{{ rn.severity_label }}</div>
+              <div class="proximity-detail road-noise-detail">
+                Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
+              </div>
+              <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon road-noise-label">&#9654;</span>
+                <span class="road-noise-label">About the estimate</span>
+              </div>
+              <div class="collapsible-body collapsed road-noise-methodology">
+                {{ rn.methodology_note }}
+              </div>
+            </div>
+          {% endif %}
+          </div>{# .metrics-list--health #}
+        </div>{# #health-safety #}
+
+        {# ── YOUR NEIGHBORHOOD ── #}
+        {% if result.neighborhood_places is defined and result.neighborhood_places %}
+        <div id="your-neighborhood" class="data-section">
+          <h2 class="section-title">YOUR NEIGHBORHOOD</h2>
+
+          {% if result.insights is defined and result.insights and result.insights.your_neighborhood %}
+            <p class="section-insight">{{ result.insights.your_neighborhood }}</p>
+          {% endif %}
+
+          {% set categories = [
+            ("coffee", "Coffee & Social Spots"),
+            ("grocery", "Grocery & Essentials"),
+            ("fitness", "Fitness & Recreation"),
+            ("parks", "Parks & Green Space"),
+          ] %}
+
+          {% for key, label in categories %}
+            {% set places = result.neighborhood_places[key] | default([]) %}
+            {% set normal_places = places | selectattr("expanded_search", "undefined") | list
+               if places else [] %}
+            {% set expanded_places = places | selectattr("expanded_search", "defined")
+               | selectattr("expanded_search") | list if places else [] %}
+
+            {% if normal_places %}
+            <div class="neighborhood-category">
+              <div class="category-label">{{ label }}</div>
+
+              {% if key == "coffee" and result.neighborhood_places.coffee_category_counts is defined %}
+                {% set cc = result.neighborhood_places.coffee_category_counts %}
+                <div class="category-chips">
+                  <span class="chip{% if not cc.cafe %} chip--empty{% endif %}">Cafes: {{ cc.cafe }}</span>
+                  <span class="chip{% if not cc.bakery %} chip--empty{% endif %}">Bakeries: {{ cc.bakery }}</span>
+                  {% if cc.coffee_shop %}
+                  <span class="chip">Coffee shops: {{ cc.coffee_shop }}</span>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              <div class="place-cards">
+                {% for place in normal_places %}
+                {% set is_headline = loop.first and place.review_snippet %}
+                <div class="place-card{% if is_headline %} place-card--headline{% endif %}">
+                  <div class="place-name">
+                    {% if place.place_id %}
+                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
+                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                    {% elif place.lat and place.lng %}
+                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                    {% else %}
+                      {{ place.name }}
+                    {% endif %}
+                  </div>
+                  <div class="place-meta">
+                    {% if place.rating %}
+                      <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+                    {% endif %}
+                    {% if place.review_count %}
+                      <span class="place-reviews">({{ place.review_count }})</span>
+                    {% endif %}
+                  </div>
+                  {% if place.review_snippet %}
+                  <div class="place-snippet">
+                    "{{ place.review_snippet }}"
+                    {% if place.review_time %}
+                      <span class="place-snippet-time">&mdash; {{ place.review_time }}</span>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                  <div class="place-time">
+                    {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
+                      {{ fmt_time(place.drive_time_min, "drive") }}
+                    {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
+                      {{ fmt_time(place.walk_time_min, "walk") }} · {{ fmt_time(place.drive_time_min, "drive") }}
+                    {% else %}
+                      {{ fmt_time(place.walk_time_min, "walk") }}
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            {% elif expanded_places and key != "parks" %}
+            <div class="neighborhood-category neighborhood-category--expanded">
+              <div class="category-label">{{ label }}</div>
+              <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
+              <div class="place-cards">
+                {% for place in expanded_places %}
+                <div class="place-card place-card--muted">
+                  <div class="place-name">
+                    {% if place.place_id %}
+                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
+                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                    {% elif place.lat and place.lng %}
+                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                    {% else %}
+                      {{ place.name }}
+                    {% endif %}
+                  </div>
+                  <div class="place-meta">
+                    {% if place.rating %}
+                      <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+                    {% endif %}
+                  </div>
+                  <div class="place-time">
+                    {% if place.drive_time_min %}
+                      {{ fmt_time(place.drive_time_min, "drive") }}
+                    {% else %}
+                      Drive time unavailable
+                    {% endif %}
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            {% elif key != "parks" %}
+            <div class="neighborhood-category neighborhood-category--empty">
+              <div class="category-label">{{ label }}</div>
+              <p class="section-empty">No {{ label | lower }} found within about 3 miles.</p>
+            </div>
+            {% endif %}
+          {% endfor %}
+
+        </div>
+        {% else %}
+        <div class="data-section hidden"></div>
+        {% endif %}
+
+        {# ── GETTING AROUND ── #}
+        <div id="getting-around" class="data-section">
+          <h2 class="section-title">GETTING AROUND</h2>
+
+          {% if result.insights is defined and result.insights and result.insights.getting_around %}
+            <p class="section-insight">{{ result.insights.getting_around }}</p>
+          {% endif %}
+
+          {# Primary Transit Node #}
+          {% if result.urban_access and result.urban_access.primary_transit %}
+            {% set pt = result.urban_access.primary_transit %}
+            <div class="section-label">Nearest Transit</div>
+            {% set pt_detail %}{{ pt.mode }}{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% if pt.parking_available %} &middot; parking available{% endif %}{% endset %}
+            {% call(slot) data_row(name=pt.name, detail=pt_detail, variant="hub") %}
+              {% if slot == "right" %}
+                <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
+                {% if pt.drive_time_min %}
+                  <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
+                {% endif %}
+              {% endif %}
+            {% endcall %}
+
+            <div class="accessibility-lines">
+              <div class="accessibility-attr">
+                <span class="accessibility-label">Step-free entrance:</span>
+                {% if pt.wheelchair_accessible_entrance is true %}
+                  <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
+                {% elif pt.wheelchair_accessible_entrance is false %}
+                  <span class="accessibility-val accessibility-no">No</span>
+                {% else %}
+                  <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+                {% endif %}
+              </div>
+              <div class="accessibility-attr">
+                <span class="accessibility-label">Elevator:</span>
+                {% if pt.elevator_available is true %}
+                  <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
+                {% elif pt.elevator_available is false %}
+                  <span class="accessibility-val accessibility-no">No</span>
+                {% else %}
+                  <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+                {% endif %}
+              </div>
+            </div>
+
+          {% elif result.transit_access and result.transit_access.primary_stop %}
+            <div class="section-label">Nearest Transit</div>
+            {% set bus_detail %}🚌 Bus{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% endset %}
+            {{ data_row(
+                name=result.transit_access.primary_stop,
+                detail=bus_detail,
+                value=fmt_time(result.transit_access.walk_minutes, "walk") if result.transit_access.walk_minutes is not none else None,
+                variant="hub"
+            ) }}
+          {% endif %}
+
+          {# Walk Quality (MAPS-Mini) card #}
+          {% if result.walk_quality is defined and result.walk_quality %}
+            {% set wq = result.walk_quality %}
+            {% if wq.walk_quality_score >= 70 %}
+              {% set wq_css = "proximity-neutral" %}
+            {% elif wq.walk_quality_score >= 45 %}
+              {% set wq_css = "proximity-notable" %}
+            {% else %}
+              {% set wq_css = "proximity-very_close" %}
+            {% endif %}
+            <div class="walk-quality-card {{ wq_css }}">
+              <div class="walk-quality-header">
+                <div class="walk-quality-title">
+                  <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+                  Walk Quality
+                  <span class="walk-quality-badge">MAPS-Mini</span>
+                </div>
+                <div class="walk-quality-score-pill">
+                  <span class="walk-quality-score-value">{{ wq.walk_quality_score }}</span>
+                  <span class="walk-quality-score-label">/ 100</span>
+                </div>
+              </div>
+              <div class="walk-quality-rating">{{ wq.walk_quality_rating }}</div>
+
+              {% if wq.walk_score_comparison %}
+                <div class="walk-quality-comparison">{{ wq.walk_score_comparison }}</div>
+              {% endif %}
+
+              <div class="walk-quality-features">
+                {% for fs in wq.feature_scores %}
+                  <div class="wq-feature-row">
+                    <div class="wq-feature-label">
+                      {{ fs.feature }}
+                      <span class="wq-feature-source wq-source-{{ fs.source|lower }}">{{ fs.source }}</span>
+                    </div>
+                    <div class="wq-feature-bar-container">
+                      <div class="wq-feature-bar" style="width: {{ fs.score }}%"></div>
+                    </div>
+                    <div class="wq-feature-score">{{ fs.score }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              {% if wq.gsv_available %}
+                <div class="walk-quality-gsv-summary">
+                  Street View analyzed at {{ wq.sample_points_with_coverage }} of {{ wq.sample_points_total }} sample points
+                  &bull; {{ wq.avg_greenery_pct }}% avg greenery
+                </div>
+              {% endif %}
+
+              {% if wq.infrastructure %}
+                <div class="walk-quality-infra-summary">
+                  {% set inf = wq.infrastructure %}
+                  {{ inf.crosswalk_count }} crosswalks
+                  &bull; {{ inf.streetlight_count }} street lights
+                  &bull; {{ inf.curb_cut_count }} curb cuts
+                  &bull; {{ inf.ped_signal_count }} ped signals
+                  within 500 m
+                </div>
+              {% endif %}
+
+              <div class="walk-quality-confidence walk-quality-confidence-{{ wq.data_confidence|lower }}">
+                Data confidence: {{ wq.data_confidence }} &mdash; {{ wq.data_confidence_note }}
+              </div>
+
+              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon">&#9654;</span>
+                <span>How walk quality differs from Walk Score</span>
+              </div>
+              <div class="collapsible-body collapsed">
+                <div class="proximity-methodology">
+                  {{ wq.methodology_note }}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          {% set has_transit_display = (result.urban_access and result.urban_access.primary_transit) or (result.transit_access and result.transit_access.primary_stop) %}
+          {% set has_walk_data = result.walk_scores and (
+              result.walk_scores.walk_score is not none or
+              result.walk_scores.transit_score is not none or
+              result.walk_scores.bike_score is not none) %}
+          {% if not has_transit_display and not has_walk_data %}
+            <p class="section-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="16" rx="2"/>
+                <line x1="4" y1="11" x2="20" y2="11"/>
+                <circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/>
+                <line x1="12" y1="3" x2="12" y2="11"/>
+              </svg>
+              Transit data is not available for this location.
+            </p>
+          {% endif %}
+
+          {# Sidewalk & Cycleway Coverage card #}
+          {% if result.sidewalk_coverage is defined and result.sidewalk_coverage %}
+            {% set sc = result.sidewalk_coverage %}
+            {% if sc.data_confidence == "HIGH" %}
+              {% if sc.sidewalk_pct >= 60 %}
+                {% set sw_css = "proximity-neutral" %}
+              {% elif sc.sidewalk_pct >= 30 %}
+                {% set sw_css = "proximity-notable" %}
+              {% else %}
+                {% set sw_css = "proximity-very_close" %}
+              {% endif %}
+            {% else %}
+              {% set sw_css = "proximity-neutral" %}
+            {% endif %}
+            <div class="proximity-item {{ sw_css }}">
+              <div class="proximity-name">
+                <span class="proximity-icon proximity-icon-clear">&#128694;</span>
+                Sidewalk &amp; Cycleway Coverage
+              </div>
+              <div class="proximity-detail">
+                {{ "%.0f"|format(sc.sidewalk_pct) }}% of nearby roads have sidewalks
+                &bull; {{ "%.0f"|format(sc.cycleway_pct) }}% have cycling infrastructure
+              </div>
+              <div class="proximity-detail">
+                {{ sc.total_road_segments }} road segments assessed within 500 m
+                {% if sc.separate_cycleways > 0 %} &bull; {{ sc.separate_cycleways }} dedicated cycleway{{ "s" if sc.separate_cycleways != 1 }}{% endif %}
+                {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
+              </div>
+              <div class="proximity-detail sidewalk-confidence sidewalk-confidence-{{ sc.data_confidence|lower }}">
+                Data confidence: {{ sc.data_confidence }} &mdash; {{ sc.data_confidence_note }}
+              </div>
+              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon">&#9654;</span>
+                <span>About this metric</span>
+              </div>
+              <div class="collapsible-body collapsed">
+                {{ sc.methodology_note }}
+              </div>
+            </div>
+          {% endif %}
+
+        </div>{# #getting-around #}
+
+        {# ── PARKS & GREEN SPACE ── #}
+        <div id="parks-green-space" class="data-section">
+          <h2 class="section-title">PARKS &amp; GREEN SPACE</h2>
+
+          {% if result.insights is defined and result.insights and result.insights.parks %}
+            <p class="section-insight">{{ result.insights.parks }}</p>
+          {% endif %}
+
+          {% if result.green_escape and result.green_escape.messages %}
+            {% for msg in result.green_escape.messages %}
+              <p class="eval-note">{{ msg }}</p>
+            {% endfor %}
+          {% endif %}
+
+          {% if result.green_escape and result.green_escape.best_daily_park %}
+            {% set park = result.green_escape.best_daily_park %}
+            <div class="park-highlight">
+              {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
+              {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
+                {% if slot == "right" %}
+                <div class="text-right">
+                  <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
+                  <div class="park-daily-value">
+                    Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
+                  </div>
+                </div>
+                {% endif %}
+              {% endcall %}
+
+              {% if park.subscores %}
+              <div class="subscore-grid">
+                {% for ss in park.subscores %}
+                  <div class="subscore-card">
+                    <div class="subscore-label">
+                      {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
+                    </div>
+                    <div class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</div>
+                    <div class="subscore-reason">{{ ss.reason }}</div>
+                  </div>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {% if park.osm_enriched %}
+                <div class="osm-note">
+                  OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
+                  {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
+                  {% if park.osm_has_trail %} &middot; trail detected{% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+          {% else %}
+            <p class="section-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 L8 10 H4 L9 15 L7 22 H17 L15 15 L20 10 H16 Z"/>
+              </svg>
+              No major green space found within walking distance.
+            </p>
+          {% endif %}
+
+          {% if result.green_escape and result.green_escape.nearby_green_spaces %}
+            <div class="subsection-divider">
+              <div class="section-label">Other nearby green spaces</div>
+              {% for space in result.green_escape.nearby_green_spaces[:5] %}
+                {% if space.walk_time_min <= 10 %}
+                  {% set dist_label, dist_badge = "Very Close", "badge-pass" %}
+                {% elif space.walk_time_min <= 20 %}
+                  {% set dist_label, dist_badge = "Walkable", "badge-pass" %}
+                {% elif space.walk_time_min <= 30 %}
+                  {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
+                {% else %}
+                  {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
+                {% endif %}
+                {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
+                {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}
+                {{ data_row(
+                    name=space_name,
+                    detail=space_meta,
+                    value=fmt_time(space.drive_time_min, "drive") if space.drive_time_min and space.walk_time_min > 30 else fmt_time(space.walk_time_min, "walk"),
+                    variant="place"
+                ) }}
+              {% endfor %}
+            </div>
+          {% endif %}
+
+        </div>
+
+        {# ── LOCAL SERVICES (Emergency + Libraries + Pharmacies) ── #}
+        {% set has_emergency = result.emergency_services is defined and result.emergency_services is not none %}
+        {% set has_libraries = result.nearby_libraries is defined and result.nearby_libraries is not none %}
+        {% set has_pharmacies = result.nearby_pharmacies is defined and result.nearby_pharmacies is not none %}
+
+        {% if has_emergency or has_libraries or has_pharmacies %}
+        <div class="data-section">
+          <h2 class="section-title">LOCAL SERVICES</h2>
+
+          {% if has_emergency %}
+          <div id="emergency-services" class="local-service-group">
+            <div class="section-label">Emergency Services</div>
+            {% if result.emergency_services %}
+              {% for svc in result.emergency_services %}
+              {{ data_row(
+                  name=svc.name,
+                  detail="Fire Station" if svc.type == "fire" else "Police Station",
+                  value=fmt_time(svc.drive_time_min, "drive"),
+                  variant="hub"
+              ) }}
+              {% endfor %}
+            {% else %}
+              <p class="section-empty">No fire or police stations found within 3 miles.</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if has_libraries %}
+          <div id="libraries" class="local-service-group">
+            <div class="section-label">Libraries</div>
+            {% if result.nearby_libraries %}
+              {% for lib in result.nearby_libraries %}
+              {{ data_row(
+                  name=lib.name,
+                  detail="Public Library",
+                  value="~" ~ lib.est_walk_min ~ " min walk",
+                  variant="hub"
+              ) }}
+              {% endfor %}
+              {% if result.library_count is defined and result.library_count > 0 %}
+                <p class="section-footnote">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
+              {% endif %}
+            {% else %}
+              <p class="section-empty">No public libraries found within 1.2 mi.</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if has_pharmacies %}
+          <div id="pharmacies" class="local-service-group">
+            <div class="section-label">Pharmacies</div>
+            {% if result.nearby_pharmacies %}
+              {% for pharm in result.nearby_pharmacies %}
+              {% if pharm.drive_time_min and (pharm.est_walk_min or 0) > 40 %}
+                {% set time_val = "~" ~ pharm.drive_time_min ~ " min drive" %}
+              {% elif pharm.drive_time_min and (pharm.est_walk_min or 0) > 20 %}
+                {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk · " ~ pharm.drive_time_min ~ " min drive" %}
+              {% else %}
+                {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk" %}
+              {% endif %}
+              {{ data_row(
+                  name=pharm.name,
+                  detail="Pharmacy",
+                  value=time_val,
+                  variant="hub"
+              ) }}
+              {% endfor %}
+              {% if result.pharmacy_count is defined and result.pharmacy_count > 0 %}
+                <p class="section-footnote">{{ result.pharmacy_count }} {{ "pharmacy" if result.pharmacy_count == 1 else "pharmacies" }} within 1.2 mi</p>
+              {% endif %}
+            {% else %}
+              <p class="section-empty">No pharmacies found within 1.2 mi.</p>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+        {% endif %}
+
+        {# ── AREA CONTEXT ── #}
+        {% set _has_context = (result.demographics is defined and result.demographics is not none)
+            or (result.school_district is defined and result.school_district is not none)
+            or (result.ejscreen_profile is defined and result.ejscreen_profile is not none) %}
+        {% if _has_context %}
+        <div class="area-context-divider">
+          <h2 class="area-context-heading">Area Context</h2>
+          <p class="area-context-note">Community, school, and environmental data shown for reference — not factored into the livability score.</p>
+        </div>
+        {% endif %}
+
+        {# ── COMMUNITY PROFILE ── #}
+        {% if result.demographics is defined and result.demographics is not none %}
+        <div id="community-profile" class="data-section">
+          <h2 class="section-title">COMMUNITY PROFILE</h2>
+
+          {% if result.insights is defined and result.insights and result.insights.community_profile %}
+            <p class="section-insight">{{ result.insights.community_profile }}</p>
+          {% endif %}
+
+          {% set demo = result.demographics %}
+          <div class="stat-card-grid">
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(demo.children_pct) }}%</div>
+              <div class="stat-card__label">Households with children</div>
+              {% if demo.county_children_pct is not none %}
+              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_children_pct) }}%</div>
+              {% endif %}
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(demo.renter_pct) }}%</div>
+              <div class="stat-card__label">Renter-occupied housing</div>
+              {% if demo.county_renter_pct is not none %}
+              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_renter_pct) }}%</div>
+              {% endif %}
+            </div>
+            {% if demo.median_rent is not none %}
+            <div class="stat-card">
+              <div class="stat-card__value">${{ "{:,}".format(demo.median_rent) }}</div>
+              <div class="stat-card__label">Median gross rent</div>
+              {% if demo.county_median_rent is not none %}
+              <div class="stat-card__compare">{{ demo.county_name or "County" }}: ${{ "{:,}".format(demo.county_median_rent) }}</div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% if demo.commute and demo.commute.transit_pct >= 1 %}
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(demo.commute.transit_pct) }}%</div>
+              <div class="stat-card__label">Commute by transit</div>
+              {% if demo.county_commute is not none and demo.county_commute.transit_pct is defined %}
+              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_commute.transit_pct) }}%</div>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% if demo.commute and demo.commute.wfh_pct >= 5 %}
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(demo.commute.wfh_pct) }}%</div>
+              <div class="stat-card__label">Work from home</div>
+            </div>
+            {% endif %}
+          </div>
+          <p class="community-profile-source">
+            Source: U.S. Census Bureau, ACS 5-Year Estimates &middot; Tract {{ demo.geoid }}
+          </p>
+        </div>
+        {% endif %}
+
+        {# ── SCHOOL DISTRICT ── #}
+        {% if result.school_district is defined and result.school_district is not none %}
+        {% set sd = result.school_district %}
+        <div id="school-district" class="data-section">
+          <h2 class="section-title">SCHOOL DISTRICT</h2>
+
+          <div class="school-district-header">
+            <span class="school-district-name">{{ sd.district_name }}</span>
+            {% if sd.grade_range %}
+              <span class="school-district-grades">Grades {{ sd.grade_range }}</span>
+            {% endif %}
+          </div>
+
+          {% if sd.graduation_rate_pct is not none %}
+          <div class="stat-card-grid">
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(sd.graduation_rate_pct) }}%</div>
+              <div class="stat-card__label">Graduation rate</div>
+            </div>
+            {% if sd.ela_proficiency_pct is not none %}
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(sd.ela_proficiency_pct) }}%</div>
+              <div class="stat-card__label">ELA proficiency</div>
+            </div>
+            {% endif %}
+            {% if sd.math_proficiency_pct is not none %}
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(sd.math_proficiency_pct) }}%</div>
+              <div class="stat-card__label">Math proficiency</div>
+            </div>
+            {% endif %}
+            {% if sd.chronic_absenteeism_pct is not none %}
+            <div class="stat-card">
+              <div class="stat-card__value">{{ "%.0f"|format(sd.chronic_absenteeism_pct) }}%</div>
+              <div class="stat-card__label">Chronic absenteeism</div>
+            </div>
+            {% endif %}
+            {% if sd.pupil_expenditure is not none %}
+            <div class="stat-card">
+              <div class="stat-card__value">${{ "{:,.0f}".format(sd.pupil_expenditure) }}</div>
+              <div class="stat-card__label">Per-pupil spending</div>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if result.nearby_schools is defined and result.nearby_schools %}
+          <div class="nearby-schools-section">
+            <h3 class="nearby-schools-heading">Nearby Schools</h3>
+            <div class="nearby-schools-list">
+              {% for school in result.nearby_schools %}
+                {{ school_card(school) }}
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <p class="community-profile-source">
+            Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
+            &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
+            {% if result.nearby_schools is defined and result.nearby_schools %}
+              &middot; NCES 2022&ndash;23
+            {% endif %}
+          </p>
+        </div>
+        {% endif %}
+
+        {# ── EPA ENVIRONMENTAL PROFILE (EJScreen) ── #}
+        {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
+          {% set ej = result.ejscreen_profile %}
+          {% set ej_indicators = [
+            ("PM25",   "PM2.5 Particulate Matter",    true),
+            ("OZONE",  "Ozone",                       false),
+            ("DSLPM",  "Diesel Particulate Matter",    true),
+            ("CANCER", "Air Toxics Cancer Risk",       true),
+            ("RESP",   "Air Toxics Respiratory HI",    false),
+            ("PTRAF",  "Traffic Proximity",            false),
+            ("PNPL",   "Superfund Proximity",          true),
+            ("PRMP",   "RMP Facility Proximity",       false),
+            ("PTSDF",  "Hazardous Waste Proximity",    true),
+            ("UST",    "Underground Storage Tanks",    false),
+            ("PWDIS",  "Wastewater Discharge",         false),
+            ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
+          ] %}
+        <div id="ejscreen-profile" class="data-section">
+          <h2 class="section-title">EPA ENVIRONMENTAL PROFILE</h2>
+          <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
+          <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+            <span class="collapse-icon">&#9654;</span>
+            <span>View all indicators</span>
+          </div>
+          <div class="collapsible-body collapsed">
+            <div class="ejscreen-indicators">
+              {% for field_key, label, is_check in ej_indicators %}
+                {% if ej[field_key] is defined and ej[field_key] is not none %}
+                  {% set pct = ej[field_key] %}
+                  {% if pct >= 80 %}
+                    {% set indicator_css = "ejscreen-indicator--warning" %}
+                  {% elif pct >= 50 %}
+                    {% set indicator_css = "ejscreen-indicator--moderate" %}
+                  {% else %}
+                    {% set indicator_css = "ejscreen-indicator--low" %}
+                  {% endif %}
+                  <div class="ejscreen-indicator {{ indicator_css }}">
+                    <span class="ejscreen-indicator__label">{{ label }}</span>
+                    <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
+                    {% if pct >= 80 %}
+                      <span class="ejscreen-indicator__badge">&#9888;</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+            <div class="ejscreen-source">
+              Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
+              &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
+              &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── UPGRADE CTA (preview only) ── #}
+        {% if is_preview %}
+        <div class="preview-upgrade-cta">
+          <h3>See the full livability report</h3>
+          <p>Neighborhood map, transit access, parks &amp; green space, walkability scores, and more.</p>
+          <button class="preview-unlock-btn" data-snapshot-id="{{ snapshot_id }}">
+            Unlock full report &mdash; $9
+          </button>
+        </div>
+        {% endif %}
+
+        {# ── HOW WE SCORE ── #}
+        {% if not is_preview %}
+        <div id="how-we-score" class="data-section">
+          <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+            <h2 class="section-title" style="margin-bottom:0">HOW WE SCORE</h2>
+            <span class="collapse-icon">&#9654;</span>
+          </div>
+          <div class="collapsible-body collapsed">
+
+          <p class="scoring-explanation">
+            NestCheck evaluates six daily-life factors, each scored 0–10.
+            {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
+            With the <strong>{{ result.persona.label }}</strong> lens, dimensions
+            are weighted to reflect that lifestyle.
+            {% else %}
+            The scores are combined and normalized to a 100-point scale.
+            {% endif %}
+            Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
+          </p>
+
+          {% if result.persona is defined and result.persona and result.persona.weights and result.persona.key != 'balanced' %}
+          <div class="persona-weights-table">
+            {% for dim_name, weight in result.persona.weights.items() %}
+            <div class="persona-weight-row">
+              <span class="pw-dim">{{ dim_name }}</span>
+              <span class="pw-weight {% if weight > 1.0 %}pw-emphasis{% elif weight < 1.0 %}pw-deemphasis{% endif %}">
+                {% if weight > 1.0 %}+{{ "%.0f"|format((weight - 1.0) * 100) }}% weight
+                {% elif weight < 1.0 %}-{{ "%.0f"|format((1.0 - weight) * 100) }}% weight
+                {% else %}standard weight{% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="band-table">
+            <div class="band-row"><span class="band-dot band-exceptional"></span><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
+            <div class="band-row"><span class="band-dot band-strong"></span><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
+            <div class="band-row"><span class="band-dot band-moderate"></span><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
+            <div class="band-row"><span class="band-dot band-limited"></span><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
+            <div class="band-row"><span class="band-dot band-poor"></span><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
+          </div>
+
+          <p class="scoring-note">
+            Proximity checks for gas stations, highways, and TRI facilities are safety flags that don't affect your numerical score.
+            Road noise, estimated from nearby road proximity, does contribute to your score &mdash; quieter locations score higher.
+          </p>
+
+          </div>{# .collapsible-body #}
+        </div>{# #how-we-score #}
+        {% endif %}
+
+      </div>{# .report-main #}
+
+      {# ════════════════════════════════════════════════════════════════ #}
+      {# SIDEBAR                                                         #}
+      {# ════════════════════════════════════════════════════════════════ #}
+      <aside class="report-sidebar">
+
+        {# ── Verdict Card ── #}
+        {% if show_score %}
+        <div class="sidebar-verdict-card sidebar-verdict--{{ band_class }}">
+          <div class="card-label">Neighborhood Rating</div>
+          <div class="card-band-label">{{ band_label }}</div>
+          {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
+          <div class="card-persona">{{ result.persona.label }} lens</div>
+          {% endif %}
+          {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'verified' and result.data_confidence_summary.level != 'HIGH' %}
+          <div class="card-confidence-note">{{ result.data_confidence_summary.note }}</div>
+          {% endif %}
+          <div class="card-footer">
+            <span>{{ result.persona.label if result.persona is defined and result.persona else 'Balanced' }}</span>
+            <span>{% if result.passed_tier1 %}Tier 1 Pass{% else %}Tier 1 Fail{% endif %}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── Safety concern pills ── #}
+        {% if safety_concerns %}
+        <div class="verdict-proximity-flags sidebar-flags">
+          {% for pc in safety_concerns %}
+          <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">{{ pc.headline }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ── Health Summary Card ── #}
+        <div class="sidebar-card sidebar-card--health">
+          <div class="card-label">Health Checks</div>
+          <div class="health-summary-counts">
+            <div class="health-count health-count--clear">
+              <span class="count-number">{{ clear_count }}</span>
+              <span class="count-label">Clear</span>
+            </div>
+            {% if warning_count > 0 %}
+            <div class="health-count health-count--warning">
+              <span class="count-number">{{ warning_count }}</span>
+              <span class="count-label">Warning{{ 's' if warning_count != 1 }}</span>
+            </div>
+            {% endif %}
+            {% if issue_count > 0 %}
+            <div class="health-count health-count--issue">
+              <span class="count-number">{{ issue_count }}</span>
+              <span class="count-label">Issue{{ 's' if issue_count != 1 }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {# ── Walk Scores Card ── #}
+        {% set has_walk_data = result.walk_scores and (
+            result.walk_scores.walk_score is not none or
+            result.walk_scores.transit_score is not none or
+            result.walk_scores.bike_score is not none) %}
+        {% if has_walk_data %}
+        <div class="sidebar-card">
+          <div class="card-label">Walkability</div>
+          {% if result.walk_scores.walk_score is not none %}
+          <div class="walkscore-mini-row">
+            <span class="ws-mini-label">Walk</span>
+            <span class="ws-mini-value">{{ result.walk_scores.walk_score }}</span>
+          </div>
+          {% endif %}
+          {% if result.walk_scores.transit_score is not none %}
+          <div class="walkscore-mini-row">
+            <span class="ws-mini-label">Transit</span>
+            <span class="ws-mini-value">{{ result.walk_scores.transit_score }}</span>
+          </div>
+          {% endif %}
+          {% if result.walk_scores.bike_score is not none %}
+          <div class="walkscore-mini-row">
+            <span class="ws-mini-label">Bike</span>
+            <span class="ws-mini-value">{{ result.walk_scores.bike_score }}</span>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+
+        {# ── Map Card ── #}
+        {% set has_map_data = result.coordinates is defined and result.coordinates
+                              and result.neighborhood_places is defined and result.neighborhood_places %}
+        {% set _map_suffix = '-' ~ compare_index if compare_index is defined and compare_index else '' %}
+        <div class="sidebar-card sidebar-card--map" id="neighborhood-map{{ _map_suffix }}">
+          {% if has_map_data %}
+          <div id="neighborhood-map-leaflet{{ _map_suffix }}" class="map-leaflet" style="height: 200px; border-radius: var(--radius-md);"></div>
+          {% else %}
+          <div class="map-placeholder">Map not available</div>
+          {% endif %}
+        </div>
+        {% if has_map_data %}
+        {% set transit = (result.urban_access.primary_transit
+                          if result.urban_access is defined and result.urban_access
+                             and result.urban_access.primary_transit is defined
+                          else none) %}
+        <script id="nc-map-data{{ _map_suffix }}" type="application/json">
+        {{ {
+          "coordinates": result.coordinates,
+          "neighborhood_places": result.neighborhood_places,
+          "transit": {"name": transit.name, "lat": transit.lat, "lng": transit.lng,
+                      "walk_time_min": transit.walk_time_min} if transit and transit.lat is defined else none
+        } | tojson }}
+        </script>
+        {% endif %}
+
+      </aside>{# .report-sidebar #}
+
+    </div>{# .report-grid #}
+
+    {# ── CONTEXTUAL SHARE PROMPT (snapshot only) ── #}
+    {% if is_snapshot is defined and is_snapshot %}
+    {% set band = result.score_band.css_class if result.score_band is mapping else '' %}
+    {% set unresolved = result.unknown_check_count|default(0) > 0 %}
+    <div class="share-prompt {{ band }}">
+      <div class="share-prompt-text">
+        {% if unresolved %}
+          Some safety checks could not be verified — review the details and decide if this address is worth a closer look.
+        {% elif band == 'band-exceptional' %}
+          This property is a standout — share this report with your household.
+        {% elif band == 'band-strong' %}
+          A strong evaluation — share this report and discuss the details.
+        {% elif band == 'band-moderate' %}
+          Considering this property? Share the evaluation and talk it over.
+        {% elif band == 'band-limited' %}
+          Some trade-offs here — share this report and get another perspective.
+        {% else %}
+          Every evaluation helps narrow the search — share to keep everyone in the loop.
+        {% endif %}
       </div>
-      <div class="ejscreen-source">
-        Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
-        &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
-        &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  {# ── NES-132: UPGRADE CTA — preview only ──────────────────── #}
-  {% if is_preview %}
-  <div class="preview-upgrade-cta">
-    <h3>See the full livability report</h3>
-    <p>Neighborhood map, transit access, parks &amp; green space, walkability scores, and more.</p>
-    <button class="preview-unlock-btn" data-snapshot-id="{{ snapshot_id }}">
-      Unlock full report &mdash; $9
-    </button>
-  </div>
-  {% endif %}
-
-  {# ── 7. HOW WE SCORE — full report only ─────────────────── #}
-  {% if not is_preview %}
-  <div id="how-we-score" class="report-section">
-    <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-      <h2>How We Score</h2>
-      <span class="collapse-icon">&#9654;</span>
-    </div>
-    <div class="collapsible-body collapsed">
-
-    <p class="scoring-explanation">
-      NestCheck evaluates six daily-life factors, each scored 0–10.
-      {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
-      With the <strong>{{ result.persona.label }}</strong> lens, dimensions
-      are weighted to reflect that lifestyle.
-      {% else %}
-      The scores are combined and normalized to a 100-point scale.
-      {% endif %}
-      Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
-    </p>
-
-    {% if result.persona is defined and result.persona and result.persona.weights and result.persona.key != 'balanced' %}
-    <div class="persona-weights-table">
-      {% for dim_name, weight in result.persona.weights.items() %}
-      <div class="persona-weight-row">
-        <span class="pw-dim">{{ dim_name }}</span>
-        <span class="pw-weight {% if weight > 1.0 %}pw-emphasis{% elif weight < 1.0 %}pw-deemphasis{% endif %}">
-          {% if weight > 1.0 %}+{{ "%.0f"|format((weight - 1.0) * 100) }}% weight
-          {% elif weight < 1.0 %}-{{ "%.0f"|format((1.0 - weight) * 100) }}% weight
-          {% else %}standard weight{% endif %}
-        </span>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    {# Band thresholds must match SCORING_MODEL.score_bands in scoring_config.py #}
-    <div class="band-table">
-      <div class="band-row"><span class="band-dot band-exceptional"></span><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
-      <div class="band-row"><span class="band-dot band-strong"></span><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
-      <div class="band-row"><span class="band-dot band-moderate"></span><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
-      <div class="band-row"><span class="band-dot band-limited"></span><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
-      <div class="band-row"><span class="band-dot band-poor"></span><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
-    </div>
-
-    <p class="scoring-note">
-      Proximity checks for gas stations, highways, and TRI facilities are safety flags that don't affect your numerical score.
-      Road noise, estimated from nearby road proximity, does contribute to your score &mdash; quieter locations score higher.
-    </p>
-
-    </div>{# .collapsible-body #}
-  </div>{# .report-section #}
-  {% endif %}{# not is_preview #}
-
-  {# ── SHARE + EXPORT BAR ──────────────────────────────────────── #}
-  {% if not is_preview and snapshot_id %}
-  <div class="share-bar">
-    {% if is_snapshot and snapshot is defined %}
-    <div class="snapshot-meta">
-      Snapshot created {{ snapshot.created_at[:10] }}
-      {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
-    </div>
-    {% endif %}
-    <div class="share-actions">
-      <div class="share-actions__group share-actions__group--primary">
-        <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()" aria-label="Share this report">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          <span>Share</span>
-        </button>
-        <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)" aria-label="Copy report link to clipboard">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-          <span id="shareBtnText">Copy link</span>
-        </button>
-      </div>
-      <details class="share-dropdown">
-        <summary class="share-btn share-btn--secondary" aria-haspopup="menu">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>Export</span>
-          <svg class="share-dropdown__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </summary>
-        <ul class="share-dropdown__menu" role="menu">
-          <li role="none"><button type="button" class="share-dropdown__item" role="menuitem" onclick="window.print(); this.closest('details').removeAttribute('open')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Save as PDF
-          </button></li>
-          <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/json" class="share-dropdown__item" role="menuitem">JSON</a></li>
-          <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-dropdown__item" role="menuitem">CSV</a></li>
-        </ul>
-      </details>
-      {% if compare_index is not defined %}
-      <button class="share-btn share-btn--secondary" id="compareAddBtn"
-              data-snapshot-id="{{ snapshot_id | e }}"
-              data-snapshot-address="{{ result.address | e }}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-        <span>Add to comparison</span>
+      <button class="share-btn" onclick="(typeof nativeShare==='function' && navigator.share ? nativeShare : copyShareLink)(this)" aria-label="Share this report">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Share this report
       </button>
-      {% endif %}
-      <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
     </div>
-  </div>
-  {% endif %}
+    {% endif %}
 
-  {# ── CTA BANNER (snapshot only) ─────────────────────────────── #}
-  {% if is_snapshot %}
-  <div class="snapshot-cta">
-    <h3>Wondering how your address compares?</h3>
-    <p>Run the same evaluation on any U.S. address — walkability, green space, transit, safety proximity, and more.</p>
-    <a href="/">Evaluate an Address</a>
-  </div>
-  {% endif %}
+    {# ── SHARE + EXPORT BAR ── #}
+    {% if not is_preview and snapshot_id %}
+    <div class="share-bar">
+      {% if is_snapshot and snapshot is defined %}
+      <div class="snapshot-meta">
+        Snapshot created {{ snapshot.created_at[:10] }}
+        {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
+      </div>
+      {% endif %}
+      <div class="share-actions">
+        <div class="share-actions__group share-actions__group--primary">
+          <button class="share-btn" id="nativeShareBtn" style="display:none" onclick="nativeShare()" aria-label="Share this report">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            <span>Share</span>
+          </button>
+          <button class="share-btn" id="shareBtn" onclick="copyShareLink(this)" aria-label="Copy report link to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span id="shareBtnText">Copy link</span>
+          </button>
+        </div>
+        <details class="share-dropdown">
+          <summary class="share-btn share-btn--secondary" aria-haspopup="menu">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Export</span>
+            <svg class="share-dropdown__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <ul class="share-dropdown__menu" role="menu">
+            <li role="none"><button type="button" class="share-dropdown__item" role="menuitem" onclick="window.print(); this.closest('details').removeAttribute('open')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Save as PDF
+            </button></li>
+            <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/json" class="share-dropdown__item" role="menuitem">JSON</a></li>
+            <li role="none"><a href="/api/snapshot/{{ snapshot_id }}/csv" class="share-dropdown__item" role="menuitem">CSV</a></li>
+          </ul>
+        </details>
+        {% if compare_index is not defined %}
+        <button class="share-btn share-btn--secondary" id="compareAddBtn"
+                data-snapshot-id="{{ snapshot_id | e }}"
+                data-snapshot-address="{{ result.address | e }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Add to comparison</span>
+        </button>
+        {% endif %}
+        <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+    {% endif %}
 
-  {# ── DISCLAIMER + DATA SOURCES ─────────────────────────────── #}
-  <div class="disclaimer">
-    <strong>Disclaimer:</strong> NestCheck is a decision-support tool, not professional real estate, health, or legal advice.
-    Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
-    <br><br>
-    <strong>Data sources:</strong> Google Maps Platform (Places, Distance Matrix, Geocoding),
-    OpenStreetMap via Overpass API (road classification, green space polygons, road geometry),
-    Walk Score (when available), and FHWA Traffic Noise Model reference levels.
-  </div>
+    {# ── CTA BANNER (snapshot only) ── #}
+    {% if is_snapshot %}
+    <div class="snapshot-cta">
+      <h3>Wondering how your address compares?</h3>
+      <p>Run the same evaluation on any U.S. address — walkability, green space, transit, safety proximity, and more.</p>
+      <a href="/">Evaluate an Address</a>
+    </div>
+    {% endif %}
 
-</div>
+    {# ── DISCLAIMER + DATA SOURCES ── #}
+    <div class="disclaimer">
+      <strong>Disclaimer:</strong> NestCheck is a decision-support tool, not professional real estate, health, or legal advice.
+      Scores are estimates based on publicly available data. Verify listing details, school assignments, and environmental conditions independently.
+      <br><br>
+      <strong>Data sources:</strong> Google Maps Platform (Places, Distance Matrix, Geocoding),
+      OpenStreetMap via Overpass API (road classification, green space polygons, road geometry),
+      Walk Score (when available), and FHWA Traffic Noise Model reference levels.
+    </div>
+
+  </div>{# .report-container #}
+</div>{# .report #}
