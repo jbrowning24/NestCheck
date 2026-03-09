@@ -4,8 +4,8 @@
    Only the index page loads this file.
    ================================================================ */
 
-/* ── App-level background ─────────────────────────────────── */
-body {
+/* ── App-level background (landing page only) ─────────────── */
+body:has(.landing-container) {
   background-color: var(--color-bg-app);
 }
 
@@ -352,11 +352,6 @@ body {
   color: #B0B0B0;
   padding: 24px 0;
   border-top: 1px solid #EBEBEB;
-}
-
-/* Hide the block-level footer when the landing container is present */
-main:has(.landing-container) ~ footer {
-  display: none;
 }
 
 /* ── Loading overlay ──────────────────────────────────────── */

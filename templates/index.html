@@ -233,12 +233,14 @@
 {% endblock %}
 
 {% block footer %}
+{% if result %}
 <footer>
   NestCheck &middot; Livability evaluation for families and remote workers choosing where to live.
   <div class="footer-links">
     <a href="/privacy">Privacy Policy</a> &middot; <a href="/terms">Terms of Service</a>
   </div>
 </footer>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
