@@ -74,6 +74,7 @@ NestCheck/
 
 ### Venue Scoring Calibration (scoring_config.py + property_evaluator.py)
 - **Venue eligibility thresholds**: `VENUE_MIN_REVIEWS` and `VENUE_MIN_RATING` dicts in `scoring_config.py` gate which venues enter scoring. Venues below thresholds are still returned for display — only excluded from headline selection and dimension score computation.
+- **Search types ↔ eligibility types contract**: Every Google Places type accepted in the eligibility filter (e.g., `["cafe", "coffee_shop", "bakery"]` at line 4280) must have a corresponding `places_nearby()` query upstream. A type in the filter but missing from the search silently produces zero matches for that category — no error, just empty results. When adding a new accepted type, add the API query in both `score_third_place_access()` and `get_neighborhood_snapshot()`.
 - **Quality ceiling pattern** (Phase 2): Walk-time proximity scores are capped by a diversity ceiling computed from two signals: (1) distinct social-category buckets via `_SOCIAL_BUCKET_MAP` → `THIRD_PLACE_CATEGORY_CEILINGS`, and (2) median review depth ±1 adjustment. `final_score = min(walk_time_score, ceiling)`. The ceiling is structurally bounded by search query types — only categories returned by the Google Places search can contribute buckets.
 - **Suppressed dimensions** (`points=None`): When no venues pass eligibility, return `Tier2Score(points=None, suppressed_reason=...)` instead of `points=0`. Template shows "—", composite scoring excludes the dimension from aggregation (reduces effective max). This avoids penalizing addresses for data gaps.
 
@@ -167,6 +168,7 @@ NestCheck/
 | 2026-03 | Three-tier confidence system (Phase 3) | Replaced ad-hoc HIGH/MEDIUM/LOW with `verified`/`estimated`/`not_scored`. Estimated caps at 8/10, not_scored excluded from composite entirely. `_migrate_confidence_tiers()` handles legacy snapshots. Road noise changed from invented 7/10 fallback to not_scored |
 | 2026-03 | HPMS road name display | HPMS `route_name` field has good coverage for high-AADT segments (e.g., "9A", "SUNRISE HWY", "FDR DRIVE"). Stored in both `name` column and `metadata_json.route_name`. `route_number` + `route_signing` provide fallback. Requires re-ingest for existing spatial.db data |
 | 2026-03 | Health check citations in scoring_config | `HEALTH_CHECK_CITATIONS` dict maps check names → list of `{label, url}` sources. Rendered in "Why we check this" expandable. URLs must be verified as live before merge — gov sites restructure frequently |
+| 2026-03 | Added "coffee_shop" Places API type | Google treats `coffee_shop` as distinct from `cafe` — many coffee chains (Blank Street, etc.) are only typed `coffee_shop`. Must search all three types (`cafe`, `bakery`, `coffee_shop`) to avoid zero-result gaps in dense urban areas |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
