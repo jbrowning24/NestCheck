@@ -41,6 +41,8 @@ from scoring_config import (
     TIER2_NAME_TO_DIMENSION, apply_piecewise, QualityCeilingConfig,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
+    THIRD_PLACE_CATEGORY_CEILINGS,
+    THIRD_PLACE_DEPTH_BONUS_THRESHOLD, THIRD_PLACE_DEPTH_PENALTY_THRESHOLD,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from spatial_data import SpatialDataStore
@@ -4139,8 +4141,7 @@ def score_park_access(
             rating_str = f"{best.rating:.1f}★" if best.rating else "unrated"
             details = (
                 f"{best.name} ({rating_str}, {best.user_ratings_total} reviews) "
-                f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10 "
-                f"[{best.criteria_status}]"
+                f"— {best.walk_time_min} min walk — Daily Value {best.daily_walk_value:.1f}/10"
             )
             return Tier2Score(
                 name="Primary Green Escape",
