@@ -31,7 +31,7 @@
       </div>
       <div class="report-header-meta">
         <div><span class="rh-label">Report for</span> <span class="rh-value">{{ result.address }}</span></div>
-        <div><span class="rh-label">Generated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:7] | replace('-', '/') }}{% else %}{{ now().strftime('%b %Y') if now is defined else '' }}{% endif %}</span></div>
+        <div><span class="rh-label">Generated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:7] | replace('-', '/') }}{% endif %}</span></div>
       </div>
     </header>
 
