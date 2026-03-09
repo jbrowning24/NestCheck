@@ -1,7 +1,7 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "description": "NestCheck reference address suite — ground truth for scoring regression tests",
+    "description": "NestCheck reference address suite \u2014 ground truth for scoring regression tests",
     "created": "2026-02-13",
     "usage": "NES-89+ regression harness asserts actual scores fall within expected_range per dimension",
     "dimensions": {
@@ -32,10 +32,10 @@
       }
     },
     "tiers": {
-      "great": "Clearly excels — top of scoring range",
-      "good": "Above average — solid, reliable access",
+      "great": "Clearly excels \u2014 top of scoring range",
+      "good": "Above average \u2014 solid, reliable access",
       "okay": "Functional but with notable trade-offs",
-      "poor": "Below average — significant gaps",
+      "poor": "Below average \u2014 significant gaps",
       "none": "No meaningful access"
     },
     "score_bands": {
@@ -47,11 +47,11 @@
         70,
         84
       ],
-      "Moderate — Some Trade-offs": [
+      "Moderate \u2014 Some Trade-offs": [
         55,
         69
       ],
-      "Limited — Car Likely Needed": [
+      "Limited \u2014 Car Likely Needed": [
         40,
         54
       ],
@@ -189,7 +189,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests that outer-borough neighborhoods score appropriately. Parks is the swing dimension — Astoria Park is large but not a quick walk from Steinway.",
+      "notes": "Tests that outer-borough neighborhoods score appropriately. Parks is the swing dimension \u2014 Astoria Park is large but not a quick walk from Steinway.",
       "last_validated": null
     },
     {
@@ -254,7 +254,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Exceptional Daily Fit",
       "overall_vibe": 5,
-      "notes": "Different flavor of exceptional — quieter and more residential than Park Slope but equally accessible. Tests that the model doesn't penalize low-key neighborhoods that have everything nearby.",
+      "notes": "Different flavor of exceptional \u2014 quieter and more residential than Park Slope but equally accessible. Tests that the model doesn't penalize low-key neighborhoods that have everything nearby.",
       "last_validated": null
     },
     {
@@ -271,7 +271,7 @@
             4,
             8
           ],
-          "notes": "Pier A Park, Elysian Park, Stevens Park — several small parks but none flagship-sized; may not meet 5-acre threshold"
+          "notes": "Pier A Park, Elysian Park, Stevens Park \u2014 several small parks but none flagship-sized; may not meet 5-acre threshold"
         },
         "coffee": {
           "tier": "great",
@@ -303,7 +303,7 @@
             4,
             8
           ],
-          "notes": "PATH at Hoboken Terminal (~12-15 min walk from River St); NJ Transit buses closer. Walk to PATH is the limiting factor — walk_to_stop scores 3 at 12-15 min. Floor of 4 accounts for bus-only scenario; ceiling accounts for PATH frequency + hub proximity."
+          "notes": "PATH at Hoboken Terminal (~12-15 min walk from River St); NJ Transit buses closer. Walk to PATH is the limiting factor \u2014 walk_to_stop scores 3 at 12-15 min. Floor of 4 accounts for bus-only scenario; ceiling accounts for PATH frequency + hub proximity."
         }
       },
       "tier1": {
@@ -319,7 +319,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests cross-state evaluation (NJ address using NYC transit). Parks qualification is the wildcard — Hoboken parks are charming but small. Transit score depends on PATH walk distance from northern Hoboken.",
+      "notes": "Tests cross-state evaluation (NJ address using NYC transit). Parks qualification is the wildcard \u2014 Hoboken parks are charming but small. Transit score depends on PATH walk distance from northern Hoboken.",
       "last_validated": null
     },
     {
@@ -342,7 +342,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Coffee Labs, Muddy Water Cafe on Main St; limited but walkable"
         },
@@ -382,7 +382,7 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 3,
       "notes": "Core Westchester use case. Tests the scorer's ability to distinguish 'some walkability' from 'truly walkable.' Midpoint of ranges is ~42% (Limited); could reach Moderate (60%) if coffee, grocery, and parks all hit range ceilings. Fitness and transit are the weak links. Charming village but a car is helpful beyond Main St.",
       "last_validated": null
@@ -407,7 +407,7 @@
           "tier": "okay",
           "expected_range": [
             2,
-            7
+            9
           ],
           "notes": "Some cafes and delis in Getty Square area; not a strong cafe scene"
         },
@@ -415,7 +415,7 @@
           "tier": "okay",
           "expected_range": [
             2,
-            7
+            9
           ],
           "notes": "Some grocery/bodega options in downtown Yonkers"
         },
@@ -423,7 +423,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            3
+            5
           ],
           "notes": "Very limited gym options in immediate area"
         },
@@ -447,9 +447,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 2,
-      "notes": "Tests a struggling urban area that has some transit and walkable retail but lacks depth. South Broadway OSM classification is uncertain — if classified as secondary, could trigger high_traffic_road.",
+      "notes": "Tests a struggling urban area that has some transit and walkable retail but lacks depth. South Broadway OSM classification is uncertain \u2014 if classified as secondary, could trigger high_traffic_road.",
       "last_validated": null
     },
     {
@@ -472,7 +472,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Several cafes in downtown White Plains commercial district"
         },
@@ -480,7 +480,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "H Mart, some grocery options in downtown area"
         },
@@ -488,7 +488,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options in commercial center"
         },
@@ -512,9 +512,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate — Some Trade-offs",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
-      "notes": "Prototypical suburban downtown. Has a walkable core but nothing exceptional. Tests the middle of the scoring range — everything is 'okay' but nothing stands out.",
+      "notes": "Prototypical suburban downtown. Has a walkable core but nothing exceptional. Tests the middle of the scoring range \u2014 everything is 'okay' but nothing stands out.",
       "last_validated": null
     },
     {
@@ -537,7 +537,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            4
+            6
           ],
           "notes": "Limited cafe options in immediate area"
         },
@@ -545,7 +545,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            4
+            6
           ],
           "notes": "Limited walkable grocery; bodegas but not full-service stores"
         },
@@ -579,7 +579,7 @@
       "expected_tier1_pass": false,
       "expected_band": "Significant Gaps",
       "overall_vibe": 2,
-      "notes": "Primary Tier 1 highway test. Transit is excellent but most other dimensions are weak. Raw score lands ~30-40% (transit alone can't carry). Note: Tier 1 failure is a presentation flag — score is still calculated, so harness can assert BOTH tier1_pass=false AND score-in-band.",
+      "notes": "Primary Tier 1 highway test. Transit is excellent but most other dimensions are weak. Raw score lands ~30-40% (transit alone can't carry). Note: Tier 1 failure is a presentation flag \u2014 score is still calculated, so harness can assert BOTH tier1_pass=false AND score-in-band.",
       "last_validated": null
     },
     {
@@ -602,7 +602,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            4
+            7
           ],
           "notes": "Limited cafe scene on Tremont Ave; delis and bodegas dominate"
         },
@@ -610,7 +610,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some grocery options along Tremont commercial strip"
         },
@@ -634,7 +634,7 @@
       "tier1": {
         "gas_station_proximity": {
           "expected": "fail",
-          "notes": "Gas stations on Tremont Ave commercial strip likely within 500ft. Needs validation — exact station locations determine pass/fail."
+          "notes": "Gas stations on Tremont Ave commercial strip likely within 500ft. Needs validation \u2014 exact station locations determine pass/fail."
         },
         "high_traffic_road": {
           "expected": "pass",
@@ -642,9 +642,9 @@
         }
       },
       "expected_tier1_pass": false,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 2,
-      "notes": "Tests gas station proximity gate. Tremont Ave has gas stations along its commercial stretch. This is the LEAST certain Tier 1 fail in the dataset — exact gas station distances need validation. If nearest station is >500ft, reclassify as a pass and move to a confirmed gas-station-adjacent address.",
+      "notes": "Tests gas station proximity gate. Tremont Ave has gas stations along its commercial stretch. This is the LEAST certain Tier 1 fail in the dataset \u2014 exact gas station distances need validation. If nearest station is >500ft, reclassify as a pass and move to a confirmed gas-station-adjacent address.",
       "last_validated": null
     },
     {
@@ -748,7 +748,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options but not as dense as Capitol Hill"
         },
@@ -797,7 +797,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            10
           ],
           "notes": "Ballard Ave and Market St cafes are a 10-15 min walk south; nothing immediate"
         },
@@ -805,7 +805,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Ballard Market, Fred Meyer ~10-15 min walk; Safeway further"
         },
@@ -813,7 +813,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gyms in Ballard commercial core, 10-15 min walk"
         },
@@ -837,7 +837,7 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate — Some Trade-offs",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
       "notes": "Tests the residential fringe of a walkable neighborhood. Everything is 10-15 min walk rather than 5 min. Demonstrates how the same neighborhood can score differently depending on exact address placement.",
       "last_validated": null
@@ -878,7 +878,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some public gyms; UW facilities not accessible to non-students"
         },
@@ -904,7 +904,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 3,
-      "notes": "Interesting test case: scores well on dimensions but vibe is student-oriented and noisy. Demonstrates that dimensional scoring and 'would you live here' can diverge. I-5 proximity is worth monitoring — if 200m threshold is marginal, this becomes an edge case.",
+      "notes": "Interesting test case: scores well on dimensions but vibe is student-oriented and noisy. Demonstrates that dimensional scoring and 'would you live here' can diverge. I-5 proximity is worth monitoring \u2014 if 200m threshold is marginal, this becomes an edge case.",
       "last_validated": null
     },
     {
@@ -927,7 +927,7 @@
           "tier": "poor",
           "expected_range": [
             2,
-            4
+            7
           ],
           "notes": "Some options in downtown Renton; limited quality cafe scene"
         },
@@ -935,7 +935,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some stores in downtown Renton area"
         },
@@ -967,7 +967,7 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 2,
       "notes": "Tests the Seattle suburban tier. Has some walkable elements but car is practical for most errands. Rainier Ave proximity is an edge case for high_traffic_road check.",
       "last_validated": null
@@ -992,7 +992,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some cafes on Beacon Ave S; less dense than Capitol Hill or Fremont"
         },
@@ -1000,7 +1000,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Red Apple Market, some small grocers on Beacon Ave"
         },
@@ -1008,7 +1008,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options along Beacon Ave corridor"
         },
@@ -1032,9 +1032,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate — Some Trade-offs",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
-      "notes": "Tests a neighborhood with good bones (light rail, large park) but weaker commercial amenities. Jefferson Park should score well if it qualifies — 48 acres and well-rated. Transit boost from Link station is significant.",
+      "notes": "Tests a neighborhood with good bones (light rail, large park) but weaker commercial amenities. Jefferson Park should score well if it qualifies \u2014 48 acres and well-rated. Transit boost from Link station is significant.",
       "last_validated": null
     },
     {
@@ -1057,7 +1057,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some cafes on Georgia Ave and Upshur St corridors; growing but not dense"
         },
@@ -1065,7 +1065,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Yes! Organic Market, some corner stores; larger chains require more walking"
         },
@@ -1073,7 +1073,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options in the neighborhood"
         },
@@ -1097,9 +1097,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate — Some Trade-offs",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
-      "notes": "DC moderate baseline. Georgia Ave OSM classification is a key uncertainty — if classified as primary, this becomes a Tier 1 fail candidate. At 4200 block, the address is set back from the worst of the traffic. Metro access lifts transit above other dimensions.",
+      "notes": "DC moderate baseline. Georgia Ave OSM classification is a key uncertainty \u2014 if classified as primary, this becomes a Tier 1 fail candidate. At 4200 block, the address is set back from the worst of the traffic. Metro access lifts transit above other dimensions.",
       "last_validated": null
     },
     {
@@ -1164,7 +1164,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 5,
-      "notes": "Could reach Exceptional if Rock Creek Park qualifies and scores well (pushing parks to 7+). Set band as Strong conservatively — parks is the single dimension keeping it from Exceptional. Everything else is top-tier.",
+      "notes": "Could reach Exceptional if Rock Creek Park qualifies and scores well (pushing parks to 7+). Set band as Strong conservatively \u2014 parks is the single dimension keeping it from Exceptional. Everything else is top-tier.",
       "last_validated": null
     },
     {
@@ -1229,7 +1229,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests walkable inner suburb pattern (as opposed to urban core). Very similar scoring profile to Capitol Hill Seattle but in DC metro. Parks is the weak dimension — Arlington has small pocket parks but nothing flagship-sized.",
+      "notes": "Tests walkable inner suburb pattern (as opposed to urban core). Very similar scoring profile to Capitol Hill Seattle but in DC metro. Parks is the weak dimension \u2014 Arlington has small pocket parks but nothing flagship-sized.",
       "last_validated": null
     },
     {
@@ -1294,7 +1294,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests a revitalized urban corridor. Meridian Hill Park is the key parks test — 12 acres should qualify. If it does and walk time is ~10 min, parks scores solidly. 14th St OSM classification worth monitoring.",
+      "notes": "Tests a revitalized urban corridor. Meridian Hill Park is the key parks test \u2014 12 acres should qualify. If it does and walk time is ~10 min, parks scores solidly. 14th St OSM classification worth monitoring.",
       "last_validated": null
     },
     {
@@ -1333,7 +1333,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            3
+            5
           ],
           "notes": "Gyms exist but car-oriented access"
         },
@@ -1359,7 +1359,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Significant Gaps",
       "overall_vibe": 2,
-      "notes": "Key test: does adding a Metro station to a car-dependent area improve the score? Answer should be: somewhat (transit lifts), but not enough to overcome the absence of walkable amenities. Midpoint of dimension ranges is ~25% — firmly Significant Gaps. Route 7/123 proximity is a Tier 1 edge case.",
+      "notes": "Key test: does adding a Metro station to a car-dependent area improve the score? Answer should be: somewhat (transit lifts), but not enough to overcome the absence of walkable amenities. Midpoint of dimension ranges is ~25% \u2014 firmly Significant Gaps. Route 7/123 proximity is a Tier 1 edge case.",
       "last_validated": null
     },
     {
@@ -1390,7 +1390,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some grocery stores along Georgia Ave commercial strip"
         },
@@ -1422,9 +1422,9 @@
         }
       },
       "expected_tier1_pass": null,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 2,
-      "notes": "Primary test for high_traffic_road gate. Georgia Avenue is one of DC's busiest arterials — wide, high-speed traffic, classified as US Route 29. AADT needs HPMS verification to determine if it exceeds the 50K threshold. Midpoint of ranges is ~46% (Limited). Band is secondary to the Tier 1 assertion for this address.",
+      "notes": "Primary test for high_traffic_road gate. Georgia Avenue is one of DC's busiest arterials \u2014 wide, high-speed traffic, classified as US Route 29. AADT needs HPMS verification to determine if it exceeds the 50K threshold. Midpoint of ranges is ~46% (Limited). Band is secondary to the Tier 1 assertion for this address.",
       "last_validated": null
     },
     {
@@ -1465,7 +1465,7 @@
             0,
             3
           ],
-          "notes": "Drive-to gyms in commercial strips. If this scores 3, validate that the matched gym is actually walkable and not across a 6-lane arterial with no sidewalk — known blindspot in walking time scoring."
+          "notes": "Drive-to gyms in commercial strips. If this scores 3, validate that the matched gym is actually walkable and not across a 6-lane arterial with no sidewalk \u2014 known blindspot in walking time scoring."
         },
         "transit": {
           "tier": "none",
@@ -1489,7 +1489,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Significant Gaps",
       "overall_vibe": 1,
-      "notes": "Canary address. If this scores above 39, the model is too generous to car-dependent suburbs. Everything here requires driving. Also tests: Independence Pkwy itself may trigger high_traffic_road — that's a useful edge case to validate.",
+      "notes": "Canary address. If this scores above 39, the model is too generous to car-dependent suburbs. Everything here requires driving. Also tests: Independence Pkwy itself may trigger high_traffic_road \u2014 that's a useful edge case to validate.",
       "last_validated": null
     },
     {
@@ -1554,7 +1554,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests LA walkability — rare in the metro but real in Santa Monica. Transit scores well by LA standards but won't match NYC/DC subway frequency. Interesting comparison to Seattle/DC Strong addresses.",
+      "notes": "Tests LA walkability \u2014 rare in the metro but real in Santa Monica. Transit scores well by LA standards but won't match NYC/DC subway frequency. Interesting comparison to Seattle/DC Strong addresses.",
       "last_validated": null
     },
     {
@@ -1577,7 +1577,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some cafes in downtown Glendale; Armenian cafe culture adds options"
         },
@@ -1585,7 +1585,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Ralphs, ethnic grocery stores in downtown area"
         },
@@ -1593,7 +1593,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gyms in commercial area"
         },
@@ -1617,9 +1617,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 2,
-      "notes": "Tests LA suburban city pattern. Has more walkability than pure sprawl (Plano) but still car-dependent for most trips. Central Ave OSM classification is uncertain — could be a Tier 1 edge case.",
+      "notes": "Tests LA suburban city pattern. Has more walkability than pure sprawl (Plano) but still car-dependent for most trips. Central Ave OSM classification is uncertain \u2014 could be a Tier 1 edge case.",
       "last_validated": null
     },
     {
@@ -1642,7 +1642,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "Some cafes in Mueller commercial areas and along Aldrich St; not as dense as established urban cores"
         },
@@ -1650,7 +1650,7 @@
           "tier": "okay",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "H-E-B on Mueller Blvd within walking distance; designed into the development"
         },
@@ -1658,7 +1658,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options in Mueller commercial area"
         },
@@ -1682,9 +1682,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate — Some Trade-offs",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
-      "notes": "Tests whether New Urbanist design translates to good scores. Parks should score well (designed-in green space). Transit is the drag — even good urban design can't fix a weak transit system. Interesting contrast to older walkable neighborhoods.",
+      "notes": "Tests whether New Urbanist design translates to good scores. Parks should score well (designed-in green space). Transit is the drag \u2014 even good urban design can't fix a weak transit system. Interesting contrast to older walkable neighborhoods.",
       "last_validated": null
     },
     {
@@ -1749,7 +1749,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Significant Gaps",
       "overall_vibe": 1,
-      "notes": "Second canary address alongside Plano. Different Sun Belt pattern (Phoenix vs DFW) — both should score rock-bottom. McKellips Road classification is uncertain; if primary in OSM, this becomes a Tier 1 fail too.",
+      "notes": "Second canary address alongside Plano. Different Sun Belt pattern (Phoenix vs DFW) \u2014 both should score rock-bottom. McKellips Road classification is uncertain; if primary in OSM, this becomes a Tier 1 fail too.",
       "last_validated": null
     },
     {
@@ -1780,7 +1780,7 @@
           "tier": "good",
           "expected_range": [
             4,
-            7
+            11
           ],
           "notes": "New Seasons, smaller markets within walking distance; not as dense as downtown cores"
         },
@@ -1788,7 +1788,7 @@
           "tier": "okay",
           "expected_range": [
             3,
-            6
+            8
           ],
           "notes": "Some gym options in the neighborhood; not as dense as major commercial corridors"
         },
@@ -1814,7 +1814,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests Portland walkability pattern — strong indie commercial strips with good parks but more moderate transit than NYC/DC. Alberta Park is the key parks test (16 acres, should qualify). Transit is the limiting dimension.",
+      "notes": "Tests Portland walkability pattern \u2014 strong indie commercial strips with good parks but more moderate transit than NYC/DC. Alberta Park is the key parks test (16 acres, should qualify). Transit is the limiting dimension.",
       "last_validated": null
     },
     {
@@ -1837,7 +1837,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            4
+            6
           ],
           "notes": "Limited quality cafes on this stretch of East Colfax; some diners and fast food"
         },
@@ -1845,7 +1845,7 @@
           "tier": "poor",
           "expected_range": [
             2,
-            4
+            7
           ],
           "notes": "Some small markets on Colfax; major grocery stores require more walking"
         },
@@ -1877,9 +1877,9 @@
         }
       },
       "expected_tier1_pass": false,
-      "expected_band": "Limited — Car Likely Needed",
+      "expected_band": "Limited \u2014 Car Likely Needed",
       "overall_vibe": 1,
-      "notes": "Tests combined Tier 1 failures. Colfax is the longest commercial street in America and a major arterial — may trigger high_traffic_road pending HPMS data verification. Gas station proximity is likely but needs validation. Interesting that transit scores okay (frequent bus) despite the address being inhospitable for pedestrians.",
+      "notes": "Tests combined Tier 1 failures. Colfax is the longest commercial street in America and a major arterial \u2014 may trigger high_traffic_road pending HPMS data verification. Gas station proximity is likely but needs validation. Interesting that transit scores okay (frequent bus) despite the address being inhospitable for pedestrians.",
       "last_validated": null
     },
     {
@@ -1896,7 +1896,7 @@
             3,
             7
           ],
-          "notes": "Brickell Key Park, Alice Wainwright Park — small urban parks. No large flagship within easy walk."
+          "notes": "Brickell Key Park, Alice Wainwright Park \u2014 small urban parks. No large flagship within easy walk."
         },
         "coffee": {
           "tier": "great",
@@ -1944,7 +1944,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Strong Daily Fit",
       "overall_vibe": 4,
-      "notes": "Tests Sun Belt urban walkability — Brickell is Miami's attempt at a walkable urban core. Parks is the weak dimension (no flagship). Interesting comparison to car-dependent Sun Belt addresses — same region, vastly different walkability.",
+      "notes": "Tests Sun Belt urban walkability \u2014 Brickell is Miami's attempt at a walkable urban core. Parks is the weak dimension (no flagship). Interesting comparison to car-dependent Sun Belt addresses \u2014 same region, vastly different walkability.",
       "last_validated": null
     },
     {
@@ -1975,7 +1975,7 @@
           "tier": "poor",
           "expected_range": [
             0,
-            4
+            6
           ],
           "notes": "Grocery stores exist nearby but crossing Post Oak Blvd on foot is hostile"
         },
@@ -2009,7 +2009,7 @@
       "expected_tier1_pass": true,
       "expected_band": "Significant Gaps",
       "overall_vibe": 2,
-      "notes": "Tests the 'looks dense but isn't walkable' pattern. Houston Galleria has commercial density but hostile pedestrian infrastructure (wide roads, no sidewalk culture). Midpoint of dimension ranges is ~28% — Significant Gaps despite the commercial density. Post Oak Blvd classification is the Tier 1 edge case. Gym scores slightly better than other dimensions because commercial fitness facilities exist in the area.",
+      "notes": "Tests the 'looks dense but isn't walkable' pattern. Houston Galleria has commercial density but hostile pedestrian infrastructure (wide roads, no sidewalk culture). Midpoint of dimension ranges is ~28% \u2014 Significant Gaps despite the commercial density. Post Oak Blvd classification is the Tier 1 edge case. Gym scores slightly better than other dimensions because commercial fitness facilities exist in the area.",
       "last_validated": null
     }
   ]
