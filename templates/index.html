@@ -93,23 +93,9 @@
         <button type="submit" id="evalBtn">Generate Report</button>
       </div>
 
-      <div class="persona-row" id="personaSelector">
-        <label class="persona-option persona-option--active">
-          <input type="radio" name="persona" value="balanced" checked>
-          <span class="persona-pill">Balanced</span>
-        </label>
-        <label class="persona-option">
-          <input type="radio" name="persona" value="active">
-          <span class="persona-pill">Active &amp; Outdoorsy</span>
-        </label>
-        <label class="persona-option">
-          <input type="radio" name="persona" value="commuter">
-          <span class="persona-pill">Urban Commuter</span>
-        </label>
-        <label class="persona-option">
-          <input type="radio" name="persona" value="quiet">
-          <span class="persona-pill">Peace &amp; Quiet</span>
-        </label>
+      <div class="recent-searches-row" id="recentSearches" style="display:none;">
+        <span class="recent-searches-label">RECENT SEARCHES</span>
+        <div class="recent-searches-pills" id="recentPills"></div>
       </div>
 
       <div class="email-row" id="emailGate">
@@ -288,6 +274,57 @@
       return resp.json();
     }
     return doFetch(csrfToken()).then(function(resp) { return handleResp(resp, false); });
+  }
+
+  // --- Recent Searches cookie management ---
+  function getRecentSearches() {
+    var match = document.cookie.match(/(?:^|;\s*)nestcheck_recent=([^;]*)/);
+    if (!match) return [];
+    try {
+      var arr = JSON.parse(decodeURIComponent(match[1]));
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function addRecentSearch(address) {
+    var arr = getRecentSearches();
+    arr = arr.filter(function(a) { return a !== address; });
+    arr.unshift(address);
+    if (arr.length > 5) arr = arr.slice(0, 5);
+    var expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = 'nestcheck_recent=' + encodeURIComponent(JSON.stringify(arr))
+      + '; expires=' + expires + '; path=/; SameSite=Lax';
+  }
+
+  function renderRecentSearches() {
+    var arr = getRecentSearches();
+    var container = document.getElementById('recentSearches');
+    var pillsDiv = document.getElementById('recentPills');
+    if (!arr.length || !container || !pillsDiv) {
+      if (container) container.style.display = 'none';
+      return;
+    }
+    pillsDiv.innerHTML = '';
+    for (var i = 0; i < arr.length; i++) {
+      (function(addr) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'recent-pill';
+        btn.textContent = addr;
+        btn.addEventListener('click', function() {
+          var input = document.getElementById('address-input');
+          if (input) input.value = addr;
+          var pid = document.getElementById('place-id-input');
+          if (pid) pid.value = '';
+          addRecentSearch(addr);
+          var emailInput = document.getElementById('email-input');
+          var email = emailInput ? emailInput.value.trim() : '';
+          submitEvaluation(addr, null, email);
+        });
+        pillsDiv.appendChild(btn);
+      })(arr[i]);
+    }
+    container.style.display = '';
   }
 
   (function() {
@@ -473,11 +510,6 @@
       if (placeIdInput && placeIdInput.value) {
         body.append('place_id', placeIdInput.value);
       }
-      var personaInput = document.querySelector('input[name="persona"]:checked');
-      if (personaInput) {
-        body.append('persona', personaInput.value);
-      }
-
       csrfFetch('/', { method: 'POST', body: body })
         .then(function(data) {
           if (data.error === 'free_tier_exhausted') {
@@ -550,10 +582,6 @@
       if (placeIdForCheckout && placeIdForCheckout.value) {
         checkoutBody.append('place_id', placeIdForCheckout.value);
       }
-      var personaForCheckout = document.querySelector('input[name="persona"]:checked');
-      if (personaForCheckout) {
-        checkoutBody.append('persona', personaForCheckout.value);
-      }
       // Include email so it survives the Stripe round-trip
       var emailForCheckout = document.getElementById('email-input');
       if (emailForCheckout && emailForCheckout.value) {
@@ -586,6 +614,7 @@
 
       var emailInput = document.getElementById('email-input');
       var email = emailInput ? emailInput.value.trim() : '';
+      addRecentSearch(address);
       submitEvaluation(address, null, email);
     });
 
@@ -599,23 +628,12 @@
     var paymentToken = urlParams.get('payment_token');
     var returnAddress = urlParams.get('address');
     var returnPlaceId = urlParams.get('place_id');
-    var returnPersona = urlParams.get('persona');
     var returnEmail = urlParams.get('email');
 
     // Populate place_id from URL if present (survives Stripe round-trip)
     if (returnPlaceId) {
       var placeIdField = document.getElementById('place-id-input');
       if (placeIdField) placeIdField.value = returnPlaceId;
-    }
-    // Restore persona selection from URL (survives Stripe round-trip)
-    if (returnPersona) {
-      var personaRadio = document.querySelector('input[name="persona"][value="' + returnPersona + '"]');
-      if (personaRadio) {
-        personaRadio.checked = true;
-        var allOpts = document.querySelectorAll('.persona-option');
-        for (var pi = 0; pi < allOpts.length; pi++) allOpts[pi].classList.remove('persona-option--active');
-        personaRadio.closest('.persona-option').classList.add('persona-option--active');
-      }
     }
 
     if (REQUIRE_PAYMENT && paymentToken && returnAddress) {
@@ -652,20 +670,8 @@
         startPolling(initialJobId, overlay, loadingText, loadingSub, btn || {}, form || document.body);
       }
     }
-  })();
 
-  // Persona pill toggle — highlight the selected option (NES-133)
-  (function() {
-    var opts = document.querySelectorAll('.persona-option input[type="radio"]');
-    for (var i = 0; i < opts.length; i++) {
-      opts[i].addEventListener('change', function() {
-        var all = document.querySelectorAll('.persona-option');
-        for (var j = 0; j < all.length; j++) {
-          all[j].classList.remove('persona-option--active');
-        }
-        this.closest('.persona-option').classList.add('persona-option--active');
-      });
-    }
+    renderRecentSearches();
   })();
 
   function copyShareLink(triggerEl) {
