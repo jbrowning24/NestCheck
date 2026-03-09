@@ -261,7 +261,8 @@
           document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
         }
         return data.csrf_token || '';
-      });
+      })
+      .catch(function() { return csrfToken(); });  // fall back to current (stale) token
   }
 
   // POST with automatic CSRF token refresh + single retry on expiry.

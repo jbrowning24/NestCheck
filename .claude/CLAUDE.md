@@ -56,6 +56,8 @@ NestCheck/
 - Frontend `fetch()` calls that expect JSON must check `resp.ok` and content-type before calling `.json()`. Non-JSON error responses (CSRF 400, HTML 500) cause Safari-specific `TypeError` ("The string did not match the expected pattern") that hides the real error. Always guard: `if (!resp.ok) { /* handle non-JSON */ }` before `resp.json()`.
 - Frontend polling loops must never give up on a single transient error (404, 5xx, network). Use retry counters with a cap before showing a failure. The job queue is eventually-consistent under load; a freshly-created job may not be visible to the poll endpoint for 1-2 cycles.
 - Flask error handlers (`@app.errorhandler`) must return JSON when `_wants_json()` is true. Without this, JS clients get HTML error pages they can't parse. Add handlers for 400, 404, and 500 at minimum.
+- **CSRF auto-retry pattern**: `csrfFetch(url, options)` in `index.html` wraps `fetch()` with CSRF token injection, `resp.ok`/content-type guarding, and single auto-retry on `error_code === 'csrf_expired'`. Use `csrfFetch` for all new POST endpoints instead of raw `fetch` + manual `X-CSRFToken` header. The server-side `@app.errorhandler(400)` adds `"error_code": "csrf_expired"` to JSON responses when the error message contains "csrf" — client matches on that structured code, not on substring search of the human-readable error text.
+- **Google Maps async loading**: Maps API script tags must include `loading=async` URL parameter and `async` HTML attribute. Autocomplete init must use a named callback (`callback=initAutocomplete`) instead of an IIFE, since the `google` global isn't available at script parse time with async loading. When both a sync-check path and an async callback can init the same widget, guard with a flag to prevent double initialization.
 
 ## Key Patterns
 
@@ -172,6 +174,8 @@ NestCheck/
 | 2026-03 | Health check citations in scoring_config | `HEALTH_CHECK_CITATIONS` dict maps check names → list of `{label, url}` sources. Rendered in "Why we check this" expandable. URLs must be verified as live before merge — gov sites restructure frequently |
 | 2026-03 | Added "coffee_shop" Places API type | Google treats `coffee_shop` as distinct from `cafe` — many coffee chains (Blank Street, etc.) are only typed `coffee_shop`. Must search all three types (`cafe`, `bakery`, `coffee_shop`) to avoid zero-result gaps in dense urban areas |
 | 2026-03 | Smooth piecewise scoring curves (Phase A2) | Replaced hardcoded step tables in coffee/grocery/fitness with `apply_piecewise()` from `scoring_config.py`. Eliminates cliff-edge score jumps (e.g., 10→7 at 16 min). Fitness uses multiplicative model: `base_curve × quality_multiplier`. All piecewise results rounded to int at `Tier2Score` boundary |
+| 2026-03 | CSRF auto-retry via `csrfFetch` | CSRF tokens expire after 1 hour (Flask-WTF default). `/csrf-token` GET endpoint returns fresh token; `csrfFetch()` wrapper detects `error_code: "csrf_expired"` and retries once transparently. Server returns structured `error_code` instead of relying on substring match of error messages |
+| 2026-03 | Google Maps async loading | Added `loading=async` + `async` attribute to Maps script tags. Autocomplete init uses `callback=` parameter instead of IIFE. Double-init guard needed when both sync-check and async-callback paths exist |
 
 ### Safari Mobile / Viewport (iOS)
 - `_base.html` sets `viewport-fit=cover` — required for `env(safe-area-inset-*)` to work. Do not remove.
