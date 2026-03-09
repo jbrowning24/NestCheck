@@ -9,7 +9,7 @@
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=initAutocomplete"></script>
 <style>
   .pac-container > div:not(.pac-item) {
     display: none !important;
@@ -248,8 +248,51 @@
   const REQUIRE_PAYMENT = {{ 'true' if require_payment else 'false' }};
 
   // CSRF token from <meta> tag — included as X-CSRFToken header on every POST.
+  // Refreshed from server on demand when stale (e.g. tab left open > 1 hour).
   function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  }
+
+  function refreshCsrfToken() {
+    return fetch('/csrf-token', { method: 'GET', headers: { 'Accept': 'application/json' } })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        if (data.csrf_token) {
+          document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
+        }
+        return data.csrf_token || '';
+      })
+      .catch(function() { return csrfToken(); });  // fall back to current (stale) token
+  }
+
+  // POST with automatic CSRF token refresh + single retry on expiry.
+  // Returns a promise that resolves to parsed JSON data.
+  function csrfFetch(url, options) {
+    function doFetch(token) {
+      var opts = Object.assign({}, options);
+      opts.headers = Object.assign({ 'Accept': 'application/json' }, opts.headers, { 'X-CSRFToken': token });
+      return fetch(url, opts);
+    }
+    function handleResp(resp, isRetry) {
+      if (!resp.ok) {
+        var ct = resp.headers.get('content-type') || '';
+        if (ct.indexOf('application/json') !== -1) {
+          return resp.json().then(function(data) {
+            if (!isRetry && resp.status === 400 && data.error_code === 'csrf_expired') {
+              return refreshCsrfToken().then(function(newToken) {
+                return doFetch(newToken).then(function(r) { return handleResp(r, true); });
+              });
+            }
+            return data;
+          });
+        }
+        return resp.text().then(function() {
+          throw new Error('Server error (' + resp.status + '). Please try again.');
+        });
+      }
+      return resp.json();
+    }
+    return doFetch(csrfToken()).then(function(resp) { return handleResp(resp, false); });
   }
 
   (function() {
@@ -440,23 +483,7 @@
         body.append('persona', personaInput.value);
       }
 
-      fetch('/', {
-        method: 'POST',
-        body: body,
-        headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
-      })
-        .then(function(resp) {
-          if (!resp.ok) {
-            var ct = resp.headers.get('content-type') || '';
-            if (ct.indexOf('application/json') !== -1) {
-              return resp.json();
-            }
-            return resp.text().then(function(text) {
-              throw new Error('Server error (' + resp.status + '). Please try again.');
-            });
-          }
-          return resp.json();
-        })
+      csrfFetch('/', { method: 'POST', body: body })
         .then(function(data) {
           if (data.error === 'free_tier_exhausted') {
             // Free tier used — offer paid path
@@ -538,17 +565,7 @@
         checkoutBody.append('email', emailForCheckout.value.trim());
       }
 
-      fetch('/checkout/create', {
-        method: 'POST',
-        body: checkoutBody,
-        headers: { 'Accept': 'application/json', 'X-CSRFToken': csrfToken() }
-      })
-        .then(function(resp) {
-          if (!resp.ok && (resp.headers.get('content-type') || '').indexOf('application/json') === -1) {
-            throw new Error('Server error (' + resp.status + ')');
-          }
-          return resp.json();
-        })
+      csrfFetch('/checkout/create', { method: 'POST', body: checkoutBody })
         .then(function(data) {
           if (data.error) {
             showError(data.error, overlay, btn, form);
@@ -746,8 +763,8 @@
 
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script>
-  // Google Places Autocomplete — classic Autocomplete widget
-  (function() {
+  // Google Places Autocomplete — initialised by Maps API async callback
+  function initAutocomplete() {
     var input = document.getElementById('address-input');
     if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) return;
 
@@ -773,7 +790,7 @@
       var pid = document.getElementById('place-id-input');
       if (pid) pid.value = '';
     });
-  })();
+  }
 </script>
 {% endif %}
 
