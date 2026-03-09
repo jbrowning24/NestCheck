@@ -10,11 +10,11 @@ body:has(.pricing-page) {
 .pricing-page {
   max-width: 720px;
   margin: 0 auto;
-  padding: 80px 48px;
+  padding: 80px var(--space-2xl);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 48px;
+  gap: var(--space-2xl);
 }
 
 /* ── Hero ─────────────────────────────────────────────────── */
@@ -23,13 +23,13 @@ body:has(.pricing-page) {
   max-width: 560px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-base);
 }
 
 .pricing-title {
   font-family: var(--font-heading);
   font-size: 48px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.04em;
   line-height: 1.05;
   color: #111111;
@@ -37,7 +37,7 @@ body:has(.pricing-page) {
 }
 
 .pricing-subtitle {
-  font-size: 18px;
+  font-size: var(--font-size-h3);
   color: #8E8E8E;
   line-height: 1.6;
   margin: 0;
@@ -48,14 +48,14 @@ body:has(.pricing-page) {
 .price-card {
   background: var(--color-surface);
   border-radius: 20px;
-  padding: 48px;
+  padding: var(--space-2xl);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  border: 1px solid #EAEAEA;
+  border: 1px solid var(--color-border);
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: var(--space-xl);
   text-align: center;
 }
 
@@ -63,51 +63,51 @@ body:has(.pricing-page) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .price-amount {
   font-family: var(--font-heading);
   font-size: 72px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.04em;
   color: #111111;
-  line-height: 1;
+  line-height: var(--line-height-none);
   font-variant-numeric: tabular-nums;
 }
 
 .price-unit {
   font-size: 16px;
   color: #8E8E8E;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .price-desc {
-  font-size: 15px;
+  font-size: var(--font-size-body);
   color: #8E8E8E;
-  line-height: 1.5;
-  margin: 4px 0 0;
+  line-height: var(--line-height-normal);
+  margin: var(--space-xs) 0 0;
   max-width: 360px;
 }
 
 /* ── Feature list ─────────────────────────────────────────── */
 .price-features {
   list-style: none;
-  padding: 24px 0;
+  padding: var(--space-lg) 0;
   margin: 0;
   width: 100%;
   max-width: 420px;
-  border-top: 1px solid #F0F0F0;
-  border-bottom: 1px solid #F0F0F0;
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-md);
 }
 
 .price-features li {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-md);
   font-size: 14px;
   color: #555555;
   text-align: left;
@@ -117,7 +117,7 @@ body:has(.pricing-page) {
 .price-features li::before {
   content: "\2713";
   color: #111111;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -125,15 +125,15 @@ body:has(.pricing-page) {
 /* ── CTA button ───────────────────────────────────────────── */
 .price-btn {
   display: inline-block;
-  padding: 16px 40px;
+  padding: var(--space-base) var(--space-10);
   background: #111111;
-  color: #FFFFFF;
-  border-radius: 100px;
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
   font-family: var(--font-heading);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .price-btn:hover {
@@ -142,7 +142,7 @@ body:has(.pricing-page) {
 }
 
 .cta-flow {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   color: #B0B0B0;
 }
 
@@ -151,12 +151,12 @@ body:has(.pricing-page) {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-base);
 }
 
 .section-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.08em;
   color: #B0B0B0;
   text-transform: uppercase;
@@ -166,28 +166,28 @@ body:has(.pricing-page) {
 .coming-soon-card {
   background: var(--color-surface);
   border-radius: 16px;
-  padding: 28px 32px;
-  border: 1px solid #EAEAEA;
+  padding: 28px var(--space-xl);
+  border: 1px solid var(--color-border);
 }
 
 .coming-soon-card h3 {
   font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
   color: #111111;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-sm);
 }
 
 .coming-soon-card p {
   font-size: 14px;
   color: #8E8E8E;
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
   margin: 0;
 }
 
 /* ── Footer note ──────────────────────────────────────────── */
 .pricing-note {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   color: #B0B0B0;
   text-align: center;
   margin: 0;
@@ -205,12 +205,12 @@ body:has(.pricing-page) {
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .pricing-page {
-    padding: 48px 24px;
+    padding: var(--space-2xl) var(--space-lg);
     gap: 36px;
   }
 
   .pricing-title {
-    font-size: 36px;
+    font-size: var(--font-size-display);
   }
 
   .pricing-subtitle {
@@ -218,7 +218,7 @@ body:has(.pricing-page) {
   }
 
   .price-card {
-    padding: 32px 24px;
+    padding: var(--space-xl) var(--space-lg);
   }
 
   .price-amount {
@@ -226,6 +226,6 @@ body:has(.pricing-page) {
   }
 
   .coming-soon-card {
-    padding: 24px;
+    padding: var(--space-lg);
   }
 }
