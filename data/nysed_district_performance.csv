@@ -1,40 +1,692 @@
 geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+3600001,Dolgeville Central School District,Herkimer,87,,,,19315,2019-20
+3600002,Sauquoit Valley Central School District,Oneida,97,,,,20063,2019-20
+3600003,Edwards-Knox Central School District,St. Lawrence,74,,,,24276,2019-20
+3600004,Rotterdam-Mohonasen Central School District,Schenectady,87,,,,17271,2019-20
+3600005,Broadalbin-Perth Central School District,Fulton,87,,,,18532,2019-20
+3600006,Cherry Valley-Springfield Central School District,Otsego,74,,,,24630,2019-20
+3600007,Jasper-Troupsburg Central School District,Steuben,95,,,,30997,2019-20
+3600008,South Country Central School District,Suffolk,83,,,,31038,2019-20
+3600009,Saranac Central School District,Clinton,87,,,,20505,2019-20
+3600010,Cobleskill-Richmondville Central School District,Schoharie,87,,,,24645,2019-20
+3600011,Wayland-Cohocton Central School District,Steuben,92,,,,20515,2019-20
+3600012,Bolivar-Richburg Central School District,Allegany,95,,,,23252,2019-20
+3600013,Oneida City School District,Madison,82,,,,23466,2019-20
+3600014,Waterloo Central School District,Seneca,82,,,,22434,2019-20
+3600015,Allegany-Limestone Central School District,Cattaraugus,92,,,,18726,2019-20
+3600016,Averill Park Central School District,Rensselaer,95,,,,21649,2019-20
+3600017,Genesee Valley Central School District,Allegany,95,,,,24993,2019-20
+3600018,Chautauqua Lake Central School District,Chautauqua,82,,,,24447,2019-20
+3600019,Unadilla Valley Central School District,Chenango,82,,,,22760,2019-20
+3600020,Campbell-Savona Central School District,Steuben,92,,,,23128,2019-20
+3600021,Mattituck-Cutchogue Union Free School District,Suffolk,92,,,,36905,2019-20
+3600023,Sullivan West Central School District,Sullivan,87,,,,28413,2019-20
+3600024,Cattaraugus-Little Valley Central School District,Cattaraugus,92,,,,23650,2019-20
+3600124,Canisteo-Greenwood CSD,Steuben,97,,,,23414,2019-20
+3600125,Eastport-South Manor CSD,Suffolk,95,,,,29537,2019-20
+3601087,Central Valley CSD At Ilion-Mohawk,Herkimer,82,,,,19128,2019-20
+3601107,Oppenheim-Ephratah-St. Johnsville CSD,Montgomery,72,,,,19545,2019-20
+3601189,Boquet Valley CSD,Essex,,,,,33799,2019-20
+3602310,Glens Falls Common School District,Warren,,,,,19854,2019-20
+3602340,South Jefferson Central School District,Jefferson,82,,,,16526,2019-20
+3602370,Addison Central School District,Steuben,82,,,,25245,2019-20
+3602400,Afton Central School District,Chenango,84,,,,28909,2019-20
+3602430,Akron Central School District,Erie,97,,,,20311,2019-20
+3602460,Albany City School District,Albany,68,,,,24039,2019-20
+3602520,Albion Central School District,Orleans,87,,,,17466,2019-20
+3602550,Alden Central School District,Erie,92,,,,19414,2019-20
+3602580,Alexander Central School District,Genesee,87,,,,21123,2019-20
+3602670,Alexandria Central School District,Jefferson,95,,,,25776,2019-20
+3602700,Alfred-Almond Central School District,Allegany,95,,,,21423,2019-20
+3602730,Windsor Central School District,Broome,92,,,,22195,2019-20
+3602820,Altmar-Parish-Williamstown Central School District,Oswego,82,,,,24532,2019-20
+3602880,Amagansett Union Free School District,Suffolk,,,,,62888,2019-20
+3602920,Amherst Central School District,Erie,90,,,,18402,2019-20
+3602940,Amityville Union Free School District,Suffolk,77,,,,30491,2019-20
+3602970,Amsterdam City School District,Montgomery,71,,,,17704,2019-20
+3603000,Andes Central School District,Delaware,75,,,,50333,2019-20
+3603030,Andover Central School District,Allegany,90,,,,29154,2019-20
+3603060,Schenevus Central School District,Otsego,10,,,,27199,2019-20
 3603180,Ardsley Union Free School District,Westchester,97,71,68,14,32415,2023-24
-3619950,Bedford Central School District,Westchester,93,64,56,18,30210,2023-24
-3624630,Blind Brook-Rye Union Free School District,Westchester,98,76,73,10,35120,2023-24
+3603210,Argyle Central School District,Washington,95,,,,23151,2019-20
+3603240,Arkport Central School District,Steuben,90,,,,20677,2019-20
+3603270,Arlington Central School District,Dutchess,88,,,,25612,2019-20
+3603420,Attica Central School District,Wyoming,92,,,,23580,2019-20
+3603480,Auburn City School District,Cayuga,72,,,,19807,2019-20
+3603630,Avoca Central School District,Steuben,95,,,,26922,2019-20
+3603660,Avon Central School District,Livingston,84,,,,18046,2019-20
+3603720,Babylon Union Free School District,Suffolk,92,,,,31285,2019-20
+3603810,Bainbridge-Guilford Central School District,Chenango,92,,,,21365,2019-20
+3603840,Baldwin Union Free School District,Nassau,95,,,,26835,2019-20
+3603870,Baldwinsville Central School District,Onondaga,89,,,,18358,2019-20
+3603930,Ballston Spa Central School District,Saratoga,90,,,,21787,2019-20
+3603960,Barker Central School District,Niagara,84,,,,24079,2019-20
+3603990,Batavia City School District,Genesee,92,,,,20621,2019-20
+3604050,Bath Central School District,Steuben,92,,,,21099,2019-20
+3604080,Bay Shore Union Free School District,Suffolk,89,,,,26522,2019-20
+3604110,Bayport-Blue Point Union Free School District,Suffolk,97,,,,35570,2019-20
+3604140,Beacon City School District,Dutchess,84,,,,25876,2019-20
+3604200,Beaver River Central School District,Lewis,92,,,,17130,2019-20
+3604290,Beekmantown Central School District,Clinton,87,,,,20261,2019-20
+3604350,Belfast Central School District,Allegany,90,,,,25628,2019-20
+3604370,Belleville-Henderson Central School District,Jefferson,69,,,,18804,2019-20
+3604410,Bellmore Union Free School District,Nassau,,,,,30417,2019-20
+3604530,Bemus Point Central School District,Chautauqua,97,,,,20665,2019-20
+3604590,Berkshire Union Free School District,Columbia,,,,,,2019-20
+3604620,Berlin Central School District,Rensselaer,82,,,,30315,2019-20
+3604650,Berne-Knox-Westerlo Central School District,Albany,84,,,,28532,2019-20
+3604710,Bethlehem Central School District,Albany,96,,,,20567,2019-20
+3604740,Bethpage Union Free School District,Nassau,96,,,,29276,2019-20
+3604757,Gilbertsville-Mount Upton Central School District,Otsego,90,,,,22986,2019-20
+3604758,Kiryas Joel Village Union Free School District,Ulster,,,,,364198,2019-20
+3604870,Binghamton City School District,Broome,69,,,,23608,2019-20
+3604920,East Bloomfield Central School District,Ontario,92,,,,22262,2019-20
+3605010,Bolton Central School District,Warren,75,,,,45441,2019-20
+3605040,Adirondack Central School District,Oneida,87,,,,20816,2019-20
+3605220,Bradford Central School District,Schuyler,90,,,,27216,2019-20
+3605280,Brentwood Union Free School District,Suffolk,74,,,,21723,2019-20
+3605310,Brewster Central School District,Putnam,87,,,,30336,2019-20
 3605340,Briarcliff Manor Union Free School District,Westchester,98,78,74,11,33640,2023-24
+3605370,Bridgehampton Union Free School District,Suffolk,75,,,,79081,2019-20
+3605460,Brighton Central School District,Monroe,96,,,,21061,2019-20
+3605520,Brunswick Central School District (Brittonkill),Rensselaer,87,,,,20148,2019-20
+3605580,Brockport Central School District,Monroe,85,,,,22620,2019-20
+3605610,Brocton Central School District,Chautauqua,84,,,,27957,2019-20
+3605640,Bronxville Union Free School District,Westchester,97,,,,30011,2019-20
+3605670,Brookfield Central School District,Madison,90,,,,24897,2019-20
+3605820,Brushton-Moira Central School District,Franklin,84,,,,22039,2019-20
+3605850,Buffalo City School District,Erie,65,,,,22494,2019-20
+3605940,Burnt Hills-Ballston Lake Central School District,Saratoga,95,,,,19465,2019-20
 3606060,Byram Hills Central School District,Westchester,98,80,76,9,34870,2023-24
+3606090,Byron-Bergen Central School District,Genesee,92,,,,21619,2019-20
+3606160,Cairo-Durham Central School District,Greene,82,,,,26352,2019-20
+3606180,Caledonia-Mumford Central School District,Livingston,87,,,,19342,2019-20
+3606210,Cambridge Central School District,Washington,92,,,,23055,2019-20
+3606240,Camden Central School District,Oneida,87,,,,21868,2019-20
+3606300,Canajoharie Central School District,Montgomery,92,,,,23303,2019-20
+3606330,Canandaigua City School District,Ontario,90,,,,20550,2019-20
+3606360,Canaseraga Central School District,Allegany,69,,,,28311,2019-20
+3606390,Canastota Central School District,Madison,82,,,,21295,2019-20
+3606420,Candor Central School District,Tioga,74,,,,23168,2019-20
+3606470,Canton Central School District,St. Lawrence,92,,,,23592,2019-20
+3606500,Spackenkill Union Free School District,Dutchess,92,,,,28327,2019-20
+3606540,Carle Place Union Free School District,Nassau,92,,,,37824,2019-20
+3606570,Carmel Central School District,Putnam,94,,,,31370,2019-20
+3606630,Carthage Central School District,Jefferson,89,,,,19785,2019-20
+3606660,Cassadaga Valley Central School District,Chautauqua,95,,,,23791,2019-20
+3606690,Cato-Meridian Central School District,Cayuga,92,,,,20110,2019-20
+3606720,Catskill Central School District,Greene,92,,,,27368,2019-20
+3606780,Cazenovia Central School District,Madison,97,,,,20213,2019-20
+3606840,Center Moriches Union Free School District,Suffolk,92,,,,27397,2019-20
+3606870,Central Islip Union Free School District,Suffolk,83,,,,25696,2019-20
+3606900,Central Square Central School District,Oswego,84,,,,20696,2019-20
 3606990,Chappaqua Central School District,Westchester,98,81,78,10,33950,2023-24
+3607020,Grand Island Central School District,Erie,93,,,,18723,2019-20
+3607050,Charlotte Valley Central School District,Delaware,10,,,,27446,2019-20
+3607080,Chateaugay Central School District,Franklin,95,,,,23086,2019-20
+3607110,Chatham Central School District,Columbia,92,,,,31017,2019-20
+3607170,Chazy Union Free School District,Clinton,84,,,,21385,2019-20
+3607230,Cheektowaga Central School District,Erie,77,,,,18556,2019-20
+3607260,Chenango Forks Central School District,Broome,97,,,,21255,2019-20
+3607290,Chenango Valley Central School District,Broome,87,,,,20642,2019-20
+3607320,Westhill Central School District,Onondaga,97,,,,19164,2019-20
+3607380,Chester Union Free School District,Orange,92,,,,25379,2019-20
+3607440,Randolph Academy Union Free School District,Cattaraugus,,,,,309214,2019-20
+3607470,Chittenango Central School District,Madison,82,,,,19698,2019-20
+3607530,Churchville-Chili Central School District,Monroe,92,,,,18474,2019-20
+3607560,Cincinnatus Central School District,Cortland,84,,,,25380,2019-20
+3607590,Clarence Central School District,Erie,96,,,,17624,2019-20
+3607650,Thousand Islands Central School District,Jefferson,92,,,,21467,2019-20
+3607680,Cleveland Hill Union Free School District,Erie,87,,,,18983,2019-20
+3607710,Clifton-Fine Central School District,St. Lawrence,90,,,,34969,2019-20
+3607770,Clinton Central School District,Oneida,97,,,,19595,2019-20
+3607860,Clyde-Savannah Central School District,Wayne,74,,,,24353,2019-20
+3607890,Clymer Central School District,Chautauqua,95,,,,26283,2019-20
+3607980,Cohoes City School District,Albany,82,,,,20609,2019-20
+3608010,Cold Spring Harbor Central School District,Suffolk,97,,,,38489,2019-20
+3608100,Colton-Pierrepont Central School District,St. Lawrence,95,,,,26005,2019-20
+3608130,Commack Union Free School District,Suffolk,98,,,,31544,2019-20
+3608160,Connetquot Central School District,Suffolk,97,,,,32978,2019-20
+3608250,Cooperstown Central School District,Otsego,92,,,,20596,2019-20
+3608280,Copenhagen Central School District,Lewis,95,,,,19971,2019-20
+3608310,Copiague Union Free School District,Suffolk,90,,,,25076,2019-20
+3608340,Pembroke Central School District,Genesee,97,,,,22940,2019-20
+3608370,Corinth Central School District,Saratoga,82,,,,17675,2019-20
+3608400,Corning City School District,Steuben,79,,,,23946,2019-20
+3608430,Cornwall Central School District,Orange,94,,,,21956,2019-20
+3608460,Cortland City School District,Cortland,81,,,,22418,2019-20
+3608470,Mount Pleasant-Cottage Union Free School District,Westchester,10,,,,85622,2019-20
+3608490,Coxsackie-Athens Central School District,Greene,87,,,,23939,2019-20
 3608580,Croton-Harmon Union Free School District,Westchester,96,72,65,15,31200,2023-24
+3608610,Crown Point Central School District,Essex,90,,,,18204,2019-20
+3608790,Dansville Central School District,Livingston,87,,,,21856,2019-20
+3608850,Deruyter Central School District,Madison,90,,,,29745,2019-20
+3608880,Deer Park Union Free School District,Suffolk,91,,,,26458,2019-20
+3608910,Delaware Academy Central School District At Delhi,Delaware,72,,,,22691,2019-20
+3608970,Yorkshire-Pioneer Central School District,Cattaraugus,92,,,,20722,2019-20
+3609030,Depew Union Free School District,Erie,92,,,,19048,2019-20
+3609060,Deposit Central School District,Delaware,84,,,,30919,2019-20
+3609090,Jamesville-Dewitt Central School District,Onondaga,95,,,,21698,2019-20
 3609120,Dobbs Ferry Union Free School District,Westchester,96,70,64,16,32050,2023-24
+3609210,Dover Union Free School District,Dutchess,82,,,,23880,2019-20
+3609240,Downsville Central School District,Delaware,90,,,,39876,2019-20
+3609330,Dryden Central School District,Tompkins,82,,,,27052,2019-20
+3609360,Duanesburg Central School District,Schenectady,92,,,,19994,2019-20
+3609390,Dundee Central School District,Yates,84,,,,24254,2019-20
+3609420,Dunkirk City School District,Chautauqua,72,,,,21763,2019-20
+3609540,East Aurora Union Free School District,Erie,92,,,,19240,2019-20
+3609630,East Greenbush Central School District,Rensselaer,96,,,,19841,2019-20
+3609660,East Hampton Union Free School District,Suffolk,87,,,,32622,2019-20
+3609690,East Irondequoit Central School District,Monroe,87,,,,24633,2019-20
+3609720,East Islip Union Free School District,Suffolk,92,,,,29947,2019-20
+3609840,East Meadow Union Free School District,Nassau,94,,,,25196,2019-20
+3609870,East Moriches Union Free School District,Suffolk,,,,,27622,2019-20
+3609900,East Quogue Union Free School District,Suffolk,,,,,38166,2019-20
+3609930,East Rochester Union Free School District,Monroe,82,,,,23350,2019-20
+3609960,East Rockaway Union Free School District,Nassau,92,,,,30979,2019-20
+3609990,East Syracuse Minoa Central School District,Onondaga,89,,,,22277,2019-20
+3610050,East Williston Union Free School District,Nassau,97,,,,36503,2019-20
 3610080,Eastchester Union Free School District,Westchester,96,73,67,14,30890,2023-24
+3610140,Greenburgh Eleven Union Free School District,Westchester,24,,,,203548,2019-20
+3610170,Eden Central School District,Erie,92,,,,19463,2019-20
 3610200,Edgemont Union Free School District,Westchester,99,84,82,8,36200,2023-24
+3610230,Edinburg Common School District,Saratoga,,,,,50037,2019-20
+3610260,Edmeston Central School District,Otsego,84,,,,24285,2019-20
+3610380,Elba Central School District,Genesee,95,,,,20157,2019-20
+3610410,Eldred Central School District,Sullivan,95,,,,32616,2019-20
+3610500,Ellenville Central School District,Ulster,82,,,,30585,2019-20
+3610530,Ellicottville Central School District,Cattaraugus,95,,,,20592,2019-20
+3610560,Elmira City School District,Chemung,61,,,,20411,2019-20
+3610590,Elmira Heights Central School District,Chemung,77,,,,17946,2019-20
+3610620,Elmont Union Free School District,Nassau,,,,,23798,2019-20
 3610650,Elmsford Union Free School District,Westchester,85,42,30,25,28750,2023-24
+3610680,Elwood Union Free School District,Suffolk,97,,,,28469,2019-20
+3610710,Union-Endicott Central School District,Broome,87,,,,21563,2019-20
+3610860,Fabius-Pompey Central School District,Onondaga,84,,,,26632,2019-20
+3610890,Fairport Central School District,Monroe,94,,,,21672,2019-20
+3610920,Falconer Central School District,Chautauqua,92,,,,17813,2019-20
+3610950,Fallsburg Central School District,Sullivan,67,,,,28453,2019-20
+3610980,Farmingdale Union Free School District,Nassau,93,,,,31936,2019-20
+3611070,Fillmore Central School District,Allegany,95,,,,19830,2019-20
+3611100,Fishers Island Union Free School District,Suffolk,,,,,66140,2019-20
+3611160,Floral Park-Bellerose Union Free School District,Nassau,,,,,18354,2019-20
+3611190,Fonda-Fultonville Central School District,Montgomery,97,,,,18744,2019-20
+3611250,Forestville Central School District,Chautauqua,84,,,,20725,2019-20
+3611280,Fort Ann Central School District,Washington,84,,,,23158,2019-20
+3611310,Fort Edward Union Free School District,Washington,69,,,,21673,2019-20
+3611370,Fort Plain Central School District,Montgomery,87,,,,24906,2019-20
+3611400,Frankfort-Schuyler Central School District,Herkimer,87,,,,20577,2019-20
+3611430,Franklin Central School District,Delaware,90,,,,29247,2019-20
+3611460,Franklin Square Union Free School District,Nassau,,,,,18831,2019-20
+3611490,Franklinville Central School District,Cattaraugus,84,,,,28155,2019-20
+3611520,Fredonia Central School District,Chautauqua,92,,,,19440,2019-20
+3611550,Freeport Union Free School District,Nassau,80,,,,25867,2019-20
+3611610,Frewsburg Central School District,Chautauqua,92,,,,20037,2019-20
+3611640,Friendship Central School District,Allegany,90,,,,30126,2019-20
+3611670,Frontier Central School District,Erie,90,,,,17097,2019-20
+3611700,Fulton City School District,Oswego,79,,,,22205,2019-20
+3611730,Galway Central School District,Saratoga,92,,,,21048,2019-20
+3611740,Gananda Central School District,Wayne,92,,,,21504,2019-20
+3611760,Garden City Union Free School District,Nassau,98,,,,26164,2019-20
+3611860,Garrison Union Free School District,Putnam,,,,,39203,2019-20
+3611880,Gates Chili Central School District,Monroe,85,,,,25326,2019-20
+3611910,General Brown Central School District,Jefferson,87,,,,15046,2019-20
+3611940,Geneseo Central School District,Livingston,97,,,,20460,2019-20
+3611970,Geneva City School District,Ontario,82,,,,24143,2019-20
+3612030,Germantown Central School District,Columbia,84,,,,30086,2019-20
+3612120,Gilboa-Conesville Central School District,Schoharie,90,,,,30712,2019-20
+3612180,Glen Cove City School District,Nassau,78,,,,26577,2019-20
+3612240,Glens Falls City School District,Warren,77,,,,19873,2019-20
+3612270,Gloversville City School District,Fulton,74,,,,21781,2019-20
+3612300,Gorham-Middlesex Central School District (Marcus Whitman),Ontario,87,,,,25979,2019-20
+3612330,Goshen Central School District,Orange,91,,,,24104,2019-20
+3612360,Gouverneur Central School District,St. Lawrence,77,,,,21427,2019-20
+3612390,Gowanda Central School District,Cattaraugus,82,,,,24569,2019-20
+3612400,Greenburgh-Graham Union Free School District,Westchester,24,,,,,2019-20
+3612450,Granville Central School District,Washington,87,,,,21381,2019-20
+3612510,Great Neck Union Free School District,Nassau,94,,,,32878,2019-20
+3612630,Greece Central School District,Monroe,89,,,,20602,2019-20
+3612660,Green Island Union Free School District,Albany,69,,,,21691,2019-20
 3612720,Greenburgh Central School District,Westchester,82,35,24,28,27100,2023-24
+3612750,Greene Central School District,Chenango,82,,,,25688,2019-20
+3612840,Greenport Union Free School District,Suffolk,62,,,,26425,2019-20
+3612870,Greenville Central School District,Greene,87,,,,26359,2019-20
+3612900,Greenwich Central School District,Washington,87,,,,21204,2019-20
+3612960,Greenwood Lake Union Free School District,Orange,,,,,45157,2019-20
+3612990,Springville-Griffith Institute Central School District,Erie,92,,,,21719,2019-20
+3613020,Groton Central School District,Tompkins,95,,,,24230,2019-20
+3613080,Guilderland Central School District,Albany,95,,,,19414,2019-20
+3613110,Hadley-Luzerne Central School District,Warren,74,,,,29756,2019-20
+3613230,Haldane Central School District,Putnam,97,,,,28104,2019-20
+3613290,Half Hollow Hills Central School District,Suffolk,95,,,,32557,2019-20
+3613350,Hamburg Central School District,Erie,95,,,,19775,2019-20
+3613380,Hamilton Central School District,Madison,84,,,,22092,2019-20
+3613440,Hammond Central School District,St. Lawrence,90,,,,29194,2019-20
+3613470,Hammondsport Central School District,Steuben,90,,,,30457,2019-20
+3613530,Hampton Bays Union Free School District,Suffolk,92,,,,23618,2019-20
+3613560,Hancock Central School District,Delaware,90,,,,31284,2019-20
+3613590,Hannibal Central School District,Oswego,82,,,,21271,2019-20
+3613620,Harborfields Central School District,Suffolk,96,,,,28062,2019-20
+3613710,Harpursville Central School District,Broome,82,,,,27901,2019-20
 3613740,Harrison Central School District,Westchester,96,72,66,13,33100,2023-24
-3613950,Hastings-on-Hudson Union Free School District,Westchester,97,75,70,12,34200,2023-24
+3613770,Harrisville Central School District,Lewis,95,,,,29479,2019-20
+3613830,Hartford Central School District,Washington,84,,,,25900,2019-20
+3613950,Hastings-On-Hudson Union Free School District,Westchester,97,75,70,12,34200,2023-24
+3613980,Hauppauge Union Free School District,Suffolk,94,,,,32148,2019-20
+3614010,Haverstraw-Stony Point CSD (North Rockland),Rockland,84,,,,26488,2019-20
+3614070,Hawthorne-Cedar Knolls Union Free School District,Westchester,90,55,45,20,30500,2023-24
+3614130,Hempstead Union Free School District,Nassau,65,,,,29757,2019-20
 3614190,Hendrick Hudson Central School District,Westchester,94,65,58,17,29800,2023-24
+3614220,Herkimer Central School District,Herkimer,77,,,,18865,2019-20
+3614250,Hermon-Dekalb Central School District,St. Lawrence,69,,,,24886,2019-20
+3614280,Herricks Union Free School District,Nassau,98,,,,27147,2019-20
+3614310,Heuvelton Central School District,St. Lawrence,95,,,,22540,2019-20
+3614340,Hicksville Union Free School District,Nassau,92,,,,23752,2019-20
+3614400,Highland Central School District,Ulster,87,,,,26165,2019-20
+3614430,Highland Falls Central School District,Orange,87,,,,28606,2019-20
+3614460,Hilton Central School District,Monroe,92,,,,18214,2019-20
+3614490,Hinsdale Central School District,Cattaraugus,90,,,,22972,2019-20
+3614550,Holland Central School District,Erie,92,,,,23226,2019-20
+3614580,Holland Patent Central School District,Oneida,92,,,,23029,2019-20
+3614610,Holley Central School District,Orleans,92,,,,21792,2019-20
+3614640,Homer Central School District,Cortland,92,,,,20157,2019-20
+3614670,Honeoye Central School District,Ontario,84,,,,26894,2019-20
+3614700,Honeoye Falls-Lima Central School District,Monroe,97,,,,20665,2019-20
+3614730,Hoosic Valley Central School District,Rensselaer,97,,,,21877,2019-20
+3614760,Hoosick Falls Central School District,Rensselaer,87,,,,19832,2019-20
+3614820,Hornell City School District,Steuben,87,,,,22776,2019-20
+3614850,Horseheads Central School District,Chemung,91,,,,19191,2019-20
+3614880,Sackets Harbor Central School District,Jefferson,95,,,,19263,2019-20
+3614940,Hudson City School District,Columbia,82,,,,28265,2019-20
+3614970,Hudson Falls Central School District,Washington,82,,,,18189,2019-20
+3615030,George Junior Republic Union Free School District,Tompkins,24,,,,99537,2019-20
+3615060,Hunter-Tannersville Central School District,Greene,84,,,,35434,2019-20
+3615090,Huntington Union Free School District,Suffolk,91,,,,30773,2019-20
+3615180,Hyde Park Central School District,Dutchess,81,,,,25404,2019-20
+3615210,Kinderhook Central School District,Columbia,92,,,,23489,2019-20
+3615270,Indian Lake Central School District,Hamilton,75,,,,41266,2019-20
+3615300,Indian River Central School District,Jefferson,92,,,,22111,2019-20
+3615330,Inlet Common School District,Hamilton,,,,,,2019-20
+3615360,Iroquois Central School District,Erie,97,,,,22777,2019-20
+3615390,West Irondequoit Central School District,Monroe,96,,,,18700,2019-20
+3615420,Hopevale Union Free School District At Hamburg,Erie,,,,,,2019-20
 3615450,Irvington Union Free School District,Westchester,98,79,75,10,35600,2023-24
+3615480,Island Park Union Free School District,Nassau,,,,,39488,2019-20
+3615510,Island Trees Union Free School District,Nassau,92,,,,27798,2019-20
+3615540,Islip Union Free School District,Suffolk,93,,,,29379,2019-20
+3615570,Ithaca City School District,Tompkins,87,,,,24597,2019-20
+3615630,Jamestown City School District,Chautauqua,72,,,,17028,2019-20
+3615720,Jefferson Central School District,Schoharie,90,,,,33987,2019-20
+3615780,Brookhaven-Comsewogue Union Free School District,Suffolk,86,,,,25123,2019-20
+3615810,Jericho Union Free School District,Nassau,99,,,,35528,2019-20
+3615870,Johnsburg Central School District,Warren,69,,,,31507,2019-20
+3615900,Johnson City Central School District,Broome,87,,,,21165,2019-20
+3615980,Johnstown City School District,Fulton,72,,,,19297,2019-20
+3615990,Jordan-Elbridge Central School District,Onondaga,92,,,,21919,2019-20
 3616080,Katonah-Lewisboro Union Free School District,Westchester,97,76,72,11,32400,2023-24
+3616140,Keene Central School District,Essex,75,,,,34101,2019-20
+3616170,Ausable Valley Central School District,Clinton,82,,,,24791,2019-20
+3616200,Kendall Central School District,Orleans,95,,,,20025,2019-20
+3616230,Kenmore-Tonawanda Union Free School District,Erie,85,,,,22586,2019-20
+3616260,Kings Park Central School District,Suffolk,98,,,,31966,2019-20
+3616290,Kingston City School District,Ulster,81,,,,27291,2019-20
+3616380,La Fargeville Central School District,Jefferson,84,,,,19115,2019-20
+3616410,Lafayette Central School District,Onondaga,92,,,,29411,2019-20
+3616440,Lackawanna City School District,Erie,72,,,,21801,2019-20
+3616470,Lake George Central School District,Warren,92,,,,33877,2019-20
+3616500,Lake Placid Central School District,Essex,95,,,,30688,2019-20
+3616530,Lake Pleasant Central School District,Hamilton,,,,,54149,2019-20
+3616560,Evans-Brant Central School District (Lake Shore),Erie,92,,,,23617,2019-20
 3616620,Lakeland Central School District,Westchester,92,58,50,19,28900,2023-24
+3616680,Lancaster Central School District,Erie,96,,,,17286,2019-20
+3616710,Lansing Central School District,Tompkins,87,,,,24047,2019-20
+3616740,Lansingburgh Central School District,Rensselaer,85,,,,19985,2019-20
+3616800,Laurens Central School District,Otsego,84,,,,23913,2019-20
+3616830,Lawrence Union Free School District,Nassau,81,,,,53724,2019-20
+3616950,Le Roy Central School District,Genesee,92,,,,19290,2019-20
+3616960,North Warren Central School District,Warren,74,,,,25660,2019-20
+3616980,North Rose-Wolcott Central School District,Wayne,82,,,,25405,2019-20
+3617130,Letchworth Central School District,Wyoming,92,,,,20248,2019-20
+3617160,Levittown Union Free School District,Nassau,95,,,,27125,2019-20
+3617190,Lewiston-Porter Central School District,Niagara,92,,,,21981,2019-20
+3617220,Liberty Central School District,Sullivan,67,,,,24200,2019-20
+3617380,Lindenhurst Union Free School District,Suffolk,92,,,,27567,2019-20
+3617400,Little Flower Union Free School District,Suffolk,,,,,788778,2019-20
+3617430,Lisbon Central School District,St. Lawrence,95,,,,23444,2019-20
+3617460,Little Falls City School District,Herkimer,87,,,,21240,2019-20
+3617520,Liverpool Central School District,Onondaga,90,,,,20829,2019-20
+3617580,Livingston Manor Central School District,Sullivan,69,,,,34467,2019-20
+3617640,Livonia Central School District,Livingston,92,,,,19771,2019-20
+3617670,Lockport City School District,Niagara,87,,,,20778,2019-20
+3617700,Locust Valley Central School District,Nassau,97,,,,42292,2019-20
+3617730,Long Beach City School District,Nassau,96,,,,36531,2019-20
+3617760,Long Lake Central School District,Hamilton,,,,,63186,2019-20
+3617820,Lowville Academy & Central School District,Lewis,92,,,,18711,2019-20
+3617880,Lyme Central School District,Jefferson,84,,,,20166,2019-20
+3617910,Lynbrook Union Free School District,Nassau,96,,,,29152,2019-20
+3617940,Lyncourt Union Free School District,Onondaga,,,,,22676,2019-20
+3617970,Lyndonville Central School District,Orleans,95,,,,23100,2019-20
+3618030,Lyons Central School District,Wayne,87,,,,24416,2019-20
+3618080,Madison Central School District,Madison,95,,,,20841,2019-20
+3618090,Madrid-Waddington Central School District,St. Lawrence,95,,,,21955,2019-20
+3618120,Mahopac Central School District,Putnam,95,,,,29611,2019-20
+3618150,Maine-Endwell Central School District,Broome,92,,,,18191,2019-20
+3618180,Malone Central School District,Franklin,82,,,,21985,2019-20
+3618210,Malverne Union Free School District,Nassau,92,,,,28748,2019-20
 3618240,Mamaroneck Union Free School District,Westchester,93,68,62,16,31800,2023-24
+3618270,Manhasset Union Free School District,Nassau,98,,,,31513,2019-20
+3618330,Fayetteville-Manlius Central School District,Onondaga,95,,,,19800,2019-20
+3618450,Marathon Central School District,Cortland,84,,,,22644,2019-20
+3618480,Marcellus Central School District,Onondaga,97,,,,21577,2019-20
+3618510,Margaretville Central School District,Delaware,90,,,,30835,2019-20
+3618540,Marion Central School District,Wayne,92,,,,25354,2019-20
+3618570,Marlboro Central School District,Ulster,92,,,,26330,2019-20
+3618600,Cheektowaga-Maryvale Union Free School District,Erie,87,,,,17447,2019-20
+3618630,Massapequa Union Free School District,Nassau,96,,,,30139,2019-20
+3618660,Massena Central School District,St. Lawrence,82,,,,21025,2019-20
+3618690,William Floyd Union Free School District,Suffolk,87,,,,23922,2019-20
+3618750,Mayfield Central School District,Fulton,87,,,,20238,2019-20
+3618840,Mcgraw Central School District,Cortland,95,,,,22729,2019-20
+3618900,Mechanicville City School District,Saratoga,82,,,,16893,2019-20
+3618960,Medina Central School District,Orleans,92,,,,22950,2019-20
+3618990,Menands Union Free School District,Albany,,,,,22339,2019-20
+3619020,Bellmore-Merrick Central High School District,Nassau,95,,,,28668,2019-20
+3619110,Merrick Union Free School District,Nassau,,,,,30449,2019-20
+3619170,Mexico Central School District,Oswego,87,,,,23837,2019-20
+3619200,Middle Country Central School District,Suffolk,91,,,,25906,2019-20
+3619230,Longwood Central School District,Suffolk,86,,,,26468,2019-20
+3619260,Middleburgh Central School District,Schoharie,95,,,,28298,2019-20
+3619320,Middletown City School District,Orange,81,,,,23605,2019-20
+3619350,Milford Central School District,Otsego,95,,,,26189,2019-20
+3619380,Millbrook Central School District,Dutchess,87,,,,29851,2019-20
+3619410,Miller Place Union Free School District,Suffolk,96,,,,29410,2019-20
+3619500,Mineola Union Free School District,Nassau,92,,,,30567,2019-20
+3619530,Minerva Central School District,Essex,75,,,,42361,2019-20
+3619560,Minisink Valley Central School District,Orange,92,,,,22947,2019-20
+3619650,Monroe-Woodbury Central School District,Orange,94,,,,26012,2019-20
+3619680,Valley Central School District (Montgomery),Orange,90,,,,23538,2019-20
+3619710,Montauk Union Free School District,Suffolk,,,,,47666,2019-20
+3619740,Monticello Central School District,Sullivan,87,,,,29028,2019-20
+3619800,Moravia Central School District,Cayuga,87,,,,23434,2019-20
+3619830,Moriah Central School District,Essex,95,,,,22636,2019-20
+3619860,Morris Central School District,Otsego,90,,,,26494,2019-20
+3619890,Morristown Central School District,St. Lawrence,69,,,,28018,2019-20
+3619920,Morrisville-Eaton Central School District,Madison,84,,,,24586,2019-20
+3619950,Bedford Central School District,Westchester,93,64,56,18,30210,2023-24
+3620010,Mount Morris Central School District,Livingston,95,,,,23828,2019-20
+3620040,Mount Sinai Union Free School District,Suffolk,96,,,,27362,2019-20
+3620100,Mount Vernon School District,Westchester,72,25,15,35,26800,2023-24
 3620160,Mount Pleasant Central School District,Westchester,93,63,55,17,30100,2023-24
-3620100,Mount Vernon City School District,Westchester,72,25,15,35,26800,2023-24
+3620170,Mount Pleasant-Blythedale Union Free School District,Westchester,,,,,59433,2019-20
+3620190,Nanuet Union Free School District,Rockland,97,,,,28720,2019-20
+3620220,Naples Central School District,Ontario,84,,,,27752,2019-20
+3620340,Clarkstown Central School District,Rockland,95,,,,25874,2019-20
+3620370,New Hartford Central School District,Oneida,97,,,,18787,2019-20
+3620400,New Hyde Park-Garden City Park Union Free School District,Nassau,,,,,22231,2019-20
+3620430,New Lebanon Central School District,Columbia,90,,,,27031,2019-20
+3620460,New Paltz Central School District,Ulster,92,,,,31237,2019-20
 3620490,New Rochelle City School District,Westchester,83,45,35,24,29200,2023-24
+3620520,New Suffolk Common School District,Suffolk,,,,,99571,2019-20
+3620610,New York Mills Union Free School District,Oneida,84,,,,21553,2019-20
+3620640,Newark Central School District,Wayne,87,,,,22534,2019-20
+3620670,Newark Valley Central School District,Tioga,92,,,,22008,2019-20
+3620700,Newburgh City School District,Orange,73,,,,24092,2019-20
+3620730,Newcomb Central School District,Essex,75,,,,84818,2019-20
+3620760,Newfane Central School District,Niagara,92,,,,23360,2019-20
+3620790,Newfield Central School District,Tompkins,84,,,,24853,2019-20
+3620820,Niagara Falls City School District,Niagara,62,,,,19301,2019-20
+3620850,Niagara-Wheatfield Central School District,Niagara,91,,,,21247,2019-20
+3620880,Niskayuna Central School District,Schenectady,95,,,,16891,2019-20
+3620910,North Babylon Union Free School District,Suffolk,91,,,,24299,2019-20
+3620940,North Bellmore Union Free School District,Nassau,,,,,24873,2019-20
+3620970,North Collins Central School District,Erie,84,,,,23486,2019-20
+3621000,North Colonie CSD,Albany,93,,,,17909,2019-20
+3621120,North Merrick Union Free School District,Nassau,,,,,27248,2019-20
 3621180,North Salem Central School District,Westchester,95,68,62,14,31500,2023-24
+3621210,North Syracuse Central School District,Onondaga,87,,,,20088,2019-20
+3621240,North Tonawanda City School District,Niagara,81,,,,20921,2019-20
+3621250,Northeastern Clinton Central School District,Clinton,82,,,,22858,2019-20
+3621260,Northern Adirondack Central School District,Clinton,87,,,,25363,2019-20
+3621270,Northport-East Northport Union Free School District,Suffolk,95,,,,35004,2019-20
+3621300,Northville Central School District,Fulton,95,,,,22700,2019-20
+3621330,Norwich City School District,Chenango,87,,,,18894,2019-20
+3621360,Norwood-Norfolk Central School District,St. Lawrence,87,,,,21957,2019-20
+3621450,Dalton-Nunda Central School District (Keshequa),Livingston,82,,,,24226,2019-20
+3621480,Nyack Union Free School District,Rockland,88,,,,28260,2019-20
+3621510,Oakfield-Alabama Central School District,Genesee,95,,,,22280,2019-20
+3621540,Fire Island Union Free School District,Suffolk,,,,,146265,2019-20
+3621570,Oceanside Union Free School District,Nassau,93,,,,25753,2019-20
+3621630,Odessa-Montour Central School District,Schuyler,92,,,,20312,2019-20
+3621660,Ogdensburg City School District,St. Lawrence,82,,,,25502,2019-20
+3621720,Olean City School District,Cattaraugus,82,,,,20302,2019-20
+3621780,Oneonta City School District,Otsego,82,,,,21375,2019-20
+3621810,Onondaga Central School District,Onondaga,92,,,,23455,2019-20
+3621840,Onteora Central School District,Ulster,92,,,,43500,2019-20
+3621900,Orchard Park Central School District,Erie,93,,,,19361,2019-20
+3621930,Oysterponds Union Free School District,Suffolk,,,,,46325,2019-20
+3621960,Oriskany Central School District,Oneida,95,,,,23040,2019-20
 3622020,Ossining Union Free School District,Westchester,86,48,38,22,29600,2023-24
+3622050,Oswego City School District,Oswego,80,,,,22162,2019-20
+3622100,Otselic Valley CSD,Chenango,90,,,,30874,2019-20
+3622140,South Seneca Central School District,Seneca,77,,,,32040,2019-20
+3622170,Owego-Apalachin Central School District,Tioga,92,,,,21481,2019-20
+3622200,Van Hornesville-Owen D Young Central School District,Herkimer,90,,,,27779,2019-20
+3622260,Oxford Academy and Central School District,Chenango,84,,,,22873,2019-20
+3622290,Oyster Bay-East Norwich Central School District,Nassau,87,,,,39548,2019-20
+3622380,Palmyra-Macedon Central School District,Wayne,87,,,,21262,2019-20
+3622410,Panama Central School District,Chautauqua,95,,,,25700,2019-20
+3622440,Parishville-Hopkinton Central School District,St. Lawrence,95,,,,29327,2019-20
+3622470,Patchogue-Medford Union Free School District,Suffolk,88,,,,23145,2019-20
+3622500,Pavilion Central School District,Genesee,92,,,,23188,2019-20
+3622530,Pawling Central School District,Dutchess,92,,,,31126,2019-20
+3622560,Pearl River Union Free School District,Rockland,95,,,,29498,2019-20
 3622650,Peekskill City School District,Westchester,78,30,20,30,27500,2023-24
 3622680,Pelham Union Free School District,Westchester,97,74,69,12,32800,2023-24
+3622710,Penfield Central School District,Monroe,93,,,,18870,2019-20
+3622740,Penn Yan Central School District,Yates,87,,,,25434,2019-20
+3622770,Perry Central School District,Wyoming,87,,,,19809,2019-20
+3622830,Peru Central School District,Clinton,92,,,,22854,2019-20
+3622890,Phelps-Clifton Springs Central School District,Ontario,87,,,,23242,2019-20
+3622920,Phoenix Central School District,Oswego,92,,,,22572,2019-20
+3623010,Pine Bush Central School District,Orange,93,,,,22014,2019-20
+3623040,Pine Plains Central School District,Dutchess,82,,,,34450,2019-20
+3623070,Pine Valley Central School District (South Dayton),Chautauqua,64,,,,24634,2019-20
+3623130,Piseco Common School District,Hamilton,,,,,,2019-20
+3623160,Pittsford Central School District,Monroe,97,,,,22116,2019-20
+3623190,Plainedge Union Free School District,Nassau,96,,,,28807,2019-20
+3623220,Plainview-Old Bethpage Central School District,Nassau,99,,,,28828,2019-20
+3623280,Plattsburgh City School District,Clinton,82,,,,24673,2019-20
 3623310,Pleasantville Union Free School District,Westchester,96,72,67,13,31900,2023-24
 3623340,Pocantico Hills Central School District,Westchester,97,78,74,10,38500,2023-24
+3623370,Poland Central School District,Herkimer,95,,,,23945,2019-20
+3623430,Port Byron Central School District,Cayuga,87,,,,23533,2019-20
 3623460,Port Chester-Rye Union Free School District,Westchester,82,38,28,27,27800,2023-24
+3623490,Port Jefferson Union Free School District,Suffolk,97,,,,44002,2019-20
+3623520,Port Jervis City School District,Orange,82,,,,26145,2019-20
+3623580,Port Washington Union Free School District,Nassau,90,,,,28303,2019-20
+3623640,Portville Central School District,Cattaraugus,92,,,,17402,2019-20
+3623670,Potsdam Central School District,St. Lawrence,87,,,,21579,2019-20
+3623760,Poughkeepsie City School District,Dutchess,54,,,,23459,2019-20
+3623790,Prattsburgh Central School District,Steuben,90,,,,21775,2019-20
+3623880,Pulaski Central School District,Oswego,87,,,,24162,2019-20
+3623970,Putnam Central School District,Washington,,,,,35625,2019-20
+3624000,Putnam Valley Central School District,Putnam,97,,,,29689,2019-20
+3624030,Queensbury Union Free School District,Warren,90,,,,17739,2019-20
+3624060,Quogue Union Free School District,Suffolk,,,,,84024,2019-20
+3624090,Randolph Central School District,Cattaraugus,92,,,,21027,2019-20
+3624120,Raquette Lake Union Free School District,Hamilton,,,,,,2019-20
+3624150,Ravena-Coeymans-Selkirk Central School District,Albany,87,,,,22086,2019-20
+3624210,Red Creek Central School District,Wayne,87,,,,22910,2019-20
+3624240,Red Hook Central School District,Dutchess,97,,,,30174,2019-20
+3624270,Manchester-Shortsville Central School District (Red Jacket),Ontario,82,,,,22597,2019-20
+3624360,Remsen Central School District,Oneida,95,,,,25610,2019-20
+3624420,Remsenburg-Speonk Union Free School District,Suffolk,,,,,62667,2019-20
+3624450,Rensselaer City School District,Rensselaer,87,,,,19227,2019-20
+3624480,Rhinebeck Central School District,Dutchess,92,,,,31286,2019-20
+3624570,Richfield Springs Central School District,Otsego,84,,,,23538,2019-20
+3624630,Blind Brook-Rye Union Free School District,Westchester,98,76,73,10,35120,2023-24
+3624660,Ripley Central School District,Chautauqua,,,,,45118,2019-20
+3624690,Riverhead Central School District,Suffolk,79,,,,21745,2019-20
+3624750,Rochester City School District,Monroe,63,,,,25703,2019-20
+3624780,Rockville Centre Union Free School District,Nassau,98,,,,32730,2019-20
+3624840,Rocky Point Union Free School District,Suffolk,94,,,,28183,2019-20
+3624900,Rome City School District,Oneida,75,,,,19623,2019-20
+3624930,Romulus Central School District,Seneca,69,,,,22438,2019-20
+3624960,Rondout Valley Central School District,Ulster,87,,,,32808,2019-20
+3624990,Roosevelt Union Free School District,Nassau,68,,,,25997,2019-20
+3625020,Roscoe Central School District,Sullivan,90,,,,40308,2019-20
+3625050,Roslyn Union Free School District,Nassau,97,,,,31105,2019-20
+3625110,Roxbury Central School District,Delaware,75,,,,35685,2019-20
+3625140,Royalton-Hartland Central School District,Niagara,92,,,,19220,2019-20
+3625170,Rush-Henrietta Central School District,Monroe,93,,,,21112,2019-20
 3625260,Rye City School District,Westchester,98,80,76,9,35400,2023-24
 3625290,Rye Neck Union Free School District,Westchester,97,74,68,12,33000,2023-24
+3625320,Florida Union Free School District,Orange,84,,,,27886,2019-20
+3625350,Sachem Central School District,Suffolk,94,,,,25669,2019-20
+3625380,Sag Harbor Union Free School District,Suffolk,97,,,,39596,2019-20
+3625410,Sagaponack Common School District,Suffolk,,,,,237600,2019-20
+3625440,Salamanca City School District,Cattaraugus,77,,,,25893,2019-20
+3625470,Salem Central School District,Washington,74,,,,21922,2019-20
+3625500,Salmon River Central School District,Franklin,87,,,,29654,2019-20
+3625650,Sandy Creek Central School District,Oswego,87,,,,24446,2019-20
+3625740,Saranac Lake Central School District,Franklin,92,,,,27584,2019-20
+3625770,Saratoga Springs City Sd,Saratoga,92,,,,19156,2019-20
+3625800,Saugerties Central School District,Ulster,87,,,,25498,2019-20
+3625920,Sayville Union Free School District,Suffolk,99,,,,32241,2019-20
 3625950,Scarsdale Union Free School District,Westchester,99,87,85,7,37500,2023-24
+3625980,Schalmont Central School District,Schenectady,92,,,,24183,2019-20
+3626010,Schenectady City School District,Schenectady,69,,,,20097,2019-20
+3626070,Schodack Central School District,Rensselaer,92,,,,22759,2019-20
+3626100,Schoharie Central School District,Schoharie,82,,,,24042,2019-20
+3626130,Schroon Lake Central School District,Essex,90,,,,28592,2019-20
+3626160,Schuylerville Central School District,Saratoga,92,,,,23380,2019-20
+3626190,Scio Central School District,Allegany,74,,,,31986,2019-20
+3626310,Scotia-Glenville Central School District,Schenectady,92,,,,22191,2019-20
+3626370,North Shore Central School District,Nassau,94,,,,40984,2019-20
+3626400,Seaford Union Free School District,Nassau,97,,,,29561,2019-20
+3626430,Seneca Falls Central School District,Seneca,87,,,,20169,2019-20
+3626520,Sewanhaka Central High School District,Nassau,94,,,,23851,2019-20
+3626580,Sharon Springs Central School District,Schoharie,75,,,,27877,2019-20
+3626640,Shelter Island Union Free School District,Suffolk,90,,,,60653,2019-20
+3626670,Shenendehowa Central School District,Saratoga,95,,,,17819,2019-20
+3626700,Sherburne-Earlville Central School District,Chenango,92,,,,24058,2019-20
+3626730,Sherman Central School District,Chautauqua,95,,,,21465,2019-20
+3626760,Sherrill City School District,Oneida,92,,,,19365,2019-20
+3626840,Shoreham-Wading River Central School District,Suffolk,97,,,,33655,2019-20
+3626850,Sidney Central School District,Delaware,92,,,,21166,2019-20
+3626880,Silver Creek Central School District,Chautauqua,87,,,,21945,2019-20
+3626940,Skaneateles Central School District,Onondaga,92,,,,21648,2019-20
+3627000,Cheektowaga-Sloan Union Free School District,Erie,87,,,,21145,2019-20
+3627060,Smithtown Central School District,Suffolk,94,,,,30137,2019-20
+3627120,Sodus Central School District,Wayne,87,,,,25678,2019-20
+3627150,Solvay Union Free School District,Onondaga,87,,,,21867,2019-20
 3627180,Somers Central School District,Westchester,96,71,65,14,30600,2023-24
-3628650,Tarrytown Union Free School District,Westchester,90,52,42,21,30800,2023-24
+3627210,South Colonie Central School District,Albany,92,,,,19863,2019-20
+3627240,South Glens Falls Central School District,Saratoga,86,,,,19315,2019-20
+3627300,South Huntington Union Free School District,Suffolk,89,,,,29210,2019-20
+3627330,South Kortright Central School District,Delaware,84,,,,26809,2019-20
+3627360,South Lewis Central School District,Lewis,77,,,,22255,2019-20
+3627450,South Orangetown Central School District,Rockland,96,,,,30947,2019-20
+3627540,Southampton Union Free School District,Suffolk,82,,,,49134,2019-20
+3627570,Southern Cayuga Central School District,Cayuga,84,,,,21321,2019-20
+3627620,Southold Union Free School District,Suffolk,82,,,,40531,2019-20
+3627660,Southwestern Central School District At Jamestown,Chautauqua,92,,,,17925,2019-20
+3627750,Spencer-Van Etten Central School District,Tioga,82,,,,24157,2019-20
+3627780,Spencerport Central School District,Monroe,93,,,,20797,2019-20
+3627810,East Ramapo Central School District (Spring Valley),Rockland,65,,,,28904,2019-20
+3627900,Springs Union Free School District,Suffolk,,,,,28952,2019-20
+3627960,Brasher Falls Central School District,St. Lawrence,92,,,,21780,2019-20
+3627980,Greenburgh-North Castle Union Free School District,Westchester,24,,,,6948750,2019-20
+3627990,Saint Regis Falls Central School District,Franklin,90,,,,35771,2019-20
+3628020,Stamford Central School District,Delaware,69,,,,30349,2019-20
+3628050,Starpoint Central School District,Niagara,92,,,,16639,2019-20
+3628110,Stillwater Central School District,Saratoga,87,,,,20260,2019-20
+3628140,Stockbridge Valley Central School District,Madison,84,,,,25220,2019-20
+3628200,Three Village Central School District,Suffolk,96,,,,35267,2019-20
+3628320,Suffern Central School District,Rockland,94,,,,32134,2019-20
+3628380,Susquehanna Valley Central School District,Broome,87,,,,23184,2019-20
+3628500,Sweet Home Central School District,Erie,93,,,,20594,2019-20
+3628560,Syosset Central School District,Nassau,96,,,,32208,2019-20
+3628590,Syracuse City School District,Onondaga,64,,,,22239,2019-20
+3628620,Taconic Hills Central School District,Columbia,82,,,,30424,2019-20
+3628650,Union Free School District of the Tarrytowns,Westchester,90,52,42,21,30800,2023-24
+3628680,Ticonderoga Central School District,Essex,92,,,,27517,2019-20
+3628710,Tioga Central School District,Tioga,87,,,,18325,2019-20
+3628740,Tonawanda City School District,Erie,92,,,,17651,2019-20
+3628800,Town of Webb Union Free School District,Herkimer,90,,,,32880,2019-20
+3628890,Tri-Valley Central School District,Sullivan,77,,,,32579,2019-20
+3628950,Troy City School District,Rensselaer,84,,,,23734,2019-20
+3628980,Trumansburg Central School District,Tompkins,92,,,,23949,2019-20
 3629040,Tuckahoe Union Free School District,Westchester,95,68,62,15,32200,2023-24
+3629070,Tuckahoe Common School District,Suffolk,,,,,62220,2019-20
+3629130,Tully Central School District,Onondaga,92,,,,24943,2019-20
+3629160,Tupper Lake Central School District,Franklin,84,,,,23528,2019-20
+3629190,Tuxedo Union Free School District,Orange,90,,,,58612,2019-20
+3629240,Otego-Unadilla Central School District,Otsego,87,,,,23261,2019-20
+3629250,Union Springs Central School District,Cayuga,82,,,,21806,2019-20
+3629280,Uniondale Union Free School District,Nassau,79,,,,32298,2019-20
+3629370,Utica City School District,Oneida,70,,,,17370,2019-20
 3629400,Valhalla Union Free School District,Westchester,93,62,55,17,30400,2023-24
+3629430,Valley Stream 13 Union Free School District,Nassau,,,,,23793,2019-20
+3629460,Valley Stream 24 Union Free School District,Nassau,,,,,26859,2019-20
+3629490,Valley Stream 30 Union Free School District,Nassau,,,,,22900,2019-20
+3629520,Valley Stream Central High School District,Nassau,95,,,,24329,2019-20
+3629610,Vestal Central School District,Broome,91,,,,20358,2019-20
+3629640,Victor Central School District,Ontario,96,,,,15653,2019-20
+3629670,Voorheesville Central School District,Albany,97,,,,18973,2019-20
+3629760,Wainscott Common School District,Suffolk,,,,,59731,2019-20
+3629790,Wallkill Central School District,Ulster,90,,,,25544,2019-20
+3629820,Walton Central School District,Delaware,87,,,,23220,2019-20
+3629850,Wantagh Union Free School District,Nassau,98,,,,25963,2019-20
+3629880,Wappingers Central School District,Dutchess,90,,,,21629,2019-20
+3629910,Warrensburg Central School District,Warren,72,,,,28792,2019-20
+3629940,Warsaw Central School District,Wyoming,87,,,,21369,2019-20
+3629970,Warwick Valley Central School District,Orange,93,,,,22438,2019-20
+3630030,Washingtonville Central School District,Orange,95,,,,22638,2019-20
+3630060,Waterford-Halfmoon Union Free School District,Saratoga,87,,,,22200,2019-20
+3630120,Watertown City School District,Jefferson,70,,,,17562,2019-20
+3630160,Waterville Central School District,Oneida,87,,,,20825,2019-20
+3630210,Watervliet City School District,Albany,77,,,,18255,2019-20
+3630240,Watkins Glen Central School District,Schuyler,92,,,,23965,2019-20
+3630270,Waverly Central School District,Tioga,82,,,,17640,2019-20
+3630330,Wayne Central School District,Wayne,97,,,,20430,2019-20
+3630360,Webster Central School District,Monroe,95,,,,20236,2019-20
+3630390,Northeast Central School District,Dutchess,84,,,,28788,2019-20
+3630420,Weedsport Central School District,Cayuga,92,,,,22242,2019-20
+3630450,Wells Central School District,Hamilton,90,,,,39326,2019-20
+3630480,Wellsville Central School District,Allegany,87,,,,22023,2019-20
+3630540,West Babylon Union Free School District,Suffolk,89,,,,29095,2019-20
+3630600,West Canada Valley Central School District,Herkimer,82,,,,25221,2019-20
+3630630,West Genesee Central School District,Onondaga,95,,,,18929,2019-20
+3630660,West Hempstead Union Free School District,Nassau,97,,,,37475,2019-20
+3630690,West Islip Union Free School District,Suffolk,99,,,,28634,2019-20
+3630760,West Park Union Free School District,Ulster,,,,,,2019-20
+3630780,West Seneca Central School District,Erie,90,,,,19210,2019-20
+3630900,West Valley Central School District,Cattaraugus,90,,,,35858,2019-20
+3630930,Mount Markham Central School District,Herkimer,87,,,,20712,2019-20
+3630960,Westbury Union Free School District,Nassau,81,,,,29844,2019-20
+3630990,Westfield Central School District,Chautauqua,84,,,,24716,2019-20
+3631020,Westhampton Beach Union Free School District,Suffolk,92,,,,29183,2019-20
+3631050,Westmoreland Central School District,Oneida,92,,,,22529,2019-20
+3631170,Wheatland-Chili Central School District,Monroe,95,,,,25792,2019-20
+3631200,Wheelerville Union Free School District,Fulton,,,,,31347,2019-20
 3631260,White Plains City School District,Westchester,88,50,40,22,29900,2023-24
+3631290,Whitehall Central School District,Washington,84,,,,22584,2019-20
+3631320,Whitesboro Central School District,Oneida,95,,,,19686,2019-20
+3631350,Whitesville Central School District,Allegany,90,,,,30542,2019-20
+3631380,Whitney Point Central School District,Broome,82,,,,23284,2019-20
+3631410,North Greenbush Common School District (Williams),Rensselaer,,,,,33581,2019-20
+3631440,Williamson Central School District,Wayne,97,,,,21492,2019-20
+3631470,Williamsville Central School District,Erie,95,,,,17899,2019-20
+3631500,Willsboro Central School District,Essex,90,,,,29992,2019-20
+3631560,Wilson Central School District,Niagara,82,,,,23685,2019-20
+3631590,Windham-Ashland-Jewett Central School District,Greene,69,,,,33071,2019-20
+3631710,Hewlett-Woodmere Union Free School District,Nassau,97,,,,38744,2019-20
+3631740,Worcester Central School District,Otsego,90,,,,23133,2019-20
+3631800,Wyandanch Union Free School District,Suffolk,46,,,,24123,2019-20
+3631830,Wynantskill Union Free School District,Rensselaer,,,,,24487,2019-20
+3631860,Wyoming Central School District,Wyoming,,,,,25952,2019-20
 3631920,Yonkers City School District,Westchester,76,32,22,32,27200,2023-24
+3631950,York Central School District,Livingston,95,,,,22714,2019-20
 3631980,Yorktown Central School District,Westchester,95,69,63,15,30700,2023-24
+3632010,Cuba-Rushford Central School District,Allegany,87,,,,24389,2019-20
