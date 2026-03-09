@@ -272,14 +272,14 @@ def _score_coffee(inputs: dict) -> float:
     two ceilings (category diversity + quality ceiling) that depend on
     the full place list — not testable from synthetic scalar inputs.
     """
-    score = apply_piecewise(SCORING_MODEL.coffee.knots, inputs["walk_time_min"])
-    return max(SCORING_MODEL.coffee.floor, score)
+    raw = apply_piecewise(SCORING_MODEL.coffee.knots, inputs["walk_time_min"])
+    return int(max(SCORING_MODEL.coffee.floor, raw) + 0.5)
 
 
 def _score_grocery(inputs: dict) -> float:
     """Compute raw grocery score from walk_time_min via piecewise curve."""
-    score = apply_piecewise(SCORING_MODEL.grocery.knots, inputs["walk_time_min"])
-    return max(SCORING_MODEL.grocery.floor, score)
+    raw = apply_piecewise(SCORING_MODEL.grocery.knots, inputs["walk_time_min"])
+    return int(max(SCORING_MODEL.grocery.floor, raw) + 0.5)
 
 
 def _score_fitness(inputs: dict) -> float:
@@ -288,7 +288,7 @@ def _score_fitness(inputs: dict) -> float:
     mult = apply_quality_multiplier(
         SCORING_MODEL.fitness.quality_multipliers, inputs["rating"],
     )
-    return max(SCORING_MODEL.fitness.floor, round(base * mult, 1))
+    return int(max(SCORING_MODEL.fitness.floor, base * mult) + 0.5)
 
 
 _DIMENSION_SCORERS = {

@@ -4441,9 +4441,12 @@ def score_third_place_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.coffee.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Coffee & Social Spots",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4832,9 +4835,12 @@ def score_provisioning_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.grocery.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Provisioning",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=details,
             data_confidence=conf,
@@ -4926,7 +4932,7 @@ def score_fitness_access(
                 quality_mult = apply_quality_multiplier(
                     SCORING_MODEL.fitness.quality_multipliers, rating,
                 )
-                score = round(base_score * quality_mult, 1)
+                score = base_score * quality_mult
 
             if is_eligible and score > best_score:
                 best_score = score
@@ -4992,9 +4998,12 @@ def score_fitness_access(
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
 
+        # Round to int for Tier2Score.points (piecewise returns float)
+        points = int(max(SCORING_MODEL.fitness.floor, capped_score) + 0.5)
+
         return (Tier2Score(
             name="Fitness access",
-            points=capped_score,
+            points=points,
             max_points=10,
             details=best_details,
             data_confidence=conf,
