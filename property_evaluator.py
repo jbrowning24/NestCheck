@@ -1363,6 +1363,24 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
         )
 
 
+def _looks_like_route_id(name: str) -> bool:
+    """Check if a name looks like a coded HPMS route_id rather than a road name.
+
+    HPMS route_ids use patterns like ``"00000001__"``, ``"14000638__"``,
+    ``"00000001__Y100190"`` — digits with double underscores and optional
+    alphanumeric suffixes.  Real road names (``"US 1"``, ``"9A"``,
+    ``"SUNRISE HWY"``) never contain double underscores and are rarely
+    pure digits.
+    """
+    if not name:
+        return False
+    if "__" in name:
+        return True
+    if name.isdigit():
+        return True
+    return False
+
+
 def _build_road_display_name(segment) -> str:
     """Build a human-readable road name from HPMS metadata.
 
@@ -1376,14 +1394,13 @@ def _build_road_display_name(segment) -> str:
 
     # Try route_name from metadata (populated by updated ingest)
     route_name = (meta.get("route_name") or "").strip()
-    if route_name:
+    if route_name and not _looks_like_route_id(route_name):
         return route_name
 
-    # Try segment.name if it's not a generic placeholder or numeric route_id
+    # Try segment.name if it's not a generic placeholder or coded route_id
     seg_name = (segment.name or "").strip()
     if seg_name and seg_name != "HPMS segment" and seg_name != "Unknown":
-        # If name is purely numeric, it's a route_id — skip to fallback
-        if not seg_name.isdigit():
+        if not _looks_like_route_id(seg_name):
             return seg_name
 
     # Construct from route_number if available
