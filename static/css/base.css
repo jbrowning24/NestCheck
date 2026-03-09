@@ -158,14 +158,13 @@ footer {
   box-shadow: var(--shadow-elevated) !important;
   font-family: var(--font-body) !important;
   margin-top: 6px !important;
-  padding: 4px 0 !important;
-  overflow: hidden;
+  padding: var(--space-xs) 0 !important;
+  overflow: hidden !important;
 }
 
 /* Hide Google "powered by" watermark */
 .pac-container::after {
   display: none !important;
-  height: 0 !important;
 }
 
 /* Hide non-item content (attribution, etc.) */
@@ -199,7 +198,6 @@ footer {
 
 /* Main address query text */
 .pac-item-query {
-  font-family: var(--font-body) !important;
   font-size: var(--font-size-body) !important;
   color: var(--color-text-primary) !important;
   font-weight: var(--font-weight-medium) !important;
@@ -218,7 +216,9 @@ footer {
   font-size: var(--font-size-small) !important;
 }
 
-/* Location pin icon — replace Google's sprite with a clean SVG */
+/* Location pin icon — replace Google's sprite with a clean SVG.
+   Fill color %2394A3B8 = #94A3B8 = --color-text-faint (CSS vars
+   can't be used inside data URIs). */
 .pac-icon {
   width: 16px !important;
   height: 20px !important;
