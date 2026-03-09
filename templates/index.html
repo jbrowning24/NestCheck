@@ -66,15 +66,17 @@
 {# ============================================================ #}
 {#                     LANDING PAGE                              #}
 {# ============================================================ #}
-<div class="landing-hero-band">
+<div class="landing-container">
 
-  <div class="hero">
-    <h1>Know before you move.</h1>
-    <p class="tagline">Evaluate any U.S. address for walkability, green space, transit, and daily-life quality — instant results, shareable link.</p>
-  </div>
+  {# ── HERO + FORM ─────────────────────────────────────────── #}
+  <section class="hero-section">
+    <h1 class="hero-title">Know the health of your next neighborhood before you commit.</h1>
+    <p class="hero-subtitle">NestCheck evaluates walkability, environmental risks, and local infrastructure so you don't have to.</p>
 
-  <div class="search-section" id="evaluate">
-    {% if error %}
+    <form method="POST" id="evalForm">
+      <input type="hidden" name="place_id" id="place-id-input" value="">
+
+      {% if error %}
       <div class="error-banner" role="alert">
         <strong>Could not evaluate address</strong>
         {{ error }}
@@ -88,126 +90,114 @@
         <pre>{{ error_detail | tojson(indent=2) }}</pre>
       </details>
       {% endif %}
-    {% endif %}
-    <form method="POST" id="evalForm">
-      <input type="hidden" name="place_id" id="place-id-input" value="">
-      <div class="search-box">
+      {% endif %}
+
+      <div class="search-input-wrapper">
         <label for="address-input" class="sr-only">Street address to evaluate</label>
         <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+        <button type="submit" id="evalBtn">Generate Report</button>
+      </div>
 
-        {# Persona selector — scoring lens (NES-133) #}
-        <div class="persona-selector" id="personaSelector">
-          <label class="persona-label">Scoring lens:</label>
-          <div class="persona-options">
-            <label class="persona-option persona-option--active">
-              <input type="radio" name="persona" value="balanced" checked>
-              <span class="persona-pill">Balanced</span>
-            </label>
-            <label class="persona-option">
-              <input type="radio" name="persona" value="active">
-              <span class="persona-pill">Active &amp; Outdoorsy</span>
-            </label>
-            <label class="persona-option">
-              <input type="radio" name="persona" value="commuter">
-              <span class="persona-pill">Urban Commuter</span>
-            </label>
-            <label class="persona-option">
-              <input type="radio" name="persona" value="quiet">
-              <span class="persona-pill">Peace &amp; Quiet</span>
-            </label>
-          </div>
-        </div>
+      <div class="persona-row" id="personaSelector">
+        <label class="persona-option persona-option--active">
+          <input type="radio" name="persona" value="balanced" checked>
+          <span class="persona-pill">Balanced</span>
+        </label>
+        <label class="persona-option">
+          <input type="radio" name="persona" value="active">
+          <span class="persona-pill">Active &amp; Outdoorsy</span>
+        </label>
+        <label class="persona-option">
+          <input type="radio" name="persona" value="commuter">
+          <span class="persona-pill">Urban Commuter</span>
+        </label>
+        <label class="persona-option">
+          <input type="radio" name="persona" value="quiet">
+          <span class="persona-pill">Peace &amp; Quiet</span>
+        </label>
+      </div>
 
-        <div class="email-gate" id="emailGate">
-          <label for="email-input" class="sr-only">Email address (optional)</label>
-          <input type="email" name="email" id="email-input" placeholder="Your email (optional) — to access your report later">
-          <p class="email-disclosure">We'll use this to let you access your report later. No spam.</p>
-        </div>
-        <button type="submit" id="evalBtn">{% if require_payment %}Get Free Report{% else %}Evaluate{% endif %}</button>
+      <div class="email-row" id="emailGate">
+        <label for="email-input" class="sr-only">Email address (optional)</label>
+        <input type="email" name="email" id="email-input" placeholder="Email for your report (optional)">
       </div>
     </form>
-  </div>
+  </section>
 
-  <section class="whats-included">
-    <h2 class="whats-included__title">What we evaluate</h2>
-    <p class="whats-included__subtitle">Every address is scored across six dimensions, using public data from Google Maps, OpenStreetMap, and federal environmental databases.</p>
+  {# ── PREVIEW CARDS ───────────────────────────────────────── #}
+  <section class="section-preview">
+    <p class="section-preview-label">REPORT PREVIEWS</p>
+    <div class="preview-grid">
 
-    <div class="whats-included__grid">
-      <div class="dimension-card" data-dimension="parks">
-        <div class="dimension-card__icon">🌳</div>
-        <h3 class="dimension-card__title">Parks & Green Space</h3>
-        <p class="dimension-card__desc">Walking distance to a quality park — we look for trails, shade, playgrounds, and size, not just proximity.</p>
+      <div class="preview-card">
+        <div class="card-top">
+          <div class="address-info">
+            <h4>Scarsdale Village</h4>
+            <p>Scarsdale, NY</p>
+          </div>
+          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">HEALTH CHECKS</span>
+            <span class="mini-stat-val">All Clear</span>
+          </div>
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">WALKABILITY</span>
+            <span class="mini-stat-val">Walkable</span>
+          </div>
+        </div>
       </div>
 
-      <div class="dimension-card" data-dimension="third-place">
-        <div class="dimension-card__icon">☕</div>
-        <h3 class="dimension-card__title">Coffee & Social Spots</h3>
-        <p class="dimension-card__desc">Your nearest high-rated cafe or bakery — a third place for working, reading, or meeting people.</p>
+      <div class="preview-card">
+        <div class="card-top">
+          <div class="address-info">
+            <h4>Bronxville Village</h4>
+            <p>Bronxville, NY</p>
+          </div>
+          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">HEALTH CHECKS</span>
+            <span class="mini-stat-val">All Clear</span>
+          </div>
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">WALKABILITY</span>
+            <span class="mini-stat-val">Very Walkable</span>
+          </div>
+        </div>
       </div>
 
-      <div class="dimension-card" data-dimension="provisioning">
-        <div class="dimension-card__icon">🛒</div>
-        <h3 class="dimension-card__title">Daily Essentials</h3>
-        <p class="dimension-card__desc">Walking distance to a well-reviewed grocery store with real selection.</p>
+      <div class="preview-card">
+        <div class="card-top">
+          <div class="address-info">
+            <h4>Hastings-on-Hudson</h4>
+            <p>Hastings, NY</p>
+          </div>
+          <div class="mini-badge" style="background: var(--color-orange);">Moderate</div>
+        </div>
+        <div class="mini-stats">
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">HEALTH CHECKS</span>
+            <span class="mini-stat-val">1 Warning</span>
+          </div>
+          <div class="mini-stat-item">
+            <span class="mini-stat-label">WALKABILITY</span>
+            <span class="mini-stat-val">Somewhat Walkable</span>
+          </div>
+        </div>
       </div>
 
-      <div class="dimension-card" data-dimension="fitness">
-        <div class="dimension-card__icon">💪</div>
-        <h3 class="dimension-card__title">Fitness & Recreation</h3>
-        <p class="dimension-card__desc">Nearest quality gym or fitness center — rated by reviews and distance.</p>
-      </div>
-
-      <div class="dimension-card" data-dimension="transit">
-        <div class="dimension-card__icon">🚇</div>
-        <h3 class="dimension-card__title">Getting Around</h3>
-        <p class="dimension-card__desc">Rail station proximity, service frequency, and travel time to city hubs.</p>
-      </div>
-
-      <div class="dimension-card dimension-card--safety" data-dimension="safety">
-        <div class="dimension-card__icon">🛡️</div>
-        <h3 class="dimension-card__title">Health & Safety Proximity</h3>
-        <p class="dimension-card__desc">We flag what listings won't — nearby highways, gas stations, flood zones, and environmental hazards. These are pass/fail, not traded off against other scores.</p>
-      </div>
     </div>
   </section>
 
-  <div class="why-block">
-    <p><strong>Listings show rooms and photos.</strong> They don't tell you if you can walk to a good park, how far the highway is, or whether there's a decent grocery nearby.</p>
-    <p>NestCheck evaluates daily-life quality at any U.S. address — so you know before you visit or sign. For families, renters, and homebuyers choosing where to live.</p>
-  </div>
+  {# ── LANDING FOOTER ──────────────────────────────────────── #}
+  <footer class="landing-footer">
+    © 2025 NestCheck. Powered by EPA, FEMA, FHWA, and OpenStreetMap data.
+  </footer>
 
-</div>{# /.landing-hero-band #}
-
-{% if preview_result %}
-  {% include '_eval_snippet.html' %}
-{% else %}
-  <div class="features">
-    <div class="feature-card">
-      <h3>Green Escape</h3>
-      <p>Parks, trails, and nature within walking distance. Scored by quality and accessibility.</p>
-    </div>
-    <div class="feature-card">
-      <h3>Urban Access</h3>
-      <p>Transit options, commute times, and connectivity to major hubs.</p>
-    </div>
-    <div class="feature-card">
-      <h3>🛤️ Proximity &amp; Safety</h3>
-      <p>Distance from highways, gas stations, high-traffic roads, and rail corridors.</p>
-    </div>
-    <div class="feature-card">
-      <h3>🛒 Daily Errands</h3>
-      <p>Walking distance to grocery stores, pharmacies, and everyday essentials.</p>
-    </div>
-    <div class="feature-card">
-      <h3>Daily Essentials</h3>
-      <p>Walkable groceries, cafes, fitness — the fabric of daily life.</p>
-    </div>
-    <div class="feature-card">
-      <h3>Final Score</h3>
-      <p>One number, 0-100. Clear breakdown of how it was computed.</p>
-    </div>
-  </div>
-{% endif %}
+</div>{# /.landing-container #}
 
 {% else %}
 {# ============================================================ #}
