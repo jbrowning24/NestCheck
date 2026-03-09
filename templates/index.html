@@ -316,7 +316,10 @@
           if (input) input.value = addr;
           var pid = document.getElementById('place-id-input');
           if (pid) pid.value = '';
-          document.getElementById('evalForm').dispatchEvent(new Event('submit'));
+          addRecentSearch(addr);
+          var emailInput = document.getElementById('email-input');
+          var email = emailInput ? emailInput.value.trim() : '';
+          submitEvaluation(addr, null, email);
         });
         pillsDiv.appendChild(btn);
       })(arr[i]);
