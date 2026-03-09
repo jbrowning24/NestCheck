@@ -10,11 +10,6 @@
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=initAutocomplete"></script>
-<style>
-  .pac-container > div:not(.pac-item) {
-    display: none !important;
-  }
-</style>
 {% endif %}
 {% endblock %}
 
