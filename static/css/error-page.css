@@ -3,13 +3,6 @@
    Loaded by 404.html, 429.html, 500.html after base.css.
    ================================================================ */
 
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-}
-
 .error-page {
   flex: 1;
   display: flex;
