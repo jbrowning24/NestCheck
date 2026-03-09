@@ -49,6 +49,7 @@ NestCheck/
 - No print() in production - use logging
 - All API calls need timeout handling
 - Spatial metadata values may arrive as strings after JSON round-tripping — cast to `float()` before numeric formatting (`:,.0f`)
+- **scoring_config ↔ property_evaluator import sync**: When adding new constants to `scoring_config.py` that are referenced in `property_evaluator.py`, update the `from scoring_config import (...)` block in the same commit. Missing imports surface as `NameError` only at evaluation runtime (inside try/except), not at startup — so they silently produce 0/10 scores with error text in reports instead of crashing visibly.
 - When changing template element IDs, update `smoke_test.py` markers (`LANDING_REQUIRED_MARKERS`, `SNAPSHOT_REQUIRED_MARKERS`) in the same commit. Mismatches cause silent post-deploy smoke test failures.
 - When removing HTML elements from templates, remove the corresponding CSS rules in the same commit. Orphaned selectors (e.g., `.snippet-assessment-score` after removing the score div) accumulate silently.
 - When relocating template sections to a different parent container, update surrounding copy (section headings, divider descriptions, context notes) to reflect the new contents. Stale copy (e.g., "Community and school data" after adding EJScreen) silently misleads users.
