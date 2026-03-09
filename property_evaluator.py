@@ -1323,10 +1323,7 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
         ]
         if all_high_traffic:
             nearest_ht = min(all_high_traffic, key=lambda s: s.distance_meters)
-            ht_name = nearest_ht.name
-            if not ht_name or ht_name in ("Unknown", "HPMS segment"):
-                ht_name = nearest_ht.metadata.get("route_id", "")
-            ht_name = (ht_name or "").strip()
+            ht_name = _build_road_display_name(nearest_ht)
             dist_ft = round(nearest_ht.distance_feet)
             aadt_val = nearest_ht.metadata["aadt"]
             if ht_name:
