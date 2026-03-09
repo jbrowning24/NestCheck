@@ -257,7 +257,7 @@ SYNTHETIC_INPUTS = {
     "ref-030:parks": None,
     "ref-030:coffee": {"walk_time_min": 30, "rating": 4.0, "reviews": 100},
     "ref-030:grocery": {"walk_time_min": 25, "rating": 4.0, "reviews": 150},
-    "ref-030:fitness": {"walk_time_min": 15, "rating": 4.2, "reviews": 80},
+    "ref-030:fitness": {"walk_time_min": 25, "rating": 4.0, "reviews": 80},
     "ref-030:transit": None,
 }
 
