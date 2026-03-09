@@ -359,11 +359,28 @@ def ingest_state(
                 skipped += 1
                 continue
 
-            name = _attr(attrs, "ROUTE_ID", "route_id") or "HPMS segment"
-            if isinstance(name, str):
-                name = name.strip()
+            # Prefer human-readable route_name for the name column;
+            # fall back to route_id (numeric segment identifier).
+            raw_name = _attr(attrs, "ROUTE_NAME", "route_name") or ""
+            if isinstance(raw_name, str):
+                raw_name = raw_name.strip()
             else:
-                name = str(name).strip() if name else "HPMS segment"
+                raw_name = str(raw_name).strip() if raw_name else ""
+            # Skip "Ref Rt ..." prefixes that NY uses for reference routes
+            if raw_name.upper().startswith("REF RT "):
+                raw_name = raw_name[7:].strip()
+                # Strip the route code prefix (e.g., "907M " → keep rest)
+                parts = raw_name.split(None, 1)
+                if len(parts) == 2 and parts[0][:1].isdigit():
+                    raw_name = parts[1]
+
+            route_id_str = _attr(attrs, "ROUTE_ID", "route_id") or ""
+            if isinstance(route_id_str, str):
+                route_id_str = route_id_str.strip()
+            else:
+                route_id_str = str(route_id_str).strip() if route_id_str else ""
+
+            name = raw_name or route_id_str or "HPMS segment"
 
             aadt_val = None
             if aadt_field:
@@ -375,7 +392,10 @@ def ingest_state(
                 "aadt": aadt_val,
                 "state": state,  # 2-letter abbreviation for per-state idempotency
                 "state_code": _attr(attrs, "STATE_CODE", "state_code") or state,
-                "route_id": _attr(attrs, "ROUTE_ID", "route_id") or "",
+                "route_id": route_id_str,
+                "route_name": raw_name,
+                "route_number": _attr(attrs, "ROUTE_NUMBER", "route_number"),
+                "route_signing": _attr(attrs, "ROUTE_SIGNING", "route_signing"),
                 "f_system": _attr(attrs, "F_SYSTEM", "f_system"),
                 "facility_type": _attr(attrs, "FACILITY_TYPE", "facility_type"),
                 "through_lanes": _attr(attrs, "THROUGH_LANES", "through_lanes"),

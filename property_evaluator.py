@@ -1363,16 +1363,45 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
         )
 
 
+def _build_road_display_name(segment) -> str:
+    """Build a human-readable road name from HPMS metadata.
+
+    Priority:
+    1. route_name from HPMS (e.g., "SUNRISE HWY", "9A", "FDR DRIVE")
+    2. segment.name if it was set to route_name during ingestion
+    3. "Route {number}" from route_number field
+    4. route_id (numeric segment identifier) as last resort
+    """
+    meta = segment.metadata or {}
+
+    # Try route_name from metadata (populated by updated ingest)
+    route_name = (meta.get("route_name") or "").strip()
+    if route_name:
+        return route_name
+
+    # Try segment.name if it's not a generic placeholder or numeric route_id
+    seg_name = (segment.name or "").strip()
+    if seg_name and seg_name != "HPMS segment" and seg_name != "Unknown":
+        # If name is purely numeric, it's a route_id — skip to fallback
+        if not seg_name.isdigit():
+            return seg_name
+
+    # Construct from route_number if available
+    route_number = meta.get("route_number")
+    if route_number is not None:
+        return f"Route {route_number}"
+
+    # Last resort: route_id
+    route_id = (meta.get("route_id") or "").strip()
+    return route_id
+
+
 def _high_traffic_result(result: CheckResult, segment) -> Tier1Check:
     """Build a Tier1Check for a high-traffic road FAIL or WARNING."""
     aadt = segment.metadata.get("aadt", 0)
     dist_ft = round(segment.distance_feet)
 
-    # Use route_id as fallback when the name is missing or generic
-    road_name = segment.name
-    if not road_name or road_name == "Unknown" or road_name == "HPMS segment":
-        road_name = segment.metadata.get("route_id", "")
-    road_name = road_name.strip() if road_name else ""
+    road_name = _build_road_display_name(segment)
 
     if road_name:
         details = f"{road_name}: {aadt:,} vehicles/day, {dist_ft:,} ft away"
