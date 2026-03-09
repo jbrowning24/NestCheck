@@ -2,11 +2,11 @@
 
 {% block title %}NestCheck — Pricing{% endblock %}
 
-{% block meta_description %}<meta name="description" content="NestCheck pricing — first evaluation free, then $9 each. Get detailed reports on walkability, parks, transit, and safety for any address.">{% endblock %}
+{% block meta_description %}<meta name="description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, and safety for any address.">{% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ self.title() }}">
-<meta property="og:description" content="NestCheck pricing — first evaluation free, then $9 each. Get detailed reports on walkability, parks, transit, and safety for any address.">
+<meta property="og:description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, and safety for any address.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
@@ -23,53 +23,44 @@
 {% block content %}
 
 <div class="pricing-page">
-  <h1>Simple pricing.</h1>
-  <p class="sub">{% if require_payment %}Your first evaluation is free. Just enter your email.{% else %}$9 per evaluation. Built for families optimizing daily life.{% endif %}</p>
 
-  {% if require_payment %}
-  <div class="price-card price-card--free">
-    <div class="price-tag">Free <span class="per">first evaluation</span></div>
-    <p class="price-desc">Try NestCheck with your first full livability report, on us.</p>
-    <a href="/#evaluate" class="price-btn">Get Your Free Report</a>
+  <div class="pricing-hero">
+    <h1 class="pricing-title">Simple pricing.</h1>
+    <p class="pricing-subtitle">One evaluation, one price. No subscriptions, no hidden fees.</p>
   </div>
-  {% endif %}
 
   <div class="price-card">
-    <div class="price-tag">$9 <span class="per">per evaluation</span></div>
-    <p class="price-desc">Full NestCheck livability evaluation for any U.S. address.</p>
+    <div class="price-header">
+      <div class="price-amount">$9</div>
+      <div class="price-unit">per evaluation</div>
+      <p class="price-desc">Full NestCheck livability evaluation for any U.S. address.</p>
+    </div>
+
     <ul class="price-features">
       <li>Health &amp; safety screening (highways, gas stations, roads)</li>
       <li>Green escape &amp; park quality analysis</li>
       <li>Transit, walkability, and commute scoring</li>
       <li>Daily essentials: grocery, cafes, fitness</li>
-      <li>Final livability score (0-100) with full breakdown</li>
+      <li>Final livability score (0–100) with full breakdown</li>
       <li>Shareable snapshot link</li>
       <li>JSON &amp; CSV data export</li>
       <li>Print-ready layout</li>
     </ul>
+
     <a href="/#evaluate" class="price-btn">Evaluate an Address</a>
-    <div class="cta-flow">
-      <strong>How it works:</strong> Evaluate &rarr; Review results &rarr; Share or export
+    <div class="cta-flow">Evaluate &rarr; Review results &rarr; Share or export</div>
+  </div>
+
+  <div class="coming-soon-section">
+    <div class="section-label">Coming Soon</div>
+    <div class="coming-soon-card">
+      <h3>Bundles &amp; Subscriptions</h3>
+      <p>Evaluating multiple addresses? We&rsquo;re building 5-packs and monthly plans for active movers and real estate professionals.</p>
     </div>
   </div>
 
-  <div class="coming-soon">
-    <h3>Coming soon: Bundles &amp; Subscriptions</h3>
-    <p>Evaluating multiple addresses? We're building 5-packs and monthly plans for active movers and real estate professionals.</p>
-  </div>
+  <p class="pricing-note">Questions? Reach out on <a href="https://github.com/jbrowning24/NestCheck" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
 
-  <div class="coming-soon">
-    <h3>Coming soon: Comparison View</h3>
-    <p>Compare multiple addresses side by side. Track how neighborhoods change over time.</p>
-  </div>
-
-  <p class="note">
-    {% if not require_payment %}
-    Evaluations are currently free during our preview period. Pricing will apply once payment integration is live.
-    <br>
-    {% endif %}
-    Questions? Reach out on GitHub.
-  </p>
 </div>
 
 {% endblock %}
