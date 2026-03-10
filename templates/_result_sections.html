@@ -267,14 +267,6 @@
             </div>
           {% endif %}
 
-          {# NES-196: Note when UNKNOWN spatial checks were suppressed #}
-          {% set _suc = result.suppressed_unknown_count | default(0) %}
-          {% if _suc > 0 %}
-          <div class="confidence-summary confidence-medium">
-            <span class="confidence-summary-icon">&#9432;</span>
-            We're expanding our environmental database &mdash; {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} will be available soon.
-          </div>
-          {% endif %}
 
           {# ── Road Noise Estimate card ── #}
           {% if result.road_noise is defined and result.road_noise %}

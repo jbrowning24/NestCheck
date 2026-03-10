@@ -2689,13 +2689,12 @@ def view_snapshot(snapshot_id):
 
     # NES-196: Suppress UNKNOWN spatial checks at presentation layer.
     # Build a shallow copy so the stored snapshot dict is never mutated.
-    filtered_checks, suppressed_unknown_count = (
+    filtered_checks, _ = (
         suppress_unknown_safety_checks(result.get("presented_checks", []))
     )
     result = {
         **result,
         "presented_checks": filtered_checks,
-        "suppressed_unknown_count": suppressed_unknown_count,
     }
 
     # NES-210: Migrate legacy dimension names on the shallow copy (not the
