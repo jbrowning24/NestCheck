@@ -1844,14 +1844,7 @@ h1.narrative-summary {
   box-shadow: var(--shadow-card, 0 4px 12px rgba(0, 0, 0, 0.08));
 }
 
-/* Place card with highlighted modifier — accent border override */
-.place-card.section-card--highlighted {
-  border-left: 3px solid var(--color-accent, #3b82f6);
-}
-/* Place card with quiet modifier — subtle fade */
-.place-card.section-card--quiet {
-  opacity: 0.85;
-}
+/* Place card quiet modifier — reduce name emphasis */
 .place-card.section-card--quiet .place-name {
   font-weight: var(--font-weight-medium);
 }
@@ -1859,6 +1852,12 @@ h1.narrative-summary {
 .park-highlight.section-card--highlighted {
   border-left: 3px solid var(--color-accent, #3b82f6);
   box-shadow: var(--shadow-card);
+}
+/* Subscore value row — fill bar + score side by side */
+.subscore-value-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 /* Subscore fill bar layout */
 .subscore-card .mini-fill-bar {

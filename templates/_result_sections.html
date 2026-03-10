@@ -667,6 +667,7 @@
 
           {% set _total_parks = result.green_escape.total_green_space_count|default(0) if result.green_escape else 0 %}
           {% set _best = result.green_escape.best_daily_park if result.green_escape else None %}
+          {% if _total_parks or _best %}
           <div class="section-summary-row">
             {% if _total_parks %}
               <span class="summary-pill summary-pill--neutral">{{ _total_parks }} Green Space{{ 's' if _total_parks != 1 }}</span>
@@ -677,6 +678,7 @@
               <span class="summary-pill summary-pill--neutral">Best: {{ _best.drive_time_min }} min drive</span>
             {% endif %}
           </div>
+          {% endif %}
 
           {% if result.green_escape and result.green_escape.best_daily_park %}
             {% set park = result.green_escape.best_daily_park %}
@@ -700,7 +702,7 @@
                     <div class="subscore-label">
                       {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
                     </div>
-                    <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                    <div class="subscore-value-row">
                       <div class="mini-fill-bar">
                         {% set _pct = (ss.score / ss.max_score * 100)|round if ss.max_score else 0 %}
                         {% set _fill_band = "strong" if _pct >= 66 else ("moderate" if _pct >= 33 else "limited") %}
