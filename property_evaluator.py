@@ -5624,14 +5624,14 @@ _PROXIMITY_LABELS = {
     "highway": "a highway",
     "gas_station": "a gas station",
     "high-volume_road": "a high-volume road",
-    "power_line": "a power line",
-    "substation": "a substation",
+    "power_line": "high-voltage power lines",
+    "substation": "an electrical substation",
     "cell_tower": "a cell tower",
-    "industrial_zone": "an industrial zone",
+    "industrial_zone": "an industrial site",
     "rail_corridor": "an active rail line",
     "flood_zone": "a flood zone",
-    "superfund": "a Superfund site",
-    "tri_facility": "a TRI facility",
+    "superfund": "a Superfund cleanup site",
+    "tri_facility": "a toxic-release facility",
 }
 
 
@@ -5664,7 +5664,7 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
 
     # All clear
     if not confirmed and not unverified:
-        return "No environmental concerns were detected nearby."
+        return "No environmental concerns detected \u2014 all checks came back clear."
 
     parts = []
 
@@ -5672,21 +5672,21 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
     if confirmed:
         labels = [_label_with_article(c) for c in confirmed]
         if len(labels) == 1:
-            parts.append(f"This address is close to {labels[0]}.")
+            parts.append(f"This address is close to {labels[0]} \u2014 see details below.")
         else:
-            parts.append(f"This address is close to {_join_and(labels)}.")
+            parts.append(f"This address is close to {_join_and(labels)} \u2014 see details below.")
 
         if clear and not unverified:
-            parts.append(" The remaining checks are clear.")
+            parts.append(" All other checks came back clear.")
 
     # Unverified items
     if unverified:
         if len(unverified) >= 3 and not confirmed:
-            parts.append("None of the proximity checks could be verified with available data.")
+            parts.append("Several proximity checks could not be verified with available data. Use the satellite link to check manually.")
         elif len(unverified) == 1 and not confirmed:
             # Single unverified: use name/display_name for specificity
             label = _display_label(unverified[0])
-            parts.append(f"Proximity to {label} could not be verified with available data.")
+            parts.append(f"Proximity to {label} could not be verified \u2014 use the satellite link to check manually.")
         else:
             labels = [_label_with_article(c) for c in unverified]
             items = _join_and(labels)

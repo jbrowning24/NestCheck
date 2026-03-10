@@ -102,7 +102,7 @@ class TestAllWeakWithPlaces:
         result = _insight_neighborhood(neighborhood, tier2)
         text = result["text"]
         assert text is not None
-        assert "driving" in text.lower()
+        assert "car" in text.lower()
         assert result["car_dependent"] is True
 
 
@@ -208,8 +208,8 @@ class TestMixedStrongAndWeak:
         )
         text = _insight_neighborhood(neighborhood, tier2)["text"]
         # "café" label should not appear in the weakness sentence
-        assert "on the other hand" in text.lower()
-        parts = text.lower().split("on the other hand")
+        assert "however" in text.lower()
+        parts = text.lower().split("however")
         assert "café" not in parts[1]
 
     def test_weak_with_no_places(self):
@@ -220,7 +220,7 @@ class TestMixedStrongAndWeak:
         result = _insight_neighborhood(neighborhood, tier2)
         text = result["text"]
         assert text is not None
-        assert "didn't find" in text.lower()
+        assert "harder to come by" in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +249,7 @@ class TestNoStrongMiddlingAndWeak:
         result = _insight_neighborhood(neighborhood, tier2)
         text = result["text"]
         assert text is not None
-        assert "didn't find" in text.lower()
+        assert "harder to come by" in text.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -389,9 +389,8 @@ class TestGettingAroundDriveAccessible:
         urban = _make_urban("Wassaic", 45, drive_min=None,
                             hub="Grand Central", hub_min=55)
         result = _insight_getting_around(urban, None, None, "limited", _ga_tier2(2))
-        assert "drive" not in result or "driving" in result.lower()
-        # Should fall through to weak-rail "Plan on driving" branch
-        assert "Plan on driving" in result
+        # Should fall through to weak-rail branch
+        assert "need a car" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +424,7 @@ class TestGettingAroundWeakRail:
     def test_driving_for_most_trips(self):
         urban = _make_urban("Wassaic", 25)
         result = _insight_getting_around(urban, None, None, "", _ga_tier2(2))
-        assert "driving" in result.lower()
+        assert "car" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -445,7 +444,7 @@ class TestGettingAroundBusOnly:
         transit = {"primary_stop": "Rt 9 / Main St", "walk_minutes": 6,
                    "frequency_bucket": "Infrequent"}
         result = _insight_getting_around(None, transit, None, "", _ga_tier2(2))
-        assert "driving" in result.lower() or "rideshare" in result.lower()
+        assert "car" in result.lower() or "rideshare" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -533,7 +532,7 @@ class TestParksStrongClose:
     def test_activity_phrasing(self):
         ge = {"best_daily_park": _make_park("Saxon Woods", 10), "nearby_green_spaces": []}
         result = _insight_parks(ge, _parks_tier2(8))
-        assert "go for a run" in result.lower()
+        assert "morning run" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -547,7 +546,7 @@ class TestParksHighScoreFarWalk:
               "nearby_green_spaces": []}
         result = _insight_parks(ge, _parks_tier2(8))
         assert "regular visits" in result.lower()
-        assert "go for a run" not in result.lower()
+        assert "morning run" not in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -597,12 +596,12 @@ class TestParksNoPark:
     def test_no_best_park(self):
         ge = {"best_daily_park": None, "nearby_green_spaces": []}
         result = _insight_parks(ge, _parks_tier2(0))
-        assert "no parks" in result.lower()
+        assert "didn't find any parks" in result.lower()
 
     def test_park_without_name(self):
         ge = {"best_daily_park": {"name": None}, "nearby_green_spaces": []}
         result = _insight_parks(ge, _parks_tier2(0))
-        assert "no parks" in result.lower()
+        assert "didn't find any parks" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -828,7 +827,7 @@ class TestProximitySynthesisUnverifiedOnly:
             _make_check("high-volume_road", "VERIFICATION_NEEDED"),
         ]
         result = proximity_synthesis(checks)
-        assert "none of the proximity checks" in result.lower()
+        assert "several proximity checks could not be verified" in result.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -843,7 +842,7 @@ class TestProximitySynthesisConfirmed:
         ]
         result = proximity_synthesis(checks)
         assert "close to a highway" in result.lower()
-        assert "remaining checks are clear" in result.lower()
+        assert "other checks came back clear" in result.lower()
 
     def test_confirmed_no_name_fields(self):
         """_label_with_article must also bottom out gracefully."""

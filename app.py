@@ -676,85 +676,85 @@ def _build_comparative_verdict(
 
 
 _CLEAR_HEADLINES = {
-    "Gas station": "No gas stations within 500 ft setback",
+    "Gas station": "No gas stations nearby",
     "High-traffic road": "No high-traffic roads nearby",
     # Legacy — retained for old snapshots:
     "Highway": "No highways or major parkways nearby",
     "High-volume road": "No high-volume roads nearby",
-    "Power lines": "No high-voltage transmission lines within 200 ft",
-    "Electrical substation": "No electrical substations within 300 ft",
-    "Cell tower": "No cell towers within 500 ft",
-    "Industrial zone": "No industrial-zoned land within 500 ft",
-    "Flood zone": "Not in a FEMA flood zone",
-    "Superfund (NPL)": "Not within an EPA Superfund NPL site",
-    "TRI facility": "No EPA TRI facilities within 1 mile",
+    "Power lines": "No high-voltage power lines nearby",
+    "Electrical substation": "No electrical substations nearby",
+    "Cell tower": "No cell towers nearby",
+    "Industrial zone": "No industrial sites nearby",
+    "Flood zone": "Not in a flood zone",
+    "Superfund (NPL)": "Not near a Superfund cleanup site",
+    "TRI facility": "No toxic-release facilities within 1 mile",
     # EJScreen block group indicators
-    "EJScreen PM2.5": "Block group below 80th percentile for PM2.5",
-    "EJScreen cancer risk": "Block group below 80th percentile for air toxics cancer risk",
-    "EJScreen diesel PM": "Block group below 80th percentile for diesel PM",
-    "EJScreen lead paint": "Block group below 80th percentile for lead paint indicator",
-    "EJScreen Superfund": "Block group below 80th percentile for Superfund proximity",
-    "EJScreen hazardous waste": "Block group below 80th percentile for hazardous waste proximity",
+    "EJScreen PM2.5": "Air particulate levels are normal for this area",
+    "EJScreen cancer risk": "Air toxics cancer risk is normal for this area",
+    "EJScreen diesel PM": "Diesel exhaust levels are normal for this area",
+    "EJScreen lead paint": "Lead paint risk is low for this area",
+    "EJScreen Superfund": "No Superfund site concerns for this area",
+    "EJScreen hazardous waste": "No hazardous waste concerns for this area",
     # Phase 1B spatial dataset checks
-    "ust_proximity": "No underground storage tank facilities within 500 ft",
-    "tri_proximity": "No EPA toxic release facilities within 1 mile",
-    "hifld_power_lines": "No high-voltage transmission lines within 200 ft",
-    "rail_proximity": "No rail corridors within 1,000 ft",
+    "ust_proximity": "No underground fuel tanks nearby",
+    "tri_proximity": "No toxic-release facilities within 1 mile",
+    "hifld_power_lines": "No high-voltage power lines nearby",
+    "rail_proximity": "No active rail lines nearby",
     # Health comparison summary check
-    "ejscreen_environmental": "Environmental indicators within normal ranges",
+    "ejscreen_environmental": "Environmental indicators are within normal ranges",
 }
 
 _ISSUE_HEADLINES = {
-    "Gas station": "Gas station within 300 ft",
-    "High-traffic road": "High-traffic road nearby",
+    "Gas station": "Gas station very close to this address",
+    "High-traffic road": "High-traffic road very close by",
     # Legacy — retained for old snapshots:
-    "Highway": "Highway or major parkway nearby",
-    "High-volume road": "High-volume road nearby",
-    "Power lines": "High-voltage transmission line detected nearby",
-    "Electrical substation": "Electrical substation detected nearby",
-    "Cell tower": "Cell tower detected nearby",
-    "Industrial zone": "Industrial-zoned land detected nearby",
-    "Flood zone": "Located in a FEMA Special Flood Hazard Area",
-    "Superfund (NPL)": "Property is within an EPA Superfund NPL site",
-    "TRI facility": "EPA TRI facility within 1 mile",
+    "Highway": "Highway or major parkway very close by",
+    "High-volume road": "High-volume road very close by",
+    "Power lines": "High-voltage power line very close by",
+    "Electrical substation": "Electrical substation very close by",
+    "Cell tower": "Cell tower very close by",
+    "Industrial zone": "Industrial site very close by",
+    "Flood zone": "This address is in a high-risk flood zone",
+    "Superfund (NPL)": "This address is within a Superfund cleanup site",
+    "TRI facility": "Toxic-release facility within 1 mile",
     # EJScreen block group indicators (these only produce WARNING, not FAIL,
     # but registered here for completeness)
-    "EJScreen PM2.5": "Elevated PM2.5 levels in this block group",
-    "EJScreen cancer risk": "Elevated air toxics cancer risk in this block group",
-    "EJScreen diesel PM": "Elevated diesel PM in this block group",
-    "EJScreen lead paint": "Elevated lead paint indicator in this block group",
-    "EJScreen Superfund": "Elevated Superfund proximity in this block group",
-    "EJScreen hazardous waste": "Elevated hazardous waste proximity in this block group",
+    "EJScreen PM2.5": "Elevated air particulate levels in this area",
+    "EJScreen cancer risk": "Elevated air toxics cancer risk in this area",
+    "EJScreen diesel PM": "Elevated diesel exhaust in this area",
+    "EJScreen lead paint": "Elevated lead paint risk in this area",
+    "EJScreen Superfund": "Elevated Superfund site proximity in this area",
+    "EJScreen hazardous waste": "Elevated hazardous waste proximity in this area",
     # Phase 1B spatial dataset checks
-    "ust_proximity": "Underground storage tank facility within proximity threshold",
-    "tri_proximity": "EPA toxic release facility within 1 mile",
-    "hifld_power_lines": "High-voltage transmission line detected nearby",
-    "rail_proximity": "Rail corridor detected nearby",
+    "ust_proximity": "Underground fuel tank very close by",
+    "tri_proximity": "Toxic-release facility within 1 mile",
+    "hifld_power_lines": "High-voltage power line very close by",
+    "rail_proximity": "Active rail line very close by",
 }
 
 _WARNING_HEADLINES = {
-    "Gas station": "Gas station within 300–500 ft",
-    "High-traffic road": "High-traffic road in wider area",
-    "Power lines": "High-voltage transmission line detected nearby",
-    "Electrical substation": "Electrical substation detected nearby",
-    "Cell tower": "Cell tower detected nearby",
-    "Industrial zone": "Industrial-zoned land detected nearby",
-    "Flood zone": "In a moderate flood risk area",
-    "TRI facility": "EPA Toxic Release Inventory facility within 1 mile",
+    "Gas station": "Gas station in the vicinity",
+    "High-traffic road": "High-traffic road in the area",
+    "Power lines": "High-voltage power line in the vicinity",
+    "Electrical substation": "Electrical substation in the vicinity",
+    "Cell tower": "Cell tower in the vicinity",
+    "Industrial zone": "Industrial site in the vicinity",
+    "Flood zone": "Moderate flood risk in this area",
+    "TRI facility": "Toxic-release facility within 1 mile",
     # EJScreen block group indicators
-    "EJScreen PM2.5": "Block group in 80th+ percentile for PM2.5",
-    "EJScreen cancer risk": "Block group in 80th+ percentile for air toxics cancer risk",
-    "EJScreen diesel PM": "Block group in 80th+ percentile for diesel PM",
-    "EJScreen lead paint": "Block group in 80th+ percentile for lead paint indicator",
-    "EJScreen Superfund": "Block group in 80th+ percentile for Superfund proximity",
-    "EJScreen hazardous waste": "Block group in 80th+ percentile for hazardous waste proximity",
+    "EJScreen PM2.5": "Somewhat elevated air particulate levels in this area",
+    "EJScreen cancer risk": "Somewhat elevated air toxics cancer risk in this area",
+    "EJScreen diesel PM": "Somewhat elevated diesel exhaust in this area",
+    "EJScreen lead paint": "Somewhat elevated lead paint risk in this area",
+    "EJScreen Superfund": "Somewhat elevated Superfund site proximity",
+    "EJScreen hazardous waste": "Somewhat elevated hazardous waste proximity",
     # Phase 1B spatial dataset checks
-    "ust_proximity": "Underground storage tank facility within 500 ft",
-    "tri_proximity": "EPA toxic release facility within 1 mile",
-    "hifld_power_lines": "High-voltage transmission line within 200 ft",
-    "rail_proximity": "Rail corridor within 1,000 ft",
+    "ust_proximity": "Underground fuel tank in the vicinity",
+    "tri_proximity": "Toxic-release facility within 1 mile",
+    "hifld_power_lines": "High-voltage power line in the vicinity",
+    "rail_proximity": "Active rail line in the vicinity",
     # Health comparison summary check
-    "ejscreen_environmental": "Elevated environmental indicators in this block group",
+    "ejscreen_environmental": "Some environmental indicators are elevated in this area",
 }
 
 # ---------------------------------------------------------------------------
@@ -1289,16 +1289,16 @@ def present_checks(tier1_checks):
         else:
             result_type = "VERIFICATION_NEEDED"
             proximity_band = "NOTABLE"
-            headline = f"{name} — Unable to verify automatically"
+            headline = f"{name} \u2014 could not be verified"
             # Show the service-level message if it's user-friendly,
             # otherwise provide a generic fallback.
             if details and not details.startswith("Error checking:"):
                 explanation = details
             else:
                 explanation = (
-                    "The external data source for this check was "
-                    "temporarily unavailable. Use the satellite link "
-                    "below to verify manually."
+                    "The data source for this check was temporarily "
+                    "unavailable. You can use the satellite link below "
+                    "to check manually."
                 )
 
         # Build expanded context for progressive disclosure
@@ -1343,7 +1343,7 @@ def present_checks(tier1_checks):
                         "category": "SAFETY",
                         "result_type": "VERIFICATION_NEEDED",
                         "proximity_band": "NOTABLE",
-                        "headline": f"{meta['label']} — Unable to verify automatically",
+                        "headline": f"{meta['label']} \u2014 could not be verified",
                         "explanation": meta["explanation"],
                         "is_grouped": True,
                         "grouped_checks": meta["checks"],
@@ -1981,15 +1981,15 @@ def _insight_neighborhood(neighborhood, tier2):
         # Check if any places exist at all
         any_places = any(d["places"] for d in weak)
         if not any_places:
-            return {"text": "We didn't find nearby options for everyday amenities in this area.", "car_dependent": True}
+            return {"text": "We didn't find everyday amenities like grocery stores, coffee shops, or gyms nearby. You'll likely need a car for most errands.", "car_dependent": True}
         # Places exist but are far
-        return {"text": "Most everyday amenities will likely require driving from this location.", "car_dependent": True}
+        return {"text": "Grocery stores, coffee shops, and other everyday spots exist in the area but are a significant drive away. Plan on needing a car for most errands.", "car_dependent": True}
 
     # Branch: all middling (all 4-6)
     if len(middling) == 4:
         labels = [d["label"] for d in middling]
         lead_name = lead_place_name or "Everyday amenities"
-        return {"text": f"{lead_name} and other essentials are within reach \u2014 {_join_labels(labels)} are all accessible, though none stand out as a particular strength.", "car_dependent": False}
+        return {"text": f"{lead_name} and other essentials are all within reach \u2014 {_join_labels(labels)} are accessible, though none are exceptional.", "car_dependent": False}
 
     # Branch: mixed — has both strong and weak
     if strong and weak:
@@ -2011,9 +2011,9 @@ def _insight_neighborhood(neighborhood, tier2):
 
         weakness = ""
         if not any_weak_places:
-            weakness = f" On the other hand, we didn't find nearby {_join_labels(weak_labels)}."
+            weakness = f" However, {_join_labels(weak_labels)} are harder to come by in this area."
         else:
-            weakness = f" On the other hand, {_join_labels(weak_labels)} may require more effort to reach."
+            weakness = f" However, {_join_labels(weak_labels)} will take more effort to reach."
 
         return {"text": lead_sentence + weakness, "car_dependent": False}
 
@@ -2022,8 +2022,8 @@ def _insight_neighborhood(neighborhood, tier2):
         lead_label = lead["label"]
         others = [d["label"] for d in dims if d["name"] != lead["name"]]
         if lead_place_name:
-            return {"text": f"{lead_place_name} ({lead_label}) is a standout nearby \u2014 and {_join_labels(others)} are all accessible too.", "car_dependent": False}
-        return {"text": f"This area excels at {lead_label} \u2014 and {_join_labels(others)} are all accessible too.", "car_dependent": False}
+            return {"text": f"{lead_place_name} ({lead_label}) is a standout nearby, and {_join_labels(others)} are all within reach too.", "car_dependent": False}
+        return {"text": f"This area excels at {lead_label}, and {_join_labels(others)} are all within reach too.", "car_dependent": False}
 
     # Branch: no strong, middling + weak
     if not strong and middling and weak:
@@ -2039,9 +2039,9 @@ def _insight_neighborhood(neighborhood, tier2):
 
         weakness = ""
         if not any_weak_places:
-            weakness = f" But we didn't find nearby {_join_labels(weak_labels)}."
+            weakness = f" But {_join_labels(weak_labels)} are harder to come by nearby."
         else:
-            weakness = f" But {_join_labels(weak_labels)} may require more effort to reach."
+            weakness = f" But {_join_labels(weak_labels)} will take more effort to reach."
 
         return {"text": lead_sentence + weakness, "car_dependent": False}
 
@@ -2060,7 +2060,7 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
 
     if not has_rail and not has_bus:
         if urban is not None:
-            return "Public transit options are limited in this area \u2014 driving will be the primary way to get around."
+            return "Public transit is limited here. You'll likely need a car for most trips."
         return None
 
     parts = []
@@ -2109,14 +2109,14 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
                 parts.append(f" ({walk_min} minutes on foot)")
             if freq_label:
                 parts.append(f", but service runs at {freq_label.lower()} frequency")
-            parts.append(". A backup transportation option is recommended.")
+            parts.append(". Having a backup way to get around is a good idea.")
 
         else:
             # Weak rail
             parts.append(f"The nearest transit is {station}")
             if walk_min:
                 parts.append(f" ({walk_min} minutes away)")
-            parts.append(". Plan on driving for most trips.")
+            parts.append(". You'll likely need a car for most trips.")
 
     elif has_bus:
         stop = transit["primary_stop"]
@@ -2131,7 +2131,7 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
         parts.append(".")
 
         if score < 4:
-            parts.append(" Driving or rideshare will be needed for most trips.")
+            parts.append(" You'll likely need a car or rideshare for most trips.")
 
     result = "".join(parts)
 
@@ -2139,11 +2139,11 @@ def _insight_getting_around(urban, transit, walk_scores, freq_label, tier2):
     if walk_scores and score >= 4:
         walk_desc = walk_scores.get("walk_description")
         if walk_desc:
-            result += f" The area is rated \"{walk_desc}.\""
+            result += f" Walk Score rates this area as \"{walk_desc}.\""
 
     # Add bike note for high bike scores
     if walk_scores and walk_scores.get("bike_score") and walk_scores["bike_score"] >= 60:
-        result += " Biking is also a viable option here."
+        result += " Biking is also a good option here."
 
     return result
 
@@ -2155,7 +2155,7 @@ def _insight_parks(green_escape, tier2):
 
     best_park = green_escape.get("best_daily_park")
     if not best_park or not best_park.get("name"):
-        return "We found no parks or named green spaces within walking distance."
+        return "We didn't find any parks or named green spaces within walking distance of this address."
 
     name = best_park["name"]
     walk_min = best_park.get("walk_time_min")
@@ -2176,7 +2176,7 @@ def _insight_parks(green_escape, tier2):
 
     # Branch: strong + close (score >= 7 and walk <= 15)
     if score >= 7 and walk_min is not None and walk_min <= 15:
-        parts.append(f"{name} is just {walk_min} minutes away \u2014 close enough to go for a run")
+        parts.append(f"{name} is just {walk_min} minutes on foot \u2014 close enough for a morning run or afternoon walk")
 
         # OSM enrichment
         osm_details = []
@@ -2195,7 +2195,7 @@ def _insight_parks(green_escape, tier2):
 
     # Branch: good park but far (score < 7 and walk > 20)
     elif score < 7 and walk_min is not None and walk_min > 20:
-        parts.append(f"{name} ({walk_min} minutes away) is more of a weekend destination than a daily option.")
+        parts.append(f"{name} is {walk_min} minutes away \u2014 more of a weekend destination than a daily routine.")
 
     # Branch: moderate (score >= 4)
     elif score >= 4:
@@ -2220,7 +2220,7 @@ def _insight_parks(green_escape, tier2):
 
     # Branch: weak (score < 4)
     else:
-        parts.append(f"Green space options are limited \u2014 {name} is the closest")
+        parts.append(f"Green space is limited nearby \u2014 {name} is the closest option")
         if walk_min is not None:
             parts.append(f" at {walk_min} minutes")
         parts.append(".")
