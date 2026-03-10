@@ -1427,6 +1427,7 @@ def _serialize_green_escape(evaluation):
     return {
         "best_daily_park": best_park,
         "nearby_green_spaces": nearby,
+        "total_green_space_count": len(nearby),
         "green_escape_score_0_10": evaluation.green_escape_score_0_10,
         "messages": evaluation.messages,
         "criteria": evaluation.criteria,
@@ -1649,6 +1650,15 @@ def result_to_dict(result):
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
+    # Category summary counts for section summary row
+    _np = output.get("neighborhood_places") or {}
+    output["neighborhood_summary"] = {
+        "coffee_count": len(_np.get("coffee", [])),
+        "grocery_count": len(_np.get("grocery", [])),
+        "fitness_count": len(_np.get("fitness", [])),
+        "parks_count": len(_np.get("parks", [])),
+    }
+
     # Road noise assessment (NES-193)
     rna = result.road_noise_assessment
     if rna is not None:
@@ -1754,6 +1764,21 @@ def result_to_dict(result):
 
     # Dimension summaries — derived from tier2_scores for the verdict card
     # breakdown.  Each entry carries the confidence indicator (NES-189).
+    # Per-dimension band classification (Phase 1 anatomy).
+    _dim_bands = (
+        (8, "strong", "dim-band--strong"),
+        (5, "moderate", "dim-band--moderate"),
+        (0, "limited", "dim-band--limited"),
+    )
+
+    def _dim_band(score, max_score):
+        if score is None or max_score is None or max_score == 0:
+            return {"key": "not_scored", "css": "dim-band--not-scored"}
+        for threshold, key, css in _dim_bands:
+            if score >= threshold:
+                return {"key": key, "css": css}
+        return {"key": "limited", "css": "dim-band--limited"}
+
     output["dimension_summaries"] = [
         {
             "name": s["name"],
@@ -1763,6 +1788,7 @@ def result_to_dict(result):
             "data_confidence": s.get("data_confidence"),
             "data_confidence_note": s.get("data_confidence_note"),
             "suppressed_reason": s.get("suppressed_reason"),
+            "band": _dim_band(s["points"], s["max"]),
         }
         for s in output.get("tier2_scores", [])
     ]
@@ -2661,6 +2687,40 @@ def view_snapshot(snapshot_id):
     # stored snapshot dict) to avoid corrupting a future caching layer.
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
+
+    # Backfill per-dimension bands for old snapshots (Phase 1 anatomy).
+    for dim in result.get("dimension_summaries", []):
+        if "band" not in dim:
+            _score = dim.get("score")
+            _max = dim.get("max_score", 10)
+            if _score is None or _max is None or _max == 0:
+                dim["band"] = {"key": "not_scored", "css": "dim-band--not-scored"}
+            elif _score >= 8:
+                dim["band"] = {"key": "strong", "css": "dim-band--strong"}
+            elif _score >= 5:
+                dim["band"] = {"key": "moderate", "css": "dim-band--moderate"}
+            else:
+                dim["band"] = {"key": "limited", "css": "dim-band--limited"}
+
+    # Backfill total green space count for old snapshots.
+    # Shallow-copy the nested dict to avoid mutating the stored snapshot.
+    _ge = result.get("green_escape") or {}
+    if _ge and "total_green_space_count" not in _ge:
+        _ge = dict(_ge)
+        _ge["total_green_space_count"] = len(
+            _ge.get("nearby_green_spaces", [])
+        )
+        result["green_escape"] = _ge
+
+    # Backfill neighborhood summary for old snapshots.
+    if "neighborhood_summary" not in result:
+        _np = result.get("neighborhood_places") or {}
+        result["neighborhood_summary"] = {
+            "coffee_count": len(_np.get("coffee", [])),
+            "grocery_count": len(_np.get("grocery", [])),
+            "fitness_count": len(_np.get("fitness", [])),
+            "parks_count": len(_np.get("parks", [])),
+        }
 
     # Phase B2: Backfill show_numeric_score for old snapshots that don't
     # have it stored. Uses the same logic as result_to_dict().

@@ -470,6 +470,92 @@ h1.narrative-summary {
   text-decoration-thickness: 2px;
 }
 
+/* ── Section summary row (shared anatomy) ── */
+.section-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-base);
+}
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  background: var(--color-bg-subtle, #f8f9fa);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+/* Semantic pill variants — reuse existing status color tokens */
+.summary-pill--pass    { background: var(--color-pass-bg);    color: var(--color-pass-text);    border-color: var(--color-pass-border); }
+.summary-pill--warning { background: var(--color-warning-bg); color: var(--color-warning-text); border-color: var(--color-warning-border); }
+.summary-pill--fail    { background: var(--color-fail-bg);    color: var(--color-fail-text);    border-color: var(--color-fail-border); }
+.summary-pill--neutral { background: var(--color-bg-subtle, #f8f9fa); color: var(--color-text-secondary); border-color: var(--color-border); }
+.summary-pill--accent  { background: var(--color-accent-bg, #eff6ff); color: var(--color-accent-text, #1e40af); border-color: var(--color-accent-border, #bfdbfe); }
+
+/* ── Section card weight modifiers (shared anatomy) ── */
+.section-card--quiet {
+  border-left-width: 2px;
+  opacity: 0.85;
+}
+.section-card--quiet .place-name,
+.section-card--quiet .data-row__name,
+.section-card--quiet .proximity-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.section-card--elevated {
+  box-shadow: var(--shadow-card);
+}
+.section-card--highlighted {
+  box-shadow: var(--shadow-card);
+  border-left: 3px solid var(--color-accent, #3b82f6);
+}
+
+/* ── Per-dimension band colors ── */
+.dim-band--strong   { color: var(--color-pass-text); }
+.dim-band--moderate { color: var(--color-warning-text); }
+.dim-band--limited  { color: var(--color-fail-text); }
+.dim-band--not-scored { color: var(--color-text-muted); }
+
+.dim-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+.dim-score-pill--strong   { background: var(--color-pass-bg);    color: var(--color-pass-text);    border: 1px solid var(--color-pass-border); }
+.dim-score-pill--moderate { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
+.dim-score-pill--limited  { background: var(--color-fail-bg);    color: var(--color-fail-text);    border: 1px solid var(--color-fail-border); }
+.dim-score-pill--not-scored { background: var(--color-bg-subtle, #f8f9fa); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+
+/* ── Mini fill bar (for park subscores, dimension rows) ── */
+.mini-fill-bar {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 40px;
+  max-width: 80px;
+}
+.mini-fill-bar__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.mini-fill-bar__fill--strong   { background: var(--color-pass); }
+.mini-fill-bar__fill--moderate { background: var(--color-warning); }
+.mini-fill-bar__fill--limited  { background: var(--color-fail); }
+
 /* --- Health Stat Row --- */
 .health-stat-row {
   display: flex;
@@ -1782,6 +1868,9 @@ h1.narrative-summary {
   .health-stat-badge { font-size: var(--font-size-xs); padding: 3px var(--space-sm); }
   .health-icon-badge { width: 20px; height: 20px; }
   .health-icon-badge svg { width: 12px; height: 12px; }
+  .summary-pill { font-size: var(--font-size-xs); padding: 3px var(--space-sm); }
+  .dim-score-pill { font-size: var(--font-size-xs); min-width: 32px; }
+  .mini-fill-bar { max-width: 60px; }
 }
 
 @media (max-width: 480px) {
@@ -1811,6 +1900,9 @@ h1.narrative-summary {
   .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
   .health-stat-badge, .health-icon-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .health-check--elevated { box-shadow: none; }
+  .summary-pill, .dim-score-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section-card--elevated, .section-card--highlighted { box-shadow: none; }
+  .mini-fill-bar__fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body::before {
     content: "NestCheck Property Evaluation";
     display: block;
