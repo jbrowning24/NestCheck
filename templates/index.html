@@ -349,24 +349,27 @@
           document.getElementById('address-input').value = addr;
           document.getElementById('place-id-input').value = '';
 
+          function fallbackToEval() {
+            addRecentSearch(addr, null, null);
+            submitEvaluation(addr, null, email);
+          }
+
           if (sid) {
             fetch('/api/snapshots/' + sid + '/fresh')
-              .then(function(r) { return r.json(); })
+              .then(function(r) {
+                if (!r.ok) throw new Error('status ' + r.status);
+                return r.json();
+              })
               .then(function(data) {
                 if (data.fresh) {
                   window.location.href = '/s/' + sid;
                 } else {
-                  addRecentSearch(addr, null, null);
-                  submitEvaluation(addr, null, email);
+                  fallbackToEval();
                 }
               })
-              .catch(function() {
-                addRecentSearch(addr, null, null);
-                submitEvaluation(addr, null, email);
-              });
+              .catch(fallbackToEval);
           } else {
-            addRecentSearch(addr, null, null);
-            submitEvaluation(addr, null, email);
+            fallbackToEval();
           }
         });
         pillsDiv.appendChild(btn);
