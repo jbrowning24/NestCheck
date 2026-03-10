@@ -3010,6 +3010,25 @@ def check_snapshots():
     })
 
 
+@app.route("/api/snapshots/<snapshot_id>/fresh")
+def api_snapshot_fresh(snapshot_id):
+    """Check if a snapshot exists and is fresh. No API calls — pure SQLite."""
+    try:
+        snapshot = get_snapshot(snapshot_id)
+        if not snapshot:
+            return jsonify({"exists": False, "fresh": False})
+        ttl_days = _snapshot_ttl_days()
+        now_utc = datetime.now(timezone.utc)
+        fresh = is_snapshot_fresh(snapshot, ttl_days, now_utc)
+        return jsonify({
+            "exists": True,
+            "fresh": fresh,
+            "snapshot_id": snapshot_id,
+        })
+    except Exception:
+        return jsonify({"exists": False, "fresh": False})
+
+
 @app.route("/api/event", methods=["POST"])
 def track_event():
     """Lightweight client-side event tracking endpoint."""

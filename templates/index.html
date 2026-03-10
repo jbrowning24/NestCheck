@@ -281,19 +281,48 @@
     var match = document.cookie.match(/(?:^|;\s*)nestcheck_recent=([^;]*)/);
     if (!match) return [];
     try {
-      var arr = JSON.parse(decodeURIComponent(match[1]));
-      return Array.isArray(arr) ? arr : [];
+      var parsed = JSON.parse(decodeURIComponent(match[1]));
+      if (!Array.isArray(parsed)) return [];
+      // Graceful migration: if first element is a string, it's old format
+      if (parsed.length > 0 && typeof parsed[0] === 'string') {
+        return parsed.map(function(addr) {
+          return { address: addr, snapshot_id: null, place_id: null };
+        });
+      }
+      return parsed;
     } catch (e) { return []; }
   }
 
-  function addRecentSearch(address) {
-    var arr = getRecentSearches();
-    arr = arr.filter(function(a) { return a !== address; });
-    arr.unshift(address);
-    if (arr.length > 5) arr = arr.slice(0, 5);
-    var expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString();
-    document.cookie = 'nestcheck_recent=' + encodeURIComponent(JSON.stringify(arr))
+  function setCookie(name, value, days) {
+    var expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = name + '=' + encodeURIComponent(value)
       + '; expires=' + expires + '; path=/; SameSite=Lax';
+  }
+
+  function addRecentSearch(address, snapshotId, placeId) {
+    var searches = getRecentSearches();
+    searches = searches.filter(function(s) {
+      return s.address.toLowerCase() !== address.toLowerCase();
+    });
+    searches.unshift({
+      address: address,
+      snapshot_id: snapshotId || null,
+      place_id: placeId || null
+    });
+    searches = searches.slice(0, 5);
+    setCookie('nestcheck_recent', JSON.stringify(searches), 30);
+  }
+
+  function updateRecentSearchSnapshot(address, snapshotId, placeId) {
+    var searches = getRecentSearches();
+    for (var i = 0; i < searches.length; i++) {
+      if (searches[i].address.toLowerCase() === address.toLowerCase()) {
+        searches[i].snapshot_id = snapshotId;
+        if (placeId) searches[i].place_id = placeId;
+        break;
+      }
+    }
+    setCookie('nestcheck_recent', JSON.stringify(searches), 30);
   }
 
   function renderRecentSearches() {
@@ -306,20 +335,42 @@
     }
     pillsDiv.innerHTML = '';
     for (var i = 0; i < arr.length; i++) {
-      (function(addr) {
+      (function(entry) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'recent-pill';
-        btn.textContent = addr;
+        btn.textContent = entry.address;
         btn.addEventListener('click', function() {
-          var input = document.getElementById('address-input');
-          if (input) input.value = addr;
-          var pid = document.getElementById('place-id-input');
-          if (pid) pid.value = '';
-          addRecentSearch(addr);
+          var addr = entry.address;
+          var sid = entry.snapshot_id;
           var emailInput = document.getElementById('email-input');
           var email = emailInput ? emailInput.value.trim() : '';
-          submitEvaluation(addr, null, email);
+
+          document.getElementById('address-input').value = addr;
+          document.getElementById('place-id-input').value = '';
+
+          function fallbackToEval() {
+            addRecentSearch(addr, null, null);
+            submitEvaluation(addr, null, email);
+          }
+
+          if (sid) {
+            fetch('/api/snapshots/' + sid + '/fresh')
+              .then(function(r) {
+                if (!r.ok) throw new Error('status ' + r.status);
+                return r.json();
+              })
+              .then(function(data) {
+                if (data.fresh) {
+                  window.location.href = '/s/' + sid;
+                } else {
+                  fallbackToEval();
+                }
+              })
+              .catch(fallbackToEval);
+          } else {
+            fallbackToEval();
+          }
         });
         pillsDiv.appendChild(btn);
       })(arr[i]);
@@ -456,6 +507,10 @@
             if (data.status === 'done' && data.snapshot_id) {
               clearTimeout(patienceTimer);
               setProgress(100);
+              var addrInput = document.getElementById('address-input');
+              if (addrInput && addrInput.value) {
+                updateRecentSearchSnapshot(addrInput.value, data.snapshot_id, data.place_id || null);
+              }
               window.location.href = '/s/' + data.snapshot_id;
               return;
             }
@@ -521,6 +576,7 @@
           } else if (data.job_id) {
             startPolling(data.job_id, overlay, loadingText, loadingSub, btn, form);
           } else if (data.snapshot_id) {
+            updateRecentSearchSnapshot(address, data.snapshot_id, data.place_id || null);
             window.location.href = data.redirect_url || ('/s/' + data.snapshot_id);
           } else {
             showError('Unexpected response from server.', overlay, btn, form);
@@ -614,7 +670,7 @@
 
       var emailInput = document.getElementById('email-input');
       var email = emailInput ? emailInput.value.trim() : '';
-      addRecentSearch(address);
+      addRecentSearch(address, null, null);
       submitEvaluation(address, null, email);
     });
 
