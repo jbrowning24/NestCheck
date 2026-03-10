@@ -4,7 +4,7 @@
 
 
 {# Format a duration in minutes as "X min mode" or "X hr Y min mode". #}
-{% macro fmt_time(minutes, mode) %}{% set m = minutes | int %}{% if m >= 60 %}{{ m // 60 }} hr {{ m % 60 }} min {{ mode }}{% else %}{{ m }} min {{ mode }}{% endif %}{% endmacro %}
+{% macro fmt_time(minutes, mode) %}{% set m = minutes | int %}{% if m >= 60 %}{% if m % 60 == 0 %}{{ m // 60 }} hr {{ mode }}{% else %}{{ m // 60 }} hr {{ m % 60 }} min {{ mode }}{% endif %}{% else %}{{ m }} min {{ mode }}{% endif %}{% endmacro %}
 
 
 {# ── data_row ──────────────────────────────────────────────────────
