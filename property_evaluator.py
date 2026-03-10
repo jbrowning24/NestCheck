@@ -5624,7 +5624,7 @@ _PROXIMITY_LABELS = {
     "highway": "a highway",
     "gas_station": "a gas station",
     "high-volume_road": "a high-volume road",
-    "power_line": "high-voltage power lines",
+    "power_line": "a high-voltage power line",
     "substation": "an electrical substation",
     "cell_tower": "a cell tower",
     "industrial_zone": "an industrial site",

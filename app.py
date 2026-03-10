@@ -746,8 +746,8 @@ _WARNING_HEADLINES = {
     "EJScreen cancer risk": "Somewhat elevated air toxics cancer risk in this area",
     "EJScreen diesel PM": "Somewhat elevated diesel exhaust in this area",
     "EJScreen lead paint": "Somewhat elevated lead paint risk in this area",
-    "EJScreen Superfund": "Somewhat elevated Superfund site proximity",
-    "EJScreen hazardous waste": "Somewhat elevated hazardous waste proximity",
+    "EJScreen Superfund": "Somewhat elevated Superfund site proximity in this area",
+    "EJScreen hazardous waste": "Somewhat elevated hazardous waste proximity in this area",
     # Phase 1B spatial dataset checks
     "ust_proximity": "Underground fuel tank in the vicinity",
     "tri_proximity": "Toxic-release facility within 1 mile",
