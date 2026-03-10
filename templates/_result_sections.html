@@ -18,7 +18,6 @@
 {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
 {% set warning_count = safety_checks | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
 {% set issue_count = safety_checks | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
-{% set safety_concerns = safety_checks | selectattr('result_type', 'ne', 'CLEAR') | list %}
 
 <div class="report">
   <div class="report-container">
@@ -1130,15 +1129,6 @@
             <span>{{ result.persona.label if result.persona is defined and result.persona else 'Balanced' }}</span>
             <span>{% if result.passed_tier1 %}Tier 1 Pass{% else %}Tier 1 Fail{% endif %}</span>
           </div>
-        </div>
-        {% endif %}
-
-        {# ── Safety concern pills ── #}
-        {% if safety_concerns %}
-        <div class="verdict-proximity-flags sidebar-flags">
-          {% for pc in safety_concerns %}
-          <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">{{ pc.headline }}</span>
-          {% endfor %}
         </div>
         {% endif %}
 

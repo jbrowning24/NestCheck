@@ -109,13 +109,6 @@
 .rail-score-ring .score-ring-value { font-size: var(--font-size-h3); }
 .rail-score-details .score-band { font-size: var(--font-size-body); }
 .rail-score-details .score-scale { font-size: var(--font-size-small); }
-.rail-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
-}
-.rail-flags .verdict-proximity-pill { font-size: var(--text-xs); padding: var(--space-xs) var(--space-sm); }
 
 /* --- Rail Map --- */
 .report-rail-map {

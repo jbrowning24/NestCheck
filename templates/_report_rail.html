@@ -3,7 +3,7 @@
 {# Included by snapshot.html inside .report-layout__rail.             #}
 {# Expects: result (same context as _result_sections.html).           #}
 {# ================================================================== #}
-{% from "_macros.html" import score_ring, safety_flags %}
+{% from "_macros.html" import score_ring %}
 
 {# ── MINI SCORE CARD ─────────────────────────────────────────────── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -21,7 +21,6 @@
   </div>
   {% endif %}
 
-  {{ safety_flags(result.presented_checks, 'rail-flags') }}
 </div>
 
 {# ── MAP ─────────────────────────────────────────────────────────── #}

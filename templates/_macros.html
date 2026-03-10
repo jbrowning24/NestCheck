@@ -57,24 +57,6 @@
 {% endmacro %}
 
 
-{# ── safety_flags ─────────────────────────────────────────────────────
-   Render safety-concern pills from presented_checks.
-
-   Args:
-     presented_checks: The result.presented_checks list.
-     pill_class:       Extra CSS class on the wrapper div (optional).
-   ── #}
-{% macro safety_flags(presented_checks, pill_class='verdict-proximity-flags') %}
-{% set safety_concerns = (presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | selectattr('result_type', 'ne', 'CLEAR') | list %}
-{% if safety_concerns %}
-<div class="{{ pill_class }}">
-  {% for pc in safety_concerns %}
-  <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">⚠ {{ pc.headline }}</span>
-  {% endfor %}
-</div>
-{% endif %}
-{% endmacro %}
-
 
 {% macro data_row(name, detail=None, value=None, variant="hub", no_border=false) %}
 <div class="data-row data-row--{{ variant }}{% if no_border %} data-row--no-border{% endif %}">
