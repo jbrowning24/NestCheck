@@ -466,11 +466,38 @@
             <p class="section-insight">{{ result.insights.getting_around }}</p>
           {% endif %}
 
+          {% if result.urban_access is defined and result.urban_access and result.urban_access.primary_transit %}
+            {% set _pt = result.urban_access.primary_transit %}
+            <div class="section-summary-row">
+              <span class="summary-pill summary-pill--accent">
+                {{ _pt.name }} · {{ _pt.walk_time_min }} min walk
+              </span>
+              {% if result.frequency_label %}
+                <span class="summary-pill summary-pill--neutral">{{ result.frequency_label }}</span>
+              {% endif %}
+              {% if result.walk_scores is defined and result.walk_scores %}
+                {% if result.walk_scores.walk_score is not none %}
+                  <span class="summary-pill summary-pill--neutral">Walk Score: {{ result.walk_scores.walk_score }}</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          {% elif result.transit_access is defined and result.transit_access and result.transit_access.primary_stop %}
+            <div class="section-summary-row">
+              <span class="summary-pill summary-pill--accent">
+                {{ result.transit_access.primary_stop }} · {{ result.transit_access.walk_minutes }} min walk
+              </span>
+              {% if result.transit_access.frequency_bucket %}
+                <span class="summary-pill summary-pill--neutral">{{ result.transit_access.frequency_bucket }}</span>
+              {% endif %}
+            </div>
+          {% endif %}
+
           {# Primary Transit Node #}
           {% if result.urban_access and result.urban_access.primary_transit %}
             {% set pt = result.urban_access.primary_transit %}
             <div class="section-label">Nearest Transit</div>
             {% set pt_detail %}{{ pt.mode }}{% if result.frequency_label %} &middot; {{ result.frequency_label }}{% endif %}{% if pt.parking_available %} &middot; parking available{% endif %}{% endset %}
+            <div class="section-card--highlighted">
             {% call(slot) data_row(name=pt.name, detail=pt_detail, variant="hub") %}
               {% if slot == "right" %}
                 <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
@@ -484,24 +511,25 @@
               <div class="accessibility-attr">
                 <span class="accessibility-label">Step-free entrance:</span>
                 {% if pt.wheelchair_accessible_entrance is true %}
-                  <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
+                  <span class="accessibility-val accessibility-yes summary-pill summary-pill--pass summary-pill--compact">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
                 {% elif pt.wheelchair_accessible_entrance is false %}
-                  <span class="accessibility-val accessibility-no">No</span>
+                  <span class="accessibility-val accessibility-no summary-pill summary-pill--fail summary-pill--compact">No</span>
                 {% else %}
-                  <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+                  <span class="accessibility-val accessibility-unverified summary-pill summary-pill--neutral summary-pill--compact">Unknown</span>
                 {% endif %}
               </div>
               <div class="accessibility-attr">
                 <span class="accessibility-label">Elevator:</span>
                 {% if pt.elevator_available is true %}
-                  <span class="accessibility-val accessibility-yes">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
+                  <span class="accessibility-val accessibility-yes summary-pill summary-pill--pass summary-pill--compact">Yes{% if pt.ada_accessibility_note %} &mdash; {{ pt.ada_accessibility_note }}{% endif %}</span>
                 {% elif pt.elevator_available is false %}
-                  <span class="accessibility-val accessibility-no">No</span>
+                  <span class="accessibility-val accessibility-no summary-pill summary-pill--fail summary-pill--compact">No</span>
                 {% else %}
-                  <span class="accessibility-val accessibility-unverified">Unverified &mdash; check with transit agency</span>
+                  <span class="accessibility-val accessibility-unverified summary-pill summary-pill--neutral summary-pill--compact">Unknown</span>
                 {% endif %}
               </div>
             </div>
+            </div>{# .section-card--highlighted #}
 
           {% elif result.transit_access and result.transit_access.primary_stop %}
             <div class="section-label">Nearest Transit</div>
@@ -1044,7 +1072,7 @@
         {% if not is_preview %}
         <div id="how-we-score" class="data-section">
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-            <h2 class="section-title" style="margin-bottom:0">HOW WE SCORE</h2>
+            <h2 class="section-title section-title--collapsible">HOW WE SCORE</h2>
             <span class="collapse-icon">&#9654;</span>
           </div>
           <div class="collapsible-body collapsed">
