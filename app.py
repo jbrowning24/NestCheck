@@ -1427,6 +1427,7 @@ def _serialize_green_escape(evaluation):
     return {
         "best_daily_park": best_park,
         "nearby_green_spaces": nearby,
+        "total_green_space_count": len(nearby),
         "green_escape_score_0_10": evaluation.green_escape_score_0_10,
         "messages": evaluation.messages,
         "criteria": evaluation.criteria,
@@ -1527,22 +1528,6 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     return result
 
 
-def _dimension_band(points, max_points) -> dict | None:
-    """Map a dimension score (0-10) to a band dict for template styling.
-
-    Returns ``{"key": "strong"|"moderate"|"limited"}`` or ``None`` when the
-    score is suppressed (points is None).
-    """
-    if points is None or max_points is None or max_points == 0:
-        return None
-    pct = points / max_points
-    if pct >= 0.7:
-        return {"key": "strong"}
-    if pct >= 0.4:
-        return {"key": "moderate"}
-    return {"key": "limited"}
-
-
 def _backfill_dimension_bands(result: dict) -> None:
     """Ensure every dimension summary has a ``band`` dict.
 
@@ -1551,7 +1536,7 @@ def _backfill_dimension_bands(result: dict) -> None:
     """
     for dim in result.get("dimension_summaries", []):
         if "band" not in dim:
-            dim["band"] = _dimension_band(dim.get("score"), dim.get("max_score"))
+            dim["band"] = _dim_band(dim.get("score"), dim.get("max_score", 10))
 
 
 def _compute_show_numeric_score(dimension_summaries: list) -> bool:
@@ -1579,6 +1564,25 @@ def _compute_show_numeric_score(dimension_summaries: list) -> bool:
         if conf not in _OK_TIERS:
             return False
     return True
+
+
+# Per-dimension band classification (Phase 1 anatomy).
+# Thresholds on a 0-10 scale — distinct from composite ScoreBand (0-100).
+_DIM_BANDS = (
+    (8, "strong", "dim-band--strong"),
+    (5, "moderate", "dim-band--moderate"),
+    (0, "limited", "dim-band--limited"),
+)
+
+
+def _dim_band(score, max_score):
+    """Classify a single dimension score into a band dict for templates."""
+    if score is None or max_score is None or max_score == 0:
+        return {"key": "not_scored", "css": "dim-band--not-scored"}
+    for threshold, key, css in _DIM_BANDS:
+        if score >= threshold:
+            return {"key": key, "css": css}
+    return {"key": "limited", "css": "dim-band--limited"}
 
 
 def result_to_dict(result):
@@ -1676,17 +1680,14 @@ def result_to_dict(result):
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
-    # Neighborhood summary counts for template summary pills
-    np = result.neighborhood_places
-    if np:
-        output["neighborhood_summary"] = {
-            "coffee_count": len(np.get("coffee") or []),
-            "grocery_count": len(np.get("grocery") or []),
-            "fitness_count": len(np.get("fitness") or []),
-            "parks_count": len(np.get("parks") or []),
-        }
-    else:
-        output["neighborhood_summary"] = None
+    # Category summary counts for section summary row
+    _np = output.get("neighborhood_places") or {}
+    output["neighborhood_summary"] = {
+        "coffee_count": len(_np.get("coffee", [])),
+        "grocery_count": len(_np.get("grocery", [])),
+        "fitness_count": len(_np.get("fitness", [])),
+        "parks_count": len(_np.get("parks", [])),
+    }
 
     # Road noise assessment (NES-193)
     rna = result.road_noise_assessment
@@ -1802,7 +1803,7 @@ def result_to_dict(result):
             "data_confidence": s.get("data_confidence"),
             "data_confidence_note": s.get("data_confidence_note"),
             "suppressed_reason": s.get("suppressed_reason"),
-            "band": _dimension_band(s["points"], s["max"]),
+            "band": _dim_band(s["points"], s["max"]),
         }
         for s in output.get("tier2_scores", [])
     ]
@@ -2702,6 +2703,26 @@ def view_snapshot(snapshot_id):
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
     _backfill_dimension_bands(result)
+
+    # Backfill total green space count for old snapshots.
+    # Shallow-copy the nested dict to avoid mutating the stored snapshot.
+    _ge = result.get("green_escape") or {}
+    if _ge and "total_green_space_count" not in _ge:
+        _ge = dict(_ge)
+        _ge["total_green_space_count"] = len(
+            _ge.get("nearby_green_spaces", [])
+        )
+        result["green_escape"] = _ge
+
+    # Backfill neighborhood summary for old snapshots.
+    if "neighborhood_summary" not in result:
+        _np = result.get("neighborhood_places") or {}
+        result["neighborhood_summary"] = {
+            "coffee_count": len(_np.get("coffee", [])),
+            "grocery_count": len(_np.get("grocery", [])),
+            "fitness_count": len(_np.get("fitness", [])),
+            "parks_count": len(_np.get("parks", [])),
+        }
 
     # Phase B2: Backfill show_numeric_score for old snapshots that don't
     # have it stored. Uses the same logic as result_to_dict().
