@@ -25,10 +25,6 @@
 
     {# ── REPORT HEADER ── #}
     <header class="report-header">
-      <div class="logo-area">
-        <div class="logo-icon"><span></span><span></span></div>
-        <div class="logo-wordmark">NestCheck</div>
-      </div>
       <div class="report-header-meta">
         <div><span class="rh-label">Report for</span> <span class="rh-value">{{ result.address }}</span></div>
         <div><span class="rh-label">Generated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:7] | replace('-', '/') }}{% endif %}</span></div>
