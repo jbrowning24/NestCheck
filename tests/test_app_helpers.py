@@ -101,7 +101,7 @@ class TestPresentChecks:
         p = presented[0]
         assert p["result_type"] == "CONFIRMED_ISSUE"
         assert p["proximity_band"] == "VERY_CLOSE"
-        assert "Highway or major parkway nearby" in p["headline"]
+        assert "Highway or major parkway very close by" in p["headline"]
         assert p["explanation"] == "TOO CLOSE to: I-95"
 
     def test_warning_check(self):
@@ -116,7 +116,7 @@ class TestPresentChecks:
         presented = present_checks(checks)
         p = presented[0]
         assert p["category"] == "SAFETY"
-        assert p["headline"] == "TRI-reporting facility nearby"
+        assert p["headline"] == "Toxic-release facility within 1 mile"
         assert p["result_type"] == "WARNING_DETECTED"
 
     def test_unknown_check(self):
@@ -124,7 +124,7 @@ class TestPresentChecks:
         presented = present_checks(checks)
         p = presented[0]
         assert p["result_type"] == "VERIFICATION_NEEDED"
-        assert "Unable to verify" in p["headline"]
+        assert "could not be verified" in p["headline"]
 
     def test_lifestyle_category(self):
         checks = [self._check("W/D in unit", "PASS")]

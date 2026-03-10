@@ -262,7 +262,7 @@
             <div class="proximity-item proximity-neutral health-check--quiet">
               <div class="proximity-name">
                 {{ health_check_icon("clear", quiet=true) }}
-                No environmental concerns detected near this address.
+                All clear &mdash; no environmental concerns detected near this address.
               </div>
             </div>
           {% endif %}
@@ -272,7 +272,7 @@
           {% if _suc > 0 %}
           <div class="confidence-summary confidence-medium">
             <span class="confidence-summary-icon">&#9432;</span>
-            Environmental database expansion in progress — {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} coming soon.
+            We're expanding our environmental database &mdash; {{ _suc }} additional health check{{ 's' if _suc != 1 else '' }} will be available soon.
           </div>
           {% endif %}
 
@@ -448,7 +448,7 @@
             {% elif key != "parks" %}
             <div class="neighborhood-category neighborhood-category--empty">
               <div class="category-label">{{ label }}</div>
-              <p class="section-empty">No {{ label | lower }} found within about 3 miles.</p>
+              <p class="section-empty">We didn't find any {{ label | lower }} within about 3 miles of this address.</p>
             </div>
             {% endif %}
           {% endfor %}
@@ -604,7 +604,7 @@
                 <circle cx="8.5" cy="16" r="1.5"/><circle cx="15.5" cy="16" r="1.5"/>
                 <line x1="12" y1="3" x2="12" y2="11"/>
               </svg>
-              Transit data is not available for this location.
+              We couldn't find transit options near this address. Driving will likely be the primary way to get around.
             </p>
           {% endif %}
 
@@ -730,7 +730,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3 L8 10 H4 L9 15 L7 22 H17 L15 15 L20 10 H16 Z"/>
               </svg>
-              No major green space found within walking distance.
+              We didn't find any major green spaces within walking distance of this address.
             </p>
           {% endif %}
 
@@ -783,7 +783,7 @@
               ) }}
               {% endfor %}
             {% else %}
-              <p class="section-empty">No fire or police stations found within 3 miles.</p>
+              <p class="section-empty">We didn't find any fire or police stations within 3 miles of this address.</p>
             {% endif %}
           </div>
           {% endif %}
@@ -804,7 +804,7 @@
                 <p class="section-footnote">{{ result.library_count }} {{ "library" if result.library_count == 1 else "libraries" }} within 1.2 mi</p>
               {% endif %}
             {% else %}
-              <p class="section-empty">No public libraries found within 1.2 mi.</p>
+              <p class="section-empty">No public libraries found within about a mile of this address.</p>
             {% endif %}
           </div>
           {% endif %}
@@ -832,7 +832,7 @@
                 <p class="section-footnote">{{ result.pharmacy_count }} {{ "pharmacy" if result.pharmacy_count == 1 else "pharmacies" }} within 1.2 mi</p>
               {% endif %}
             {% else %}
-              <p class="section-empty">No pharmacies found within 1.2 mi.</p>
+              <p class="section-empty">No pharmacies found within about a mile of this address.</p>
             {% endif %}
           </div>
           {% endif %}
@@ -1186,7 +1186,7 @@
           {% if has_map_data %}
           <div id="neighborhood-map-leaflet{{ _map_suffix }}" class="map-leaflet" style="height: 200px; border-radius: var(--radius-md);"></div>
           {% else %}
-          <div class="map-placeholder">Map not available</div>
+          <div class="map-placeholder">Map could not be loaded for this address</div>
           {% endif %}
         </div>
         {% if has_map_data %}
