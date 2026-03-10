@@ -1528,6 +1528,17 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     return result
 
 
+def _backfill_dimension_bands(result: dict) -> None:
+    """Ensure every dimension summary has a ``band`` dict.
+
+    Legacy snapshots stored before the band field was introduced will have
+    ``None`` for ``band``.  This fills it in-place from score/max_score.
+    """
+    for dim in result.get("dimension_summaries", []):
+        if "band" not in dim:
+            dim["band"] = _dim_band(dim.get("score"), dim.get("max_score", 10))
+
+
 def _compute_show_numeric_score(dimension_summaries: list) -> bool:
     """Decide whether the verdict gauge should display the numeric score.
 
@@ -2691,15 +2702,7 @@ def view_snapshot(snapshot_id):
     # stored snapshot dict) to avoid corrupting a future caching layer.
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
-
-    # Backfill per-dimension bands for old snapshots (Phase 1 anatomy).
-    # Shallow-copy dicts before mutation to avoid corrupting stored snapshots.
-    _dims = result.get("dimension_summaries", [])
-    if _dims and "band" not in _dims[0]:
-        result["dimension_summaries"] = [
-            {**dim, "band": _dim_band(dim.get("score"), dim.get("max_score", 10))}
-            for dim in _dims
-        ]
+    _backfill_dimension_bands(result)
 
     # Backfill total green space count for old snapshots.
     # Shallow-copy the nested dict to avoid mutating the stored snapshot.
@@ -2747,6 +2750,7 @@ def export_snapshot_json(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
     if "show_numeric_score" not in result:
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
@@ -2777,6 +2781,7 @@ def export_snapshot_csv(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
     if "show_numeric_score" not in result:
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
@@ -2937,6 +2942,7 @@ def compare():
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
         _migrate_confidence_tiers(result)
+        _backfill_dimension_bands(result)
         if "show_numeric_score" not in result:
             result["show_numeric_score"] = _compute_show_numeric_score(
                 result.get("dimension_summaries", [])

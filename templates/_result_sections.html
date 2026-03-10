@@ -100,6 +100,20 @@
         {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
         <div class="data-section">
           <h2 class="section-title">DIMENSION SCORES</h2>
+          {% set _strong = namespace(n=0) %}
+          {% set _moderate = namespace(n=0) %}
+          {% set _limited = namespace(n=0) %}
+          {% for dim in result.dimension_summaries if dim.band is defined and dim.band %}
+            {% if dim.band.key == "strong" %}{% set _strong.n = _strong.n + 1 %}
+            {% elif dim.band.key == "moderate" %}{% set _moderate.n = _moderate.n + 1 %}
+            {% elif dim.band.key == "limited" %}{% set _limited.n = _limited.n + 1 %}
+            {% endif %}
+          {% endfor %}
+          <div class="section-summary-row">
+            {% if _strong.n %}<span class="summary-pill summary-pill--pass">{{ _strong.n }} Strong</span>{% endif %}
+            {% if _moderate.n %}<span class="summary-pill summary-pill--warning">{{ _moderate.n }} Moderate</span>{% endif %}
+            {% if _limited.n %}<span class="summary-pill summary-pill--fail">{{ _limited.n }} Limited</span>{% endif %}
+          </div>
           <div class="metrics-list metrics-list--dimensions">
             {% for dim in result.dimension_summaries %}
             {% set dim_weight = result.persona.weights[dim.name] if result.persona is defined and result.persona and result.persona.weights is defined and dim.name in (result.persona.weights or {}) else 1.0 %}
@@ -150,14 +164,14 @@
                   {% endif %}
                 </span>
                 <span class="value">
-                  {{ dim.score }}/{{ dim.max_score }}
+                  <span class="dim-score-pill dim-score-pill--{{ dim.band.key if dim.band is defined and dim.band else 'not-scored' }}">{{ dim.score }}/{{ dim.max_score }}</span>
                   {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
                     <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
                   {% endif %}
                 </span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill" style="width: {{ (dim.score / dim.max_score * 100) | int if dim.max_score else 0 }}%;"></div>
+                <div class="progress-fill mini-fill-bar__fill--{{ dim.band.key if dim.band is defined and dim.band else 'not-scored' }}" style="width: {{ (dim.score / dim.max_score * 100) | int if dim.max_score else 0 }}%;"></div>
               </div>
               {% if dim.summary %}
               <div class="progress-detail">{{ dim.summary }}</div>
@@ -305,6 +319,23 @@
             <p class="section-insight">{{ result.insights.your_neighborhood }}</p>
           {% endif %}
 
+          {% if result.neighborhood_summary is defined and result.neighborhood_summary %}
+          <div class="section-summary-row">
+            {% if result.neighborhood_summary.coffee_count %}
+              <span class="summary-pill summary-pill--neutral">{{ result.neighborhood_summary.coffee_count }} Café{{ 's' if result.neighborhood_summary.coffee_count != 1 }}</span>
+            {% endif %}
+            {% if result.neighborhood_summary.grocery_count %}
+              <span class="summary-pill summary-pill--neutral">{{ result.neighborhood_summary.grocery_count }} Grocer{{ 'ies' if result.neighborhood_summary.grocery_count != 1 else 'y' }}</span>
+            {% endif %}
+            {% if result.neighborhood_summary.fitness_count %}
+              <span class="summary-pill summary-pill--neutral">{{ result.neighborhood_summary.fitness_count }} Fitness</span>
+            {% endif %}
+            {% if result.neighborhood_summary.parks_count %}
+              <span class="summary-pill summary-pill--neutral">{{ result.neighborhood_summary.parks_count }} Park{{ 's' if result.neighborhood_summary.parks_count != 1 }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
           {% set categories = [
             ("coffee", "Coffee & Social Spots"),
             ("grocery", "Grocery & Essentials"),
@@ -337,7 +368,7 @@
               <div class="place-cards">
                 {% for place in normal_places %}
                 {% set is_headline = loop.first and place.review_snippet %}
-                <div class="place-card{% if is_headline %} place-card--headline{% endif %}">
+                <div class="place-card{% if is_headline %} place-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
@@ -351,7 +382,7 @@
                   </div>
                   <div class="place-meta">
                     {% if place.rating %}
-                      <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact">{{ "%.1f"|format(place.rating) }} ★</span>
                     {% endif %}
                     {% if place.review_count %}
                       <span class="place-reviews">({{ place.review_count }})</span>
@@ -367,11 +398,11 @@
                   {% endif %}
                   <div class="place-time">
                     {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
-                      {{ fmt_time(place.drive_time_min, "drive") }}
+                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
-                      {{ fmt_time(place.walk_time_min, "walk") }} · {{ fmt_time(place.drive_time_min, "drive") }}
+                      <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span> · <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% else %}
-                      {{ fmt_time(place.walk_time_min, "walk") }}
+                      <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
                     {% endif %}
                   </div>
                 </div>
@@ -385,7 +416,7 @@
               <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
               <div class="place-cards">
                 {% for place in expanded_places %}
-                <div class="place-card place-card--muted">
+                <div class="place-card place-card--muted section-card--quiet">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
@@ -399,12 +430,12 @@
                   </div>
                   <div class="place-meta">
                     {% if place.rating %}
-                      <span class="place-rating">{{ "%.1f"|format(place.rating) }} ★</span>
+                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact">{{ "%.1f"|format(place.rating) }} ★</span>
                     {% endif %}
                   </div>
                   <div class="place-time">
                     {% if place.drive_time_min %}
-                      {{ fmt_time(place.drive_time_min, "drive") }}
+                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% else %}
                       Drive time unavailable
                     {% endif %}
@@ -634,9 +665,24 @@
             {% endfor %}
           {% endif %}
 
+          {% set _total_parks = (result.green_escape.nearby_green_spaces|length) if result.green_escape and result.green_escape.nearby_green_spaces else 0 %}
+          {% set _best = result.green_escape.best_daily_park if result.green_escape else None %}
+          {% if _total_parks or _best %}
+          <div class="section-summary-row">
+            {% if _total_parks %}
+              <span class="summary-pill summary-pill--neutral">{{ _total_parks }} Green Space{{ 's' if _total_parks != 1 }}</span>
+            {% endif %}
+            {% if _best and _best.walk_time_min and _best.walk_time_min <= 30 %}
+              <span class="summary-pill summary-pill--accent">Best: {{ _best.walk_time_min }} min walk</span>
+            {% elif _best and _best.drive_time_min %}
+              <span class="summary-pill summary-pill--neutral">Best: {{ _best.drive_time_min }} min drive</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
           {% if result.green_escape and result.green_escape.best_daily_park %}
             {% set park = result.green_escape.best_daily_park %}
-            <div class="park-highlight">
+            <div class="park-highlight section-card--highlighted">
               {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
               {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
                 {% if slot == "right" %}
@@ -656,7 +702,14 @@
                     <div class="subscore-label">
                       {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
                     </div>
-                    <div class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</div>
+                    <div class="subscore-value-row">
+                      <div class="mini-fill-bar">
+                        {% set _pct = (ss.score / ss.max_score * 100)|round if ss.max_score else 0 %}
+                        {% set _fill_band = "strong" if _pct >= 66 else ("moderate" if _pct >= 33 else "limited") %}
+                        <div class="mini-fill-bar__fill mini-fill-bar__fill--{{ _fill_band }}" style="width: {{ _pct }}%"></div>
+                      </div>
+                      <span class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</span>
+                    </div>
                     <div class="subscore-reason">{{ ss.reason }}</div>
                   </div>
                 {% endfor %}
