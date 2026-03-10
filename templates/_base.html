@@ -28,7 +28,10 @@
 
 <nav>
   {% block nav_content %}
-    <a href="/" class="logo">Nest<span>Check</span></a>
+    <a href="/" class="logo">
+      <span class="logo-icon"><span></span><span></span></span>
+      <span class="logo-text">Nest<span>Check</span></span>
+    </a>
     <div>
       {% if g.user_email %}<a href="/my-reports" class="nav-link">My Reports</a>{% endif %}
       {% block nav_links %}{% endblock %}
