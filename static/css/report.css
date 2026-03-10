@@ -141,7 +141,7 @@ h1.narrative-summary {
   padding: var(--space-base);
 }
 .metrics-list--dimensions {
-  background: var(--color-bg, #ffffff);
+  background: var(--color-bg-card, #ffffff);
 }
 .metrics-list--health {
   background: #FAFAFA;
@@ -180,7 +180,7 @@ h1.narrative-summary {
 }
 .progress-track {
   height: 4px;
-  background: var(--color-border-light, #e2e8f0);
+  background: var(--color-border-light, #F0F2F5);
   border-radius: 2px;
   overflow: hidden;
 }
