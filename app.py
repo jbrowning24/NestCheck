@@ -1527,6 +1527,33 @@ def _migrate_confidence_tiers(result: dict) -> dict:
     return result
 
 
+def _dimension_band(points, max_points) -> dict | None:
+    """Map a dimension score (0-10) to a band dict for template styling.
+
+    Returns ``{"key": "strong"|"moderate"|"limited"}`` or ``None`` when the
+    score is suppressed (points is None).
+    """
+    if points is None or max_points is None or max_points == 0:
+        return None
+    pct = points / max_points
+    if pct >= 0.7:
+        return {"key": "strong"}
+    if pct >= 0.4:
+        return {"key": "moderate"}
+    return {"key": "limited"}
+
+
+def _backfill_dimension_bands(result: dict) -> None:
+    """Ensure every dimension summary has a ``band`` dict.
+
+    Legacy snapshots stored before the band field was introduced will have
+    ``None`` for ``band``.  This fills it in-place from score/max_score.
+    """
+    for dim in result.get("dimension_summaries", []):
+        if "band" not in dim:
+            dim["band"] = _dimension_band(dim.get("score"), dim.get("max_score"))
+
+
 def _compute_show_numeric_score(dimension_summaries: list) -> bool:
     """Decide whether the verdict gauge should display the numeric score.
 
@@ -1649,6 +1676,18 @@ def result_to_dict(result):
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
+    # Neighborhood summary counts for template summary pills
+    np = result.neighborhood_places
+    if np:
+        output["neighborhood_summary"] = {
+            "coffee_count": len(np.get("coffee") or []),
+            "grocery_count": len(np.get("grocery") or []),
+            "fitness_count": len(np.get("fitness") or []),
+            "parks_count": len(np.get("parks") or []),
+        }
+    else:
+        output["neighborhood_summary"] = None
+
     # Road noise assessment (NES-193)
     rna = result.road_noise_assessment
     if rna is not None:
@@ -1763,6 +1802,7 @@ def result_to_dict(result):
             "data_confidence": s.get("data_confidence"),
             "data_confidence_note": s.get("data_confidence_note"),
             "suppressed_reason": s.get("suppressed_reason"),
+            "band": _dimension_band(s["points"], s["max"]),
         }
         for s in output.get("tier2_scores", [])
     ]
@@ -2661,6 +2701,7 @@ def view_snapshot(snapshot_id):
     # stored snapshot dict) to avoid corrupting a future caching layer.
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
 
     # Phase B2: Backfill show_numeric_score for old snapshots that don't
     # have it stored. Uses the same logic as result_to_dict().
@@ -2688,6 +2729,7 @@ def export_snapshot_json(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
     if "show_numeric_score" not in result:
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
@@ -2718,6 +2760,7 @@ def export_snapshot_csv(snapshot_id):
     result = {**snapshot["result"]}
     _migrate_dimension_names(result)  # NES-210
     _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
     if "show_numeric_score" not in result:
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
@@ -2878,6 +2921,7 @@ def compare():
         # NES-210: Migrate legacy dimension names for old snapshots
         _migrate_dimension_names(result)
         _migrate_confidence_tiers(result)
+        _backfill_dimension_bands(result)
         if "show_numeric_score" not in result:
             result["show_numeric_score"] = _compute_show_numeric_score(
                 result.get("dimension_summaries", [])

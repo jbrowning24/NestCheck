@@ -665,7 +665,7 @@
             {% endfor %}
           {% endif %}
 
-          {% set _total_parks = result.green_escape.total_green_space_count|default(0) if result.green_escape else 0 %}
+          {% set _total_parks = (result.green_escape.nearby_green_spaces|length) if result.green_escape and result.green_escape.nearby_green_spaces else 0 %}
           {% set _best = result.green_escape.best_daily_park if result.green_escape else None %}
           {% if _total_parks or _best %}
           <div class="section-summary-row">

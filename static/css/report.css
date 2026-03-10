@@ -1837,6 +1837,11 @@ h1.narrative-summary {
 .section-card--quiet {
   opacity: 0.85;
 }
+/* Preserve lower opacity when both muted and quiet are applied (cascade
+   would otherwise raise muted 0.75 → quiet 0.85). */
+.place-card--muted.section-card--quiet {
+  opacity: 0.75;
+}
 .section-card--highlighted {
   border-left: 3px solid var(--color-accent, #3b82f6);
 }
