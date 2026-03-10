@@ -1957,6 +1957,41 @@ h1.narrative-summary {
   box-shadow: var(--shadow-card);
   padding-left: var(--space-md);
 }
+/* ── Transit highlighted wrapper ── */
+.section-card--highlighted > .data-row {
+  border-left: none; /* prevent double border if data-row has its own */
+}
+.section-card--highlighted > .data-row:first-child {
+  padding-top: 0;
+}
+
+/* ── Section header group spacing ── */
+.section-title + .section-summary-row {
+  margin-top: calc(-1 * var(--space-xs, 4px));
+}
+.section-summary-row + .section-insight {
+  margin-top: var(--space-xs, 4px);
+}
+.section-insight + .metrics-list,
+.section-insight + .neighborhood-category,
+.section-insight + .park-highlight,
+.section-insight + .section-label,
+.section-insight + .walk-quality-card {
+  margin-top: var(--space-sm, 8px);
+}
+/* Ensure summary row before content also tightens */
+.section-summary-row + .metrics-list,
+.section-summary-row + .neighborhood-category,
+.section-summary-row + .park-highlight,
+.section-summary-row + .section-label {
+  margin-top: var(--space-sm, 8px);
+}
+
+/* ── Collapsible section title — no bottom margin ── */
+.section-title--collapsible {
+  margin-bottom: 0;
+}
+
 /* Subscore value row — fill bar + score side by side */
 .subscore-value-row {
   display: flex;
@@ -2026,6 +2061,7 @@ h1.narrative-summary {
   .summary-pill { font-size: var(--font-size-xs); padding: 3px var(--space-sm); }
   .dim-score-pill { font-size: var(--font-size-xs); min-width: 32px; }
   .mini-fill-bar { max-width: 60px; }
+  .section-card--highlighted > .data-row { padding-left: var(--space-sm); }
 }
 
 @media (max-width: 480px) {
@@ -2057,6 +2093,7 @@ h1.narrative-summary {
   .health-check--elevated { box-shadow: none; }
   .summary-pill, .dim-score-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .section-card--elevated, .section-card--highlighted { box-shadow: none; }
+  .section-card--highlighted > .data-row { border-left: none; }
   .place-card.section-card--highlighted,
   .park-highlight.section-card--highlighted { border-left: 2px solid #3b82f6; }
   .section-card--quiet { opacity: 1; }
