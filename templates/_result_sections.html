@@ -1137,15 +1137,6 @@
         </div>
         {% endif %}
 
-        {# ── Safety concern pills ── #}
-        {% if safety_concerns %}
-        <div class="verdict-proximity-flags sidebar-flags">
-          {% for pc in safety_concerns %}
-          <span class="verdict-proximity-pill proximity-{{ (pc.proximity_band or 'neutral') | lower }}">{{ pc.headline }}</span>
-          {% endfor %}
-        </div>
-        {% endif %}
-
         {# ── Health Summary Card ── #}
         <div class="sidebar-card sidebar-card--health">
           <div class="card-label">Health Checks</div>

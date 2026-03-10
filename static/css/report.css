@@ -354,15 +354,6 @@ h1.narrative-summary {
   color: var(--color-text-primary);
 }
 
-/* --- Sidebar Safety Flags --- */
-.sidebar-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-.sidebar-flags .verdict-proximity-pill {
-  font-size: var(--font-size-xs);
-}
 
 /* --- Proximity Band Items (health hazard data) --- */
 .proximity-item {
@@ -627,34 +618,6 @@ h1.narrative-summary {
 .health-icon-badge--quiet svg {
   width: 12px;
   height: 12px;
-}
-
-/* --- Verdict Proximity Pills --- */
-.verdict-proximity-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
-.verdict-proximity-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--font-size-small);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  font-weight: var(--font-weight-medium);
-}
-.verdict-proximity-pill.proximity-very_close {
-  background-color: var(--color-fail-bg);
-  color: var(--color-danger-text);
-}
-.verdict-proximity-pill.proximity-notable {
-  background-color: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-.verdict-proximity-pill.proximity-neutral {
-  background-color: var(--color-bg-subtle);
-  color: var(--color-text-muted);
 }
 
 /* --- Collapsible Sections --- */
