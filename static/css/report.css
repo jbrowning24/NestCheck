@@ -141,7 +141,7 @@ h1.narrative-summary {
   padding: var(--space-base);
 }
 .metrics-list--dimensions {
-  background: var(--color-yellow-light, #FEF9E4);
+  background: var(--color-bg, #ffffff);
 }
 .metrics-list--health {
   background: #FAFAFA;
@@ -180,7 +180,7 @@ h1.narrative-summary {
 }
 .progress-track {
   height: 4px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--color-border-light, #e2e8f0);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -513,6 +513,7 @@ h1.narrative-summary {
 .section-card--highlighted {
   box-shadow: var(--shadow-card);
   border-left: 3px solid var(--color-accent, #3b82f6);
+  padding-left: var(--space-md);
 }
 
 /* ── Per-dimension band colors ── */
@@ -1930,6 +1931,7 @@ h1.narrative-summary {
 }
 .section-card--highlighted {
   border-left: 3px solid var(--color-accent, #3b82f6);
+  padding-left: var(--space-md);
 }
 .section-card--elevated {
   box-shadow: var(--shadow-card, 0 4px 12px rgba(0, 0, 0, 0.08));
@@ -1939,10 +1941,15 @@ h1.narrative-summary {
 .place-card.section-card--quiet .place-name {
   font-weight: var(--font-weight-medium);
 }
+/* Place card highlighted — keep base padding, don't let modifier reduce it */
+.place-card.section-card--highlighted {
+  padding-left: var(--space-base);
+}
 /* Park highlight with highlighted modifier */
 .park-highlight.section-card--highlighted {
   border-left: 3px solid var(--color-accent, #3b82f6);
   box-shadow: var(--shadow-card);
+  padding-left: var(--space-md);
 }
 /* Subscore value row — fill bar + score side by side */
 .subscore-value-row {
