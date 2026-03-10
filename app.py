@@ -1555,6 +1555,25 @@ def _compute_show_numeric_score(dimension_summaries: list) -> bool:
     return True
 
 
+# Per-dimension band classification (Phase 1 anatomy).
+# Thresholds on a 0-10 scale — distinct from composite ScoreBand (0-100).
+_DIM_BANDS = (
+    (8, "strong", "dim-band--strong"),
+    (5, "moderate", "dim-band--moderate"),
+    (0, "limited", "dim-band--limited"),
+)
+
+
+def _dim_band(score, max_score):
+    """Classify a single dimension score into a band dict for templates."""
+    if score is None or max_score is None or max_score == 0:
+        return {"key": "not_scored", "css": "dim-band--not-scored"}
+    for threshold, key, css in _DIM_BANDS:
+        if score >= threshold:
+            return {"key": key, "css": css}
+    return {"key": "limited", "css": "dim-band--limited"}
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -1764,21 +1783,6 @@ def result_to_dict(result):
 
     # Dimension summaries — derived from tier2_scores for the verdict card
     # breakdown.  Each entry carries the confidence indicator (NES-189).
-    # Per-dimension band classification (Phase 1 anatomy).
-    _dim_bands = (
-        (8, "strong", "dim-band--strong"),
-        (5, "moderate", "dim-band--moderate"),
-        (0, "limited", "dim-band--limited"),
-    )
-
-    def _dim_band(score, max_score):
-        if score is None or max_score is None or max_score == 0:
-            return {"key": "not_scored", "css": "dim-band--not-scored"}
-        for threshold, key, css in _dim_bands:
-            if score >= threshold:
-                return {"key": key, "css": css}
-        return {"key": "limited", "css": "dim-band--limited"}
-
     output["dimension_summaries"] = [
         {
             "name": s["name"],
@@ -2689,18 +2693,13 @@ def view_snapshot(snapshot_id):
     _migrate_confidence_tiers(result)
 
     # Backfill per-dimension bands for old snapshots (Phase 1 anatomy).
-    for dim in result.get("dimension_summaries", []):
-        if "band" not in dim:
-            _score = dim.get("score")
-            _max = dim.get("max_score", 10)
-            if _score is None or _max is None or _max == 0:
-                dim["band"] = {"key": "not_scored", "css": "dim-band--not-scored"}
-            elif _score >= 8:
-                dim["band"] = {"key": "strong", "css": "dim-band--strong"}
-            elif _score >= 5:
-                dim["band"] = {"key": "moderate", "css": "dim-band--moderate"}
-            else:
-                dim["band"] = {"key": "limited", "css": "dim-band--limited"}
+    # Shallow-copy dicts before mutation to avoid corrupting stored snapshots.
+    _dims = result.get("dimension_summaries", [])
+    if _dims and "band" not in _dims[0]:
+        result["dimension_summaries"] = [
+            {**dim, "band": _dim_band(dim.get("score"), dim.get("max_score", 10))}
+            for dim in _dims
+        ]
 
     # Backfill total green space count for old snapshots.
     # Shallow-copy the nested dict to avoid mutating the stored snapshot.
