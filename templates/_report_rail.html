@@ -14,7 +14,7 @@
   {% set band_class = result.score_band.css_class if result.score_band is mapping else '' %}
   {% set band_label = result.score_band.label if result.score_band is mapping else (result.score_band or result.verdict) %}
   <div class="rail-score-header">
-    {{ score_ring(result.final_score, band_class, 'rail-score-ring', show_value=False) }}
+    {{ score_ring(result.final_score, band_class, 'rail-score-ring', show_value=True) }}
     <div class="rail-score-details">
       <div class="score-band {{ band_class }}">{{ band_label }}</div>
     </div>

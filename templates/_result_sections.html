@@ -1118,16 +1118,11 @@
         {% if show_score %}
         <div class="sidebar-verdict-card sidebar-verdict--{{ band_class }}">
           <div class="card-label">Neighborhood Rating</div>
-          <div class="card-band-label">{{ band_label }}</div>
-          {% if result.persona is defined and result.persona and result.persona.key != 'balanced' %}
-          <div class="card-persona">{{ result.persona.label }} lens</div>
-          {% endif %}
-          {% if result.data_confidence_summary is defined and result.data_confidence_summary and result.data_confidence_summary.level != 'verified' and result.data_confidence_summary.level != 'HIGH' %}
-          <div class="card-confidence-note">{{ result.data_confidence_summary.note }}</div>
-          {% endif %}
-          <div class="card-footer">
-            <span>{{ result.persona.label if result.persona is defined and result.persona else 'Balanced' }}</span>
-            <span>{% if result.passed_tier1 %}Tier 1 Pass{% else %}Tier 1 Fail{% endif %}</span>
+          <div class="verdict-score-row">
+            {{ score_ring(result.final_score, band_class, 'verdict-score-ring', show_value=True) }}
+            <div class="verdict-score-text">
+              <div class="card-band-label">{{ band_label }}</div>
+            </div>
           </div>
         </div>
         {% endif %}
