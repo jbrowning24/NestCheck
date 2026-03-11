@@ -113,7 +113,6 @@
         <div class="report-address">{{ s.address_norm or s.address_input }}</div>
         <div class="report-meta">
           {{ s.created_at[:10] if s.created_at else '' }}
-          {% if s.is_preview %} &middot; Preview{% endif %}
         </div>
       </a>
       {% if s.final_score is not none %}
