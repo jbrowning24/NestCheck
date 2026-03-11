@@ -43,9 +43,29 @@ from models import (
     create_job, get_job,
     get_user_by_id, get_or_create_user, claim_snapshots_for_user,
     get_user_snapshots,
+    create_payment, get_payment_by_id, get_payment_by_session,
+    update_payment_status, redeem_payment, update_payment_job_id,
+    hash_email, check_free_tier_used, record_free_tier_usage,
 )
 
 load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Stripe conditional import (graceful degradation)
+# ---------------------------------------------------------------------------
+try:
+    import stripe
+    STRIPE_AVAILABLE = True
+except ImportError:
+    stripe = None  # type: ignore[assignment]
+    STRIPE_AVAILABLE = False
+
+REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
+STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+if STRIPE_AVAILABLE and os.environ.get("STRIPE_SECRET_KEY"):
+    stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
@@ -59,6 +79,7 @@ app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_csrf = None
 try:
     from flask_wtf.csrf import CSRFProtect, generate_csrf
 except Exception:
@@ -66,7 +87,7 @@ except Exception:
         "Flask-WTF not available; CSRF protection disabled and csrf_token() fallback in use."
     )
 else:
-    CSRFProtect(app)
+    _csrf = CSRFProtect(app)
     app.jinja_env.globals["csrf_token"] = generate_csrf
 
 # ---------------------------------------------------------------------------
@@ -128,6 +149,8 @@ else:
 
 # Make oauth_enabled available in all templates for conditional nav rendering.
 app.jinja_env.globals["oauth_enabled"] = _oauth_enabled
+# Make require_payment available in all templates for payment gating.
+app.jinja_env.globals["require_payment"] = REQUIRE_PAYMENT
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -2930,12 +2953,123 @@ def index():
                 is_builder=g.is_builder, request_id=request_id,
             )
 
-        # TODO [PACK_LOGIC]: Check evaluation limits here.
-        # if not g.is_builder and FEATURE_CONFIG["max_evaluations_per_day"]:
-        #     count = get_daily_eval_count(g.visitor_id)
-        #     if count >= FEATURE_CONFIG["max_evaluations_per_day"]:
-        #         error = "Daily evaluation limit reached."
-        #         return render_template(...)
+        # ----- Payment / free-tier gate -----
+        payment_token = request.form.get("payment_token", "").strip() or None
+        _payment_id_for_job = None  # set if a paid token is being redeemed
+
+        if not g.is_builder:
+            if REQUIRE_PAYMENT and payment_token:
+                # PAID PATH: validate & redeem payment token
+                payment = get_payment_by_id(payment_token)
+                if not payment:
+                    if _wants_json():
+                        return jsonify({"error": "Invalid payment token"}), 402
+                    error = "Invalid payment token."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail, address=address,
+                        snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                    )
+
+                pstatus = payment["status"]
+                if pstatus == "pending":
+                    # Webhook hasn't arrived yet — verify directly with Stripe
+                    try:
+                        session_obj = stripe.checkout.Session.retrieve(
+                            payment["stripe_session_id"]
+                        )
+                        if session_obj.payment_status == "paid":
+                            update_payment_status(
+                                payment_token, "paid", expected_status="pending"
+                            )
+                            pstatus = "paid"
+                        else:
+                            if _wants_json():
+                                return jsonify({"error": "Payment not completed"}), 402
+                            error = "Payment not completed."
+                            return render_template(
+                                "index.html", result=result, error=error,
+                                error_detail=error_detail, address=address,
+                                snapshot_id=snapshot_id,
+                                is_builder=g.is_builder, request_id=request_id,
+                            )
+                    except Exception:
+                        logger.exception(
+                            "[%s] Failed to verify payment %s with Stripe",
+                            request_id, payment_token,
+                        )
+                        if _wants_json():
+                            return jsonify({"error": "Unable to verify payment status"}), 402
+                        error = "Unable to verify payment status."
+                        return render_template(
+                            "index.html", result=result, error=error,
+                            error_detail=error_detail, address=address,
+                            snapshot_id=snapshot_id,
+                            is_builder=g.is_builder, request_id=request_id,
+                        )
+
+                if pstatus in ("paid", "failed_reissued"):
+                    if not redeem_payment(payment_token):
+                        if _wants_json():
+                            return jsonify({"error": "Invalid or expired payment"}), 402
+                        error = "Invalid or expired payment."
+                        return render_template(
+                            "index.html", result=result, error=error,
+                            error_detail=error_detail, address=address,
+                            snapshot_id=snapshot_id,
+                            is_builder=g.is_builder, request_id=request_id,
+                        )
+                    _payment_id_for_job = payment_token
+                else:
+                    if _wants_json():
+                        return jsonify({"error": "Invalid or expired payment"}), 402
+                    error = "Invalid or expired payment."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail, address=address,
+                        snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                    )
+
+            elif REQUIRE_PAYMENT and not payment_token:
+                # No payment token — must be a free tier attempt or missing payment
+                if not email:
+                    if _wants_json():
+                        return jsonify({"error": "Email or payment required"}), 402
+                    error = "Email or payment required."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail, address=address,
+                        snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                    )
+                email_h = hash_email(email)
+                if check_free_tier_used(email_h):
+                    if _wants_json():
+                        return jsonify({"error": "free_tier_exhausted"}), 402
+                    error = "Free evaluation already used for this email."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail, address=address,
+                        snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                    )
+
+            else:
+                # REQUIRE_PAYMENT=false — free tier still applies when email given
+                if email:
+                    email_h = hash_email(email)
+                    if check_free_tier_used(email_h):
+                        if _wants_json():
+                            return jsonify({"error": "free_tier_exhausted"}), 402
+                        error = "Free evaluation already used for this email."
+                        return render_template(
+                            "index.html", result=result, error=error,
+                            error_detail=error_detail, address=address,
+                            snapshot_id=snapshot_id,
+                            is_builder=g.is_builder, request_id=request_id,
+                        )
 
         # Check for a fresh cached snapshot before queuing a job.
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
@@ -2979,16 +3113,27 @@ def index():
         # Queue the evaluation as an async job so the response returns
         # immediately. The frontend polls GET /job/<job_id> for progress.
         persona = request.form.get("persona", "").strip() or None
+        email_hash_for_job = hash_email(email) if email else None
         job_id = create_job(
             address=address,
             visitor_id=g.visitor_id,
             request_id=request_id,
             place_id=place_id,
             persona=persona,
+            email_hash=email_hash_for_job,
             email_raw=email,
             user_id=current_user.id if current_user.is_authenticated else None,
         )
         logger.info("[%s] Job %s queued for address=%r", request_id, job_id, address)
+
+        # Link payment token to job (paid path)
+        if _payment_id_for_job:
+            update_payment_job_id(_payment_id_for_job, job_id)
+
+        # Record free tier usage (unpaid path with email)
+        if not _payment_id_for_job and not g.is_builder and email:
+            email_h = hash_email(email)
+            record_free_tier_usage(email_h, email, job_id)
 
         if _wants_json():
             return jsonify({"job_id": job_id})
@@ -3470,6 +3615,105 @@ def builder_dashboard():
 @app.route("/pricing")
 def pricing():
     return render_template("pricing.html")
+
+
+# ---------------------------------------------------------------------------
+# Stripe Checkout routes
+# ---------------------------------------------------------------------------
+
+@app.route("/checkout/create", methods=["POST"])
+def checkout_create():
+    """Create a Stripe Checkout Session and return the checkout URL.
+
+    The frontend redirects the user to Stripe's hosted page. On success,
+    Stripe redirects back to / with a payment_token query param.
+    """
+    if not REQUIRE_PAYMENT or not STRIPE_AVAILABLE:
+        return jsonify({"error": "Payments not enabled"}), 400
+
+    address = (request.form.get("address") or "").strip()
+    if not address:
+        return jsonify({"error": "Address required"}), 400
+
+    visitor_id = g.visitor_id
+    place_id = request.form.get("place_id", "").strip() or ""
+    email_for_checkout = request.form.get("email", "").strip() or ""
+
+    payment_id = uuid.uuid4().hex
+    base_url = request.url_root.rstrip("/")
+
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            mode="payment",
+            client_reference_id=payment_id,
+            success_url=(
+                f"{base_url}/?payment_token={payment_id}"
+                f"&address={address}"
+                f"&place_id={place_id}"
+                f"&email={email_for_checkout}"
+            ),
+            cancel_url=f"{base_url}/",
+        )
+    except Exception:
+        logger.exception("Stripe Checkout Session creation failed")
+        return jsonify({"error": "Payment system error. Please try again."}), 500
+
+    create_payment(payment_id, checkout_session.id, visitor_id, address)
+    logger.info(
+        "Created Stripe checkout session %s for payment %s",
+        checkout_session.id, payment_id,
+    )
+
+    return jsonify({"checkout_url": checkout_session.url})
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Handle Stripe webhook events (checkout.session.completed).
+
+    Exempt from CSRF — verified via Stripe signature instead.
+    """
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Stripe not available"}), 400
+
+    payload = request.get_data()
+    sig = request.headers.get("Stripe-Signature", "")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        logger.warning("Stripe webhook: invalid payload")
+        return jsonify({"error": "Invalid payload"}), 400
+    except stripe.error.SignatureVerificationError:
+        logger.warning("Stripe webhook: signature verification failed")
+        return jsonify({"error": "Invalid signature"}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session_id = event["data"]["object"]["id"]
+        payment = get_payment_by_session(session_id)
+        if payment:
+            update_payment_status(
+                payment["id"], "paid", expected_status="pending"
+            )
+            logger.info(
+                "Payment confirmed via webhook: %s (session %s)",
+                payment["id"], session_id,
+            )
+        else:
+            logger.warning(
+                "Stripe webhook: no payment found for session %s", session_id
+            )
+
+    # Always return 200 to prevent Stripe retries for unhandled event types
+    return jsonify({"received": True}), 200
+
+
+# Exempt webhook from CSRF (Stripe uses its own signature verification)
+if _csrf is not None:
+    _csrf.exempt(stripe_webhook)
 
 
 @app.route("/healthz")

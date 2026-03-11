@@ -109,6 +109,26 @@ def init_db():
             created_at      TEXT DEFAULT (datetime('now')),
             last_login_at   TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS payments (
+            id                TEXT PRIMARY KEY,
+            stripe_session_id TEXT UNIQUE,
+            visitor_id        TEXT,
+            address           TEXT,
+            snapshot_id       TEXT,
+            job_id            TEXT,
+            status            TEXT NOT NULL DEFAULT 'pending',
+            redeemed_at       TEXT,
+            created_at        TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS free_tier_usage (
+            email_hash   TEXT PRIMARY KEY,
+            email_raw    TEXT,
+            job_id       TEXT,
+            snapshot_id  TEXT,
+            created_at   TEXT NOT NULL
+        );
     """)
 
     # Migration for pre-place_id databases.
@@ -650,24 +670,204 @@ def requeue_stale_running_jobs(max_age_seconds: int = 300) -> int:
     return swept
 
 
+# ---------------------------------------------------------------------------
+# Payment operations
+# ---------------------------------------------------------------------------
+
+def create_payment(
+    payment_id: str,
+    stripe_session_id: str,
+    visitor_id: str,
+    address: str,
+    snapshot_id: Optional[str] = None,
+) -> None:
+    """Insert a new payment row in 'pending' status."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        conn.execute(
+            """INSERT INTO payments
+               (id, stripe_session_id, visitor_id, address, snapshot_id, status, created_at)
+               VALUES (?, ?, ?, ?, ?, 'pending', ?)""",
+            (payment_id, stripe_session_id, visitor_id, address, snapshot_id, now),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_payment_by_id(payment_id: str) -> Optional[dict]:
+    """Look up a payment by its primary key. Returns dict or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM payments WHERE id = ?", (payment_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_payment_by_session(session_id: str) -> Optional[dict]:
+    """Look up a payment by Stripe Checkout session ID. Returns dict or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM payments WHERE stripe_session_id = ?", (session_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def get_payment_by_job_id(job_id: str) -> Optional[dict]:
-    """Stub for payment lookup — returns None when payments table doesn't exist."""
-    return None
+    """Look up a payment by linked evaluation job ID. Returns dict or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM payments WHERE job_id = ?", (job_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 
-def update_payment_status(payment_id: str, status: str) -> None:
-    """Stub for payment status update — no-op when payments table doesn't exist."""
-    pass
+def update_payment_status(
+    payment_id: str, status: str, expected_status: Optional[str] = None
+) -> bool:
+    """Transition a payment to a new status.
+
+    If expected_status is provided, the update is atomic (CAS): it only
+    succeeds when the current status matches expected_status.
+    Returns True if a row was updated, False otherwise.
+    """
+    conn = _get_db()
+    try:
+        if expected_status is not None:
+            cur = conn.execute(
+                "UPDATE payments SET status = ? WHERE id = ? AND status = ?",
+                (status, payment_id, expected_status),
+            )
+        else:
+            cur = conn.execute(
+                "UPDATE payments SET status = ? WHERE id = ?",
+                (status, payment_id),
+            )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
 
 
-def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
-    """Stub for free tier tracking — no-op when free_tier table doesn't exist."""
-    pass
+def redeem_payment(payment_id: str, job_id: Optional[str] = None) -> bool:
+    """Atomically transition a payment from paid/failed_reissued to redeemed.
+
+    Only payments in 'paid' or 'failed_reissued' status can be redeemed.
+    Sets redeemed_at timestamp and optionally links a job_id.
+    Returns True if redemption succeeded, False otherwise.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        cur = conn.execute(
+            """UPDATE payments
+               SET status = 'redeemed', redeemed_at = ?, job_id = ?
+               WHERE id = ? AND status IN ('paid', 'failed_reissued')""",
+            (now, job_id, payment_id),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def update_payment_job_id(payment_id: str, job_id: str) -> None:
+    """Link a payment to an evaluation job (e.g. after job creation)."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE payments SET job_id = ? WHERE id = ?",
+            (job_id, payment_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Free tier usage
+# ---------------------------------------------------------------------------
+
+def hash_email(email: str) -> str:
+    """Deterministic, case-insensitive SHA-256 hash of an email address."""
+    normalised = email.strip().lower()
+    return hashlib.sha256(normalised.encode()).hexdigest()
+
+
+def check_free_tier_used(email_hash: str) -> bool:
+    """Return True if the given email hash has already used its free evaluation."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM free_tier_usage WHERE email_hash = ?", (email_hash,)
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def record_free_tier_usage(
+    email_hash: str, email_raw: str, job_id: str
+) -> bool:
+    """Record a free-tier evaluation claim. Returns True if inserted, False if duplicate."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        conn.execute(
+            """INSERT INTO free_tier_usage (email_hash, email_raw, job_id, created_at)
+               VALUES (?, ?, ?, ?)""",
+            (email_hash, email_raw, job_id, now),
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
 
 
 def delete_free_tier_usage(job_id: str) -> bool:
-    """Stub for free tier reissue — returns False when free_tier table doesn't exist."""
-    return False
+    """Delete a free-tier claim by job_id (for reissue on failure).
+
+    Returns True if a row was deleted, False otherwise.
+    """
+    conn = _get_db()
+    try:
+        cur = conn.execute(
+            "DELETE FROM free_tier_usage WHERE job_id = ?", (job_id,)
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
+    """Backfill the snapshot_id on a free-tier usage row after evaluation completes."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE free_tier_usage SET snapshot_id = ? WHERE email_hash = ?",
+            (snapshot_id, email_hash),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _return_conn(conn) -> None:
+    """Close a DB connection. Convenience alias used by tests."""
+    conn.close()
 
 
 # ---------------------------------------------------------------------------
