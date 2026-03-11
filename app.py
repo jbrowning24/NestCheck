@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from collections import defaultdict
 from functools import wraps
 from typing import Dict, List, Optional, Tuple
+from urllib.parse import quote
 
 import click
 from flask import (
@@ -2956,6 +2957,7 @@ def index():
         # ----- Payment / free-tier gate -----
         payment_token = request.form.get("payment_token", "").strip() or None
         _payment_id_for_job = None  # set if a paid token is being redeemed
+        email_h = hash_email(email) if email else None
 
         if not g.is_builder:
             if REQUIRE_PAYMENT and payment_token:
@@ -3044,7 +3046,6 @@ def index():
                         snapshot_id=snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                     )
-                email_h = hash_email(email)
                 if check_free_tier_used(email_h):
                     if _wants_json():
                         return jsonify({"error": "free_tier_exhausted"}), 402
@@ -3059,7 +3060,6 @@ def index():
             else:
                 # REQUIRE_PAYMENT=false — free tier still applies when email given
                 if email:
-                    email_h = hash_email(email)
                     if check_free_tier_used(email_h):
                         if _wants_json():
                             return jsonify({"error": "free_tier_exhausted"}), 402
@@ -3113,14 +3113,13 @@ def index():
         # Queue the evaluation as an async job so the response returns
         # immediately. The frontend polls GET /job/<job_id> for progress.
         persona = request.form.get("persona", "").strip() or None
-        email_hash_for_job = hash_email(email) if email else None
         job_id = create_job(
             address=address,
             visitor_id=g.visitor_id,
             request_id=request_id,
             place_id=place_id,
             persona=persona,
-            email_hash=email_hash_for_job,
+            email_hash=email_h,
             email_raw=email,
             user_id=current_user.id if current_user.is_authenticated else None,
         )
@@ -3132,7 +3131,6 @@ def index():
 
         # Record free tier usage (unpaid path with email)
         if not _payment_id_for_job and not g.is_builder and email:
-            email_h = hash_email(email)
             record_free_tier_usage(email_h, email, job_id)
 
         if _wants_json():
@@ -3649,9 +3647,9 @@ def checkout_create():
             client_reference_id=payment_id,
             success_url=(
                 f"{base_url}/?payment_token={payment_id}"
-                f"&address={address}"
-                f"&place_id={place_id}"
-                f"&email={email_for_checkout}"
+                f"&address={quote(address, safe='')}"
+                f"&place_id={quote(place_id, safe='')}"
+                f"&email={quote(email_for_checkout, safe='')}"
             ),
             cancel_url=f"{base_url}/",
         )

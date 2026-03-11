@@ -53,7 +53,9 @@ def _reissue_payment_if_needed(job_id: str) -> None:
     try:
         payment = get_payment_by_job_id(job_id)
         if payment and payment["status"] == "redeemed":
-            update_payment_status(payment["id"], "failed_reissued")
+            update_payment_status(
+                payment["id"], "failed_reissued", expected_status="redeemed"
+            )
             logger.info(
                 "[worker] Reissued credit for failed evaluation: payment %s, job %s",
                 payment["id"], job_id,
