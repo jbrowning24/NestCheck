@@ -23,4 +23,6 @@ Shapely==2.0.7
 staticmap==0.5.7
 Werkzeug==3.1.5
 WTForms==3.2.1
+Flask-Login==0.6.3
+Authlib==1.4.1
 # cache bust

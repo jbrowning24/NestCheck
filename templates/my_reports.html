@@ -22,6 +22,13 @@
     }
     .auth-prompt button:hover { opacity: 0.9; }
     .auth-prompt .auth-sent { color: var(--color-success, #16a34a); font-weight: 500; display: none; }
+    .google-signin-btn {
+      display: inline-block; padding: 0.7rem 1.5rem;
+      background: var(--color-primary, #2563eb); color: #fff;
+      border-radius: 6px; font-size: 0.95rem; font-weight: 500;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .google-signin-btn:hover { opacity: 0.9; }
 
     /* Report list */
     .report-list { list-style: none; padding: 0; margin: 0; }
@@ -72,11 +79,15 @@
 <div class="my-reports">
 
 {% if not authenticated %}
-  {# ---- Unauthenticated: magic link coming soon ---- #}
+  {# ---- Unauthenticated: prompt Google sign-in ---- #}
   <div class="auth-prompt">
     <h1>Access Your Reports</h1>
-    <p>Sign in with your email to see reports you've evaluated. <strong>Coming soon.</strong></p>
-    <p>For now, use the link we emailed you when you ran an evaluation.</p>
+    <p>Sign in with your Google account to see reports you've evaluated.</p>
+    {% if oauth_enabled %}
+    <a href="/auth/login?next=/my-reports" class="google-signin-btn">Sign in with Google</a>
+    {% else %}
+    <p>Sign-in is not yet available.</p>
+    {% endif %}
   </div>
 
 {% else %}
