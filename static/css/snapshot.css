@@ -122,6 +122,52 @@
   height: 250px;
 }
 
+/* --- Rail Walkability Summary (NES-249) --- */
+.report-rail-walk {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-base);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+}
+.rail-walk__title {
+  font-size: var(--type-l5-size, 11px);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-sm);
+}
+.rail-walk__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: var(--font-size-small);
+}
+.rail-walk__label {
+  color: var(--color-text-primary);
+}
+.rail-walk__time {
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+.rail-walk__time--walkable { color: var(--band-exceptional); }
+.rail-walk__time--borderline { color: var(--color-warning); }
+.rail-walk__time--drive_needed {
+  color: var(--color-text-faint);
+  font-weight: var(--font-weight-normal);
+  font-style: italic;
+}
+.rail-walk__verdict {
+  margin: var(--space-sm) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
 /* --- Rail Section Nav --- */
 .report-rail-nav {
   background: var(--color-bg-card);

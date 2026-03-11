@@ -31,6 +31,7 @@ from scoring_config import (
     HEALTH_CHECK_CITATIONS,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     _LEGACY_CONFIDENCE_MAP,
+    WALK_DRIVE_BOTH_THRESHOLD, WALK_DRIVE_ONLY_THRESHOLD,
 )
 from census import serialize_for_result as _serialize_census
 from models import (
@@ -247,6 +248,130 @@ def generate_verdict(result_dict):
         return "Compromised walkability — car likely needed"
     else:
         return "Significant daily-life gaps"
+
+
+# ---------------------------------------------------------------------------
+# Walkability summary (NES-249) — display-time derivation for sidebar widget
+# ---------------------------------------------------------------------------
+
+_WALK_CATEGORIES = [
+    ("coffee", "Cafes"),
+    ("grocery", "Groceries"),
+    ("fitness", "Fitness"),
+    ("parks", "Parks"),
+    ("transit", "Transit"),
+]
+
+
+def _best_walk_time(places):
+    """Return the minimum walk_time_min from a list of place dicts.
+
+    Skips placeholder entries (rating is None) and unreachable sentinels
+    (walk_time_min >= 9999).  Returns None when no valid time exists.
+    """
+    valid = [
+        p["walk_time_min"]
+        for p in (places or [])
+        if p.get("rating") is not None and p.get("walk_time_min") is not None
+        and p["walk_time_min"] < 9999
+    ]
+    return min(valid) if valid else None
+
+
+def _classify_walk(walk_min):
+    """Classify a walk time into walkable / borderline / drive_needed."""
+    if walk_min is None:
+        return "no_data"
+    if walk_min <= WALK_DRIVE_BOTH_THRESHOLD:
+        return "walkable"
+    if walk_min <= WALK_DRIVE_ONLY_THRESHOLD:
+        return "borderline"
+    return "drive_needed"
+
+
+def _build_walkability_summary(result):
+    """Synthesise a walkability-at-a-glance dict from existing snapshot data.
+
+    Returns None when no category has usable walk-time data (widget hidden).
+    """
+    np = result.get("neighborhood_places") or {}
+    ge = result.get("green_escape") or {}
+    ua = result.get("urban_access") or {}
+
+    # --- Extract best walk time per category ---
+    raw = {}
+    for key in ("coffee", "grocery", "fitness"):
+        raw[key] = _best_walk_time(np.get(key))
+
+    # Parks: prefer green_escape.best_daily_park, fall back to neighborhood_places
+    bdp = ge.get("best_daily_park") or {}
+    park_wt = bdp.get("walk_time_min")
+    if park_wt is not None and park_wt < 9999:
+        raw["parks"] = park_wt
+    else:
+        raw["parks"] = _best_walk_time(np.get("parks"))
+
+    # Transit: primary_transit walk time
+    pt = ua.get("primary_transit") or {}
+    transit_wt = pt.get("walk_time_min")
+    raw["transit"] = transit_wt if transit_wt is not None and transit_wt < 9999 else None
+
+    # --- Build category list ---
+    categories = []
+    for key, label in _WALK_CATEGORIES:
+        wt = raw.get(key)
+        status = _classify_walk(wt)
+        categories.append({
+            "key": key,
+            "label": label,
+            "walk_min": wt,
+            "status": status,
+        })
+
+    with_data = [c for c in categories if c["status"] != "no_data"]
+    if not with_data:
+        return None
+
+    walkable = [c for c in with_data if c["status"] == "walkable"]
+    not_walkable = [c for c in with_data if c["status"] in ("borderline", "drive_needed")]
+
+    walkable_labels = [c["label"] for c in walkable]
+    not_walkable_labels = [c["label"] for c in not_walkable]
+
+    # --- Verdict prose ---
+    total = len(with_data)
+    wcount = len(walkable)
+
+    if wcount == total and total >= 3:
+        verdict = "Most daily needs are within a short walk."
+    elif wcount == total:
+        verdict = (
+            f"{_join_labels(walkable_labels)} "
+            f"{'is' if wcount == 1 else 'are'} within walking distance."
+        )
+    elif wcount == 0:
+        verdict = "Daily errands will generally require a car from this address."
+    elif wcount >= 3:
+        verdict = (
+            f"{_join_labels(walkable_labels)} are all within walking distance."
+        )
+    elif wcount == 1:
+        verdict = (
+            f"{walkable_labels[0]} is walkable, but "
+            f"{_join_labels(not_walkable_labels)} will need a drive."
+        )
+    else:
+        verdict = (
+            f"{_join_labels(walkable_labels)} are walkable, but "
+            f"{_join_labels(not_walkable_labels)} will need a drive."
+        )
+
+    return {
+        "categories": categories,
+        "verdict": verdict,
+        "walkable_count": wcount,
+        "total_count": total,
+    }
 
 
 def generate_report_narrative(result_dict):
@@ -2996,6 +3121,9 @@ def view_snapshot(snapshot_id):
     # NES-239: Backfill summary_narrative for old snapshots
     if "summary_narrative" not in result:
         result["summary_narrative"] = generate_report_narrative(result)
+
+    # NES-249: Walkability summary for sidebar widget (display-time only)
+    result["walkability_summary"] = _build_walkability_summary(result)
 
     return render_template(
         "snapshot.html",

@@ -32,6 +32,33 @@
 </div>
 {% endif %}
 
+{# ── WALKABILITY SUMMARY (NES-249) ───────────────────────────────── #}
+{% if result.walkability_summary %}
+{% set ws = result.walkability_summary %}
+<div class="report-rail-walk">
+  <div class="rail-walk__title">Walkability</div>
+  <div class="rail-walk__list">
+    {% for cat in ws.categories %}
+    {% if cat.status != "no_data" %}
+    <div class="rail-walk__row">
+      <span class="rail-walk__label">{{ cat.label }}</span>
+      <span class="rail-walk__time rail-walk__time--{{ cat.status }}">
+        {%- if cat.status == "drive_needed" -%}
+          Drive needed
+        {%- else -%}
+          {{ cat.walk_min }} min
+        {%- endif -%}
+      </span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% if ws.verdict %}
+  <p class="rail-walk__verdict">{{ ws.verdict }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
 {# ── SECTION NAV ─────────────────────────────────────────────────── #}
 <nav class="report-rail-nav" aria-label="Report sections">
   <a href="#verdict" class="rail-nav__link" data-section="verdict">Verdict</a>
