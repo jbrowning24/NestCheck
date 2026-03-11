@@ -431,6 +431,8 @@
                   <div class="place-time">
                     {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
                       <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
+                    {% elif place.drive_time_min and (place.walk_time_min or 0) > 25 %}
+                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span> · <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
                     {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
                       <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span> · <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% else %}
@@ -532,9 +534,14 @@
             <div class="section-card--highlighted">
             {% call(slot) data_row(name=pt.name, detail=pt_detail, variant="hub") %}
               {% if slot == "right" %}
-                <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
-                {% if pt.drive_time_min %}
-                  <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
+                {% if pt.walk_time_min > 25 and pt.drive_time_min %}
+                  <span class="data-row__value">{{ fmt_time(pt.drive_time_min, "drive") }}</span>
+                  <span class="text-faint-sm">/ {{ fmt_time(pt.walk_time_min, "walk") }}</span>
+                {% else %}
+                  <span class="data-row__value">{{ fmt_time(pt.walk_time_min, "walk") }}</span>
+                  {% if pt.drive_time_min %}
+                    <span class="text-faint-sm">/ {{ fmt_time(pt.drive_time_min, "drive") }}</span>
+                  {% endif %}
                 {% endif %}
               {% endif %}
             {% endcall %}
@@ -743,7 +750,7 @@
               {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
                 {% if slot == "right" %}
                 <div class="text-right">
-                  <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
+                  <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% elif park.drive_time_min and park.walk_time_min > 25 %}{{ fmt_time(park.drive_time_min, "drive") }} · {{ fmt_time(park.walk_time_min, "walk") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
                   <div class="park-daily-value">
                     Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.0f"|format(park.daily_walk_value) }}/10</strong>
                   </div>
@@ -808,7 +815,7 @@
                 {{ data_row(
                     name=space_name,
                     detail=space_meta,
-                    value=fmt_time(space.drive_time_min, "drive") if space.drive_time_min and space.walk_time_min > 30 else fmt_time(space.walk_time_min, "walk"),
+                    value=(fmt_time(space.drive_time_min, "drive") if space.drive_time_min and space.walk_time_min > 30 else (fmt_time(space.drive_time_min, "drive") ~ " · " ~ fmt_time(space.walk_time_min, "walk") if space.drive_time_min and space.walk_time_min > 25 else fmt_time(space.walk_time_min, "walk"))),
                     variant="place"
                 ) }}
               {% endfor %}
@@ -872,6 +879,8 @@
               {% for pharm in result.nearby_pharmacies %}
               {% if pharm.drive_time_min and (pharm.est_walk_min or 0) > 40 %}
                 {% set time_val = "~" ~ pharm.drive_time_min ~ " min drive" %}
+              {% elif pharm.drive_time_min and (pharm.est_walk_min or 0) > 25 %}
+                {% set time_val = "~" ~ pharm.drive_time_min ~ " min drive · " ~ pharm.est_walk_min ~ " min walk" %}
               {% elif pharm.drive_time_min and (pharm.est_walk_min or 0) > 20 %}
                 {% set time_val = "~" ~ pharm.est_walk_min ~ " min walk · " ~ pharm.drive_time_min ~ " min drive" %}
               {% else %}

@@ -4759,17 +4759,28 @@ def score_transit_access(
 
         total_points = min(10, accessibility_points + frequency_points + hub_points)
 
-        # Build distance note: show drive time when available
-        drive_note = ""
-        if primary_transit.drive_time_min:
-            drive_note = f" | {primary_transit.drive_time_min} min drive"
-
         # Annotate when drive fallback actually boosted the score
         fallback_note = ""
         if used_drive_fallback:
             fallback_note = " (drive-accessible)"
             if primary_transit.parking_available:
                 fallback_note = " (drive-accessible, parking available)"
+
+        # Build distance note: lead with drive time when walk > 25 min
+        if primary_transit.walk_time_min > 25 and primary_transit.drive_time_min:
+            distance_note = (
+                f"{primary_transit.name} — {primary_transit.drive_time_min} min drive"
+                f" | {primary_transit.walk_time_min} min walk"
+                f"{fallback_note}"
+            )
+        else:
+            drive_suffix = ""
+            if primary_transit.drive_time_min:
+                drive_suffix = f" | {primary_transit.drive_time_min} min drive"
+            distance_note = (
+                f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
+                f"{drive_suffix}{fallback_note}"
+            )
 
         hub_note = "Hub travel time unavailable"
         if major_hub and hub_time:
@@ -4781,8 +4792,7 @@ def score_transit_access(
             points=capped_points,
             max_points=10,
             details=(
-                f"{primary_transit.name} — {primary_transit.walk_time_min} min walk"
-                f"{drive_note}{fallback_note} | "
+                f"{distance_note} | "
                 f"Service: {frequency_label} | "
                 f"Hub: {hub_note}"
             ),
