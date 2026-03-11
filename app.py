@@ -19,6 +19,7 @@ from flask import (
     make_response, abort, jsonify, g, Response, flash
 )
 from dotenv import load_dotenv
+from markupsafe import escape as _html_escape
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
 from property_evaluator import (
     PropertyListing, evaluate_property, CheckResult, GoogleMapsClient,
@@ -202,10 +203,9 @@ def generate_report_narrative(result_dict):
             if pc.get("category") == "SAFETY"
             and pc.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
         ]
-        if issues:
-            issue_text = _join_labels(
-                [i.lower() for i in issues if i], conjunction="and"
-            )
+        filtered = [i.lower() for i in issues if i]
+        if filtered:
+            issue_text = _join_labels(filtered, conjunction="and")
             return (
                 f"This address has health and safety concerns "
                 f"— {issue_text} — that need to be resolved before "
@@ -245,19 +245,19 @@ def generate_report_narrative(result_dict):
         best_key = _DIM_PLACE_KEYS.get(strong_dims[0]["name"])
         places = neighborhood.get(best_key, []) if best_key else []
         if places and places[0].get("name"):
-            lead_place = places[0]["name"]
+            lead_place = str(_html_escape(places[0]["name"]))
 
     # Find the best park name
     best_park_name = None
     bp = green_escape.get("best_daily_park")
     if bp and bp.get("name"):
-        best_park_name = bp["name"]
+        best_park_name = str(_html_escape(bp["name"]))
 
     # Find the nearest transit station
     station_name = None
     pt = urban.get("primary_transit") if urban else None
     if pt and pt.get("name"):
-        station_name = pt["name"]
+        station_name = str(_html_escape(pt["name"]))
 
     # Build the narrative sentence(s)
     parts = []
