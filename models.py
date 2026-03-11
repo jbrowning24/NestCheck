@@ -125,24 +125,23 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS payments (
-            id                  TEXT PRIMARY KEY,
-            stripe_session_id   TEXT,
-            visitor_id          TEXT,
-            address             TEXT,
-            status              TEXT NOT NULL DEFAULT 'pending',
-            snapshot_id         TEXT,
-            job_id              TEXT,
-            redeemed_at         TEXT,
-            created_at          TEXT NOT NULL
+            id                TEXT PRIMARY KEY,
+            stripe_session_id TEXT UNIQUE,
+            visitor_id        TEXT,
+            address           TEXT,
+            snapshot_id       TEXT,
+            job_id            TEXT,
+            status            TEXT NOT NULL DEFAULT 'pending',
+            redeemed_at       TEXT,
+            created_at        TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS free_tier_usage (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            email_hash      TEXT NOT NULL UNIQUE,
-            email           TEXT,
-            job_id          TEXT,
-            snapshot_id     TEXT,
-            created_at      TEXT NOT NULL
+            email_hash   TEXT PRIMARY KEY,
+            email_raw    TEXT,
+            job_id       TEXT,
+            snapshot_id  TEXT,
+            created_at   TEXT NOT NULL
         );
 
         CREATE INDEX IF NOT EXISTS idx_payments_stripe_session
@@ -755,40 +754,26 @@ def requeue_stale_running_jobs(max_age_seconds: int = 300) -> int:
     return swept
 
 
-def cancel_queued_job(job_id: str, reason: str) -> bool:
-    """Cancel a queued job. Returns True if the job was cancelled.
-
-    Only works on jobs still in 'queued' status.
-    """
-    conn = _get_db()
-    try:
-        cursor = conn.execute(
-            "UPDATE evaluation_jobs SET status = 'failed', error = ? "
-            "WHERE job_id = ? AND status = 'queued'",
-            (reason, job_id),
-        )
-        conn.commit()
-        return cursor.rowcount > 0
-    finally:
-        conn.close()
-
-
 # ---------------------------------------------------------------------------
 # Payment operations
 # ---------------------------------------------------------------------------
 
-def create_payment(payment_id: str, stripe_session_id: str,
-                   visitor_id: str, address: str,
-                   snapshot_id: str = None) -> None:
-    """Insert a new payment in 'pending' state."""
+def create_payment(
+    payment_id: str,
+    stripe_session_id: str,
+    visitor_id: str,
+    address: str,
+    snapshot_id: Optional[str] = None,
+) -> None:
+    """Insert a new payment row in 'pending' status."""
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
     try:
         conn.execute(
             """INSERT INTO payments
-               (id, stripe_session_id, visitor_id, address, status, snapshot_id, created_at)
+               (id, stripe_session_id, visitor_id, address, snapshot_id, status, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (payment_id, stripe_session_id, visitor_id, address, PAYMENT_PENDING, snapshot_id, now),
+            (payment_id, stripe_session_id, visitor_id, address, snapshot_id, PAYMENT_PENDING, now),
         )
         conn.commit()
     finally:
@@ -796,7 +781,7 @@ def create_payment(payment_id: str, stripe_session_id: str,
 
 
 def get_payment_by_id(payment_id: str) -> Optional[dict]:
-    """Return payment dict by primary key, or None."""
+    """Look up a payment by its primary key. Returns dict or None."""
     conn = _get_db()
     try:
         row = conn.execute(
@@ -807,13 +792,12 @@ def get_payment_by_id(payment_id: str) -> Optional[dict]:
         conn.close()
 
 
-def get_payment_by_session(stripe_session_id: str) -> Optional[dict]:
-    """Return payment dict by Stripe session ID, or None."""
+def get_payment_by_session(session_id: str) -> Optional[dict]:
+    """Look up a payment by Stripe Checkout session ID. Returns dict or None."""
     conn = _get_db()
     try:
         row = conn.execute(
-            "SELECT * FROM payments WHERE stripe_session_id = ?",
-            (stripe_session_id,),
+            "SELECT * FROM payments WHERE stripe_session_id = ?", (session_id,)
         ).fetchone()
         return dict(row) if row else None
     finally:
@@ -821,7 +805,7 @@ def get_payment_by_session(stripe_session_id: str) -> Optional[dict]:
 
 
 def get_payment_by_job_id(job_id: str) -> Optional[dict]:
-    """Return payment dict by linked job ID, or None."""
+    """Look up a payment by linked evaluation job ID. Returns dict or None."""
     conn = _get_db()
     try:
         row = conn.execute(
@@ -832,53 +816,57 @@ def get_payment_by_job_id(job_id: str) -> Optional[dict]:
         conn.close()
 
 
-def update_payment_status(payment_id: str, status: str,
-                          expected_status: str = None) -> bool:
-    """Update payment status. Returns True if the row was updated.
+def update_payment_status(
+    payment_id: str, status: str, expected_status: Optional[str] = None
+) -> bool:
+    """Transition a payment to a new status.
 
-    If expected_status is given, the update is atomic — it only succeeds
-    when the current status matches.
+    If expected_status is provided, the update is atomic (CAS): it only
+    succeeds when the current status matches expected_status.
+    Returns True if a row was updated, False otherwise.
     """
     conn = _get_db()
     try:
-        if expected_status:
-            cursor = conn.execute(
+        if expected_status is not None:
+            cur = conn.execute(
                 "UPDATE payments SET status = ? WHERE id = ? AND status = ?",
                 (status, payment_id, expected_status),
             )
         else:
-            cursor = conn.execute(
+            cur = conn.execute(
                 "UPDATE payments SET status = ? WHERE id = ?",
                 (status, payment_id),
             )
         conn.commit()
-        return cursor.rowcount > 0
+        return cur.rowcount > 0
     finally:
         conn.close()
 
 
-def redeem_payment(payment_id: str, job_id: str = None) -> bool:
-    """Transition payment to 'redeemed'. Only works from 'paid' or 'failed_reissued'.
+def redeem_payment(payment_id: str, job_id: Optional[str] = None) -> bool:
+    """Atomically transition a payment from paid/failed_reissued to redeemed.
 
+    Only payments in 'paid' or 'failed_reissued' status can be redeemed.
+    Sets redeemed_at timestamp and optionally links a job_id.
     Returns True if redemption succeeded, False otherwise.
     """
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
     try:
-        cursor = conn.execute(
+        cur = conn.execute(
             """UPDATE payments
-               SET status = ?, redeemed_at = ?, job_id = COALESCE(?, job_id)
+               SET status = ?, redeemed_at = ?, job_id = ?
                WHERE id = ? AND status IN (?, ?)""",
             (PAYMENT_REDEEMED, now, job_id, payment_id, PAYMENT_PAID, PAYMENT_FAILED_REISSUED),
         )
         conn.commit()
-        return cursor.rowcount > 0
+        return cur.rowcount > 0
     finally:
         conn.close()
 
 
 def update_payment_job_id(payment_id: str, job_id: str) -> None:
-    """Link a payment to a job (late binding after job creation)."""
+    """Link a payment to an evaluation job (e.g. after job creation)."""
     conn = _get_db()
     try:
         conn.execute(
@@ -891,51 +879,65 @@ def update_payment_job_id(payment_id: str, job_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Free tier usage tracking
+# Free tier usage
 # ---------------------------------------------------------------------------
 
 def hash_email(email: str) -> str:
-    """Deterministic, case-insensitive hash of an email address."""
-    normalized = email.strip().lower()
-    return hashlib.sha256(normalized.encode()).hexdigest()
+    """Deterministic, case-insensitive SHA-256 hash of an email address."""
+    normalised = email.strip().lower()
+    return hashlib.sha256(normalised.encode()).hexdigest()
 
 
-def check_free_tier_used(email_hash: str, period_days: int = 30) -> bool:
-    """Check if the free tier has been used within the given period."""
+def check_free_tier_used(email_hash: str) -> bool:
+    """Return True if the given email hash has already used its free evaluation."""
     conn = _get_db()
     try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=period_days)).isoformat()
         row = conn.execute(
-            "SELECT 1 FROM free_tier_usage WHERE email_hash = ? AND created_at > ?",
-            (email_hash, cutoff),
+            "SELECT 1 FROM free_tier_usage WHERE email_hash = ?", (email_hash,)
         ).fetchone()
         return row is not None
     finally:
         conn.close()
 
 
-def record_free_tier_usage(email_hash: str, email: str, job_id: str) -> bool:
-    """Record a free tier evaluation. Returns False if already used.
-
-    Uses INSERT OR IGNORE with UNIQUE(email_hash) to avoid TOCTOU races.
-    """
+def record_free_tier_usage(
+    email_hash: str, email_raw: str, job_id: str
+) -> bool:
+    """Record a free-tier evaluation claim. Returns True if inserted, False if duplicate."""
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
     try:
-        cursor = conn.execute(
-            """INSERT OR IGNORE INTO free_tier_usage
-               (email_hash, email, job_id, created_at)
+        conn.execute(
+            """INSERT INTO free_tier_usage (email_hash, email_raw, job_id, created_at)
                VALUES (?, ?, ?, ?)""",
-            (email_hash, email, job_id, now),
+            (email_hash, email_raw, job_id, now),
         )
         conn.commit()
-        return cursor.rowcount > 0
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def delete_free_tier_usage(job_id: str) -> bool:
+    """Delete a free-tier claim by job_id (for reissue on failure).
+
+    Returns True if a row was deleted, False otherwise.
+    """
+    conn = _get_db()
+    try:
+        cur = conn.execute(
+            "DELETE FROM free_tier_usage WHERE job_id = ?", (job_id,)
+        )
+        conn.commit()
+        return cur.rowcount > 0
     finally:
         conn.close()
 
 
 def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
-    """Update the snapshot ID for a free tier usage record."""
+    """Backfill the snapshot_id on a free-tier usage row after evaluation completes."""
     conn = _get_db()
     try:
         conn.execute(
@@ -947,17 +949,9 @@ def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
         conn.close()
 
 
-def delete_free_tier_usage(job_id: str) -> bool:
-    """Delete free tier usage by job ID (credit reissue). Returns True if deleted."""
-    conn = _get_db()
-    try:
-        cursor = conn.execute(
-            "DELETE FROM free_tier_usage WHERE job_id = ?", (job_id,)
-        )
-        conn.commit()
-        return cursor.rowcount > 0
-    finally:
-        conn.close()
+def _return_conn(conn) -> None:
+    """Close a DB connection. Convenience alias used by tests."""
+    conn.close()
 
 
 # ---------------------------------------------------------------------------

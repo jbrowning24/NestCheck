@@ -552,14 +552,16 @@
         '<strong>Free evaluation already used</strong>' +
         '<span class="error-msg">You\u2019ve already used your free evaluation for this email.</span>';
 
-      var payBtn = document.createElement('button');
-      payBtn.className = 'error-retry';
-      payBtn.textContent = 'Get another report \u2014 $9';
-      payBtn.addEventListener('click', function() {
-        banner.remove();
-        startCheckout(address);
-      });
-      banner.appendChild(payBtn);
+      if (REQUIRE_PAYMENT) {
+        var payBtn = document.createElement('button');
+        payBtn.className = 'error-retry';
+        payBtn.textContent = 'Get another report \u2014 $9';
+        payBtn.addEventListener('click', function() {
+          banner.remove();
+          startCheckout(address);
+        });
+        banner.appendChild(payBtn);
+      }
       form.parentNode.insertBefore(banner, form);
     }
 

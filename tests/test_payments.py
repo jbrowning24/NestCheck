@@ -420,7 +420,7 @@ class TestReturnFromStripe:
         }, headers={"Accept": "application/json"})
 
         assert resp.status_code == 402
-        assert "verification" in body["error"].lower() or "unavailable" in body["error"].lower()
+        assert "verify" in body["error"].lower() or "unavailable" in body["error"].lower()
         assert get_payment_by_id(pid)["status"] == PAYMENT_PENDING  # unchanged
 
     @patch("app.REQUIRE_PAYMENT", True)
