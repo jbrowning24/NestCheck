@@ -111,6 +111,56 @@
 {% endmacro %}
 
 
+{# ── confidence_badge ──────────────────────────────────────────────
+   Three-tier data-confidence badge component (NES-243).
+
+   Renders a pill-shaped badge with tier-specific icon, label, and colour.
+   Three tiers:
+     verified   — green checkmark, "Verified" label
+     estimated  — amber tilde,     "Estimated" label
+     not_scored — grey dash,       "Not scored" label (italic)
+
+   Legacy values ("HIGH", "MEDIUM", "LOW", "sparse") are normalised
+   automatically so callers don't need to pre-map.
+
+   Args:
+     tier:    Confidence tier string (required).
+     note:    Tooltip text explaining the confidence classification (optional).
+     variant: "inline" (default, small pill next to score) or
+              "block" (full-width row with note text visible).
+#}
+{% macro confidence_badge(tier, note='', variant='inline') %}
+{%- set _tier = tier | lower -%}
+{%- if _tier in ('high',) %}{% set _tier = 'verified' %}{% endif -%}
+{%- if _tier in ('medium',) %}{% set _tier = 'estimated' %}{% endif -%}
+{%- if _tier in ('low', 'sparse') %}{% set _tier = 'estimated' %}{% endif -%}
+{%- if _tier == 'verified' -%}
+  {%- set _label = 'Verified' -%}
+  {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3.5,8.5 6.5,11.5 12.5,5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' -%}
+{%- elif _tier == 'not_scored' -%}
+  {%- set _label = 'Not scored' -%}
+  {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' -%}
+{%- else -%}
+  {%- set _label = 'Estimated' -%}
+  {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3,10 C5,6 7,6 8,8 C9,10 11,10 13,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' -%}
+{%- endif -%}
+{%- if variant == 'block' -%}
+<div class="cb cb--{{ _tier }} cb--block"{% if note %} title="{{ note }}"{% endif %}>
+  {{ _icon_svg }}
+  <span class="cb__label">{{ _label }}</span>
+  {%- if note %}
+  <span class="cb__note">&mdash; {{ note }}</span>
+  {%- endif %}
+</div>
+{%- else -%}
+<span class="cb cb--{{ _tier }}"{% if note %} title="{{ note }}"{% endif %}>
+  {{ _icon_svg }}
+  <span class="cb__label">{{ _label }}</span>
+</span>
+{%- endif -%}
+{% endmacro %}
+
+
 {# ── health_check_icon ──────────────────────────────────────────────
    SVG icon in a rounded-square badge for health check results.
 
