@@ -19,6 +19,7 @@ from flask import (
     Flask, request, render_template, redirect, url_for,
     make_response, abort, jsonify, g, Response, flash, session
 )
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from dotenv import load_dotenv
 from markupsafe import escape as _html_escape
@@ -53,6 +54,8 @@ from models import (
 load_dotenv()
 
 app = Flask(__name__)
+# Trust Railway's reverse proxy headers so url_for(_external=True) generates https://.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
 app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
     os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
@@ -61,6 +64,11 @@ app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
 
 # Session and remember-me cookie security hardening.
 _is_production = app.config['SECRET_KEY'] != 'nestcheck-dev-key'
+if not _is_production and os.environ.get("RAILWAY_ENVIRONMENT"):
+    raise RuntimeError(
+        "SECRET_KEY is using the default dev value in a production environment. "
+        "Set the SECRET_KEY environment variable to a secure random string."
+    )
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = _is_production
@@ -180,9 +188,7 @@ FEATURE_CONFIG = {
 # Builder mode
 # ---------------------------------------------------------------------------
 BUILDER_MODE_ENV = os.environ.get("BUILDER_MODE", "").lower() == "true"
-BUILDER_SECRET = os.environ.get(
-    "BUILDER_SECRET", "nestcheck-builder-2024"
-)
+BUILDER_SECRET = os.environ.get("BUILDER_SECRET")
 
 
 def _is_builder(req):
@@ -196,9 +202,9 @@ def _is_builder(req):
     """
     if BUILDER_MODE_ENV:
         return True
-    if req.cookies.get("nc_builder") == BUILDER_SECRET:
+    if BUILDER_SECRET and req.cookies.get("nc_builder") == BUILDER_SECRET:
         return True
-    if req.args.get("builder_key") == BUILDER_SECRET:
+    if BUILDER_SECRET and req.args.get("builder_key") == BUILDER_SECRET:
         return True
     return False
 
@@ -288,7 +294,7 @@ def _after_request(response):
         )
 
     # Set builder cookie if activated via query param
-    if request.args.get("builder_key") == BUILDER_SECRET:
+    if BUILDER_SECRET and request.args.get("builder_key") == BUILDER_SECRET:
         response.set_cookie(
             "nc_builder", BUILDER_SECRET,
             max_age=90 * 24 * 3600, httponly=True, samesite="Lax"
