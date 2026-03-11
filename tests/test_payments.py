@@ -532,7 +532,143 @@ class TestPaymentStateMachine:
 
 
 # ===========================================================================
-# Step 9: Manual runbook
+# Step 9: Stripe Customer ↔ User model wiring (NES-229)
+# ===========================================================================
+
+class TestCheckoutStripeCustomer:
+    """Verify logged-in users get a Stripe Customer wired into checkout."""
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_logged_in_user_creates_stripe_customer(self, mock_stripe, client):
+        """First checkout for a logged-in user creates a Stripe Customer."""
+        from models import get_or_create_user, get_user_by_id
+        from app import _FlaskUser
+        from flask_login import login_user
+
+        mock_customer = MagicMock()
+        mock_customer.id = "cus_new_123"
+        mock_stripe.Customer.create.return_value = mock_customer
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_001"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_001"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="alice@example.com", name="Alice")
+
+        with client.session_transaction():
+            pass
+        with client.application.test_request_context():
+            login_user(_FlaskUser(user))
+
+            # Simulate the request within the logged-in context
+            with client.application.test_client() as c:
+                # Manually set the session to log in
+                with c.session_transaction() as sess:
+                    sess["_user_id"] = user["id"]
+
+                resp, body = _post_json(c, "/checkout/create", data={
+                    "address": "42 Elm St, White Plains, NY",
+                })
+
+        assert resp.status_code == 200
+        # Stripe Customer.create should have been called
+        mock_stripe.Customer.create.assert_called_once()
+        create_kwargs = mock_stripe.Customer.create.call_args.kwargs
+        assert create_kwargs["email"] == "alice@example.com"
+        assert create_kwargs["metadata"]["nestcheck_user_id"] == user["id"]
+
+        # Session.create should include the customer
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert session_kwargs["customer"] == "cus_new_123"
+
+        # User record should now have stripe_customer_id persisted
+        refreshed = get_user_by_id(user["id"])
+        assert refreshed["stripe_customer_id"] == "cus_new_123"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_existing_stripe_customer_reused(self, mock_stripe, client):
+        """User with existing stripe_customer_id skips Customer.create."""
+        from models import get_or_create_user, update_user_stripe_customer
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_002"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_002"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="bob@example.com", name="Bob")
+        update_user_stripe_customer(user["id"], "cus_existing_789")
+
+        with client.session_transaction() as sess:
+            sess["_user_id"] = user["id"]
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "10 Oak Ave, Bronxville, NY",
+        })
+
+        assert resp.status_code == 200
+        # Customer.create should NOT be called — existing ID reused
+        mock_stripe.Customer.create.assert_not_called()
+
+        # Session.create should include the existing customer
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert session_kwargs["customer"] == "cus_existing_789"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_stripe_customer_creation_failure_falls_back(self, mock_stripe, client):
+        """If Customer.create fails, checkout proceeds with customer_email."""
+        from models import get_or_create_user
+
+        mock_stripe.Customer.create.side_effect = Exception("Stripe API error")
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_003"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_003"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="carol@example.com", name="Carol")
+
+        with client.session_transaction() as sess:
+            sess["_user_id"] = user["id"]
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "5 Pine Rd, Scarsdale, NY",
+        })
+
+        assert resp.status_code == 200
+        # Session should be created without 'customer' but with 'customer_email'
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert "customer" not in session_kwargs
+        assert session_kwargs["customer_email"] == "carol@example.com"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_anonymous_checkout_no_customer(self, mock_stripe, client):
+        """Anonymous user gets no customer or customer_email."""
+        mock_session = MagicMock()
+        mock_session.id = "cs_anon_001"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_anon_001"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "99 Main St, Yonkers, NY",
+        })
+
+        assert resp.status_code == 200
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert "customer" not in session_kwargs
+        assert "customer_email" not in session_kwargs
+
+
+# ===========================================================================
+# Step 10: Manual runbook
 # ===========================================================================
 
 MANUAL_RUNBOOK = """

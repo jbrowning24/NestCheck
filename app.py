@@ -42,7 +42,9 @@ from models import (
     get_snapshots_by_ids, update_snapshot_email_sent,
     create_job, get_job,
     get_user_by_id, get_or_create_user, claim_snapshots_for_user,
-    get_user_snapshots,
+    get_user_snapshots, update_user_stripe_customer,
+    create_payment, get_payment_by_id, get_payment_by_session,
+    update_payment_status, redeem_payment, update_payment_job_id,
 )
 
 load_dotenv()
@@ -59,6 +61,7 @@ app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_csrf = None
 try:
     from flask_wtf.csrf import CSRFProtect, generate_csrf
 except Exception:
@@ -66,7 +69,7 @@ except Exception:
         "Flask-WTF not available; CSRF protection disabled and csrf_token() fallback in use."
     )
 else:
-    CSRFProtect(app)
+    _csrf = CSRFProtect(app)
     app.jinja_env.globals["csrf_token"] = generate_csrf
 
 # ---------------------------------------------------------------------------
@@ -81,6 +84,7 @@ class _FlaskUser:
         self.email = user_dict["email"]
         self.name = user_dict.get("name")
         self.picture_url = user_dict.get("picture_url")
+        self.stripe_customer_id = user_dict.get("stripe_customer_id")
         self.is_authenticated = True
         self.is_active = True
         self.is_anonymous = False
@@ -185,6 +189,58 @@ def _is_builder(req):
     if req.args.get("builder_key") == BUILDER_SECRET:
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Stripe integration (optional — app works without it)
+# ---------------------------------------------------------------------------
+_STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+_STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+_STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
+REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
+
+try:
+    import stripe
+    stripe.api_key = _STRIPE_SECRET_KEY
+    STRIPE_AVAILABLE = bool(_STRIPE_SECRET_KEY)
+except ImportError:
+    stripe = None  # type: ignore[assignment]
+    STRIPE_AVAILABLE = False
+
+if not STRIPE_AVAILABLE:
+    logger.info(
+        "Stripe not configured (STRIPE_SECRET_KEY missing or stripe package not installed). "
+        "Payment features will be unavailable."
+    )
+
+
+def _get_or_create_stripe_customer(user) -> Optional[str]:
+    """Get existing or create new Stripe customer for a logged-in user.
+
+    Returns the Stripe customer ID (cus_xxx), or None on failure.
+    Failures are logged but never block checkout — the session will
+    proceed without a customer association.
+    """
+    if not STRIPE_AVAILABLE:
+        return None
+
+    # Reuse existing Stripe customer if already linked.
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+
+    try:
+        customer = stripe.Customer.create(
+            email=user.email,
+            name=user.name,
+            metadata={"nestcheck_user_id": user.id},
+        )
+        cus_id = customer.id
+        update_user_stripe_customer(user.id, cus_id)
+        logger.info("Created Stripe customer %s for user %s", cus_id, user.email)
+        return cus_id
+    except Exception:
+        logger.warning("Failed to create Stripe customer for %s", user.email, exc_info=True)
+        return None
 
 
 @app.before_request
@@ -2937,6 +2993,64 @@ def index():
         #         error = "Daily evaluation limit reached."
         #         return render_template(...)
 
+        # Payment validation — when REQUIRE_PAYMENT is on, a valid
+        # payment_token is required (unless in builder mode).
+        payment_token = request.form.get("payment_token")
+        if REQUIRE_PAYMENT and not _is_builder(request):
+            if not payment_token:
+                if _wants_json():
+                    return jsonify({"error": "Payment required"}), 402
+                error = "Payment required to evaluate an address."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                )
+
+            payment = get_payment_by_id(payment_token)
+            if not payment or payment["status"] not in ("paid", "pending", "failed_reissued"):
+                if _wants_json():
+                    return jsonify({"error": "Invalid or expired payment token"}), 402
+                error = "Invalid or expired payment token."
+                return render_template(
+                    "index.html", result=result, error=error,
+                    error_detail=error_detail,
+                    address=address, snapshot_id=snapshot_id,
+                    is_builder=g.is_builder, request_id=request_id,
+                )
+
+            # If webhook hasn't arrived yet (status=pending), verify
+            # directly with Stripe.
+            if payment["status"] == "pending" and STRIPE_AVAILABLE:
+                try:
+                    stripe_session = stripe.checkout.Session.retrieve(
+                        payment["stripe_session_id"]
+                    )
+                    if stripe_session.payment_status == "paid":
+                        update_payment_status(payment_token, "paid", expected_status="pending")
+                    else:
+                        if _wants_json():
+                            return jsonify({"error": "Payment not completed"}), 402
+                        error = "Payment not completed."
+                        return render_template(
+                            "index.html", result=result, error=error,
+                            error_detail=error_detail,
+                            address=address, snapshot_id=snapshot_id,
+                            is_builder=g.is_builder, request_id=request_id,
+                        )
+                except Exception:
+                    logger.warning("Could not verify payment with Stripe", exc_info=True)
+                    if _wants_json():
+                        return jsonify({"error": "Could not verify payment"}), 402
+                    error = "Could not verify payment. Please try again."
+                    return render_template(
+                        "index.html", result=result, error=error,
+                        error_detail=error_detail,
+                        address=address, snapshot_id=snapshot_id,
+                        is_builder=g.is_builder, request_id=request_id,
+                    )
+
         # Check for a fresh cached snapshot before queuing a job.
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
         ttl_days = _snapshot_ttl_days()
@@ -2989,6 +3103,11 @@ def index():
             user_id=current_user.id if current_user.is_authenticated else None,
         )
         logger.info("[%s] Job %s queued for address=%r", request_id, job_id, address)
+
+        # Redeem the payment token now that the job is created.
+        if REQUIRE_PAYMENT and not _is_builder(request) and payment_token:
+            redeem_payment(payment_token, job_id=job_id)
+            update_payment_job_id(payment_token, job_id)
 
         if _wants_json():
             return jsonify({"job_id": job_id})
@@ -3713,6 +3832,92 @@ def _register_ingest_command():
 
 
 _register_ingest_command()
+
+
+# ---------------------------------------------------------------------------
+# Stripe checkout & webhook routes
+# ---------------------------------------------------------------------------
+
+@app.route("/checkout/create", methods=["POST"])
+def checkout_create():
+    """Create a Stripe Checkout Session and return the checkout URL."""
+    if not REQUIRE_PAYMENT:
+        return jsonify({"error": "Payments not enabled"}), 400
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Payment system not configured"}), 503
+
+    address = (request.form.get("address") or "").strip()
+    if not address:
+        return jsonify({"error": "Address required"}), 400
+
+    payment_id = uuid.uuid4().hex
+    try:
+        session_kwargs = {
+            "mode": "payment",
+            "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
+            "success_url": url_for("index", _external=True) + f"?payment_token={payment_id}",
+            "cancel_url": url_for("index", _external=True),
+            "client_reference_id": payment_id,
+        }
+
+        # Wire Stripe Customer for logged-in users so payments are
+        # associated with their account for receipts and history.
+        if current_user.is_authenticated:
+            cus_id = _get_or_create_stripe_customer(current_user)
+            if cus_id:
+                session_kwargs["customer"] = cus_id
+            else:
+                # Customer creation failed — fall back to pre-filling email
+                session_kwargs["customer_email"] = current_user.email
+
+        checkout_session = stripe.checkout.Session.create(**session_kwargs)
+
+        create_payment(
+            payment_id,
+            stripe_session_id=checkout_session.id,
+            visitor_id=g.visitor_id,
+            address=address,
+        )
+        return jsonify({"checkout_url": checkout_session.url, "payment_id": payment_id})
+    except Exception:
+        logger.exception("Stripe checkout session creation failed")
+        return jsonify({"error": "Payment system error"}), 500
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Handle Stripe webhook events (no CSRF — Stripe signs the payload)."""
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Stripe not configured"}), 400
+
+    payload = request.get_data()
+    sig_header = request.headers.get("Stripe-Signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, _STRIPE_WEBHOOK_SECRET,
+        )
+    except ValueError:
+        return jsonify({"error": "Invalid payload"}), 400
+    except stripe.error.SignatureVerificationError:
+        return jsonify({"error": "Invalid signature"}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        stripe_session_id = session_obj["id"]
+        payment = get_payment_by_session(stripe_session_id)
+        if payment:
+            update_payment_status(
+                payment["id"], "paid", expected_status="pending",
+            )
+            logger.info("Webhook: payment %s → paid", payment["id"])
+
+    return jsonify({"status": "ok"}), 200
+
+
+# Exempt the Stripe webhook from CSRF — it uses Stripe signature verification.
+if _csrf is not None:
+    _csrf.exempt(stripe_webhook)
 
 
 # ---------------------------------------------------------------------------
