@@ -187,6 +187,8 @@
           {% endif %}
 
           {% set safety_items = (result.presented_checks | default([])) | selectattr('category', 'equalto', 'SAFETY') | list %}
+          {% set tier1_items = safety_items | selectattr('hazard_tier', 'equalto', 1) | list %}
+          {% set tier2_items = safety_items | selectattr('hazard_tier', 'equalto', 2) | list %}
           <div class="metrics-list metrics-list--health">
           {% if safety_items %}
             {% set si_clear = safety_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
@@ -197,7 +199,9 @@
               {% if si_warning %}<span class="summary-pill summary-pill--warning health-stat-badge health-stat-badge--warning">{{ si_warning }} Warning{{ 's' if si_warning != 1 }}</span>{% endif %}
               {% if si_issue %}<span class="summary-pill summary-pill--fail health-stat-badge health-stat-badge--issue">{{ si_issue }} Issue{{ 's' if si_issue != 1 }}</span>{% endif %}
             </div>
-            {% for pc in safety_items %}
+
+            {# ── Tier 1: Direct proximity hazards (prominent cards) ── #}
+            {% for pc in tier1_items %}
               {% if pc.is_grouped | default(false) %}
               <div class="proximity-item proximity-notable proximity-grouped">
                 <div class="proximity-name">
@@ -211,7 +215,7 @@
                 {% if result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
-                     target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+                     target="_blank" rel="noopener noreferrer">View satellite imagery &rarr;</a>
                 {% endif %}
               </div>
               {% else %}
@@ -229,7 +233,7 @@
                 {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
-                     target="_blank" rel="noopener">View satellite imagery &rarr;</a>
+                     target="_blank" rel="noopener noreferrer">View satellite imagery &rarr;</a>
                 {% endif %}
                 {% if pc.health_context is defined and pc.health_context %}
                   <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
@@ -244,7 +248,7 @@
                     <p class="health-context-citations">
                       <span class="health-citations-label">Sources:</span>
                       {% for cite in pc.citations %}
-                        <a href="{{ cite.url }}" target="_blank" rel="noopener" class="health-citation-link">{{ cite.label }}</a>{% if not loop.last %}, {% endif %}
+                        <a href="{{ cite.url }}" target="_blank" rel="noopener noreferrer" class="health-citation-link">{{ cite.label }}</a>{% if not loop.last %}, {% endif %}
                       {% endfor %}
                     </p>
                     {% endif %}
@@ -253,6 +257,52 @@
               </div>
               {% endif %}
             {% endfor %}
+
+            {# ── Tier 2: Area-level environmental indicators (compact) ── #}
+            {% if tier2_items %}
+            {% set t2_non_clear = tier2_items | rejectattr('result_type', 'equalto', 'CLEAR') | list %}
+            <div class="health-tier2-section">
+              <div class="health-tier2-header collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="{{ 'true' if t2_non_clear else 'false' }}">
+                <span class="collapse-icon health-tier2-toggle-icon">&#9654;</span>
+                <span class="health-tier2-title">Area Environmental Indicators</span>
+                <span class="health-tier2-summary">
+                  {% set t2_clear = tier2_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+                  {% set t2_warning = tier2_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
+                  {% set t2_issue = tier2_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+                  {% if t2_issue %}<span class="summary-pill summary-pill--fail health-stat-badge health-stat-badge--issue">{{ t2_issue }}</span>{% endif %}
+                  {% if t2_warning %}<span class="summary-pill summary-pill--warning health-stat-badge health-stat-badge--warning">{{ t2_warning }}</span>{% endif %}
+                  {% if t2_clear and not t2_issue and not t2_warning %}<span class="summary-pill summary-pill--pass health-stat-badge health-stat-badge--clear">{{ t2_clear }} Clear</span>{% endif %}
+                </span>
+              </div>
+              <div class="collapsible-body {{ 'collapsed' if not t2_non_clear }} health-tier2-body">
+                {% for pc in tier2_items %}
+                  {% if pc.is_grouped | default(false) %}
+                  <div class="proximity-item proximity-item--compact proximity-notable proximity-grouped">
+                    <div class="proximity-name">
+                      {{ health_check_icon("unverified") }}
+                      {{ pc.headline }}
+                    </div>
+                    <div class="proximity-detail">{{ pc.explanation }}</div>
+                  </div>
+                  {% else %}
+                  {% set band_css = "proximity-" + pc.proximity_band | lower %}
+                  {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
+                  <div class="proximity-item proximity-item--compact {{ band_css }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+                    <div class="proximity-name">
+                      {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
+                      {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
+                      {{ pc.headline }}
+                    </div>
+                    {% if pc.explanation %}
+                      <div class="proximity-detail">{{ pc.explanation }}</div>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
           {% else %}
             <div class="proximity-item proximity-neutral health-check--quiet">
               <div class="proximity-name">
