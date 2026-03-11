@@ -420,10 +420,12 @@ for _k, _p in PERSONA_PRESETS.items():
 # Walk / drive time display thresholds (minutes)
 # =============================================================================
 # Controls when the report shows walk time, both, or drive time only.
-#   walk_time <= BOTH  : walk only
-#   BOTH < walk_time <= ONLY : show both walk + drive
-#   walk_time > ONLY  : drive only
+#   walk_time <= BOTH          : walk only
+#   BOTH < walk_time <= LEAD   : walk first, then drive
+#   LEAD < walk_time <= ONLY   : drive first, then walk
+#   walk_time > ONLY           : drive only
 WALK_DRIVE_BOTH_THRESHOLD = 20
+WALK_DRIVE_LEAD_DRIVE_THRESHOLD = 25
 WALK_DRIVE_ONLY_THRESHOLD = 40
 
 
