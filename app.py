@@ -2857,11 +2857,6 @@ def view_snapshot(snapshot_id):
             result.get("tier1_checks", [])
         )
 
-    # Backfill hazard_tier for snapshots stored before NES-241
-    for pc in result.get("presented_checks", []):
-        if "hazard_tier" not in pc:
-            pc["hazard_tier"] = 2 if pc.get("name") in _TIER_2_CHECKS else 1
-
     # Backfill structured_summary for old snapshots
     if "structured_summary" not in result:
         result["structured_summary"] = generate_structured_summary(
@@ -2887,6 +2882,15 @@ def view_snapshot(snapshot_id):
         **result,
         "presented_checks": filtered_checks,
     }
+
+    # NES-241: Backfill hazard_tier on the shallow copy's presented_checks.
+    # Items in filtered_checks are still shared refs to stored dicts, so
+    # rebuild each dict to avoid mutating the stored snapshot.
+    result["presented_checks"] = [
+        {**pc, "hazard_tier": 2 if pc.get("name") in _TIER_2_CHECKS else 1}
+        if "hazard_tier" not in pc else pc
+        for pc in result.get("presented_checks", [])
+    ]
 
     # NES-210: Migrate legacy dimension names on the shallow copy (not the
     # stored snapshot dict) to avoid corrupting a future caching layer.
