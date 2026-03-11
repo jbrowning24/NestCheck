@@ -58,6 +58,15 @@ app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
     os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
     os.environ.get('GOOGLE_MAPS_API_KEY')
 )
+
+# Session and remember-me cookie security hardening.
+_is_production = app.config['SECRET_KEY'] != 'nestcheck-dev-key'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = _is_production
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_SECURE'] = _is_production
 # Keep templates render-safe even if Flask-WTF is unavailable at runtime.
 app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 

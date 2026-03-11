@@ -186,6 +186,7 @@ def init_db():
     }
     if "user_id" not in job_cols:
         conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN user_id TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON evaluation_jobs(user_id)")
 
     # Legacy rows should be treated as previously evaluated at created_at.
     conn.execute(
@@ -1239,12 +1240,28 @@ def get_or_create_user(email: str, name: str = None,
 
         # Create new user
         user_id = uuid.uuid4().hex
-        conn.execute(
-            """INSERT INTO users (id, email, name, picture_url, google_sub, created_at, last_login_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, email, name, picture_url, google_sub, now, now),
-        )
-        conn.commit()
+        try:
+            conn.execute(
+                """INSERT INTO users (id, email, name, picture_url, google_sub, created_at, last_login_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (user_id, email, name, picture_url, google_sub, now, now),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            # Concurrent insert won — re-fetch the winner's row.
+            conn.rollback()
+            row = None
+            if google_sub:
+                row = conn.execute(
+                    "SELECT * FROM users WHERE google_sub = ?", (google_sub,)
+                ).fetchone()
+            if not row:
+                row = conn.execute(
+                    "SELECT * FROM users WHERE email = ?", (email,)
+                ).fetchone()
+            if row:
+                return dict(row), False
+            raise  # Unexpected constraint — re-raise
         return {
             "id": user_id,
             "email": email,
