@@ -105,6 +105,22 @@
     </form>
   </section>
 
+  {# ── AUTH CALLOUT (unauthenticated only) ──────────────────── #}
+  {% if not current_user.is_authenticated and oauth_enabled %}
+  <div class="auth-callout">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+         stroke="var(--color-accent)" stroke-width="1.5"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="9" width="12" height="8" rx="1.5"/>
+      <path d="M7 9V6a3 3 0 0 1 6 0v3"/>
+    </svg>
+    <p class="auth-callout__text">
+      <a href="/auth/login" class="auth-callout__link">Sign in</a> to save evaluations,
+      track multiple addresses, and pick up where you left off.
+    </p>
+  </div>
+  {% endif %}
+
   {# ── PREVIEW CARDS ───────────────────────────────────────── #}
   <section class="section-preview">
     <h2 class="section-preview-label">REPORT PREVIEWS</h2>

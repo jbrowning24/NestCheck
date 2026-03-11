@@ -98,6 +98,18 @@ nav a.nav-link {
   transition: color var(--transition-fast);
 }
 nav a.nav-link:hover { color: var(--color-text-primary); }
+nav a.nav-link--cta {
+  border: 1.5px solid var(--color-accent);
+  border-radius: 6px;
+  padding: 6px 16px;
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+nav a.nav-link--cta:hover {
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--color-accent);
+}
 
 /* --- Footer --- */
 footer {
