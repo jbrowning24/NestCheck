@@ -734,38 +734,92 @@ h1.narrative-summary {
 }
 .data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-xs); }
 
-/* --- Confidence Badges --- */
-.confidence-badge {
-  display: inline-block;
+/* --- Confidence Badges (three-tier component system, NES-243) --- */
+
+/* Base: inline pill with icon + label */
+.cb {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: var(--text-xs);
+  font-weight: 500;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 2px 7px 2px 5px;
   border-radius: var(--radius-full);
   margin-left: var(--space-xs);
   white-space: nowrap;
   cursor: help;
+  vertical-align: middle;
 }
-.confidence-medium {
+.cb__icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.cb__label {
+  /* inherits color from parent .cb */
+}
+
+/* Block variant: full-width row with visible note */
+.cb--block {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  margin-left: 0;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-small);
+  cursor: default;
+}
+.cb--block .cb__icon {
+  width: 14px;
+  height: 14px;
+}
+.cb__note {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* Tier: verified — green, checkmark */
+.cb--verified {
+  color: var(--color-pass-text);
+  background: rgba(22, 163, 74, 0.08);
+}
+.cb--block.cb--verified {
+  background: rgba(22, 163, 74, 0.06);
+  border: 1px solid rgba(22, 163, 74, 0.12);
+}
+
+/* Tier: estimated — amber, tilde wave */
+.cb--estimated {
   color: var(--color-warning-text);
   background: rgba(217, 119, 6, 0.08);
 }
-.confidence-low {
-  color: var(--color-danger);
-  background: rgba(220, 38, 38, 0.08);
+.cb--block.cb--estimated {
+  background: rgba(217, 119, 6, 0.06);
+  border: 1px solid rgba(217, 119, 6, 0.12);
 }
-.confidence-estimated {
-  color: var(--color-warning-text);
-  background: rgba(217, 119, 6, 0.08);
-}
-.confidence-sparse {
-  color: var(--color-danger);
-  background: rgba(220, 38, 38, 0.08);
-}
-.confidence-not-scored {
+
+/* Tier: not_scored — grey, dash */
+.cb--not_scored {
   color: var(--color-text-muted);
   background: rgba(107, 114, 128, 0.08);
   font-style: italic;
 }
+.cb--block.cb--not_scored {
+  background: rgba(107, 114, 128, 0.06);
+  border: 1px solid rgba(107, 114, 128, 0.12);
+}
+
+/* Legacy class aliases — kept for backward compat with any external CSS */
+.confidence-badge { /* deprecated: use .cb */ }
+.confidence-medium,
+.confidence-estimated { color: var(--color-warning-text); background: rgba(217, 119, 6, 0.08); }
+.confidence-low,
+.confidence-sparse { color: var(--color-danger); background: rgba(220, 38, 38, 0.08); }
+.confidence-not-scored { color: var(--color-text-muted); background: rgba(107, 114, 128, 0.08); font-style: italic; }
+
 .dimension-score-sparse {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
@@ -775,6 +829,8 @@ h1.narrative-summary {
   color: var(--color-text-faint);
   font-size: var(--font-size-body);
 }
+
+/* Aggregate confidence summary (sidebar / footer) */
 .confidence-summary {
   display: flex;
   align-items: center;
@@ -788,18 +844,12 @@ h1.narrative-summary {
   flex-shrink: 0;
   font-size: var(--font-size-base);
 }
-.confidence-summary.confidence-medium {
-  color: var(--color-warning-text);
-  background: rgba(217, 119, 6, 0.06);
-}
-.confidence-summary.confidence-low {
-  color: var(--color-danger);
-  background: rgba(220, 38, 38, 0.06);
-}
+.confidence-summary.confidence-medium,
 .confidence-summary.confidence-estimated {
   color: var(--color-warning-text);
   background: rgba(217, 119, 6, 0.06);
 }
+.confidence-summary.confidence-low,
 .confidence-summary.confidence-sparse {
   color: var(--color-danger);
   background: rgba(220, 38, 38, 0.06);
@@ -919,14 +969,7 @@ h1.narrative-summary {
 }
 
 /* --- Sidewalk Coverage --- */
-.sidewalk-confidence {
-  margin-top: var(--space-xs);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-semibold);
-}
-.sidewalk-confidence-high { color: var(--color-pass-text); }
-.sidewalk-confidence-medium { color: var(--color-warning-text); }
-.sidewalk-confidence-low { color: var(--color-danger); }
+/* sidewalk-confidence classes removed in NES-243 — now uses .cb--block */
 
 /* --- Neighborhood Cards --- */
 .neighborhood-category {
@@ -1197,14 +1240,7 @@ h1.narrative-summary {
   color: var(--color-text-muted);
   margin-top: var(--space-xs);
 }
-.walk-quality-confidence {
-  margin-top: var(--space-sm);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-semibold);
-}
-.walk-quality-confidence-high { color: var(--color-pass-text); }
-.walk-quality-confidence-medium { color: var(--color-warning-text); }
-.walk-quality-confidence-low { color: var(--color-danger); }
+/* walk-quality-confidence classes removed in NES-243 — now uses .cb--block */
 .walk-quality-card.proximity-neutral .walk-quality-score-value { color: var(--color-pass-text); }
 .walk-quality-card.proximity-notable .walk-quality-score-value { color: var(--color-warning-text); }
 .walk-quality-card.proximity-very_close .walk-quality-score-value { color: var(--color-danger); }
