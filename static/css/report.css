@@ -223,7 +223,6 @@ h1.narrative-summary {
   text-transform: var(--type-l5-transform);
   letter-spacing: var(--type-l5-tracking);
   color: var(--type-l5-color);
-  opacity: 0.7;
   margin-bottom: var(--space-sm);
 }
 .card-band-label {
