@@ -428,6 +428,7 @@ def save_snapshot_for_place(
     result_dict,
     existing_snapshot_id=None,
     email=None,
+    user_id=None,
 ):
     """
     Persist a canonical snapshot keyed by place_id.
@@ -470,8 +471,8 @@ def save_snapshot_for_place(
         conn.execute(
             """INSERT INTO snapshots
                (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-                verdict, final_score, passed_tier1, result_json, email)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                verdict, final_score, passed_tier1, result_json, email, user_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 snapshot_id,
                 address_input,
@@ -484,6 +485,7 @@ def save_snapshot_for_place(
                 1 if result_dict.get("passed_tier1") else 0,
                 json.dumps(result_dict, default=str),
                 email,
+                user_id,
             ),
         )
         conn.commit()

@@ -200,7 +200,7 @@ def _set_request_context():
     else:
         g.set_visitor_cookie = False
 
-    # Authenticated user context (wires up {% if g.user_email %} in _base.html)
+    # Authenticated user context — available in templates via g.user_email
     g.user_email = current_user.email if current_user.is_authenticated else None
     g.user_name = current_user.name if current_user.is_authenticated else None
 
@@ -3629,13 +3629,17 @@ def auth_callback():
         email=email, name=name, picture_url=picture, google_sub=google_sub
     )
 
-    if created:
-        claimed = claim_snapshots_for_user(user_dict["id"], email)
-        if claimed:
-            logger.info("Auto-claimed %d snapshot(s) for new user %s", claimed, email)
+    # Claim any unclaimed snapshots matching the user's email — on every login,
+    # not just the first, so snapshots created between logins are picked up.
+    claimed = claim_snapshots_for_user(user_dict["id"], email)
+    if claimed:
+        logger.info("Auto-claimed %d snapshot(s) for user %s", claimed, email)
 
     login_user(_FlaskUser(user_dict), remember=True)
     next_url = session.pop("auth_next", "/my-reports")
+    # Prevent open redirect: only allow relative paths on this host.
+    if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/my-reports"
     return redirect(next_url)
 
 
