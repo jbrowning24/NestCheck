@@ -285,7 +285,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.5.0",
+    version="1.5.1",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
@@ -456,7 +456,7 @@ _LEGACY_CONFIDENCE_MAP = {
 # can see what exists nearby, even when we decline to score it.
 
 VENUE_MIN_REVIEWS: Dict[str, int] = {
-    "coffee_social": 30,    # existing hardcoded value
+    "coffee_social": 15,    # lowered from 30 for suburban coverage (NES-251)
     "provisioning": 20,     # existing hardcoded value
     "fitness": 10,          # NEW — was 0 (no filter)
 }

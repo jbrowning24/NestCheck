@@ -169,9 +169,9 @@ h1.narrative-summary {
   line-height: var(--line-height-tight);
   white-space: nowrap;
 }
-.dim-card__score--strong   { background: var(--color-pass-bg);    color: var(--color-pass-text);    border: 1px solid var(--color-pass-border); }
-.dim-card__score--moderate { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
-.dim-card__score--limited  { background: var(--color-fail-bg);    color: var(--color-fail-text);    border: 1px solid var(--color-fail-border); }
+.dim-card__score--strong   { background: transparent; color: var(--color-pass-text);    border: 1px solid var(--color-border-light); }
+.dim-card__score--moderate { background: transparent; color: var(--color-warning-text); border: 1px solid var(--color-border-light); }
+.dim-card__score--limited  { background: transparent; color: var(--color-fail-text);    border: 1px solid var(--color-border-light); }
 .dim-card__score--not-scored { background: var(--color-bg-subtle); color: var(--color-text-muted); border: 1px solid var(--color-border); }
 .dim-card__band {
   display: flex;
@@ -565,9 +565,9 @@ h1.narrative-summary {
 }
 
 /* ── Per-dimension band colors ── */
-.dim-band--strong   { color: var(--color-pass-text); }
-.dim-band--moderate { color: var(--color-warning-text); }
-.dim-band--limited  { color: var(--color-fail-text); }
+.dim-band--strong   { color: var(--color-pass); }
+.dim-band--moderate { color: var(--color-warning); }
+.dim-band--limited  { color: var(--color-fail); }
 .dim-band--not-scored { color: var(--color-text-muted); }
 
 /* ── Mini fill bar (for park subscores, dimension rows) ── */

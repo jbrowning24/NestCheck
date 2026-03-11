@@ -650,6 +650,22 @@ class GoogleMapsClient:
             "place_id": first.get("place_id"),
             "formatted_address": first.get("formatted_address", address),
         }
+
+    def reverse_geocode_locality(self, lat: float, lng: float) -> Optional[str]:
+        """Return the locality (city/town) name for coordinates via reverse geocoding."""
+        url = f"{self.base_url}/geocode/json"
+        params = {
+            "latlng": f"{lat},{lng}",
+            "result_type": "locality",
+            "key": self.api_key,
+        }
+        data = self._traced_get("reverse_geocode", url, params)
+        if data["status"] != "OK" or not data.get("results"):
+            return None
+        for component in data["results"][0].get("address_components", []):
+            if "locality" in component.get("types", []):
+                return component["long_name"]
+        return None
     
     def places_nearby(
         self,
@@ -3448,15 +3464,34 @@ def determine_major_hub(
             break
 
     if not hub_name or not hub_coords:
-        search_queries = ["city center", "downtown"]
+        # Reverse-geocode to get the city name so search queries are specific
+        # (e.g., "Ann Arbor downtown" instead of just "downtown").
+        city_name = None
+        try:
+            city_name = maps.reverse_geocode_locality(lat, lng)
+        except Exception:
+            pass
+
+        if city_name:
+            search_queries = [f"{city_name} city center", f"{city_name} downtown"]
+        else:
+            search_queries = ["city center", "downtown"]
+
+        max_hub_dist_ft = 25 * 5280  # 25 miles — reject results from other cities
+
         hub_place = None
         for query in search_queries:
             try:
                 results = maps.text_search(query, lat, lng, radius_meters=50000)
             except Exception:
                 continue
-            if results:
-                hub_place = results[0]
+            for place in results:
+                place_lat = place["geometry"]["location"]["lat"]
+                place_lng = place["geometry"]["location"]["lng"]
+                if _distance_feet(lat, lng, place_lat, place_lng) <= max_hub_dist_ft:
+                    hub_place = place
+                    break
+            if hub_place:
                 break
 
         if not hub_place:
@@ -3464,8 +3499,12 @@ def determine_major_hub(
                 results = maps.places_nearby(lat, lng, "locality", radius_meters=50000)
             except Exception:
                 results = []
-            if results:
-                hub_place = results[0]
+            for place in results:
+                place_lat = place["geometry"]["location"]["lat"]
+                place_lng = place["geometry"]["location"]["lng"]
+                if _distance_feet(lat, lng, place_lat, place_lng) <= max_hub_dist_ft:
+                    hub_place = place
+                    break
 
         if not hub_place:
             return None
