@@ -202,6 +202,46 @@
   --letter-spacing-tight: -0.02em;
   --letter-spacing-wide: 0.03em;
   --letter-spacing-wider: 0.04em;
+  --letter-spacing-label: 0.05em;
+  --letter-spacing-meta: 0.08em;
+
+  /* ---- Five-level typographic hierarchy (report) ---------------- */
+  /* Level 1 — Page headline (narrative summary)                     */
+  --type-l1-size: var(--font-size-h1);        /* 28px */
+  --type-l1-weight: var(--font-weight-normal); /* 400  */
+  --type-l1-leading: 1.15;
+  --type-l1-tracking: var(--letter-spacing-tight); /* -0.02em */
+  --type-l1-color: var(--color-text-muted);
+
+  /* Level 2 — Section label (uppercase dividers)                    */
+  --type-l2-size: 0.875rem;                    /* 14px */
+  --type-l2-weight: var(--font-weight-semibold); /* 600 */
+  --type-l2-leading: var(--line-height-tight);
+  --type-l2-tracking: var(--letter-spacing-label); /* 0.05em */
+  --type-l2-color: var(--color-text-faint);
+  --type-l2-transform: uppercase;
+
+  /* Level 3 — Section heading (area context, sub-page titles)       */
+  --type-l3-size: var(--font-size-h3);         /* 18px */
+  --type-l3-weight: var(--font-weight-semibold); /* 600 */
+  --type-l3-leading: var(--line-height-tight);
+  --type-l3-tracking: normal;
+  --type-l3-color: var(--color-text-primary);
+
+  /* Level 4 — Subsection heading (nearby schools, sub-groupings)    */
+  --type-l4-size: var(--font-size-body);       /* 15px */
+  --type-l4-weight: var(--font-weight-semibold); /* 600 */
+  --type-l4-leading: var(--line-height-normal);
+  --type-l4-tracking: normal;
+  --type-l4-color: var(--color-text-primary);
+
+  /* Level 5 — Meta label (card headers, badge text)                 */
+  --type-l5-size: 0.6875rem;                   /* 11px */
+  --type-l5-weight: var(--font-weight-semibold); /* 600 */
+  --type-l5-leading: var(--line-height-tight);
+  --type-l5-tracking: var(--letter-spacing-meta); /* 0.08em */
+  --type-l5-color: var(--color-text-faint);
+  --type-l5-transform: uppercase;
 
   /* ---- Spacing ------------------------------------------------ */
   /* 4px grid */

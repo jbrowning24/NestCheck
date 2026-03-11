@@ -64,13 +64,22 @@
   overflow-y: auto;
 }
 
-/* --- Narrative Summary --- */
+/* ================================================================
+   Five-level typographic hierarchy
+   L1  Page headline      — narrative summary (28 px, light)
+   L2  Section label      — uppercase dividers (14 px, semibold)
+   L3  Section heading    — titled sub-sections (18 px, semibold)
+   L4  Subsection heading — grouped content (15 px, semibold)
+   L5  Meta label         — card / badge headers (11 px, uppercase)
+   ================================================================ */
+
+/* --- L1: Narrative Summary --- */
 .narrative-summary {
   font-family: var(--font-heading);
-  font-size: 28px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  color: var(--color-text-muted);
+  font-size: var(--type-l1-size);
+  line-height: var(--type-l1-leading);
+  letter-spacing: var(--type-l1-tracking);
+  color: var(--type-l1-color);
   margin: 0 0 var(--space-xl);
   overflow-wrap: break-word;
 }
@@ -79,17 +88,18 @@
   font-weight: var(--font-weight-bold);
 }
 h1.narrative-summary {
-  font-weight: var(--font-weight-normal);
+  font-weight: var(--type-l1-weight);
 }
 
-/* --- Section Title (Uppercase) --- */
+/* --- L2: Section Title (Uppercase) --- */
 .section-title {
   font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-faint);
+  font-size: var(--type-l2-size);
+  font-weight: var(--type-l2-weight);
+  text-transform: var(--type-l2-transform);
+  letter-spacing: var(--type-l2-tracking);
+  color: var(--type-l2-color);
+  line-height: var(--type-l2-leading);
   margin: 0 0 var(--space-base);
   padding: 0;
   border: none;
@@ -230,12 +240,13 @@ h1.narrative-summary {
   background: var(--band-poor-light, #FEF2F2);
   color: var(--color-text-primary);
 }
+/* --- L5: Card / Meta Label --- */
 .card-label {
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.7;
+  font-size: var(--type-l5-size);
+  font-weight: var(--type-l5-weight);
+  text-transform: var(--type-l5-transform);
+  letter-spacing: var(--type-l5-tracking);
+  color: var(--type-l5-color);
   margin-bottom: var(--space-sm);
 }
 .card-band-label {
@@ -306,11 +317,12 @@ h1.narrative-summary {
   font-weight: var(--font-weight-bold);
   line-height: 1;
 }
+/* --- L5: Count Label --- */
 .count-label {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: var(--type-l5-transform);
+  letter-spacing: var(--type-l5-tracking);
 }
 .health-count--clear .count-number { color: var(--color-text-primary); }
 .health-count--warning .count-number { color: var(--color-orange, #F17317); }
@@ -1342,11 +1354,14 @@ h1.narrative-summary {
 
 /* Nearby Schools */
 .nearby-schools-section { margin-top: var(--space-lg); }
+/* --- L4: Nearby Schools Heading --- */
 .nearby-schools-heading {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--type-l4-size);
+  font-weight: var(--type-l4-weight);
+  line-height: var(--type-l4-leading);
+  letter-spacing: var(--type-l4-tracking);
+  color: var(--type-l4-color);
   margin-bottom: var(--space-sm);
-  color: var(--color-text-primary);
 }
 .nearby-schools-list {
   display: flex;
@@ -1441,10 +1456,13 @@ h1.narrative-summary {
   padding-top: var(--space-lg);
   margin-bottom: var(--space-md);
 }
+/* --- L3: Area Context Heading --- */
 .area-context-heading {
-  font-size: var(--font-size-h3);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-size: var(--type-l3-size);
+  font-weight: var(--type-l3-weight);
+  line-height: var(--type-l3-leading);
+  letter-spacing: var(--type-l3-tracking);
+  color: var(--type-l3-color);
   margin: 0 0 var(--space-xs) 0;
 }
 .area-context-note {
@@ -1661,12 +1679,13 @@ h1.narrative-summary {
 /* --- Preview Tier --- */
 .verdict-card--preview { text-align: center; }
 .preview-health-banner { padding: var(--space-5) var(--space-base); }
+/* --- L2: Preview Health Title --- */
 .preview-health-title {
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--type-l2-size);
+  font-weight: var(--type-l2-weight);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  text-transform: var(--type-l2-transform);
+  letter-spacing: var(--type-l2-tracking);
   margin-bottom: var(--space-sm);
 }
 .preview-health-status {
@@ -1686,10 +1705,12 @@ h1.narrative-summary {
   margin-bottom: var(--space-xl);
 }
 .verdict-failed-banner { padding: 0; }
+/* --- L3: Failed Verdict Title --- */
 .verdict-failed-title {
   font-family: var(--font-heading);
-  font-size: var(--font-size-h3);
+  font-size: var(--type-l3-size);
   font-weight: var(--font-weight-bold);
+  line-height: var(--type-l3-leading);
   color: var(--color-danger-text);
 }
 .verdict-failed-summary {
@@ -1977,7 +1998,7 @@ h1.narrative-summary {
     gap: var(--space-xs);
   }
   .narrative-summary {
-    font-size: 24px;
+    font-size: 1.5rem; /* 24px — stepped down from L1 28px */
   }
   .place-card { width: 150px; padding: var(--space-md); }
   .place-card--headline { width: 190px; }
@@ -1990,7 +2011,7 @@ h1.narrative-summary {
 @media (max-width: 640px) {
   .report { padding: var(--space-sm); }
   .report-container { padding: var(--space-base); border-radius: var(--radius-md); }
-  .narrative-summary { font-size: 22px; }
+  .narrative-summary { font-size: 1.375rem; /* 22px — mobile L1 */ }
   .card-band-label { font-size: 26px; }
   .sidebar-card { padding: var(--space-base); }
   .place-card { width: 140px; padding: var(--space-md); }
