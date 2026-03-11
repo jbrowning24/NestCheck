@@ -403,6 +403,15 @@ _SAFETY_CHECK_NAMES = {
     "ejscreen_environmental",
 }
 
+# Hazard tier hierarchy: Tier 1 = direct proximity hazards (prominent display),
+# Tier 2 = area-level environmental indicators (compact display).
+# Checks not listed here default to Tier 1.
+_TIER_2_CHECKS = {
+    "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
+    "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
+    "ejscreen_environmental",
+}
+
 _CHECK_SOURCE_GROUP = {
     "Gas station": "google_places",
     "High-traffic road": "hpms",
@@ -1475,6 +1484,8 @@ def present_checks(tier1_checks):
         # Attach citation links for "Why we check this" expandable
         citations = HEALTH_CHECK_CITATIONS.get(name, [])
 
+        hazard_tier = 2 if name in _TIER_2_CHECKS else 1
+
         presented.append({
             "name": name,
             "result": result,
@@ -1485,6 +1496,7 @@ def present_checks(tier1_checks):
             "explanation": explanation,
             "health_context": health_context,
             "citations": citations,
+            "hazard_tier": hazard_tier,
         })
 
     # --- Collapse groups where ALL checks are VERIFICATION_NEEDED ---
@@ -1505,6 +1517,8 @@ def present_checks(tier1_checks):
                 if sg not in collapsed_groups:
                     collapsed_groups.add(sg)
                     meta = _SOURCE_GROUP_LABELS[sg]
+                    # Inherit tier from grouped checks (all same tier)
+                    group_tier = group_items[0].get("hazard_tier", 1)
                     collapsed.append({
                         "name": meta["label"],
                         "result": "UNKNOWN",
@@ -1515,6 +1529,7 @@ def present_checks(tier1_checks):
                         "explanation": meta["explanation"],
                         "is_grouped": True,
                         "grouped_checks": meta["checks"],
+                        "hazard_tier": group_tier,
                     })
                 continue
         collapsed.append(item)
@@ -2867,6 +2882,15 @@ def view_snapshot(snapshot_id):
         **result,
         "presented_checks": filtered_checks,
     }
+
+    # NES-241: Backfill hazard_tier on the shallow copy's presented_checks.
+    # Items in filtered_checks are still shared refs to stored dicts, so
+    # rebuild each dict to avoid mutating the stored snapshot.
+    result["presented_checks"] = [
+        {**pc, "hazard_tier": 2 if pc.get("name") in _TIER_2_CHECKS else 1}
+        if "hazard_tier" not in pc else pc
+        for pc in result.get("presented_checks", [])
+    ]
 
     # NES-210: Migrate legacy dimension names on the shallow copy (not the
     # stored snapshot dict) to avoid corrupting a future caching layer.

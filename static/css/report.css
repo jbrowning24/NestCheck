@@ -415,6 +415,62 @@ h1.narrative-summary {
   box-shadow: var(--shadow-card);
 }
 
+/* --- Tier 2 compact checks (area-level indicators) --- */
+.health-tier2-section {
+  margin-top: var(--space-md);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+}
+.health-tier2-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-base);
+  cursor: pointer;
+  user-select: none;
+}
+.health-tier2-title {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.health-tier2-toggle-icon {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+.health-tier2-header[aria-expanded="true"] .health-tier2-toggle-icon {
+  transform: rotate(90deg);
+}
+.health-tier2-summary {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-xs);
+}
+.health-tier2-summary .health-stat-badge {
+  font-size: var(--font-size-xs);
+  padding: 2px var(--space-xs);
+}
+.health-tier2-body {
+  padding: 0 var(--space-sm) var(--space-sm);
+}
+.proximity-item--compact {
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: 2px;
+  border-left-width: 2px;
+}
+.proximity-item--compact .proximity-name {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+}
+.proximity-item--compact .proximity-detail {
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+}
+
 /* --- Health Context (progressive disclosure) --- */
 .health-context-toggle {
   margin-top: var(--space-sm);
