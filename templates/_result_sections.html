@@ -109,48 +109,44 @@
             {% if _moderate.n %}<span class="summary-pill summary-pill--warning">{{ _moderate.n }} Moderate</span>{% endif %}
             {% if _limited.n %}<span class="summary-pill summary-pill--fail">{{ _limited.n }} Limited</span>{% endif %}
           </div>
-          <div class="metrics-list metrics-list--dimensions">
+          <div class="dimension-grid">
             {% for dim in result.dimension_summaries %}
             {% set dim_weight = result.persona.weights[dim.name] if result.persona is defined and result.persona and result.persona.weights is defined and dim.name in (result.persona.weights or {}) else 1.0 %}
+            {% set band_key = dim.band.key if dim.band is defined and dim.band else 'not-scored' %}
             {% if dim.data_confidence is defined and dim.data_confidence == 'not_scored' %}
-            <div class="progress-item progress-item--not-scored">
-              <div class="progress-header">
-                <span class="label">{{ dim.name }}</span>
-                <span class="value">
-                  <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
-                </span>
+            <div class="dim-card dim-card--not-scored">
+              <div class="dim-card__header">
+                <span class="dim-card__name">{{ dim.name }}</span>
+                <span class="confidence-badge confidence-not-scored" title="{{ dim.data_confidence_note or '' }}">Not scored</span>
               </div>
               {% if dim.summary %}
-              <div class="progress-detail">{{ dim.summary }}</div>
+              <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
             </div>
             {% elif dim.data_confidence is defined and dim.data_confidence == 'sparse' %}
-            <div class="progress-item progress-item--sparse">
-              <div class="progress-header">
-                <span class="label">{{ dim.name }}</span>
-                <span class="value">
-                  <span class="dimension-score dimension-score-sparse">Limited data</span>
-                  <span class="confidence-badge confidence-sparse" title="{{ dim.data_confidence_note or '' }}">Sparse data</span>
-                </span>
+            <div class="dim-card dim-card--sparse">
+              <div class="dim-card__header">
+                <span class="dim-card__name">{{ dim.name }}</span>
+                <span class="confidence-badge confidence-sparse" title="{{ dim.data_confidence_note or '' }}">Limited data</span>
               </div>
               {% if dim.summary %}
-              <div class="progress-detail">{{ dim.summary }}</div>
+              <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
             </div>
             {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
-            <div class="progress-item progress-item--suppressed">
-              <div class="progress-header">
-                <span class="label">{{ dim.name }}</span>
-                <span class="value"><span class="dimension-score dimension-score-suppressed" title="{{ dim.suppressed_reason }}">—</span></span>
+            <div class="dim-card dim-card--suppressed">
+              <div class="dim-card__header">
+                <span class="dim-card__name">{{ dim.name }}</span>
+                <span class="dim-card__score dim-card__score--not-scored" title="{{ dim.suppressed_reason }}">—</span>
               </div>
               {% if dim.summary %}
-              <div class="progress-detail">{{ dim.summary }}</div>
+              <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
             </div>
             {% else %}
-            <div class="progress-item">
-              <div class="progress-header">
-                <span class="label">
+            <div class="dim-card dim-card--{{ band_key }}">
+              <div class="dim-card__header">
+                <span class="dim-card__name">
                   {{ dim.name }}
                   {% if dim_weight > 1.0 %}
                     <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
@@ -158,18 +154,16 @@
                     <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
                   {% endif %}
                 </span>
-                <span class="value">
-                  <span class="dim-score-pill dim-score-pill--{{ dim.band.key if dim.band is defined and dim.band else 'not-scored' }}">{{ dim.score }}/{{ dim.max_score }}</span>
-                  {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
-                    <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
-                  {% endif %}
-                </span>
+                <span class="dim-card__score dim-card__score--{{ band_key }}">{{ dim.score }}/{{ dim.max_score }}</span>
               </div>
-              <div class="progress-track">
-                <div class="progress-fill mini-fill-bar__fill--{{ dim.band.key if dim.band is defined and dim.band else 'not-scored' }}" style="width: {{ (dim.score / dim.max_score * 100) | int if dim.max_score else 0 }}%;"></div>
+              <div class="dim-card__band">
+                <span class="dim-card__band-label dim-band--{{ band_key }}">{{ dim.band.label if dim.band is defined and dim.band and dim.band.label is defined else band_key | capitalize }}</span>
+                {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
+                  <span class="confidence-badge confidence-{{ dim.data_confidence | lower }}" title="{{ dim.data_confidence_note or '' }}">Estimated</span>
+                {% endif %}
               </div>
               {% if dim.summary %}
-              <div class="progress-detail">{{ dim.summary }}</div>
+              <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
             </div>
             {% endif %}
@@ -760,7 +754,7 @@
                 {% elif space.walk_time_min <= 30 %}
                   {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
                 {% else %}
-                  {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
+                  {% set dist_label, dist_badge = "Drive Only", "badge-drive" %}
                 {% endif %}
                 {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
                 {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}

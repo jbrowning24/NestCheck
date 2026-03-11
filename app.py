@@ -1737,20 +1737,20 @@ def _compute_show_numeric_score(dimension_summaries: list) -> bool:
 # Per-dimension band classification (Phase 1 anatomy).
 # Thresholds on a 0-10 scale — distinct from composite ScoreBand (0-100).
 _DIM_BANDS = (
-    (8, "strong", "dim-band--strong"),
-    (5, "moderate", "dim-band--moderate"),
-    (0, "limited", "dim-band--limited"),
+    (8, "strong", "dim-band--strong", "Strong"),
+    (5, "moderate", "dim-band--moderate", "Moderate"),
+    (0, "limited", "dim-band--limited", "Limited"),
 )
 
 
 def _dim_band(score, max_score):
     """Classify a single dimension score into a band dict for templates."""
     if score is None or max_score is None or max_score == 0:
-        return {"key": "not_scored", "css": "dim-band--not-scored"}
-    for threshold, key, css in _DIM_BANDS:
+        return {"key": "not_scored", "css": "dim-band--not-scored", "label": "Not scored"}
+    for threshold, key, css, label in _DIM_BANDS:
         if score >= threshold:
-            return {"key": key, "css": css}
-    return {"key": "limited", "css": "dim-band--limited"}
+            return {"key": key, "css": css, "label": label}
+    return {"key": "limited", "css": "dim-band--limited", "label": "Limited"}
 
 
 def result_to_dict(result):
