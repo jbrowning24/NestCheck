@@ -760,7 +760,7 @@
                 {% elif space.walk_time_min <= 30 %}
                   {% set dist_label, dist_badge = "Moderate", "badge-borderline" %}
                 {% else %}
-                  {% set dist_label, dist_badge = "Drive Only", "badge-fail" %}
+                  {% set dist_label, dist_badge = "Drive Only", "badge-drive" %}
                 {% endif %}
                 {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
                 {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}
