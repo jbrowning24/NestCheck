@@ -950,10 +950,6 @@ def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
         conn.close()
 
 
-def _return_conn(conn) -> None:
-    """Close a DB connection. Convenience alias used by tests."""
-    conn.close()
-
 
 # ---------------------------------------------------------------------------
 # Overpass cache (7-day TTL)
