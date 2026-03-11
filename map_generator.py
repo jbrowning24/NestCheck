@@ -20,7 +20,7 @@ class NestCheckStaticMap(StaticMap):
         z = super()._calculate_zoom()
         return max(self.ZOOM_MIN, min(self.ZOOM_MAX, z))
 
-USER_AGENT = "NestCheck/1.0 (address evaluation tool; contact@nestcheck.com)"
+USER_AGENT = "NestCheck/1.0 (address evaluation tool; contact@nestcheck.app)"
 
 CATEGORY_COLORS = {
     "coffee": "#92400e",   # brown

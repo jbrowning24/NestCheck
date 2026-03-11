@@ -22,12 +22,12 @@ The form captures email but the backend ignores it. Resend is in `requirements.t
 | Email storage | Nullable `email` + `email_sent_at` columns on `snapshots` table | Additive-only, no schema breaks |
 | Migration pattern | `PRAGMA table_info` check + conditional `ALTER TABLE` | Matches existing pattern in `models.py:77-84` |
 | Email sending | After snapshot save, in try/except | Never blocks or breaks evaluation |
-| Sender address | `NestCheck <reports@nestcheck.com>` | Requires Resend domain verification (DNS records) |
+| Sender address | `NestCheck <reports@nestcheck.app>` | Requires Resend domain verification (DNS records) |
 | Magic-link form | Disable with "coming soon" | Prevents 404 on `/send-magic-link`; route doesn't exist |
 
 ## Pre-flight
 
-- [ ] **Resend domain verification**: Add DNS records for `nestcheck.com` in Resend dashboard. Sends will be rejected until verified. ~5 minutes to set up + propagate.
+- [ ] **Resend domain verification**: Add DNS records for `nestcheck.app` in Resend dashboard. Sends will be rejected until verified. ~5 minutes to set up + propagate.
 
 ## Tasks
 
@@ -80,7 +80,7 @@ The form captures email but the backend ignores it. Resend is in `requirements.t
   - `send_report_email(to_email: str, snapshot_id: str, address: str) -> bool`
     - Uses `resend` library (already in requirements.txt)
     - API key from `os.environ.get("RESEND_API_KEY")`
-    - From: `NestCheck <reports@nestcheck.com>`
+    - From: `NestCheck <reports@nestcheck.app>`
     - Subject: `Your NestCheck Report is Ready`
     - Minimal HTML body: NestCheck branding, evaluated address, prominent link to `/s/{snapshot_id}`, one-line footer
     - Full try/except — logs errors, never raises
@@ -125,7 +125,7 @@ The form captures email but the backend ignores it. Resend is in `requirements.t
 - [ ] **Email failure resilience**: Set invalid API key → evaluation completes, email_failed event logged
 - [ ] **Snapshot reuse**: Reused snapshot doesn't re-send email (no email send in reuse path)
 - [ ] **My Reports page**: Visit `/my-reports` — no form, shows "coming soon" message
-- [ ] **Resend domain**: Verify `nestcheck.com` domain in Resend dashboard before live testing
+- [ ] **Resend domain**: Verify `nestcheck.app` domain in Resend dashboard before live testing
 
 ## Files Changed Summary
 
