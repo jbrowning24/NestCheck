@@ -50,6 +50,10 @@ from models import (
     record_free_tier_usage,
     delete_free_tier_usage,
     update_free_tier_snapshot,
+    get_user_by_stripe_customer,
+    update_user_stripe_customer,
+    get_or_create_user,
+    get_user_by_id,
     _get_db,
     _return_conn,
 )
@@ -581,3 +585,39 @@ class TestFreeTierUsage:
         ).fetchone()
         _return_conn(conn)
         assert row["snapshot_id"] == "snap1"
+
+
+# =========================================================================
+# User Stripe Customer
+# =========================================================================
+
+class TestUserStripeCustomer:
+    """Tests for stripe_customer_id on the user model."""
+
+    def test_new_user_has_no_stripe_customer(self):
+        user, created = get_or_create_user(
+            email="stripe@example.com", name="Test User",
+        )
+        assert created is True
+        assert user.get("stripe_customer_id") is None
+
+    def test_update_and_retrieve_stripe_customer_id(self):
+        user, _ = get_or_create_user(
+            email="stripe2@example.com", name="Test User 2",
+        )
+        update_user_stripe_customer(user["id"], "cus_test_123")
+        refreshed = get_user_by_id(user["id"])
+        assert refreshed["stripe_customer_id"] == "cus_test_123"
+
+    def test_get_user_by_stripe_customer(self):
+        user, _ = get_or_create_user(
+            email="stripe3@example.com", name="Test User 3",
+        )
+        update_user_stripe_customer(user["id"], "cus_lookup_456")
+        found = get_user_by_stripe_customer("cus_lookup_456")
+        assert found is not None
+        assert found["id"] == user["id"]
+        assert found["email"] == "stripe3@example.com"
+
+    def test_get_user_by_stripe_customer_not_found(self):
+        assert get_user_by_stripe_customer("cus_nonexistent") is None

@@ -15,6 +15,7 @@ from models import (
     create_payment, get_payment_by_id, get_payment_by_session,
     get_payment_by_job_id, update_payment_status, redeem_payment,
     update_payment_job_id, create_job,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
 )
 from worker import _reissue_payment_if_needed
 
@@ -45,7 +46,7 @@ class TestCreatePayment:
         pid = _make_payment()
         p = get_payment_by_id(pid)
         assert p is not None
-        assert p["status"] == "pending"
+        assert p["status"] == PAYMENT_PENDING
         assert p["address"] == "123 Main St, Scarsdale, NY"
 
     def test_lookup_by_session(self):
@@ -64,47 +65,47 @@ class TestCreatePayment:
 class TestUpdatePaymentStatus:
     def test_update_without_guard(self):
         pid = _make_payment()
-        assert update_payment_status(pid, "paid") is True
-        assert get_payment_by_id(pid)["status"] == "paid"
+        assert update_payment_status(pid, PAYMENT_PAID) is True
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PAID
 
     def test_update_with_matching_expected_status(self):
         pid = _make_payment()
-        assert update_payment_status(pid, "paid", expected_status="pending") is True
-        assert get_payment_by_id(pid)["status"] == "paid"
+        assert update_payment_status(pid, PAYMENT_PAID, expected_status=PAYMENT_PENDING) is True
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PAID
 
     def test_update_with_wrong_expected_status(self):
         """Atomic guard: update fails when current status doesn't match."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")  # pending -> paid
+        update_payment_status(pid, PAYMENT_PAID)  # pending -> paid
         # Now try to transition from 'pending' again — should fail
-        assert update_payment_status(pid, "paid", expected_status="pending") is False
+        assert update_payment_status(pid, PAYMENT_PAID, expected_status=PAYMENT_PENDING) is False
 
 
 class TestRedeemPayment:
     def test_redeem_paid(self):
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         assert redeem_payment(pid, job_id="job_1") is True
         p = get_payment_by_id(pid)
-        assert p["status"] == "redeemed"
+        assert p["status"] == PAYMENT_REDEEMED
         assert p["redeemed_at"] is not None
         assert p["job_id"] == "job_1"
 
     def test_double_redeem_fails(self):
         """Second redemption of the same token must be rejected."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         assert redeem_payment(pid) is True
         assert redeem_payment(pid) is False  # already redeemed
 
     def test_redeem_failed_reissued(self):
         """Credits reissued after failure can be redeemed again."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         redeem_payment(pid)
-        update_payment_status(pid, "failed_reissued")
+        update_payment_status(pid, PAYMENT_FAILED_REISSUED)
         assert redeem_payment(pid, job_id="job_retry") is True
-        assert get_payment_by_id(pid)["status"] == "redeemed"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_REDEEMED
 
     def test_redeem_pending_fails(self):
         """Cannot redeem an unpaid (pending) payment."""
@@ -113,7 +114,7 @@ class TestRedeemPayment:
 
     def test_lookup_by_job_id(self):
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         redeem_payment(pid, job_id="job_lookup")
         p = get_payment_by_job_id("job_lookup")
         assert p is not None
@@ -121,7 +122,7 @@ class TestRedeemPayment:
 
     def test_update_job_id_after_redeem(self):
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         redeem_payment(pid, job_id=None)
         update_payment_job_id(pid, "job_late_link")
         assert get_payment_by_id(pid)["job_id"] == "job_late_link"
@@ -134,23 +135,23 @@ class TestRedeemPayment:
 class TestCreditReissue:
     def test_reissue_on_redeemed(self):
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         job_id = create_job("123 Main St", visitor_id="v1")
         redeem_payment(pid, job_id=job_id)
         update_payment_job_id(pid, job_id)
 
         _reissue_payment_if_needed(job_id)
-        assert get_payment_by_id(pid)["status"] == "failed_reissued"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_FAILED_REISSUED
 
     def test_reissue_noop_when_not_redeemed(self):
         """Reissue does nothing if payment is still 'paid' (not yet redeemed)."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         job_id = create_job("123 Main St", visitor_id="v1")
         update_payment_job_id(pid, job_id)
 
         _reissue_payment_if_needed(job_id)
-        assert get_payment_by_id(pid)["status"] == "paid"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PAID
 
     def test_reissue_noop_when_no_payment(self):
         """Reissue does nothing for jobs without a linked payment (free eval)."""
@@ -160,14 +161,14 @@ class TestCreditReissue:
     def test_reissued_credit_redeemable(self):
         """After reissue, the same payment token can be redeemed again."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         job_id = create_job("123 Main St", visitor_id="v1")
         redeem_payment(pid, job_id=job_id)
         update_payment_job_id(pid, job_id)
 
         _reissue_payment_if_needed(job_id)
         assert redeem_payment(pid, job_id="job_retry") is True
-        assert get_payment_by_id(pid)["status"] == "redeemed"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_REDEEMED
 
 
 # ===========================================================================
@@ -199,7 +200,7 @@ class TestCheckoutCreate:
         payment_id = call_args.kwargs["client_reference_id"]
         p = get_payment_by_id(payment_id)
         assert p is not None
-        assert p["status"] == "pending"
+        assert p["status"] == PAYMENT_PENDING
         assert p["stripe_session_id"] == "cs_test_session_001"
 
     @patch("app.REQUIRE_PAYMENT", True)
@@ -251,14 +252,14 @@ class TestStripeWebhook:
         resp = client.post("/webhook/stripe", data=b"payload",
                            headers={"Stripe-Signature": "sig_test"})
         assert resp.status_code == 200
-        assert get_payment_by_id(pid)["status"] == "paid"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PAID
 
     @patch("app.STRIPE_AVAILABLE", True)
     @patch("app.stripe")
     def test_webhook_does_not_overwrite_redeemed(self, mock_stripe, client):
         """TOCTOU guard: webhook arriving after redemption must not revert status."""
         pid = _make_payment(stripe_session_id="cs_wh_002")
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         redeem_payment(pid)
 
         mock_stripe.Webhook.construct_event.return_value = {
@@ -269,7 +270,7 @@ class TestStripeWebhook:
         resp = client.post("/webhook/stripe", data=b"payload",
                            headers={"Stripe-Signature": "sig_test"})
         assert resp.status_code == 200
-        assert get_payment_by_id(pid)["status"] == "redeemed"  # unchanged
+        assert get_payment_by_id(pid)["status"] == PAYMENT_REDEEMED  # unchanged
 
     @patch("app.STRIPE_AVAILABLE", True)
     @patch("app.stripe")
@@ -336,7 +337,7 @@ class TestReturnFromStripe:
     def test_paid_token_creates_job(self, client):
         """Happy path: webhook already confirmed, token is 'paid'."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
 
         resp, body = _post_json(client, "/", data={
             "address": "123 Main St, Scarsdale, NY",
@@ -347,7 +348,7 @@ class TestReturnFromStripe:
         assert "job_id" in body
         # Payment should be redeemed
         p = get_payment_by_id(pid)
-        assert p["status"] == "redeemed"
+        assert p["status"] == PAYMENT_REDEEMED
         assert p["job_id"] == body["job_id"]
 
     @patch("app.REQUIRE_PAYMENT", True)
@@ -368,7 +369,7 @@ class TestReturnFromStripe:
 
         assert resp.status_code == 200
         assert "job_id" in body
-        assert get_payment_by_id(pid)["status"] == "redeemed"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_REDEEMED
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
@@ -388,7 +389,7 @@ class TestReturnFromStripe:
 
         assert resp.status_code == 402
         assert "not completed" in body["error"]
-        assert get_payment_by_id(pid)["status"] == "pending"  # unchanged
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PENDING  # unchanged
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
@@ -408,6 +409,21 @@ class TestReturnFromStripe:
         assert "verify payment" in body["error"].lower()
 
     @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", False)
+    def test_pending_token_stripe_unavailable(self, client):
+        """Pending token + Stripe not available → 402 (cannot verify)."""
+        pid = _make_payment(stripe_session_id="cs_no_stripe")
+
+        resp, body = _post_json(client, "/", data={
+            "address": "123 Main St, Scarsdale, NY",
+            "payment_token": pid,
+        }, headers={"Accept": "application/json"})
+
+        assert resp.status_code == 402
+        assert "verify" in body["error"].lower() or "unavailable" in body["error"].lower()
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PENDING  # unchanged
+
+    @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
     def test_already_redeemed_token(self, client):
         """Already-used payment token → 402.
@@ -417,7 +433,7 @@ class TestReturnFromStripe:
         before reaching the redeem_payment() call.
         """
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
         redeem_payment(pid)
 
         resp, body = _post_json(client, "/", data={
@@ -482,40 +498,40 @@ class TestPaymentStateMachine:
     def test_happy_lifecycle(self):
         """pending → paid → redeemed (normal completion)."""
         pid = _make_payment()
-        assert get_payment_by_id(pid)["status"] == "pending"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PENDING
 
-        assert update_payment_status(pid, "paid", expected_status="pending")
-        assert get_payment_by_id(pid)["status"] == "paid"
+        assert update_payment_status(pid, PAYMENT_PAID, expected_status=PAYMENT_PENDING)
+        assert get_payment_by_id(pid)["status"] == PAYMENT_PAID
 
         job_id = create_job("123 Main St", visitor_id="v1")
         assert redeem_payment(pid, job_id=job_id)
         p = get_payment_by_id(pid)
-        assert p["status"] == "redeemed"
+        assert p["status"] == PAYMENT_REDEEMED
         assert p["job_id"] == job_id
 
     def test_failure_lifecycle(self):
         """pending → paid → redeemed → failed_reissued → redeemed (retry)."""
         pid = _make_payment()
 
-        update_payment_status(pid, "paid", expected_status="pending")
+        update_payment_status(pid, PAYMENT_PAID, expected_status=PAYMENT_PENDING)
         job1 = create_job("123 Main St", visitor_id="v1")
         redeem_payment(pid, job_id=job1)
         update_payment_job_id(pid, job1)
 
         # Evaluation fails — credit reissued
         _reissue_payment_if_needed(job1)
-        assert get_payment_by_id(pid)["status"] == "failed_reissued"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_FAILED_REISSUED
 
         # User retries with the same payment token
         job2 = create_job("123 Main St", visitor_id="v1")
         assert redeem_payment(pid, job_id=job2)
-        assert get_payment_by_id(pid)["status"] == "redeemed"
+        assert get_payment_by_id(pid)["status"] == PAYMENT_REDEEMED
         assert get_payment_by_id(pid)["job_id"] == job2
 
     def test_double_redeem_blocked(self):
         """Two concurrent redeem attempts — only one succeeds."""
         pid = _make_payment()
-        update_payment_status(pid, "paid")
+        update_payment_status(pid, PAYMENT_PAID)
 
         first = redeem_payment(pid, job_id="job_a")
         second = redeem_payment(pid, job_id="job_b")
@@ -524,15 +540,149 @@ class TestPaymentStateMachine:
         assert second is False
         assert get_payment_by_id(pid)["job_id"] == "job_a"
 
-    # NOTE: There is a known gap between redeem_payment() at app.py:1350
-    # and update_payment_job_id() at app.py:1372. If the server crashes
-    # between these calls, a payment is marked 'redeemed' with no linked
-    # job_id. This is a recoverable edge case (manual DB fix) and is not
-    # addressed in this ticket.
+    # NOTE: redeem_payment() now accepts job_id directly via COALESCE,
+    # so the redeem + job_id link is atomic. The old two-step gap
+    # (redeem then update_payment_job_id) no longer applies.
 
 
 # ===========================================================================
-# Step 9: Manual runbook
+# Step 9: Stripe Customer ↔ User model wiring (NES-229)
+# ===========================================================================
+
+class TestCheckoutStripeCustomer:
+    """Verify logged-in users get a Stripe Customer wired into checkout."""
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_logged_in_user_creates_stripe_customer(self, mock_stripe, client):
+        """First checkout for a logged-in user creates a Stripe Customer."""
+        from models import get_or_create_user, get_user_by_id
+        from app import _FlaskUser
+        from flask_login import login_user
+
+        mock_customer = MagicMock()
+        mock_customer.id = "cus_new_123"
+        mock_stripe.Customer.create.return_value = mock_customer
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_001"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_001"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="alice@example.com", name="Alice")
+
+        with client.session_transaction():
+            pass
+        with client.application.test_request_context():
+            login_user(_FlaskUser(user))
+
+            # Simulate the request within the logged-in context
+            with client.application.test_client() as c:
+                # Manually set the session to log in
+                with c.session_transaction() as sess:
+                    sess["_user_id"] = user["id"]
+
+                resp, body = _post_json(c, "/checkout/create", data={
+                    "address": "42 Elm St, White Plains, NY",
+                })
+
+        assert resp.status_code == 200
+        # Stripe Customer.create should have been called
+        mock_stripe.Customer.create.assert_called_once()
+        create_kwargs = mock_stripe.Customer.create.call_args.kwargs
+        assert create_kwargs["email"] == "alice@example.com"
+        assert create_kwargs["metadata"]["nestcheck_user_id"] == user["id"]
+
+        # Session.create should include the customer
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert session_kwargs["customer"] == "cus_new_123"
+
+        # User record should now have stripe_customer_id persisted
+        refreshed = get_user_by_id(user["id"])
+        assert refreshed["stripe_customer_id"] == "cus_new_123"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_existing_stripe_customer_reused(self, mock_stripe, client):
+        """User with existing stripe_customer_id skips Customer.create."""
+        from models import get_or_create_user, update_user_stripe_customer
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_002"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_002"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="bob@example.com", name="Bob")
+        update_user_stripe_customer(user["id"], "cus_existing_789")
+
+        with client.session_transaction() as sess:
+            sess["_user_id"] = user["id"]
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "10 Oak Ave, Bronxville, NY",
+        })
+
+        assert resp.status_code == 200
+        # Customer.create should NOT be called — existing ID reused
+        mock_stripe.Customer.create.assert_not_called()
+
+        # Session.create should include the existing customer
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert session_kwargs["customer"] == "cus_existing_789"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_stripe_customer_creation_failure_falls_back(self, mock_stripe, client):
+        """If Customer.create fails, checkout proceeds with customer_email."""
+        from models import get_or_create_user
+
+        mock_stripe.Customer.create.side_effect = Exception("Stripe API error")
+
+        mock_session = MagicMock()
+        mock_session.id = "cs_cust_003"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_cust_003"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        user, _ = get_or_create_user(email="carol@example.com", name="Carol")
+
+        with client.session_transaction() as sess:
+            sess["_user_id"] = user["id"]
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "5 Pine Rd, Scarsdale, NY",
+        })
+
+        assert resp.status_code == 200
+        # Session should be created without 'customer' but with 'customer_email'
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert "customer" not in session_kwargs
+        assert session_kwargs["customer_email"] == "carol@example.com"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app.stripe")
+    def test_anonymous_checkout_no_customer(self, mock_stripe, client):
+        """Anonymous user gets no customer or customer_email."""
+        mock_session = MagicMock()
+        mock_session.id = "cs_anon_001"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_anon_001"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        resp, body = _post_json(client, "/checkout/create", data={
+            "address": "99 Main St, Yonkers, NY",
+        })
+
+        assert resp.status_code == 200
+        session_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert "customer" not in session_kwargs
+        assert "customer_email" not in session_kwargs
+
+
+# ===========================================================================
+# Step 10: Manual runbook
 # ===========================================================================
 
 MANUAL_RUNBOOK = """

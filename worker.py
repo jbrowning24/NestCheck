@@ -29,6 +29,7 @@ from models import (
     update_free_tier_snapshot,
     delete_free_tier_usage,
     update_snapshot_email_sent,
+    PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,9 +53,9 @@ def _reissue_payment_if_needed(job_id: str) -> None:
     """
     try:
         payment = get_payment_by_job_id(job_id)
-        if payment and payment["status"] == "redeemed":
+        if payment and payment["status"] == PAYMENT_REDEEMED:
             update_payment_status(
-                payment["id"], "failed_reissued", expected_status="redeemed"
+                payment["id"], PAYMENT_FAILED_REISSUED, expected_status=PAYMENT_REDEEMED
             )
             logger.info(
                 "[worker] Reissued credit for failed evaluation: payment %s, job %s",

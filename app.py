@@ -43,30 +43,14 @@ from models import (
     get_snapshots_by_ids, update_snapshot_email_sent,
     create_job, get_job,
     get_user_by_id, get_or_create_user, claim_snapshots_for_user,
-    get_user_snapshots,
+    get_user_snapshots, update_user_stripe_customer,
     create_payment, get_payment_by_id, get_payment_by_session,
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
 )
 
 load_dotenv()
-
-# ---------------------------------------------------------------------------
-# Stripe conditional import (graceful degradation)
-# ---------------------------------------------------------------------------
-try:
-    import stripe
-    STRIPE_AVAILABLE = True
-except ImportError:
-    stripe = None  # type: ignore[assignment]
-    STRIPE_AVAILABLE = False
-
-REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "false").lower() == "true"
-STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-
-if STRIPE_AVAILABLE and os.environ.get("STRIPE_SECRET_KEY"):
-    stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
@@ -103,6 +87,7 @@ class _FlaskUser:
         self.email = user_dict["email"]
         self.name = user_dict.get("name")
         self.picture_url = user_dict.get("picture_url")
+        self.stripe_customer_id = user_dict.get("stripe_customer_id")
         self.is_authenticated = True
         self.is_active = True
         self.is_anonymous = False
@@ -150,8 +135,6 @@ else:
 
 # Make oauth_enabled available in all templates for conditional nav rendering.
 app.jinja_env.globals["oauth_enabled"] = _oauth_enabled
-# Make require_payment available in all templates for payment gating.
-app.jinja_env.globals["require_payment"] = REQUIRE_PAYMENT
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -209,6 +192,61 @@ def _is_builder(req):
     if req.args.get("builder_key") == BUILDER_SECRET:
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Stripe integration (optional — app works without it)
+# ---------------------------------------------------------------------------
+_STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+_STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+_STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
+REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
+
+try:
+    import stripe
+    stripe.api_key = _STRIPE_SECRET_KEY
+    STRIPE_AVAILABLE = bool(_STRIPE_SECRET_KEY)
+except ImportError:
+    stripe = None  # type: ignore[assignment]
+    STRIPE_AVAILABLE = False
+
+if not STRIPE_AVAILABLE:
+    logger.info(
+        "Stripe not configured (STRIPE_SECRET_KEY missing or stripe package not installed). "
+        "Payment features will be unavailable."
+    )
+
+# Make require_payment available in all templates for payment gating.
+app.jinja_env.globals["require_payment"] = REQUIRE_PAYMENT
+
+
+def _get_or_create_stripe_customer(user) -> Optional[str]:
+    """Get existing or create new Stripe customer for a logged-in user.
+
+    Returns the Stripe customer ID (cus_xxx), or None on failure.
+    Failures are logged but never block checkout — the session will
+    proceed without a customer association.
+    """
+    if not STRIPE_AVAILABLE:
+        return None
+
+    # Reuse existing Stripe customer if already linked.
+    if user.stripe_customer_id:
+        return user.stripe_customer_id
+
+    try:
+        customer = stripe.Customer.create(
+            email=user.email,
+            name=user.name,
+            metadata={"nestcheck_user_id": user.id},
+        )
+        cus_id = customer.id
+        update_user_stripe_customer(user.id, cus_id)
+        logger.info("Created Stripe customer %s for user %s", cus_id, user.email)
+        return cus_id
+    except Exception:
+        logger.warning("Failed to create Stripe customer for %s", user.email, exc_info=True)
+        return None
 
 
 @app.before_request
@@ -2975,7 +3013,7 @@ def index():
                     )
 
                 pstatus = payment["status"]
-                if pstatus == "pending":
+                if pstatus == PAYMENT_PENDING:
                     # Webhook hasn't arrived yet — verify directly with Stripe
                     try:
                         session_obj = stripe.checkout.Session.retrieve(
@@ -2983,9 +3021,9 @@ def index():
                         )
                         if session_obj.payment_status == "paid":
                             update_payment_status(
-                                payment_token, "paid", expected_status="pending"
+                                payment_token, PAYMENT_PAID, expected_status=PAYMENT_PENDING,
                             )
-                            pstatus = "paid"
+                            pstatus = PAYMENT_PAID
                         else:
                             if _wants_json():
                                 return jsonify({"error": "Payment not completed"}), 402
@@ -3011,7 +3049,7 @@ def index():
                             is_builder=g.is_builder, request_id=request_id,
                         )
 
-                if pstatus in ("paid", "failed_reissued"):
+                if pstatus in (PAYMENT_PAID, PAYMENT_FAILED_REISSUED):
                     if not redeem_payment(payment_token):
                         if _wants_json():
                             return jsonify({"error": "Invalid or expired payment"}), 402
@@ -3619,101 +3657,6 @@ def pricing():
 # Stripe Checkout routes
 # ---------------------------------------------------------------------------
 
-@app.route("/checkout/create", methods=["POST"])
-def checkout_create():
-    """Create a Stripe Checkout Session and return the checkout URL.
-
-    The frontend redirects the user to Stripe's hosted page. On success,
-    Stripe redirects back to / with a payment_token query param.
-    """
-    if not REQUIRE_PAYMENT or not STRIPE_AVAILABLE:
-        return jsonify({"error": "Payments not enabled"}), 400
-
-    address = (request.form.get("address") or "").strip()
-    if not address:
-        return jsonify({"error": "Address required"}), 400
-
-    visitor_id = g.visitor_id
-    place_id = request.form.get("place_id", "").strip() or ""
-    email_for_checkout = request.form.get("email", "").strip() or ""
-
-    payment_id = uuid.uuid4().hex
-    base_url = request.url_root.rstrip("/")
-
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
-            mode="payment",
-            client_reference_id=payment_id,
-            success_url=(
-                f"{base_url}/?payment_token={payment_id}"
-                f"&address={quote(address, safe='')}"
-                f"&place_id={quote(place_id, safe='')}"
-                f"&email={quote(email_for_checkout, safe='')}"
-            ),
-            cancel_url=f"{base_url}/",
-        )
-    except Exception:
-        logger.exception("Stripe Checkout Session creation failed")
-        return jsonify({"error": "Payment system error. Please try again."}), 500
-
-    create_payment(payment_id, checkout_session.id, visitor_id, address)
-    logger.info(
-        "Created Stripe checkout session %s for payment %s",
-        checkout_session.id, payment_id,
-    )
-
-    return jsonify({"checkout_url": checkout_session.url})
-
-
-@app.route("/webhook/stripe", methods=["POST"])
-def stripe_webhook():
-    """Handle Stripe webhook events (checkout.session.completed).
-
-    Exempt from CSRF — verified via Stripe signature instead.
-    """
-    if not STRIPE_AVAILABLE:
-        return jsonify({"error": "Stripe not available"}), 400
-
-    payload = request.get_data()
-    sig = request.headers.get("Stripe-Signature", "")
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig, STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError:
-        logger.warning("Stripe webhook: invalid payload")
-        return jsonify({"error": "Invalid payload"}), 400
-    except stripe.error.SignatureVerificationError:
-        logger.warning("Stripe webhook: signature verification failed")
-        return jsonify({"error": "Invalid signature"}), 400
-
-    if event["type"] == "checkout.session.completed":
-        session_id = event["data"]["object"]["id"]
-        payment = get_payment_by_session(session_id)
-        if payment:
-            update_payment_status(
-                payment["id"], "paid", expected_status="pending"
-            )
-            logger.info(
-                "Payment confirmed via webhook: %s (session %s)",
-                payment["id"], session_id,
-            )
-        else:
-            logger.warning(
-                "Stripe webhook: no payment found for session %s", session_id
-            )
-
-    # Always return 200 to prevent Stripe retries for unhandled event types
-    return jsonify({"received": True}), 200
-
-
-# Exempt webhook from CSRF (Stripe uses its own signature verification)
-if _csrf is not None:
-    _csrf.exempt(stripe_webhook)
-
-
 @app.route("/healthz")
 def healthz():
     """Lightweight health-check endpoint for monitoring."""
@@ -3955,6 +3898,105 @@ def _register_ingest_command():
 
 
 _register_ingest_command()
+
+
+# ---------------------------------------------------------------------------
+# Stripe checkout & webhook routes
+# ---------------------------------------------------------------------------
+
+@app.route("/checkout/create", methods=["POST"])
+def checkout_create():
+    """Create a Stripe Checkout Session and return the checkout URL."""
+    if not REQUIRE_PAYMENT:
+        return jsonify({"error": "Payments not enabled"}), 400
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Payment system not configured"}), 503
+
+    address = (request.form.get("address") or "").strip()
+    if not address:
+        return jsonify({"error": "Address required"}), 400
+
+    place_id = request.form.get("place_id", "").strip() or ""
+    email_for_checkout = request.form.get("email", "").strip() or ""
+
+    payment_id = uuid.uuid4().hex
+    base_url = request.url_root.rstrip("/")
+    try:
+        session_kwargs = {
+            "mode": "payment",
+            "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
+            "success_url": (
+                f"{base_url}/?payment_token={payment_id}"
+                f"&address={quote(address, safe='')}"
+                f"&place_id={quote(place_id, safe='')}"
+                f"&email={quote(email_for_checkout, safe='')}"
+            ),
+            "cancel_url": f"{base_url}/",
+            "client_reference_id": payment_id,
+        }
+
+        # Wire Stripe Customer for logged-in users so payments are
+        # associated with their account for receipts and history.
+        if current_user.is_authenticated:
+            cus_id = _get_or_create_stripe_customer(current_user)
+            if cus_id:
+                session_kwargs["customer"] = cus_id
+            else:
+                # Customer creation failed — fall back to pre-filling email
+                session_kwargs["customer_email"] = current_user.email
+
+        checkout_session = stripe.checkout.Session.create(**session_kwargs)
+
+        create_payment(
+            payment_id,
+            stripe_session_id=checkout_session.id,
+            visitor_id=g.visitor_id,
+            address=address,
+        )
+        return jsonify({"checkout_url": checkout_session.url, "payment_id": payment_id})
+    except Exception:
+        logger.exception("Stripe checkout session creation failed")
+        return jsonify({"error": "Payment system error"}), 500
+
+
+@app.route("/webhook/stripe", methods=["POST"])
+def stripe_webhook():
+    """Handle Stripe webhook events (no CSRF — Stripe signs the payload)."""
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Stripe not configured"}), 400
+
+    payload = request.get_data()
+    sig_header = request.headers.get("Stripe-Signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, _STRIPE_WEBHOOK_SECRET,
+        )
+    except ValueError:
+        return jsonify({"error": "Invalid payload"}), 400
+    except Exception as exc:
+        # stripe.error.SignatureVerificationError in stripe <6,
+        # stripe.SignatureVerificationError in stripe >=6.
+        if "SignatureVerification" in type(exc).__name__:
+            return jsonify({"error": "Invalid signature"}), 400
+        raise
+
+    if event["type"] == "checkout.session.completed":
+        session_obj = event["data"]["object"]
+        stripe_session_id = session_obj["id"]
+        payment = get_payment_by_session(stripe_session_id)
+        if payment:
+            update_payment_status(
+                payment["id"], PAYMENT_PAID, expected_status=PAYMENT_PENDING,
+            )
+            logger.info("Webhook: payment %s → paid", payment["id"])
+
+    return jsonify({"status": "ok"}), 200
+
+
+# Exempt the Stripe webhook from CSRF — it uses Stripe signature verification.
+if _csrf is not None:
+    _csrf.exempt(stripe_webhook)
 
 
 # ---------------------------------------------------------------------------

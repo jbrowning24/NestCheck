@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
+# Payment status constants — use these instead of bare strings.
+PAYMENT_PENDING = "pending"
+PAYMENT_PAID = "paid"
+PAYMENT_REDEEMED = "redeemed"
+PAYMENT_FAILED_REISSUED = "failed_reissued"
+
 
 def _get_db():
     """Get a sqlite3 connection with WAL mode for concurrent reads."""
@@ -28,6 +34,14 @@ def _get_db():
     conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
+
+
+def _return_conn(conn):
+    """Close a DB connection returned by _get_db().
+
+    Convenience for test code that needs direct DB access.
+    """
+    conn.close()
 
 
 def init_db():
@@ -129,6 +143,11 @@ def init_db():
             snapshot_id  TEXT,
             created_at   TEXT NOT NULL
         );
+
+        CREATE INDEX IF NOT EXISTS idx_payments_stripe_session
+            ON payments(stripe_session_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_job_id
+            ON payments(job_id);
     """)
 
     # Migration for pre-place_id databases.
@@ -147,6 +166,18 @@ def init_db():
     if "user_id" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN user_id TEXT REFERENCES users(id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id ON snapshots(user_id)")
+    if "is_preview" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN is_preview INTEGER NOT NULL DEFAULT 0")
+    if "og_image" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN og_image BLOB")
+
+    # Migration for users: add stripe_customer_id column
+    user_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(users)").fetchall()
+    }
+    if "stripe_customer_id" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT")
 
     # Migration for evaluation_jobs: add user_id column
     job_cols = {
@@ -167,6 +198,11 @@ def init_db():
            ON snapshots(place_id)
            WHERE place_id IS NOT NULL"""
     )
+    # Migration: ensure UNIQUE index on free_tier_usage.email_hash
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_free_tier_email_hash "
+        "ON free_tier_usage(email_hash)"
+    )
     conn.commit()
     conn.close()
 
@@ -186,6 +222,7 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     """
     email = email or kwargs.get("email_raw")
     user_id = kwargs.get("user_id")
+    is_preview = 1 if kwargs.get("is_preview") else 0
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
 
@@ -193,8 +230,8 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     conn.execute(
         """INSERT INTO snapshots
            (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-            verdict, final_score, passed_tier1, result_json, email, user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            verdict, final_score, passed_tier1, result_json, email, user_id, is_preview)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             snapshot_id,
             address_input,
@@ -208,6 +245,7 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
             json.dumps(result_dict, default=str),
             email,
             user_id,
+            is_preview,
         ),
     )
     conn.commit()
@@ -232,6 +270,52 @@ def get_snapshot(snapshot_id):
     data = dict(row)
     data["result"] = json.loads(data["result_json"])
     return data
+
+
+def unlock_snapshot(snapshot_id: str) -> bool:
+    """Unlock a preview snapshot (set is_preview=0).
+
+    Returns True if the snapshot was actually unlocked (was a preview),
+    False if it was already unlocked or doesn't exist.
+    """
+    conn = _get_db()
+    try:
+        cursor = conn.execute(
+            "UPDATE snapshots SET is_preview = 0 WHERE snapshot_id = ? AND is_preview = 1",
+            (snapshot_id,),
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
+
+
+def get_og_image(snapshot_id: str) -> Optional[bytes]:
+    """Return the OG image bytes for a snapshot, or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT og_image FROM snapshots WHERE snapshot_id = ?",
+            (snapshot_id,),
+        ).fetchone()
+        if row and row["og_image"]:
+            return bytes(row["og_image"])
+        return None
+    finally:
+        conn.close()
+
+
+def save_og_image(snapshot_id: str, image_data: bytes) -> None:
+    """Save an OG image for a snapshot."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE snapshots SET og_image = ? WHERE snapshot_id = ?",
+            (image_data, snapshot_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def get_snapshots_by_ids(snapshot_ids):
@@ -688,8 +772,8 @@ def create_payment(
         conn.execute(
             """INSERT INTO payments
                (id, stripe_session_id, visitor_id, address, snapshot_id, status, created_at)
-               VALUES (?, ?, ?, ?, ?, 'pending', ?)""",
-            (payment_id, stripe_session_id, visitor_id, address, snapshot_id, now),
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (payment_id, stripe_session_id, visitor_id, address, snapshot_id, PAYMENT_PENDING, now),
         )
         conn.commit()
     finally:
@@ -771,9 +855,9 @@ def redeem_payment(payment_id: str, job_id: Optional[str] = None) -> bool:
     try:
         cur = conn.execute(
             """UPDATE payments
-               SET status = 'redeemed', redeemed_at = ?, job_id = ?
-               WHERE id = ? AND status IN ('paid', 'failed_reissued')""",
-            (now, job_id, payment_id),
+               SET status = ?, redeemed_at = ?, job_id = ?
+               WHERE id = ? AND status IN (?, ?)""",
+            (PAYMENT_REDEEMED, now, job_id, payment_id, PAYMENT_PAID, PAYMENT_FAILED_REISSUED),
         )
         conn.commit()
         return cur.rowcount > 0
@@ -1208,5 +1292,31 @@ def get_user_snapshots(user_id: str, limit: int = 50) -> list:
             (user_id, limit),
         ).fetchall()
         return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_user_by_stripe_customer(stripe_customer_id: str) -> Optional[dict]:
+    """Return user dict by Stripe customer ID, or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE stripe_customer_id = ?",
+            (stripe_customer_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
+    """Set the Stripe customer ID on a user record."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+            (stripe_customer_id, user_id),
+        )
+        conn.commit()
     finally:
         conn.close()
