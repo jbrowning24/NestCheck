@@ -99,6 +99,16 @@ def init_db():
         );
 
         CREATE INDEX IF NOT EXISTS idx_jobs_status ON evaluation_jobs(status);
+
+        CREATE TABLE IF NOT EXISTS users (
+            id              TEXT PRIMARY KEY,
+            email           TEXT UNIQUE NOT NULL,
+            name            TEXT,
+            picture_url     TEXT,
+            google_sub      TEXT UNIQUE,
+            created_at      TEXT DEFAULT (datetime('now')),
+            last_login_at   TEXT
+        );
     """)
 
     # Migration for pre-place_id databases.
@@ -114,6 +124,17 @@ def init_db():
         conn.execute("ALTER TABLE snapshots ADD COLUMN email TEXT")
     if "email_sent_at" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN email_sent_at TEXT")
+    if "user_id" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN user_id TEXT REFERENCES users(id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_user_id ON snapshots(user_id)")
+
+    # Migration for evaluation_jobs: add user_id column
+    job_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()
+    }
+    if "user_id" not in job_cols:
+        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN user_id TEXT")
 
     # Legacy rows should be treated as previously evaluated at created_at.
     conn.execute(
@@ -144,6 +165,7 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     **kwargs: accepts is_preview, email_hash, email_raw (from worker) for forward compat.
     """
     email = email or kwargs.get("email_raw")
+    user_id = kwargs.get("user_id")
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
 
@@ -151,8 +173,8 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     conn.execute(
         """INSERT INTO snapshots
            (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-            verdict, final_score, passed_tier1, result_json, email)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            verdict, final_score, passed_tier1, result_json, email, user_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             snapshot_id,
             address_input,
@@ -165,6 +187,7 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
             1 if result_dict.get("passed_tier1") else 0,
             json.dumps(result_dict, default=str),
             email,
+            user_id,
         ),
     )
     conn.commit()
@@ -475,7 +498,8 @@ def save_snapshot_for_place(
 
 def create_job(address: str, visitor_id: str = None, request_id: str = None,
                place_id: str = None, email_hash: str = None,
-               persona: str = None, email_raw: str = None) -> str:
+               persona: str = None, email_raw: str = None,
+               user_id: str = None) -> str:
     """Insert a new evaluation job and return its job_id.
 
     Retries up to 3 times on transient SQLite busy errors to handle
@@ -491,10 +515,10 @@ def create_job(address: str, visitor_id: str = None, request_id: str = None,
                 conn.execute(
                     """INSERT INTO evaluation_jobs
                        (job_id, address, status, visitor_id, request_id, place_id,
-                        email_hash, persona, email_raw, created_at)
-                       VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)""",
+                        email_hash, persona, email_raw, user_id, created_at)
+                       VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (job_id, address, visitor_id, request_id, place_id,
-                     email_hash, persona, email_raw, now),
+                     email_hash, persona, email_raw, user_id, now),
                 )
                 conn.commit()
                 return job_id
@@ -855,3 +879,132 @@ def set_census_cache(cache_key: str, data_json: str) -> None:
             conn.close()
     except Exception:
         logger.warning("Census cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# User accounts
+# ---------------------------------------------------------------------------
+
+def get_user_by_id(user_id: str) -> Optional[dict]:
+    """Return user dict by primary key, or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_user_by_google_sub(google_sub: str) -> Optional[dict]:
+    """Return user dict by Google subject ID, or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE google_sub = ?", (google_sub,)
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_or_create_user(email: str, name: str = None,
+                       picture_url: str = None,
+                       google_sub: str = None) -> Tuple[dict, bool]:
+    """Find or create a user. Returns (user_dict, created).
+
+    Lookup order: google_sub → email → create new.
+    Updates last_login_at on every call.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        # Try google_sub first (stable identifier)
+        if google_sub:
+            row = conn.execute(
+                "SELECT * FROM users WHERE google_sub = ?", (google_sub,)
+            ).fetchone()
+            if row:
+                conn.execute(
+                    "UPDATE users SET last_login_at = ?, name = COALESCE(?, name), "
+                    "picture_url = COALESCE(?, picture_url) WHERE id = ?",
+                    (now, name, picture_url, row["id"]),
+                )
+                conn.commit()
+                user = dict(row)
+                user["last_login_at"] = now
+                return user, False
+
+        # Try email
+        row = conn.execute(
+            "SELECT * FROM users WHERE email = ?", (email,)
+        ).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE users SET last_login_at = ?, google_sub = COALESCE(?, google_sub), "
+                "name = COALESCE(?, name), picture_url = COALESCE(?, picture_url) WHERE id = ?",
+                (now, google_sub, name, picture_url, row["id"]),
+            )
+            conn.commit()
+            user = dict(row)
+            user["last_login_at"] = now
+            return user, False
+
+        # Create new user
+        user_id = uuid.uuid4().hex
+        conn.execute(
+            """INSERT INTO users (id, email, name, picture_url, google_sub, created_at, last_login_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, email, name, picture_url, google_sub, now, now),
+        )
+        conn.commit()
+        return {
+            "id": user_id,
+            "email": email,
+            "name": name,
+            "picture_url": picture_url,
+            "google_sub": google_sub,
+            "created_at": now,
+            "last_login_at": now,
+        }, True
+    finally:
+        conn.close()
+
+
+def claim_snapshots_for_user(user_id: str, email: str) -> int:
+    """Link unclaimed snapshots to a user by matching email.
+
+    Returns the number of snapshots claimed.
+    """
+    conn = _get_db()
+    try:
+        cursor = conn.execute(
+            "UPDATE snapshots SET user_id = ? WHERE user_id IS NULL AND email = ?",
+            (user_id, email),
+        )
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
+
+def get_user_snapshots(user_id: str, limit: int = 50) -> list:
+    """Return snapshots owned by a user, newest first.
+
+    Returns lightweight dicts (no result_json blob).
+    """
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT snapshot_id, address_input, address_norm, place_id,
+                      evaluated_at, created_at, verdict, final_score, passed_tier1
+               FROM snapshots
+               WHERE user_id = ?
+               ORDER BY created_at DESC
+               LIMIT ?""",
+            (user_id, limit),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()

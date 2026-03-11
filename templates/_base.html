@@ -33,7 +33,12 @@
       <span class="logo-text">Nest<span>Check</span></span>
     </a>
     <div>
-      {% if g.user_email %}<a href="/my-reports" class="nav-link">My Reports</a>{% endif %}
+      {% if current_user.is_authenticated %}
+        <a href="/my-reports" class="nav-link">My Reports</a>
+        <a href="/auth/logout" class="nav-link">Sign Out</a>
+      {% elif oauth_enabled %}
+        <a href="/auth/login" class="nav-link">Sign In</a>
+      {% endif %}
       {% block nav_links %}{% endblock %}
     </div>
   {% endblock %}
