@@ -181,6 +181,174 @@ def generate_verdict(result_dict):
         return "Significant daily-life gaps"
 
 
+def generate_report_narrative(result_dict):
+    """Generate a warm, specific, human-readable summary narrative.
+
+    Synthesizes health screening status, top dimension strengths/weaknesses,
+    and concrete place names into a 1-3 sentence summary that reads like a
+    friend describing the location.
+
+    Returns HTML string (may contain <strong> tags) or empty string.
+    """
+    passed = result_dict.get("passed_tier1", False)
+    score = result_dict.get("final_score", 0)
+
+    # --- Failed tier 1: lead with the concern, not jargon ---
+    if not passed:
+        presented = result_dict.get("presented_checks", [])
+        issues = [
+            pc.get("headline", pc.get("name", ""))
+            for pc in presented
+            if pc.get("category") == "SAFETY"
+            and pc.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+        ]
+        if issues:
+            issue_text = _join_labels(
+                [i.lower() for i in issues if i], conjunction="and"
+            )
+            return (
+                f"This address has health and safety concerns "
+                f"— {issue_text} — that need to be resolved before "
+                f"we can score it for daily living."
+            )
+        return (
+            "This address has health and safety concerns that need "
+            "attention before we can score it for daily living."
+        )
+
+    # --- Passed tier 1: build a warm summary ---
+    tier2_list = result_dict.get("tier2_scores", [])
+    tier2 = {}
+    for s in tier2_list:
+        if isinstance(s, dict) and s.get("points") is not None:
+            tier2[s.get("name", "")] = s
+
+    neighborhood = result_dict.get("neighborhood_places") or {}
+    green_escape = result_dict.get("green_escape") or {}
+    urban = result_dict.get("urban_access") or {}
+
+    # Classify dimensions into strong/weak for prose
+    strong_dims = []
+    weak_dims = []
+    for dim_name, label in _DIM_LABELS.items():
+        entry = tier2.get(dim_name, {})
+        pts = entry.get("points", 0) if isinstance(entry, dict) else 0
+        if pts >= 7:
+            strong_dims.append({"name": dim_name, "label": label, "score": pts})
+        elif pts < 4:
+            weak_dims.append({"name": dim_name, "label": label, "score": pts})
+
+    # Find a concrete lead place name from the highest-scoring dimension
+    lead_place = None
+    if strong_dims:
+        strong_dims.sort(key=lambda d: d["score"], reverse=True)
+        best_key = _DIM_PLACE_KEYS.get(strong_dims[0]["name"])
+        places = neighborhood.get(best_key, []) if best_key else []
+        if places and places[0].get("name"):
+            lead_place = places[0]["name"]
+
+    # Find the best park name
+    best_park_name = None
+    bp = green_escape.get("best_daily_park")
+    if bp and bp.get("name"):
+        best_park_name = bp["name"]
+
+    # Find the nearest transit station
+    station_name = None
+    pt = urban.get("primary_transit") if urban else None
+    if pt and pt.get("name"):
+        station_name = pt["name"]
+
+    # Build the narrative sentence(s)
+    parts = []
+
+    # -- Opening: health screening passed --
+    # -- Body: what's great about this place --
+    if score >= 85:
+        # Exceptional
+        if lead_place:
+            parts.append(
+                f"This address passed all health and safety checks. "
+                f"With <strong>{lead_place}</strong> nearby"
+            )
+        else:
+            parts.append(
+                "This address passed all health and safety checks. "
+                "Everyday essentials are within easy reach"
+            )
+        if len(strong_dims) >= 3:
+            others = [d["label"] for d in strong_dims[1:3]]
+            parts.append(f" and strong access to {_join_labels(others)}")
+        parts.append(", this is an <strong>exceptional fit</strong> for daily life.")
+
+    elif score >= 70:
+        # Strong
+        if lead_place:
+            parts.append(
+                f"This address passed all health and safety checks. "
+                f"<strong>{lead_place}</strong> is close by"
+            )
+        else:
+            parts.append(
+                "This address passed all health and safety checks. "
+                "Key amenities are within reach"
+            )
+        if strong_dims:
+            labels = [d["label"] for d in strong_dims[:2]]
+            parts.append(f", with solid {_join_labels(labels)}")
+        parts.append(" — a <strong>strong daily fit</strong>.")
+
+    elif score >= 55:
+        # Moderate
+        parts.append("This address passed all health and safety checks")
+        if lead_place:
+            parts.append(f". <strong>{lead_place}</strong> is nearby")
+        if weak_dims:
+            weak_labels = [d["label"] for d in weak_dims[:2]]
+            parts.append(
+                f", but {_join_labels(weak_labels)} "
+                f"{'is' if len(weak_labels) == 1 else 'are'} "
+                f"harder to reach"
+            )
+        parts.append(". A <strong>solid foundation</strong> with some trade-offs.")
+
+    elif score >= 40:
+        # Limited
+        parts.append("This address passed health screening")
+        if weak_dims:
+            weak_labels = [d["label"] for d in weak_dims[:2]]
+            parts.append(
+                f", but {_join_labels(weak_labels)} "
+                f"{'is' if len(weak_labels) == 1 else 'are'} "
+                f"limited"
+            )
+        parts.append(". You'll likely <strong>need a car</strong> for some daily errands.")
+
+    else:
+        # Poor
+        parts.append("This address passed health screening")
+        if weak_dims:
+            weak_labels = [d["label"] for d in weak_dims[:3]]
+            parts.append(
+                f", but {_join_labels(weak_labels)} "
+                f"{'is' if len(weak_labels) == 1 else 'are'} "
+                f"significantly limited"
+            )
+        parts.append(". Daily errands will require <strong>driving for most trips</strong>.")
+
+    # -- Optional transit or park callout for mid-range scores --
+    if 40 <= score < 85:
+        callout = None
+        if station_name and score >= 55:
+            callout = f" {station_name} station is accessible for commuting."
+        elif best_park_name and "Parks & Green Space" not in [d["name"] for d in weak_dims]:
+            callout = f" {best_park_name} is a green space worth noting."
+        if callout:
+            parts.append(callout)
+
+    return "".join(parts)
+
+
 def generate_structured_summary(presented_checks):
     """Build a human-readable summary of why an address failed tier 1.
 
@@ -1863,6 +2031,9 @@ def result_to_dict(result):
     ):
         output["score_band"] = get_score_band(55)  # → "Moderate — Some Trade-offs"
 
+    # NES-239: Warm, specific summary narrative for report header
+    output["summary_narrative"] = generate_report_narrative(output)
+
     # Count unresolved safety checks for CTA conditioning (Phase 4)
     output["unknown_check_count"] = sum(
         1 for c in output.get("tier1_checks", [])
@@ -2730,6 +2901,10 @@ def view_snapshot(snapshot_id):
             result.get("dimension_summaries", [])
         )
 
+    # NES-239: Backfill summary_narrative for old snapshots
+    if "summary_narrative" not in result:
+        result["summary_narrative"] = generate_report_narrative(result)
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
@@ -2754,6 +2929,8 @@ def export_snapshot_json(snapshot_id):
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
         )
+    if "summary_narrative" not in result:
+        result["summary_narrative"] = generate_report_narrative(result)
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -2785,6 +2962,8 @@ def export_snapshot_csv(snapshot_id):
         result["show_numeric_score"] = _compute_show_numeric_score(
             result.get("dimension_summaries", [])
         )
+    if "summary_narrative" not in result:
+        result["summary_narrative"] = generate_report_narrative(result)
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -2946,6 +3125,8 @@ def compare():
             result["show_numeric_score"] = _compute_show_numeric_score(
                 result.get("dimension_summaries", [])
             )
+        if "summary_narrative" not in result:
+            result["summary_narrative"] = generate_report_narrative(result)
         evaluations.append({
             "snapshot_id": snapshot["snapshot_id"],
             "result": result,

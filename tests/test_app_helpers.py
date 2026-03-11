@@ -24,6 +24,7 @@ from property_evaluator import (
 from app import (
     app,
     generate_verdict,
+    generate_report_narrative,
     present_checks,
     suppress_unknown_safety_checks,
     _serialize_urban_access,
@@ -75,6 +76,150 @@ class TestGenerateVerdict:
     def test_boundary_39(self):
         result = generate_verdict({"passed_tier1": True, "final_score": 39})
         assert result == "Significant daily-life gaps"
+
+
+# ============================================================================
+# generate_report_narrative (NES-239)
+# ============================================================================
+
+class TestGenerateReportNarrative:
+    """Test warm, specific summary narrative generation."""
+
+    def _result(self, score, passed=True, tier2=None, checks=None,
+                neighborhood=None, green_escape=None, urban_access=None):
+        """Build a minimal result_dict for narrative testing."""
+        r = {
+            "passed_tier1": passed,
+            "final_score": score,
+            "tier2_scores": tier2 or [],
+            "presented_checks": checks or [],
+            "neighborhood_places": neighborhood or {},
+            "green_escape": green_escape or {},
+            "urban_access": urban_access or {},
+        }
+        return r
+
+    def _tier2(self, name, points):
+        return {"name": name, "points": points, "max": 10}
+
+    # -- Failed tier 1 --
+
+    def test_failed_with_issues(self):
+        checks = [
+            {"category": "SAFETY", "result_type": "CONFIRMED_ISSUE",
+             "headline": "Gas station nearby"},
+            {"category": "SAFETY", "result_type": "WARNING_DETECTED",
+             "headline": "High-traffic road in vicinity"},
+        ]
+        result = self._result(0, passed=False, checks=checks)
+        narrative = generate_report_narrative(result)
+        assert "health and safety concerns" in narrative
+        assert "gas station nearby" in narrative
+        assert "high-traffic road" in narrative
+
+    def test_failed_no_issues(self):
+        result = self._result(0, passed=False)
+        narrative = generate_report_narrative(result)
+        assert "health and safety concerns" in narrative
+        assert "score it" in narrative
+
+    # -- Exceptional (>= 85) --
+
+    def test_exceptional_with_lead_place(self):
+        tier2 = [
+            self._tier2("Coffee & Social Spots", 9),
+            self._tier2("Daily Essentials", 8),
+            self._tier2("Fitness & Recreation", 7),
+            self._tier2("Parks & Green Space", 6),
+        ]
+        neighborhood = {"coffee": [{"name": "Blue Bottle Coffee"}]}
+        result = self._result(88, tier2=tier2, neighborhood=neighborhood)
+        narrative = generate_report_narrative(result)
+        assert "Blue Bottle Coffee" in narrative
+        assert "exceptional fit" in narrative
+        assert "passed all health and safety checks" in narrative
+
+    def test_exceptional_no_places(self):
+        tier2 = [self._tier2("Coffee & Social Spots", 9)]
+        result = self._result(90, tier2=tier2)
+        narrative = generate_report_narrative(result)
+        assert "exceptional fit" in narrative
+
+    # -- Strong (70-84) --
+
+    def test_strong_with_lead_place(self):
+        tier2 = [
+            self._tier2("Daily Essentials", 8),
+            self._tier2("Coffee & Social Spots", 5),
+        ]
+        neighborhood = {"grocery": [{"name": "Trader Joe's"}]}
+        result = self._result(75, tier2=tier2, neighborhood=neighborhood)
+        narrative = generate_report_narrative(result)
+        assert "Trader Joe" in narrative
+        assert "strong daily fit" in narrative
+
+    # -- Moderate (55-69) --
+
+    def test_moderate_with_weakness(self):
+        tier2 = [
+            self._tier2("Coffee & Social Spots", 7),
+            self._tier2("Daily Essentials", 3),
+        ]
+        neighborhood = {"coffee": [{"name": "Starbucks"}]}
+        result = self._result(60, tier2=tier2, neighborhood=neighborhood)
+        narrative = generate_report_narrative(result)
+        assert "Starbucks" in narrative
+        assert "solid foundation" in narrative.lower()
+        assert "grocery" in narrative
+
+    # -- Limited (40-54) --
+
+    def test_limited_needs_car(self):
+        tier2 = [
+            self._tier2("Coffee & Social Spots", 3),
+            self._tier2("Daily Essentials", 2),
+        ]
+        result = self._result(45, tier2=tier2)
+        narrative = generate_report_narrative(result)
+        assert "need a car" in narrative
+
+    # -- Poor (< 40) --
+
+    def test_poor_significant_gaps(self):
+        tier2 = [
+            self._tier2("Coffee & Social Spots", 2),
+            self._tier2("Daily Essentials", 1),
+            self._tier2("Fitness & Recreation", 1),
+        ]
+        result = self._result(25, tier2=tier2)
+        narrative = generate_report_narrative(result)
+        assert "driving" in narrative
+
+    # -- Transit callout for mid-range --
+
+    def test_moderate_with_station_callout(self):
+        tier2 = [self._tier2("Coffee & Social Spots", 6)]
+        urban = {"primary_transit": {"name": "Scarsdale"}}
+        result = self._result(60, tier2=tier2, urban_access=urban)
+        narrative = generate_report_narrative(result)
+        assert "Scarsdale" in narrative
+        assert "commuting" in narrative
+
+    # -- Empty result --
+
+    def test_empty_result_passed(self):
+        result = self._result(50, passed=True)
+        narrative = generate_report_narrative(result)
+        assert isinstance(narrative, str)
+        assert len(narrative) > 0
+
+    # -- Contains HTML for emphasis --
+
+    def test_contains_strong_tags(self):
+        tier2 = [self._tier2("Coffee & Social Spots", 9)]
+        result = self._result(88, tier2=tier2)
+        narrative = generate_report_narrative(result)
+        assert "<strong>" in narrative
 
 
 # ============================================================================
