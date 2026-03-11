@@ -16,6 +16,7 @@ Configuration (env vars):
 import os
 import hashlib
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -93,7 +94,9 @@ class UrbanAccessEngine:
     # Class-level cache shared across instances within the same process.
     # Key: md5(origin_str + "|" + dest_str + "|" + mode)
     # Value: travel time in minutes (int) or None
-    _cache: Dict[str, Optional[int]] = {}
+    # Bounded to prevent unbounded memory growth in long-running workers.
+    _CACHE_MAX_SIZE = 1000
+    _cache: OrderedDict = OrderedDict()
     _cache_lock: threading.Lock = threading.Lock()
 
     def __init__(self, maps, lat: float, lng: float):
@@ -127,6 +130,18 @@ class UrbanAccessEngine:
         with cls._cache_lock:
             cls._cache.clear()
 
+    @classmethod
+    def _cache_set(cls, key: str, value) -> None:
+        """Insert into bounded cache, evicting oldest entries if full."""
+        with cls._cache_lock:
+            if key in cls._cache:
+                cls._cache.move_to_end(key)
+                cls._cache[key] = value
+            else:
+                cls._cache[key] = value
+                while len(cls._cache) > cls._CACHE_MAX_SIZE:
+                    cls._cache.popitem(last=False)
+
     def _cache_key(self, origin: str, dest: str, mode: str) -> str:
         raw = f"{origin}|{dest}|{mode}"
         return hashlib.md5(raw.encode()).hexdigest()
@@ -136,10 +151,10 @@ class UrbanAccessEngine:
         key = self._cache_key("geocode", address, "")
         with self._cache_lock:
             if key in self._cache:
+                self._cache.move_to_end(key)
                 return self._cache[key]
         result = self.maps.geocode(address)
-        with self._cache_lock:
-            self._cache[key] = result
+        self._cache_set(key, result)
         return result
 
     def _travel_time(
@@ -159,6 +174,7 @@ class UrbanAccessEngine:
 
         with self._cache_lock:
             if key in self._cache:
+                self._cache.move_to_end(key)
                 return self._cache[key]
 
         try:
@@ -174,8 +190,7 @@ class UrbanAccessEngine:
         except Exception:
             result = None
 
-        with self._cache_lock:
-            self._cache[key] = result
+        self._cache_set(key, result)
         return result
 
     def _best_travel(

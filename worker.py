@@ -37,6 +37,25 @@ logger = logging.getLogger(__name__)
 # Poll interval when no job is available (seconds)
 POLL_INTERVAL = 2.0
 
+
+def _sanitize_error(e: Exception) -> str:
+    """Return a safe error message for client-visible storage.
+
+    Full details are already logged via logger.exception; the DB only
+    needs a classification, not internal paths or query text.
+    """
+    name = type(e).__name__
+    msg = str(e).lower()
+    if "timeout" in msg or "Timeout" in name:
+        return "Evaluation timed out. Please try again."
+    if "api" in msg or "API" in name or "HTTP" in name:
+        return "An external service error occurred. Please try again."
+    if "config" in msg or "EnvironmentError" in name:
+        return "A required service is not configured. Please try again later."
+    if "geocod" in msg:
+        return "We couldn't locate that address. Please check the spelling and try again."
+    return "Evaluation failed. Please try again."
+
 # Stop event: set by the main process to signal the worker thread to exit
 _stop_event = threading.Event()
 _worker_thread = None
@@ -196,7 +215,7 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         logger.info("[worker] Job %s completed -> snapshot %s", job_id, snapshot_id)
     except Exception as e:
         logger.exception("[worker] Job %s failed: %s", job_id, e)
-        fail_job(job_id, str(e))
+        fail_job(job_id, _sanitize_error(e))
         _reissue_payment_if_needed(job_id)
         _reissue_free_tier_if_needed(job_id)
         log_event(
@@ -204,7 +223,8 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
             visitor_id=visitor_id,
             metadata={
                 "address": address,
-                "error": str(e),
+                "error": _sanitize_error(e),
+                "error_type": type(e).__name__,
                 "request_id": request_id,
                 "trace_summary": trace_ctx.summary_dict(),
             },
@@ -264,7 +284,7 @@ def _worker_loop() -> None:
                             sentry_sdk.capture_exception(e)
                     except Exception:
                         pass
-                fail_job(job_id, str(e))
+                fail_job(job_id, _sanitize_error(e))
                 _reissue_payment_if_needed(job_id)
                 _reissue_free_tier_if_needed(job_id)
         else:

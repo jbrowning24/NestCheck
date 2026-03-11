@@ -17,6 +17,28 @@ from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Whitelist of valid facility types for SQL table name interpolation.
+# Prevents SQL injection via facility_type parameter.
+_VALID_FACILITY_TYPES = frozenset({
+    "sems", "fema_nfhl", "hpms", "ejscreen", "tri", "ust",
+    "hifld", "fra", "school_districts", "nces_schools",
+})
+
+
+def _validate_facility_type(facility_type: str) -> Optional[str]:
+    """Validate facility_type against whitelist, return table name or None.
+
+    Returns None for unknown types (graceful degradation in queries).
+    Logs a warning so invalid types are visible in monitoring.
+    """
+    if facility_type not in _VALID_FACILITY_TYPES:
+        logger.warning(
+            "Unknown facility_type %r — must be one of %s",
+            facility_type, sorted(_VALID_FACILITY_TYPES),
+        )
+        return None
+    return f"facilities_{facility_type}"
+
 
 def _spatial_db_path() -> str:
     """Resolve spatial database path. Mirrors models.py DB_PATH logic."""
@@ -116,7 +138,9 @@ class SpatialDataStore:
         """
         if not self.is_available():
             return False
-        table_name = f"facilities_{facility_type}"
+        table_name = _validate_facility_type(facility_type)
+        if table_name is None:
+            return False
         radius_meters = radius_km * 1000.0
         try:
             conn = _connect()
@@ -167,7 +191,9 @@ class SpatialDataStore:
             pass
 
         t0 = time.time()
-        table_name = f"facilities_{facility_type}"
+        table_name = _validate_facility_type(facility_type)
+        if table_name is None:
+            return []
         query_ok = False
 
         try:
@@ -275,7 +301,9 @@ class SpatialDataStore:
         """Count only — avoids hydrating full records when you just need a number."""
         if not self.is_available():
             return 0
-        table_name = f"facilities_{facility_type}"
+        table_name = _validate_facility_type(facility_type)
+        if table_name is None:
+            return 0
         try:
             conn = _connect()
             try:
@@ -321,7 +349,9 @@ class SpatialDataStore:
         """
         if not self.is_available():
             return []
-        table_name = f"facilities_{facility_type}"
+        table_name = _validate_facility_type(facility_type)
+        if table_name is None:
+            return []
         try:
             conn = _connect()
             try:
@@ -393,7 +423,9 @@ class SpatialDataStore:
         """Return all line features within radius_meters of the given point."""
         if not self.is_available():
             return []
-        table_name = f"facilities_{facility_type}"
+        table_name = _validate_facility_type(facility_type)
+        if table_name is None:
+            return []
         try:
             conn = _connect()
             try:
@@ -516,7 +548,12 @@ def create_facility_table(
         raise ValueError(
             f"geometry_type must be one of {allowed}, got {geometry_type!r}"
         )
-    table_name = f"facilities_{facility_type}"
+    table_name = _validate_facility_type(facility_type)
+    if table_name is None:
+        raise ValueError(
+            f"Invalid facility_type {facility_type!r}. "
+            f"Must be one of: {sorted(_VALID_FACILITY_TYPES)}"
+        )
     conn = _connect()
     try:
         # Try to clean up existing spatial metadata first

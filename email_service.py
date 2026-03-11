@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 FROM_ADDRESS = "NestCheck <reports@nestcheck.com>"
 
+# Track whether resend.api_key has been set to avoid repeated mutation.
+_resend_key_set = False
+
 
 def send_report_email(to_email: str, snapshot_id: str, address: str) -> bool:
     """
@@ -32,7 +35,10 @@ def send_report_email(to_email: str, snapshot_id: str, address: str) -> bool:
     try:
         import resend
 
-        resend.api_key = api_key
+        global _resend_key_set
+        if not _resend_key_set:
+            resend.api_key = api_key
+            _resend_key_set = True
 
         base_url = os.environ.get("NESTCHECK_BASE_URL", "https://nestcheck.com")
         report_url = f"{base_url.rstrip('/')}/s/{snapshot_id}"

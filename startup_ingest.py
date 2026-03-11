@@ -22,7 +22,19 @@ import time
 
 from spatial_data import _spatial_db_path
 
+import re
+
 logger = logging.getLogger("nestcheck.startup_ingest")
+
+# Regex for valid table names: lowercase letters, digits, underscores only
+_SAFE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def _validate_table_name(table_name: str) -> None:
+    """Ensure table_name is safe for SQL interpolation."""
+    if not _SAFE_TABLE_NAME.match(table_name):
+        raise ValueError(f"Unsafe table name: {table_name!r}")
+
 
 # Event signalling that spatial data is ready (or ingestion was attempted).
 # The evaluation worker waits on this before processing its first job so that
@@ -42,6 +54,7 @@ def _table_has_state_data(
     loaded independently and should be checked individually.
     """
     try:
+        _validate_table_name(table_name)
         conn = sqlite3.connect(db_path)
         try:
             cursor = conn.execute(
@@ -63,6 +76,7 @@ def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
     SpatiaLite not loaded), returns (False, 0) — never raises.
     """
     try:
+        _validate_table_name(table_name)
         conn = sqlite3.connect(db_path)
         try:
             cursor = conn.execute(f"SELECT COUNT(*) FROM {table_name}")

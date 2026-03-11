@@ -63,6 +63,10 @@ class OverpassHTTPClient:
             "OVERPASS_BASE_URL",
             "https://overpass-api.de/api/interpreter",
         )
+        # Reuse session for TCP/TLS connection pooling across Overpass queries.
+        # requests.Session is thread-safe for concurrent reads.
+        self._session = requests.Session()
+        self._session.trust_env = False
 
     def query(
         self,
@@ -195,13 +199,10 @@ class OverpassHTTPClient:
                 time.sleep(wait)
             self._last_request_time = time.monotonic()
 
-        # Fresh session per request (thread-safe, no shared state)
         start = time.monotonic()
         trace = get_trace()
         try:
-            session = requests.Session()
-            session.trust_env = False
-            resp = session.post(
+            resp = self._session.post(
                 self.base_url,
                 data={"data": overpass_ql},
                 timeout=timeout,

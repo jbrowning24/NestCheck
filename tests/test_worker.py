@@ -140,7 +140,8 @@ class TestRunJobImpl:
 
         job = get_job(job_id)
         assert job["status"] == "failed"
-        assert "API error" in job["error"]
+        # Error message is sanitized (no internal details exposed to clients)
+        assert "external service error" in job["error"].lower() or "try again" in job["error"].lower()
 
     @patch("worker.evaluate_property", side_effect=Exception("boom"))
     @patch.dict(os.environ, {"GOOGLE_MAPS_API_KEY": "test-key"}, clear=False)
