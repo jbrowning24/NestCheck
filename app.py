@@ -16,8 +16,9 @@ from typing import Dict, List, Optional, Tuple
 import click
 from flask import (
     Flask, request, render_template, redirect, url_for,
-    make_response, abort, jsonify, g, Response, flash
+    make_response, abort, jsonify, g, Response, flash, session
 )
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from dotenv import load_dotenv
 from markupsafe import escape as _html_escape
 from nc_trace import TraceContext, get_trace, set_trace, clear_trace
@@ -39,6 +40,8 @@ from models import (
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
     get_snapshots_by_ids, update_snapshot_email_sent,
     create_job, get_job,
+    get_user_by_id, get_or_create_user, claim_snapshots_for_user,
+    get_user_snapshots,
 )
 
 load_dotenv()
@@ -64,6 +67,66 @@ except Exception:
 else:
     CSRFProtect(app)
     app.jinja_env.globals["csrf_token"] = generate_csrf
+
+# ---------------------------------------------------------------------------
+# Flask-Login setup
+# ---------------------------------------------------------------------------
+
+class _FlaskUser:
+    """Minimal user wrapper for Flask-Login (not a DB model)."""
+
+    def __init__(self, user_dict: dict):
+        self.id = user_dict["id"]
+        self.email = user_dict["email"]
+        self.name = user_dict.get("name")
+        self.picture_url = user_dict.get("picture_url")
+        self.is_authenticated = True
+        self.is_active = True
+        self.is_anonymous = False
+
+    def get_id(self) -> str:
+        return self.id
+
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "auth_login"
+login_manager.login_message = "Please sign in to access your reports."
+login_manager.login_message_category = "info"
+
+
+@login_manager.user_loader
+def _load_user(user_id: str):
+    user_dict = get_user_by_id(user_id)
+    return _FlaskUser(user_dict) if user_dict else None
+
+
+# ---------------------------------------------------------------------------
+# Google OAuth via Authlib (optional — app works without it)
+# ---------------------------------------------------------------------------
+_GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+_GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+_oauth_enabled = bool(_GOOGLE_CLIENT_ID and _GOOGLE_CLIENT_SECRET)
+
+if _oauth_enabled:
+    from authlib.integrations.flask_client import OAuth
+    oauth = OAuth(app)
+    oauth.register(
+        name="google",
+        client_id=_GOOGLE_CLIENT_ID,
+        client_secret=_GOOGLE_CLIENT_SECRET,
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+else:
+    oauth = None
+    logger.info(
+        "Google OAuth not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing). "
+        "Sign-in will be unavailable."
+    )
+
+# Make oauth_enabled available in all templates for conditional nav rendering.
+app.jinja_env.globals["oauth_enabled"] = _oauth_enabled
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -136,6 +199,10 @@ def _set_request_context():
         g.set_visitor_cookie = True
     else:
         g.set_visitor_cookie = False
+
+    # Authenticated user context — available in templates via g.user_email
+    g.user_email = current_user.email if current_user.is_authenticated else None
+    g.user_name = current_user.name if current_user.is_authenticated else None
 
 
 @app.after_request
@@ -2794,6 +2861,7 @@ def index():
             place_id=place_id,
             persona=persona,
             email_raw=email,
+            user_id=current_user.id if current_user.is_authenticated else None,
         )
         logger.info("[%s] Job %s queued for address=%r", request_id, job_id, address)
 
@@ -3517,6 +3585,86 @@ def _register_ingest_command():
 
 
 _register_ingest_command()
+
+
+# ---------------------------------------------------------------------------
+# Authentication routes (Google OAuth)
+# ---------------------------------------------------------------------------
+
+@app.route("/auth/login")
+def auth_login():
+    """Redirect to Google OAuth consent screen."""
+    if not _oauth_enabled:
+        flash("Sign-in is not configured.", "warning")
+        return redirect("/")
+    session["auth_next"] = request.args.get("next", "/my-reports")
+    redirect_uri = url_for("auth_callback", _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    """Handle Google OAuth callback — create/find user and log in."""
+    if not _oauth_enabled:
+        flash("Sign-in is not configured.", "warning")
+        return redirect("/")
+    try:
+        token = oauth.google.authorize_access_token()
+    except Exception:
+        logger.exception("OAuth callback failed")
+        flash("Sign-in failed. Please try again.", "error")
+        return redirect("/")
+
+    userinfo = token.get("userinfo", {})
+    email = userinfo.get("email")
+    if not email:
+        flash("Could not retrieve your email from Google.", "error")
+        return redirect("/")
+
+    name = userinfo.get("name")
+    picture = userinfo.get("picture")
+    google_sub = userinfo.get("sub")
+
+    user_dict, created = get_or_create_user(
+        email=email, name=name, picture_url=picture, google_sub=google_sub
+    )
+
+    # Claim any unclaimed snapshots matching the user's email — on every login,
+    # not just the first, so snapshots created between logins are picked up.
+    claimed = claim_snapshots_for_user(user_dict["id"], email)
+    if claimed:
+        logger.info("Auto-claimed %d snapshot(s) for user %s", claimed, email)
+
+    login_user(_FlaskUser(user_dict), remember=True)
+    next_url = session.pop("auth_next", "/my-reports")
+    # Prevent open redirect: only allow relative paths on this host.
+    if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
+        next_url = "/my-reports"
+    return redirect(next_url)
+
+
+@app.route("/auth/logout")
+def auth_logout():
+    """Log out and redirect to home."""
+    logout_user()
+    return redirect("/")
+
+
+# ---------------------------------------------------------------------------
+# My Reports (authenticated)
+# ---------------------------------------------------------------------------
+
+@app.route("/my-reports")
+@login_required
+def my_reports():
+    """Show the current user's evaluation history."""
+    snapshots = get_user_snapshots(current_user.id)
+    return render_template(
+        "my_reports.html",
+        authenticated=True,
+        email=current_user.email,
+        snapshots=snapshots,
+    )
 
 
 # ---------------------------------------------------------------------------
