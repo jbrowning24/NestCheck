@@ -170,6 +170,7 @@ footer {
 .badge-pass { background: var(--color-pass-bg); color: var(--color-pass-text); }
 .badge-borderline { background: var(--color-borderline-bg); color: var(--color-borderline-text); }
 .badge-fail { background: var(--color-fail-bg); color: var(--color-fail-text); }
+.badge-drive { background: var(--color-bg-page); color: var(--color-text-muted); }
 .badge-great { background: var(--color-pass-bg); color: var(--color-pass-text); }
 .badge-ok { background: var(--color-ok-bg); color: var(--color-ok-text); }
 .badge-painful { background: var(--color-fail-bg); color: var(--color-fail-text); }
