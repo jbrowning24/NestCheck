@@ -172,7 +172,7 @@
 
 @media (max-width: 768px) {
   .share-bar { gap: var(--space-sm); }
-  .share-btn { padding: var(--space-xs) var(--space-sm); font-size: var(--font-size-small); }
+  .share-btn { padding: 5px 10px; }
 }
 
 @media (max-width: 640px) {
@@ -185,6 +185,7 @@
   .share-bar__actions {
     justify-content: center;
   }
+  .share-bar__sep { display: none; }
   .share-btn { justify-content: center; }
 }
 

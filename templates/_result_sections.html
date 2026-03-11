@@ -26,7 +26,7 @@
     <header class="report-header">
       <div class="report-header-meta">
         <div><span class="rh-label">Report for</span> <span class="rh-value">{{ result.address }}</span></div>
-        <div><span class="rh-label">Generated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:7] | replace('-', '/') }}{% endif %}</span></div>
+        <div><span class="rh-label">Evaluated</span> <span class="rh-value">{% if snapshot is defined and snapshot %}{{ snapshot.created_at[:10] }}{% endif %}</span></div>
       </div>
     </header>
 
@@ -150,9 +150,9 @@
                 <span class="dim-card__name">
                   {{ dim.name }}
                   {% if dim_weight > 1.0 %}
-                    <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9650;</span>
+                    <span class="dimension-weight-badge weight-up" title="{{ '%.0f'|format(dim_weight * 100) }}% weight"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4l8 14H4z"/></svg></span>
                   {% elif dim_weight < 1.0 %}
-                    <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight">&#9660;</span>
+                    <span class="dimension-weight-badge weight-down" title="{{ '%.0f'|format(dim_weight * 100) }}% weight"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20l8-14H4z"/></svg></span>
                   {% endif %}
                 </span>
                 <span class="dim-card__score dim-card__score--{{ band_key }}">{{ dim.score }}/{{ dim.max_score }}</span>
@@ -210,7 +210,7 @@
                 {% if result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},300m/data=!3m1!1e3"
-                     target="_blank" rel="noopener noreferrer">View satellite imagery &rarr;</a>
+                     target="_blank" rel="noopener noreferrer">View satellite imagery <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
                 {% endif %}
               </div>
               {% else %}
@@ -228,11 +228,11 @@
                 {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
-                     target="_blank" rel="noopener noreferrer">View satellite imagery &rarr;</a>
+                     target="_blank" rel="noopener noreferrer">View satellite imagery <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
                 {% endif %}
                 {% if pc.health_context is defined and pc.health_context %}
                   <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-                    <span class="collapse-icon health-context-label">&#9654;</span>
+                    <span class="collapse-icon health-context-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                     <span class="health-context-label">Why we check this</span>
                   </div>
                   <div class="collapsible-body collapsed health-context-body">
@@ -258,7 +258,7 @@
             {% set t2_non_clear = tier2_items | rejectattr('result_type', 'equalto', 'CLEAR') | list %}
             <div class="health-tier2-section">
               <div class="health-tier2-header collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="{{ 'true' if t2_non_clear else 'false' }}">
-                <span class="collapse-icon health-tier2-toggle-icon">&#9654;</span>
+                <span class="collapse-icon health-tier2-toggle-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span class="health-tier2-title">Area Environmental Indicators</span>
                 <span class="health-tier2-summary">
                   {% set t2_clear = tier2_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
@@ -331,7 +331,7 @@
                 Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
               </div>
               <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-                <span class="collapse-icon road-noise-label">&#9654;</span>
+                <span class="collapse-icon road-noise-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span class="road-noise-label">About the estimate</span>
               </div>
               <div class="collapsible-body collapsed road-noise-methodology">
@@ -638,7 +638,7 @@
               {{ confidence_badge(wq.data_confidence, wq.data_confidence_note, variant='block') }}
 
               <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-                <span class="collapse-icon">&#9654;</span>
+                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span>How walk quality differs from Walk Score</span>
               </div>
               <div class="collapsible-body collapsed">
@@ -696,7 +696,7 @@
               </div>
               {{ confidence_badge(sc.data_confidence, sc.data_confidence_note, variant='block') }}
               <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-                <span class="collapse-icon">&#9654;</span>
+                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span>About this metric</span>
               </div>
               <div class="collapsible-body collapsed">
@@ -745,7 +745,7 @@
                 <div class="text-right">
                   <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
                   <div class="park-daily-value">
-                    Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.1f"|format(park.daily_walk_value) }}/10</strong>
+                    Daily Value: <strong class="{% if park.daily_walk_value >= 7 %}score-good{% elif park.daily_walk_value >= 5 %}score-moderate{% else %}score-poor{% endif %}">{{ "%.0f"|format(park.daily_walk_value) }}/10</strong>
                   </div>
                 </div>
                 {% endif %}
@@ -764,7 +764,7 @@
                         {% set _fill_band = "strong" if _pct >= 66 else ("moderate" if _pct >= 33 else "limited") %}
                         <div class="mini-fill-bar__fill mini-fill-bar__fill--{{ _fill_band }}" style="width: {{ _pct }}%"></div>
                       </div>
-                      <span class="subscore-value">{{ "%.1f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</span>
+                      <span class="subscore-value">{{ "%.0f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</span>
                     </div>
                     <div class="subscore-reason">{{ ss.reason }}</div>
                   </div>
@@ -804,7 +804,7 @@
                   {% set dist_label, dist_badge = "Drive Only", "badge-drive" %}
                 {% endif %}
                 {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
-                {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.1f"|format(space.daily_walk_value) }}/10{% endset %}
+                {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.0f"|format(space.daily_walk_value) }}/10{% endset %}
                 {{ data_row(
                     name=space_name,
                     detail=space_meta,
@@ -1051,7 +1051,7 @@
           <h2 class="section-title">EPA ENVIRONMENTAL PROFILE</h2>
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
-            <span class="collapse-icon">&#9654;</span>
+            <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
             <span>View all indicators</span>
           </div>
           <div class="collapsible-body collapsed">
@@ -1070,7 +1070,7 @@
                     <span class="ejscreen-indicator__label">{{ label }}</span>
                     <span class="ejscreen-indicator__value">{{ "%.0f"|format(pct) }}th</span>
                     {% if pct >= 80 %}
-                      <span class="ejscreen-indicator__badge">&#9888;</span>
+                      <span class="ejscreen-indicator__badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                     {% endif %}
                   </div>
                 {% endif %}
@@ -1101,7 +1101,7 @@
         <div id="how-we-score" class="data-section">
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
             <h2 class="section-title section-title--collapsible">HOW WE SCORE</h2>
-            <span class="collapse-icon">&#9654;</span>
+            <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
           </div>
           <div class="collapsible-body collapsed">
 
@@ -1256,8 +1256,8 @@
       <div class="share-bar__left">
         {% if is_snapshot and snapshot is defined %}
         <div class="snapshot-meta">
-          Snapshot created {{ snapshot.created_at[:10] }}
-          {% if snapshot.view_count > 1 %} · Viewed {{ snapshot.view_count }} times{% endif %}
+          Report saved {{ snapshot.created_at[:10] }}
+          {% if snapshot.view_count > 1 %} · {{ snapshot.view_count }} views{% endif %}
         </div>
         {% endif %}
       </div>
@@ -1270,6 +1270,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <span id="shareBtnText">Copy link</span>
         </button>
+        <span class="share-bar__sep" aria-hidden="true"></span>
         <button class="share-btn share-btn--secondary" onclick="window.print()" aria-label="Save as PDF">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           <span>PDF</span>
@@ -1298,9 +1299,9 @@
     {# ── CTA BANNER (snapshot only) ── #}
     {% if is_snapshot %}
     <div class="snapshot-cta">
-      <h3>Wondering how your address compares?</h3>
-      <p>Run the same evaluation on any U.S. address — walkability, green space, transit, safety proximity, and more.</p>
-      <a href="/">Evaluate an Address</a>
+      <h3>How does your address compare?</h3>
+      <p>Evaluate any U.S. address for walkability, green space, transit, health proximity, and more.</p>
+      <a href="/">Evaluate an address</a>
     </div>
     {% endif %}
 
