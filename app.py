@@ -44,7 +44,8 @@ from models import (
     get_user_by_id, get_or_create_user, claim_snapshots_for_user,
     get_user_snapshots, update_user_stripe_customer,
     create_payment, get_payment_by_id, get_payment_by_session,
-    update_payment_status, redeem_payment, update_payment_job_id,
+    update_payment_status, redeem_payment,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
 )
 
 load_dotenv()
@@ -2997,59 +2998,44 @@ def index():
         # payment_token is required (unless in builder mode).
         payment_token = request.form.get("payment_token")
         if REQUIRE_PAYMENT and not _is_builder(request):
-            if not payment_token:
+
+            def _payment_error(msg):
                 if _wants_json():
-                    return jsonify({"error": "Payment required"}), 402
-                error = "Payment required to evaluate an address."
+                    return jsonify({"error": msg}), 402
                 return render_template(
-                    "index.html", result=result, error=error,
+                    "index.html", result=result, error=msg,
                     error_detail=error_detail,
                     address=address, snapshot_id=snapshot_id,
                     is_builder=g.is_builder, request_id=request_id,
                 )
 
+            if not payment_token:
+                return _payment_error("Payment required to evaluate an address.")
+
             payment = get_payment_by_id(payment_token)
-            if not payment or payment["status"] not in ("paid", "pending", "failed_reissued"):
-                if _wants_json():
-                    return jsonify({"error": "Invalid or expired payment token"}), 402
-                error = "Invalid or expired payment token."
-                return render_template(
-                    "index.html", result=result, error=error,
-                    error_detail=error_detail,
-                    address=address, snapshot_id=snapshot_id,
-                    is_builder=g.is_builder, request_id=request_id,
-                )
+            if not payment or payment["status"] not in (
+                PAYMENT_PAID, PAYMENT_PENDING, PAYMENT_FAILED_REISSUED,
+            ):
+                return _payment_error("Invalid or expired payment token.")
 
             # If webhook hasn't arrived yet (status=pending), verify
             # directly with Stripe.
-            if payment["status"] == "pending" and STRIPE_AVAILABLE:
+            if payment["status"] == PAYMENT_PENDING:
+                if not STRIPE_AVAILABLE:
+                    return _payment_error("Payment verification unavailable. Please try again.")
                 try:
                     stripe_session = stripe.checkout.Session.retrieve(
                         payment["stripe_session_id"]
                     )
                     if stripe_session.payment_status == "paid":
-                        update_payment_status(payment_token, "paid", expected_status="pending")
-                    else:
-                        if _wants_json():
-                            return jsonify({"error": "Payment not completed"}), 402
-                        error = "Payment not completed."
-                        return render_template(
-                            "index.html", result=result, error=error,
-                            error_detail=error_detail,
-                            address=address, snapshot_id=snapshot_id,
-                            is_builder=g.is_builder, request_id=request_id,
+                        update_payment_status(
+                            payment_token, PAYMENT_PAID, expected_status=PAYMENT_PENDING,
                         )
+                    else:
+                        return _payment_error("Payment not completed.")
                 except Exception:
                     logger.warning("Could not verify payment with Stripe", exc_info=True)
-                    if _wants_json():
-                        return jsonify({"error": "Could not verify payment"}), 402
-                    error = "Could not verify payment. Please try again."
-                    return render_template(
-                        "index.html", result=result, error=error,
-                        error_detail=error_detail,
-                        address=address, snapshot_id=snapshot_id,
-                        is_builder=g.is_builder, request_id=request_id,
-                    )
+                    return _payment_error("Could not verify payment. Please try again.")
 
         # Check for a fresh cached snapshot before queuing a job.
         api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
@@ -3106,8 +3092,11 @@ def index():
 
         # Redeem the payment token now that the job is created.
         if REQUIRE_PAYMENT and not _is_builder(request) and payment_token:
-            redeem_payment(payment_token, job_id=job_id)
-            update_payment_job_id(payment_token, job_id)
+            if not redeem_payment(payment_token, job_id=job_id):
+                logger.warning(
+                    "Payment %s could not be redeemed (status may have changed)",
+                    payment_token,
+                )
 
         if _wants_json():
             return jsonify({"job_id": job_id})
@@ -3899,8 +3888,12 @@ def stripe_webhook():
         )
     except ValueError:
         return jsonify({"error": "Invalid payload"}), 400
-    except stripe.error.SignatureVerificationError:
-        return jsonify({"error": "Invalid signature"}), 400
+    except Exception as exc:
+        # stripe.error.SignatureVerificationError in stripe <6,
+        # stripe.SignatureVerificationError in stripe >=6.
+        if "SignatureVerification" in type(exc).__name__:
+            return jsonify({"error": "Invalid signature"}), 400
+        raise
 
     if event["type"] == "checkout.session.completed":
         session_obj = event["data"]["object"]
@@ -3908,7 +3901,7 @@ def stripe_webhook():
         payment = get_payment_by_session(stripe_session_id)
         if payment:
             update_payment_status(
-                payment["id"], "paid", expected_status="pending",
+                payment["id"], PAYMENT_PAID, expected_status=PAYMENT_PENDING,
             )
             logger.info("Webhook: payment %s → paid", payment["id"])
 

@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
+# Payment status constants — use these instead of bare strings.
+PAYMENT_PENDING = "pending"
+PAYMENT_PAID = "paid"
+PAYMENT_REDEEMED = "redeemed"
+PAYMENT_FAILED_REISSUED = "failed_reissued"
+
 
 def _get_db():
     """Get a sqlite3 connection with WAL mode for concurrent reads."""
@@ -132,12 +138,17 @@ def init_db():
 
         CREATE TABLE IF NOT EXISTS free_tier_usage (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            email_hash      TEXT NOT NULL,
+            email_hash      TEXT NOT NULL UNIQUE,
             email           TEXT,
             job_id          TEXT,
             snapshot_id     TEXT,
             created_at      TEXT NOT NULL
         );
+
+        CREATE INDEX IF NOT EXISTS idx_payments_stripe_session
+            ON payments(stripe_session_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_job_id
+            ON payments(job_id);
     """)
 
     # Migration for pre-place_id databases.
@@ -187,6 +198,11 @@ def init_db():
         """CREATE UNIQUE INDEX IF NOT EXISTS idx_snapshots_place_id
            ON snapshots(place_id)
            WHERE place_id IS NOT NULL"""
+    )
+    # Migration: ensure UNIQUE index on free_tier_usage.email_hash
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_free_tier_email_hash "
+        "ON free_tier_usage(email_hash)"
     )
     conn.commit()
     conn.close()
@@ -771,8 +787,8 @@ def create_payment(payment_id: str, stripe_session_id: str,
         conn.execute(
             """INSERT INTO payments
                (id, stripe_session_id, visitor_id, address, status, snapshot_id, created_at)
-               VALUES (?, ?, ?, ?, 'pending', ?, ?)""",
-            (payment_id, stripe_session_id, visitor_id, address, snapshot_id, now),
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (payment_id, stripe_session_id, visitor_id, address, PAYMENT_PENDING, snapshot_id, now),
         )
         conn.commit()
     finally:
@@ -851,9 +867,9 @@ def redeem_payment(payment_id: str, job_id: str = None) -> bool:
     try:
         cursor = conn.execute(
             """UPDATE payments
-               SET status = 'redeemed', redeemed_at = ?, job_id = COALESCE(?, job_id)
-               WHERE id = ? AND status IN ('paid', 'failed_reissued')""",
-            (now, job_id, payment_id),
+               SET status = ?, redeemed_at = ?, job_id = COALESCE(?, job_id)
+               WHERE id = ? AND status IN (?, ?)""",
+            (PAYMENT_REDEEMED, now, job_id, payment_id, PAYMENT_PAID, PAYMENT_FAILED_REISSUED),
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -880,7 +896,6 @@ def update_payment_job_id(payment_id: str, job_id: str) -> None:
 
 def hash_email(email: str) -> str:
     """Deterministic, case-insensitive hash of an email address."""
-    import hashlib
     normalized = email.strip().lower()
     return hashlib.sha256(normalized.encode()).hexdigest()
 
@@ -900,25 +915,21 @@ def check_free_tier_used(email_hash: str, period_days: int = 30) -> bool:
 
 
 def record_free_tier_usage(email_hash: str, email: str, job_id: str) -> bool:
-    """Record a free tier evaluation. Returns False if already used."""
+    """Record a free tier evaluation. Returns False if already used.
+
+    Uses INSERT OR IGNORE with UNIQUE(email_hash) to avoid TOCTOU races.
+    """
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_db()
     try:
-        # Check if already used
-        existing = conn.execute(
-            "SELECT 1 FROM free_tier_usage WHERE email_hash = ?",
-            (email_hash,),
-        ).fetchone()
-        if existing:
-            return False
-        conn.execute(
-            """INSERT INTO free_tier_usage
+        cursor = conn.execute(
+            """INSERT OR IGNORE INTO free_tier_usage
                (email_hash, email, job_id, created_at)
                VALUES (?, ?, ?, ?)""",
             (email_hash, email, job_id, now),
         )
         conn.commit()
-        return True
+        return cursor.rowcount > 0
     finally:
         conn.close()
 

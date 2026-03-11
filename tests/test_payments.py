@@ -15,6 +15,7 @@ from models import (
     create_payment, get_payment_by_id, get_payment_by_session,
     get_payment_by_job_id, update_payment_status, redeem_payment,
     update_payment_job_id, create_job,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
 )
 from worker import _reissue_payment_if_needed
 
@@ -406,6 +407,21 @@ class TestReturnFromStripe:
 
         assert resp.status_code == 402
         assert "verify payment" in body["error"].lower()
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", False)
+    def test_pending_token_stripe_unavailable(self, client):
+        """Pending token + Stripe not available → 402 (cannot verify)."""
+        pid = _make_payment(stripe_session_id="cs_no_stripe")
+
+        resp, body = _post_json(client, "/", data={
+            "address": "123 Main St, Scarsdale, NY",
+            "payment_token": pid,
+        }, headers={"Accept": "application/json"})
+
+        assert resp.status_code == 402
+        assert "verification" in body["error"].lower() or "unavailable" in body["error"].lower()
+        assert get_payment_by_id(pid)["status"] == "pending"  # unchanged
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
