@@ -502,22 +502,6 @@ h1.narrative-summary {
 .dim-band--limited  { color: var(--color-fail-text); }
 .dim-band--not-scored { color: var(--color-text-muted); }
 
-.dim-score-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-}
-.dim-score-pill--strong   { background: var(--color-pass-bg);    color: var(--color-pass-text);    border: 1px solid var(--color-pass-border); }
-.dim-score-pill--moderate { background: var(--color-warning-bg); color: var(--color-warning-text); border: 1px solid var(--color-warning-border); }
-.dim-score-pill--limited  { background: var(--color-fail-bg);    color: var(--color-fail-text);    border: 1px solid var(--color-fail-border); }
-.dim-score-pill--not-scored { background: var(--color-bg-subtle, #f8f9fa); color: var(--color-text-muted); border: 1px solid var(--color-border); }
-
 /* ── Mini fill bar (for park subscores, dimension rows) ── */
 .mini-fill-bar {
   height: 4px;
@@ -1775,34 +1759,6 @@ h1.narrative-summary {
   font-size: var(--font-size-xs);
 }
 
-/* Dimension score pills — band-colored score labels */
-.dim-score-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-family: var(--font-heading);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-body);
-  white-space: nowrap;
-}
-.dim-score-pill--strong {
-  background: var(--color-pass-bg, #dcfce7);
-  color: var(--color-pass-text, #166534);
-}
-.dim-score-pill--moderate {
-  background: var(--color-warning-bg, #fef3c7);
-  color: var(--color-warning-text, #92400e);
-}
-.dim-score-pill--limited {
-  background: var(--color-fail-bg, #fee2e2);
-  color: var(--color-fail-text, #991b1b);
-}
-.dim-score-pill--not-scored {
-  background: var(--color-bg-subtle, #f1f5f9);
-  color: var(--color-text-faint, #94a3b8);
-}
-
 /* Mini fill bars — small inline progress bars for subscores */
 .mini-fill-bar {
   flex: 1;
@@ -1956,7 +1912,6 @@ h1.narrative-summary {
   .health-icon-badge { width: 20px; height: 20px; }
   .health-icon-badge svg { width: 12px; height: 12px; }
   .summary-pill { font-size: var(--font-size-xs); padding: 3px var(--space-sm); }
-  .dim-score-pill { font-size: var(--font-size-xs); min-width: 32px; }
   .mini-fill-bar { max-width: 60px; }
   .section-card--highlighted > .data-row { padding-left: var(--space-sm); }
 }
@@ -1988,7 +1943,7 @@ h1.narrative-summary {
   .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
   .health-stat-badge, .health-icon-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .health-check--elevated { box-shadow: none; }
-  .summary-pill, .dim-score-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .summary-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .section-card--elevated, .section-card--highlighted { box-shadow: none; }
   .section-card--highlighted > .data-row { border-left: none; }
   .place-card.section-card--highlighted,
