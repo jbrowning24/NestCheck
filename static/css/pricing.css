@@ -38,7 +38,7 @@ body:has(.pricing-page) {
 
 .pricing-subtitle {
   font-size: var(--font-size-h3);
-  color: #8E8E8E;
+  color: #666666;
   line-height: 1.6;
   margin: 0;
   text-wrap: balance;
@@ -47,7 +47,7 @@ body:has(.pricing-page) {
 /* ── Price card ───────────────────────────────────────────── */
 .price-card {
   background: var(--color-surface);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: var(--space-2xl);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--color-border);
@@ -78,13 +78,13 @@ body:has(.pricing-page) {
 
 .price-unit {
   font-size: 16px;
-  color: #8E8E8E;
+  color: #666666;
   font-weight: var(--font-weight-medium);
 }
 
 .price-desc {
   font-size: var(--font-size-body);
-  color: #8E8E8E;
+  color: #666666;
   line-height: var(--line-height-normal);
   margin: var(--space-xs) 0 0;
   max-width: 360px;
@@ -109,7 +109,7 @@ body:has(.pricing-page) {
   align-items: flex-start;
   gap: var(--space-md);
   font-size: 14px;
-  color: #555555;
+  color: #666666;
   text-align: left;
   line-height: 1.4;
 }
@@ -165,7 +165,7 @@ body:has(.pricing-page) {
 
 .coming-soon-card {
   background: var(--color-surface);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   padding: 28px var(--space-xl);
   border: 1px solid var(--color-border);
 }
@@ -180,7 +180,7 @@ body:has(.pricing-page) {
 
 .coming-soon-card p {
   font-size: 14px;
-  color: #8E8E8E;
+  color: #666666;
   line-height: var(--line-height-normal);
   margin: 0;
 }
@@ -194,12 +194,12 @@ body:has(.pricing-page) {
 }
 
 .pricing-note a {
-  color: #8E8E8E;
+  color: #666666;
   text-underline-offset: 2px;
 }
 
 .pricing-note a:hover {
-  color: #555555;
+  color: #111111;
 }
 
 /* ── Mobile ───────────────────────────────────────────────── */
