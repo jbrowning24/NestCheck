@@ -245,14 +245,12 @@ class TestCreateAndGetJob:
             request_id="req1",
             place_id="ChIJ123",
             email_hash="abc123",
-            persona="commuter",
         )
         job = get_job(job_id)
         assert job["visitor_id"] == "v1"
         assert job["request_id"] == "req1"
         assert job["place_id"] == "ChIJ123"
         assert job["email_hash"] == "abc123"
-        assert job["persona"] == "commuter"
 
     def test_missing_job_returns_none(self):
         assert get_job("nonexistent") is None

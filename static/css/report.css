@@ -121,6 +121,23 @@ h1.narrative-summary {
   background: #FAFAFA;
 }
 
+/* --- Dimension Section Intro --- */
+.dim-section-intro {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+  margin: 0 0 var(--space-base);
+}
+.dim-section-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+.dim-section-link:hover {
+  text-decoration: underline;
+}
+
 /* --- Dimension Scorecards --- */
 .dimension-grid {
   display: grid;
@@ -487,7 +504,7 @@ h1.narrative-summary {
   transition: background-color 0.15s ease;
 }
 .health-context-toggle:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--color-bg-hover, rgba(0, 0, 0, 0.04));
 }
 .health-context-label {
   font-size: var(--font-size-small);
@@ -900,14 +917,6 @@ h1.narrative-summary {
   border-radius: 3px;
   width: var(--fill, 0%);
 }
-.dimension-weight-badge {
-  font-size: var(--text-xs);
-  line-height: 1;
-  margin-left: var(--space-xs);
-}
-.weight-up { color: var(--color-accent); }
-.weight-down { color: var(--color-text-muted); }
-
 /* Band-specific ring fill colors (for score_ring macro) */
 .band-exceptional .score-ring-fill { stroke: var(--band-exceptional); }
 .band-strong .score-ring-fill      { stroke: var(--band-strong); }
@@ -1520,37 +1529,6 @@ h1.narrative-summary {
   font-style: italic;
   margin-top: var(--space-base);
 }
-
-/* Persona */
-.persona-badge {
-  display: inline-block;
-  margin-top: var(--space-sm);
-  padding: var(--space-xs) var(--space-md);
-  font-size: var(--font-size-small);
-  color: var(--color-accent);
-  background: rgba(37, 99, 235, 0.08);
-  border-radius: var(--radius-full);
-  font-weight: var(--font-weight-semibold);
-}
-.persona-weights-table {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin: var(--space-md) 0;
-  padding: var(--space-md) var(--space-base);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-md);
-}
-.persona-weight-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-small);
-}
-.pw-dim { color: var(--color-text-secondary); }
-.pw-weight { font-weight: var(--font-weight-semibold); color: var(--color-text-muted); }
-.pw-emphasis { color: var(--color-accent); }
-.pw-deemphasis { color: var(--color-text-muted); }
 
 /* --- Share Bar --- */
 .share-bar {

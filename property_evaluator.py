@@ -37,8 +37,8 @@ from green_space import (
     evaluate_green_escape,
 )
 from scoring_config import (
-    PERSONA_PRESETS, DEFAULT_PERSONA, PersonaPreset, SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION, apply_piecewise, apply_quality_multiplier,
+    SCORING_MODEL,
+    apply_piecewise, apply_quality_multiplier,
     QualityCeilingConfig,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
@@ -390,9 +390,6 @@ class EvaluationResult:
 
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
-
-    # Scoring lens / persona applied during aggregation (NES-133)
-    persona: Optional[PersonaPreset] = None
 
     # Keep these from main
     final_score: int = 0
@@ -5227,7 +5224,6 @@ def evaluate_property(
     pre_geocode: Optional[Dict[str, Any]] = None,
     on_stage: Optional[Callable[[str], None]] = None,
     place_id: Optional[str] = None,
-    persona: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
 
@@ -5240,9 +5236,6 @@ def evaluate_property(
             progresses, used by the worker to update job status in the DB.
         place_id: Optional Google place_id (unused in evaluation itself,
             reserved for future use).
-        persona: Optional persona key (e.g. "active", "commuter", "quiet").
-            Determines dimension weights used for score aggregation.
-            Defaults to "balanced" (equal weights).
     """
     def _notify(name: str) -> None:
         if on_stage is not None:
@@ -5254,10 +5247,6 @@ def evaluate_property(
         return _timed_stage(stage_name, fn, *args, **kwargs)
 
     eval_start = time.time()
-
-    # Resolve persona preset for weighted scoring
-    persona_preset = PERSONA_PRESETS.get(persona or DEFAULT_PERSONA,
-                                         PERSONA_PRESETS[DEFAULT_PERSONA])
 
     maps = GoogleMapsClient(api_key)
 
@@ -5274,7 +5263,6 @@ def evaluate_property(
         listing=listing,
         lat=lat,
         lng=lng,
-        persona=persona_preset,
     )
 
     # --- Optional enrichments (each fails independently) ---
@@ -5563,20 +5551,10 @@ def evaluate_property(
         result.tier2_total = sum(s.points for s in _scorable)
         result.tier2_max = sum(s.max_points for s in _scorable)
 
-        # Weighted normalization using persona lens.
-        # Map internal Tier2Score names to persona dimension names so
-        # weights resolve correctly (e.g. "Primary Green Escape" -> "Parks & Green Space").
-        _weights = persona_preset.weights
-        _weighted_total = sum(
-            s.points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in _scorable
-        )
-        _weighted_max = sum(
-            s.max_points * _weights.get(TIER2_NAME_TO_DIMENSION.get(s.name, s.name), 1.0)
-            for s in _scorable
-        )
-        if _weighted_max > 0:
-            result.tier2_normalized = int(_weighted_total / _weighted_max * 100 + 0.5)
+        # Equal-weight normalization: each scorable dimension contributes
+        # equally to the 0-100 composite score.
+        if result.tier2_max > 0:
+            result.tier2_normalized = int(result.tier2_total / result.tier2_max * 100 + 0.5)
         else:
             result.tier2_normalized = 0
 
