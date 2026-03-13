@@ -747,7 +747,12 @@
             {% set park = result.green_escape.best_daily_park %}
             <div class="park-highlight section-card--highlighted">
               {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
-              {% call(slot) data_row(name=park.name, detail=park_meta, variant="place", no_border=true) %}
+              {% if park.place_id and not park.place_id.startswith("parkserve_") %}
+                {% set park_name %}<a href="https://www.google.com/maps/place/?q=place_id:{{ park.place_id }}" target="_blank" rel="noopener noreferrer" class="park-maps-link">{{ park.name }}</a>{% endset %}
+              {% else %}
+                {% set park_name %}{{ park.name }}{% endset %}
+              {% endif %}
+              {% call(slot) data_row(name=park_name, detail=park_meta, variant="place", no_border=true) %}
                 {% if slot == "right" %}
                 <div class="text-right">
                   <div class="data-row__value">{% if park.drive_time_min and park.walk_time_min > 30 %}{{ fmt_time(park.drive_time_min, "drive") }}{% elif park.drive_time_min and park.walk_time_min > 25 %}{{ fmt_time(park.drive_time_min, "drive") }} · {{ fmt_time(park.walk_time_min, "walk") }}{% else %}{{ fmt_time(park.walk_time_min, "walk") }}{% endif %}</div>
@@ -810,7 +815,11 @@
                 {% else %}
                   {% set dist_label, dist_badge = "Drive Only", "badge-drive" %}
                 {% endif %}
-                {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
+                {% if space.place_id and not space.place_id.startswith("parkserve_") %}
+                  {% set space_name %}<a href="https://www.google.com/maps/place/?q=place_id:{{ space.place_id }}" target="_blank" rel="noopener noreferrer" class="park-maps-link place-name--light">{{ space.name }}</a> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
+                {% else %}
+                  {% set space_name %}<span class="place-name--light">{{ space.name }}</span> <span class="badge {{ dist_badge }} badge--inline">{{ dist_label }}</span>{% endset %}
+                {% endif %}
                 {% set space_meta %}{% if space.rating %}{{ "%.1f"|format(space.rating) }} stars{% endif %}{% if space.user_ratings_total %} ({{ space.user_ratings_total }} reviews){% endif %} &middot; Score: {{ "%.0f"|format(space.daily_walk_value) }}/10{% endset %}
                 {{ data_row(
                     name=space_name,

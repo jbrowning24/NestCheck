@@ -1837,6 +1837,7 @@ def _serialize_green_escape(evaluation):
         p = evaluation.best_daily_park
         best_park = {
             "name": p.name,
+            "place_id": p.place_id,
             "rating": p.rating,
             "user_ratings_total": p.user_ratings_total,
             "walk_time_min": p.walk_time_min,
@@ -1867,6 +1868,7 @@ def _serialize_green_escape(evaluation):
     for s in evaluation.nearby_green_spaces:
         nearby.append({
             "name": s.name,
+            "place_id": s.place_id,
             "rating": s.rating,
             "user_ratings_total": s.user_ratings_total,
             "walk_time_min": s.walk_time_min,
