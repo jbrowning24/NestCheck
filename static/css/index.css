@@ -45,7 +45,7 @@ body:has(.landing-container) {
 
 .hero-subtitle {
   font-size: 18px;
-  color: #8E8E8E;
+  color: #666666;
   max-width: 580px;
   line-height: 1.6;
   margin: 0;
@@ -134,7 +134,7 @@ body:has(.landing-container) {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.05em;
-  color: #8E8E8E;
+  color: #666666;
   text-transform: uppercase;
 }
 
@@ -146,7 +146,7 @@ body:has(.landing-container) {
   border: none;
   border-radius: 100px;
   background: #EBEBEB;
-  color: #555555;
+  color: #666666;
   white-space: nowrap;
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease;
@@ -297,21 +297,16 @@ body:has(.landing-container) {
 
 .preview-card {
   background: var(--color-surface);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 32px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 20px;
-  border: 1px solid transparent;
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid var(--color-border-light);
 }
 
-.preview-card:hover {
-  transform: translateY(-4px);
-  border-color: #E0E0E0;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
+/* preview-card hover removed — cards are static examples, not interactive (NES-slop-audit) */
 
 .card-top {
   display: flex;
@@ -331,7 +326,7 @@ body:has(.landing-container) {
 
 .address-info p {
   font-size: 13px;
-  color: #8E8E8E;
+  color: #666666;
   margin: 0;
 }
 

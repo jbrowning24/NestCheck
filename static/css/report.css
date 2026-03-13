@@ -134,9 +134,7 @@ h1.narrative-summary {
   padding: var(--space-base);
   transition: box-shadow var(--transition-base);
 }
-.dim-card:hover {
-  box-shadow: var(--shadow-card-hover);
-}
+/* dim-card hover removed — scorecards are not interactive (NES-slop-audit) */
 .dim-card--strong  { border-left: 3px solid var(--color-pass); }
 .dim-card--moderate { border-left: 3px solid var(--color-warning); }
 .dim-card--limited { border-left: 3px solid var(--color-fail); }
@@ -144,7 +142,7 @@ h1.narrative-summary {
 .dim-card--sparse,
 .dim-card--suppressed {
   border-left: 3px solid var(--color-border);
-  opacity: 0.85;
+  color: var(--color-text-muted);
 }
 .dim-card__header {
   display: flex;
@@ -542,6 +540,7 @@ h1.narrative-summary {
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
+  white-space: nowrap;
   background: var(--color-bg-subtle, #f8f9fa);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
@@ -556,7 +555,7 @@ h1.narrative-summary {
 /* ── Section card weight modifiers (shared anatomy) ── */
 .section-card--quiet {
   border-left-width: 2px;
-  opacity: 0.85;
+  color: var(--color-text-secondary);
 }
 .section-card--quiet .place-name,
 .section-card--quiet .data-row__name,
@@ -966,18 +965,18 @@ h1.narrative-summary {
 .road-noise-detail {
   margin-top: var(--space-xs);
   font-size: var(--font-size-small);
-  opacity: 0.85;
+  color: var(--color-text-muted);
 }
 .road-noise-toggle {
   margin-top: var(--space-sm);
 }
 .road-noise-label {
   font-size: var(--font-size-small);
-  opacity: 0.7;
+  color: var(--color-text-faint);
 }
 .road-noise-methodology {
   font-size: var(--font-size-small);
-  opacity: 0.65;
+  color: var(--color-text-faint);
   margin-top: var(--space-xs);
 }
 
@@ -1459,7 +1458,7 @@ h1.narrative-summary {
 .ejscreen-source {
   margin-top: var(--space-sm);
   font-size: var(--font-size-small);
-  opacity: 0.65;
+  color: var(--color-text-faint);
 }
 
 /* --- Area Context Divider --- */
@@ -1853,90 +1852,20 @@ h1.narrative-summary {
 
 /* ================================================================
    Shared Visual Components (Phase 1+2)
+   Note: .section-summary-row, .summary-pill (base + variants),
+   .mini-fill-bar (base + fill + variants), .section-card--quiet/
+   --highlighted/--elevated are defined above (~line 547).
+   Only unique additions from Phase 2 follow here.
    ================================================================ */
 
-/* Section summary row — horizontal pill strip below section headings */
-.section-summary-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-base);
-}
-
-/* Summary pills — small colored badges for counts and labels */
-.summary-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.4;
-  white-space: nowrap;
-}
-.summary-pill--pass {
-  background: var(--color-pass-bg, #dcfce7);
-  color: var(--color-pass-text, #166534);
-}
-.summary-pill--warning {
-  background: var(--color-warning-bg, #fef3c7);
-  color: var(--color-warning-text, #92400e);
-}
-.summary-pill--fail {
-  background: var(--color-fail-bg, #fee2e2);
-  color: var(--color-fail-text, #991b1b);
-}
-.summary-pill--neutral {
-  background: var(--color-bg-subtle, #f1f5f9);
-  color: var(--color-text-muted, #64748b);
-}
-.summary-pill--accent {
-  background: var(--color-accent-bg, #dbeafe);
-  color: var(--color-accent, #2563eb);
-}
+/* Compact pill variant (not in original block) */
 .summary-pill--compact {
   padding: 1px 6px;
   font-size: var(--font-size-xs);
 }
 
-/* Mini fill bars — small inline progress bars for subscores */
-.mini-fill-bar {
-  flex: 1;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 2px;
-  overflow: hidden;
-  min-width: 40px;
-  max-width: 80px;
-}
-.mini-fill-bar__fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-.mini-fill-bar__fill--strong   { background: var(--color-pass, #22c55e); }
-.mini-fill-bar__fill--moderate { background: var(--color-warning, #f59e0b); }
-.mini-fill-bar__fill--limited  { background: var(--color-fail, #ef4444); }
-.mini-fill-bar__fill--not-scored { background: var(--color-border, #cbd5e1); }
-
-
-
-/* Section card modifiers — visual weight for cards */
-.section-card--quiet {
-  opacity: 0.85;
-}
-/* Preserve lower opacity when both muted and quiet are applied (cascade
-   would otherwise raise muted 0.75 → quiet 0.85). */
-.place-card--muted.section-card--quiet {
-  opacity: 0.75;
-}
-.section-card--highlighted {
-  border-left: 3px solid var(--color-accent, #3b82f6);
-  padding-left: var(--space-md);
-}
-.section-card--elevated {
-  box-shadow: var(--shadow-card, 0 4px 12px rgba(0, 0, 0, 0.08));
-}
+/* Not-scored fill bar variant (not in original block) */
+.mini-fill-bar__fill--not-scored { background: var(--color-border); }
 
 /* Place card quiet modifier — reduce name emphasis */
 .place-card.section-card--quiet .place-name {
@@ -2088,7 +2017,7 @@ h1.narrative-summary {
   .section-card--highlighted > .data-row { border-left: none; }
   .place-card.section-card--highlighted,
   .park-highlight.section-card--highlighted { border-left: 2px solid #3b82f6; }
-  .section-card--quiet { opacity: 1; }
+  .section-card--quiet { color: var(--color-text-primary); }
   .mini-fill-bar__fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body::before {
     content: "NestCheck Property Evaluation";
