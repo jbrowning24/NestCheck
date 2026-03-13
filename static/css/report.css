@@ -473,12 +473,21 @@ h1.narrative-summary {
 
 /* --- Health Context (progressive disclosure) --- */
 .health-context-toggle {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-xs);
   gap: var(--space-xs);
   display: flex;
   align-items: center;
   cursor: pointer;
   user-select: none;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  margin-left: calc(-1 * var(--space-sm));
+  margin-right: calc(-1 * var(--space-sm));
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+.health-context-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 .health-context-label {
   font-size: var(--font-size-small);
