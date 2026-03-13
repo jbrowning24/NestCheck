@@ -29,7 +29,7 @@ from property_evaluator import (
     get_score_band, proximity_synthesis,
 )
 from scoring_config import (
-    PERSONA_PRESETS, DEFAULT_PERSONA, TIER2_NAME_TO_DIMENSION,
+    TIER2_NAME_TO_DIMENSION,
     HEALTH_CHECK_CITATIONS,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     _LEGACY_CONFIDENCE_MAP,
@@ -2122,15 +2122,6 @@ def result_to_dict(result):
         "percentile_label": result.percentile_label,
     }
 
-    # Persona / scoring lens (NES-133)
-    if result.persona is not None:
-        output["persona"] = {
-            "key": result.persona.key,
-            "label": result.persona.label,
-            "description": result.persona.description,
-            "weights": dict(result.persona.weights),
-        }
-
     # Neighborhood places — already plain dicts, pass through as-is
     output["neighborhood_places"] = result.neighborhood_places if result.neighborhood_places else None
 
@@ -2771,21 +2762,10 @@ def _weather_context(weather):
     return ". ".join(sentences)
 
 
-def _insight_community_profile(demographics, persona, result_dict):
-    """Generate a narrative insight for the Community Profile section.
-
-    Ordering and emphasis vary by persona:
-    - balanced: children → tenure → commute
-    - commuter: commute → children → tenure
-    - quiet: tenure → children → WFH
-    - active: children → tenure → commute (same as balanced)
-    """
+def _insight_community_profile(demographics, result_dict):
+    """Generate a narrative insight for the Community Profile section."""
     if not demographics:
         return None
-
-    persona_key = "balanced"
-    if persona and isinstance(persona, dict):
-        persona_key = persona.get("key", "balanced")
 
     children_pct = demographics.get("children_pct", 0)
     renter_pct = demographics.get("renter_pct", 0)
@@ -2798,8 +2778,6 @@ def _insight_community_profile(demographics, persona, result_dict):
 
     commute = demographics.get("commute", {})
     transit_pct = commute.get("transit_pct", 0)
-    walk_pct = commute.get("walk_pct", 0)
-    wfh_pct = commute.get("wfh_pct", 0)
     drive_alone_pct = commute.get("drive_alone_pct", 0)
 
     county_commute = demographics.get("county_commute", {})
@@ -2825,42 +2803,10 @@ def _insight_community_profile(demographics, persona, result_dict):
             return s
         return f"{drive_alone_pct:.0f}% of commuters drive alone"
 
-    def _wfh_sentence():
-        if wfh_pct >= 10:
-            return f"{wfh_pct:.0f}% work from home"
-        return None
-
-    def _sidewalk_cross_ref():
-        if walk_pct >= 3 and result_dict:
-            sw = result_dict.get("sidewalk_coverage", {})
-            sw_pct = sw.get("sidewalk_pct") if sw else None
-            if sw_pct is not None:
-                return f"{walk_pct:.0f}% walk to work, supported by {sw_pct:.0f}% sidewalk coverage"
-        return None
-
-    # Assemble based on persona ordering
     sentences = []
-
-    if persona_key == "commuter":
-        sentences.append(_commute_sentence())
-        # Sidewalk cross-reference
-        sw = _sidewalk_cross_ref()
-        if sw:
-            sentences.append(sw)
-        sentences.append(_children_sentence())
-        sentences.append(_tenure_sentence())
-    elif persona_key == "quiet":
-        sentences.append(_tenure_sentence())
-        sentences.append(_children_sentence())
-        wfh = _wfh_sentence()
-        if wfh:
-            sentences.append(wfh)
-        sentences.append(_commute_sentence())
-    else:
-        # balanced / active / default
-        sentences.append(_children_sentence())
-        sentences.append(_tenure_sentence())
-        sentences.append(_commute_sentence())
+    sentences.append(_children_sentence())
+    sentences.append(_tenure_sentence())
+    sentences.append(_commute_sentence())
 
     # Filter None values
     sentences = [s for s in sentences if s]
@@ -2897,7 +2843,6 @@ def generate_insights(result_dict):
     freq_label = result_dict.get("frequency_label", "")
     presented_checks = result_dict.get("presented_checks", [])
     demographics = result_dict.get("demographics")
-    persona = result_dict.get("persona")
 
     neighborhood_insight = _insight_neighborhood(neighborhood, tier2)
 
@@ -2908,7 +2853,7 @@ def generate_insights(result_dict):
         ),
         "parks": _insight_parks(green_escape, tier2),
         "proximity": proximity_synthesis(presented_checks),
-        "community_profile": _insight_community_profile(demographics, persona, result_dict),
+        "community_profile": _insight_community_profile(demographics, result_dict),
         "_car_dependent": neighborhood_insight["car_dependent"],
     }
 
@@ -3167,13 +3112,11 @@ def index():
 
         # Queue the evaluation as an async job so the response returns
         # immediately. The frontend polls GET /job/<job_id> for progress.
-        persona = request.form.get("persona", "").strip() or None
         job_id = create_job(
             address=address,
             visitor_id=g.visitor_id,
             request_id=request_id,
             place_id=place_id,
-            persona=persona,
             email_hash=email_h,
             email_raw=email,
             user_id=current_user.id if current_user.is_authenticated else None,
@@ -3253,16 +3196,6 @@ def view_snapshot(snapshot_id):
         result["structured_summary"] = generate_structured_summary(
             result.get("presented_checks", [])
         )
-
-    # Backfill persona for old snapshots (NES-133)
-    if "persona" not in result:
-        _bp = PERSONA_PRESETS[DEFAULT_PERSONA]
-        result["persona"] = {
-            "key": _bp.key,
-            "label": _bp.label,
-            "description": _bp.description,
-            "weights": dict(_bp.weights),
-        }
 
     # NES-196: Suppress UNKNOWN spatial checks at presentation layer.
     # Build a shallow copy so the stored snapshot dict is never mutated.

@@ -1141,11 +1141,11 @@ def _make_demographics(
 
 class TestInsightCommunityProfile:
     def test_none_demographics_returns_none(self):
-        assert _insight_community_profile(None, None, {}) is None
+        assert _insight_community_profile(None, {}) is None
 
-    def test_balanced_persona_children_first(self):
+    def test_children_first(self):
         demo = _make_demographics()
-        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+        result = _insight_community_profile(demo, {})
 
         assert result is not None
         # Children sentence should come before tenure sentence
@@ -1153,70 +1153,24 @@ class TestInsightCommunityProfile:
         rent_pos = result.find("rent")
         assert children_pos < rent_pos or rent_pos == -1
 
-    def test_commuter_persona_commute_first(self):
-        demo = _make_demographics()
-        result = _insight_community_profile(demo, {"key": "commuter"}, {})
-
-        assert result is not None
-        # Commute info should appear before children
-        commute_pos = result.find("commuters") if "commuters" in result else result.find("drive")
-        children_pos = result.find("children")
-        assert commute_pos >= 0, "Expected commute info in output"
-        assert children_pos >= 0, "Expected children info in output"
-        assert commute_pos < children_pos
-
     def test_county_comparison_included(self):
         demo = _make_demographics()
-        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+        result = _insight_community_profile(demo, {})
 
         assert "Westchester County" in result
         assert "32%" in result  # county children pct
 
     def test_transit_comparison_for_high_transit(self):
         demo = _make_demographics(transit_pct=15.0)
-        result = _insight_community_profile(demo, {"key": "balanced"}, {})
+        result = _insight_community_profile(demo, {})
 
         assert "transit" in result.lower()
         assert "18%" in result  # county transit pct
 
-    def test_quiet_persona_tenure_first(self):
+    def test_basic_ordering(self):
+        """Basic community profile includes children info."""
         demo = _make_demographics()
-        result = _insight_community_profile(demo, {"key": "quiet"}, {})
+        result = _insight_community_profile(demo, {})
 
         assert result is not None
-        # Tenure sentence should come first
-        assert result.startswith("This tract is")
-
-    def test_sidewalk_cross_reference(self):
-        demo = _make_demographics(walk_pct=5.0)
-        result_dict = {"sidewalk_coverage": {"sidewalk_pct": 75.0}}
-        result = _insight_community_profile(demo, {"key": "commuter"}, result_dict)
-
-        assert result is not None
-        assert "sidewalk" in result.lower()
-        assert "75%" in result
-
-    def test_no_sidewalk_cross_ref_when_low_walk(self):
-        demo = _make_demographics(walk_pct=1.0)
-        result_dict = {"sidewalk_coverage": {"sidewalk_pct": 75.0}}
-        result = _insight_community_profile(demo, {"key": "commuter"}, result_dict)
-
-        # walk_pct < 3 so no sidewalk cross-reference
-        if result:
-            assert "sidewalk" not in result.lower()
-
-    def test_wfh_sentence_for_quiet_persona(self):
-        demo = _make_demographics(wfh_pct=15.0)
-        result = _insight_community_profile(demo, {"key": "quiet"}, {})
-
-        assert "work from home" in result.lower()
-        assert "15%" in result
-
-    def test_default_persona_when_none(self):
-        """When persona is None, falls back to balanced ordering."""
-        demo = _make_demographics()
-        result = _insight_community_profile(demo, None, {})
-
-        assert result is not None
-        # Should use balanced ordering (children first)
         assert "children" in result.lower()

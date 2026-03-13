@@ -407,7 +407,6 @@ class TestResultToDictConfidence:
         result.passed_tier1 = True
         result.neighborhood_places = None
         result.ejscreen_profile = None
-        result.persona = None
 
         s1 = Tier2Score("Test Dim", 7, 10, "test detail",
                         data_confidence=CONFIDENCE_VERIFIED,
@@ -460,7 +459,6 @@ class TestResultToDictConfidence:
         result.passed_tier1 = False
         result.neighborhood_places = None
         result.ejscreen_profile = None
-        result.persona = None
         result.tier2_scores = []
         result.tier2_total = 0
         result.tier2_max = 0
@@ -496,7 +494,6 @@ class TestResultToDictConfidence:
         result.passed_tier1 = True
         result.neighborhood_places = None
         result.ejscreen_profile = None
-        result.persona = None
 
         result.tier2_scores = [
             Tier2Score("A", 8, 10, "a", data_confidence=CONFIDENCE_VERIFIED, data_confidence_note="x"),
