@@ -1690,6 +1690,8 @@ h1.narrative-summary {
   border-top: 1px solid var(--color-border-light);
 }
 .place-name--light { font-weight: var(--font-weight-medium); }
+.park-maps-link { color: inherit; text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 2px; }
+.park-maps-link:hover { text-decoration-color: currentColor; }
 .badge--inline { margin-left: var(--space-sm); }
 
 /* --- Preview Tier --- */
