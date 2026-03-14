@@ -1339,6 +1339,7 @@ def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check
         warn_candidates = [
             s for s in with_aadt
             if s.distance_meters > HIGH_TRAFFIC_FAIL_RADIUS_M
+            and s.distance_meters <= HIGH_TRAFFIC_WARN_RADIUS_M
             and s.metadata["aadt"] >= HIGH_TRAFFIC_AADT_THRESHOLD
         ]
 

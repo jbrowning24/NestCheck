@@ -1,0 +1,3484 @@
+{
+  "_validated_at": "2026-03-14T19:11:21.866215+00:00",
+  "_ground_truth_file": "data/ground_truth_ust.json",
+  "_ground_truth_generated_at": "2026-03-14T19:11:13.795088+00:00",
+  "summary": {
+    "total": 150,
+    "matches": 150,
+    "mismatches": 0,
+    "unknowns": 0,
+    "accuracy_pct": 100.0,
+    "by_category": {
+      "FAIL": {
+        "match": 63,
+        "mismatch": 0,
+        "unknown": 0,
+        "total": 63
+      },
+      "WARNING": {
+        "match": 46,
+        "mismatch": 0,
+        "unknown": 0,
+        "total": 46
+      },
+      "PASS": {
+        "match": 41,
+        "mismatch": 0,
+        "unknown": 0,
+        "total": 41
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "gt-ust-0001",
+      "coordinates": {
+        "lat": 40.5766604,
+        "lng": -73.972191
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (TRUMP VILLAGE SEC 4 INC) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.852452339789775,
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 44.94,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0002",
+      "coordinates": {
+        "lat": 40.5774823,
+        "lng": -73.9730584
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (TRUMP VILLAGE SEC 4 INC) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.72872551984231,
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 332.03,
+        "actual_nearest_ft": 399.4
+      }
+    },
+    {
+      "id": "gt-ust-0003",
+      "coordinates": {
+        "lat": 40.5789242,
+        "lng": -73.9706692
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: TRUMP VILLAGE SECTION TWO (936 ft)",
+      "actual_distance_m": 285.28635363717643,
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 28.37,
+        "actual_nearest_ft": 936.0
+      }
+    },
+    {
+      "id": "gt-ust-0004",
+      "coordinates": {
+        "lat": 40.526309,
+        "lng": -74.2107197
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (ST JOSEPH & ST THOMAS SCHOOL) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.88640346508453,
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 105.54,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0005",
+      "coordinates": {
+        "lat": 40.5256075,
+        "lng": -74.2120219
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (ST JOSEPH & ST THOMAS SCHOOL) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.86555412738713,
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 226.31,
+        "actual_nearest_ft": 399.8
+      }
+    },
+    {
+      "id": "gt-ust-0006",
+      "coordinates": {
+        "lat": 40.528423,
+        "lng": -74.2133545
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: ST JOSEPH & ST THOMAS SCHOOL (999 ft)",
+      "actual_distance_m": 304.56182173134187,
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 318.76,
+        "actual_nearest_ft": 999.2
+      }
+    },
+    {
+      "id": "gt-ust-0007",
+      "coordinates": {
+        "lat": 40.5120655,
+        "lng": -74.2495807
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (1NYCPD 123RD PRECINCT) \u2014 1 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.851427971587388,
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 130.19,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0008",
+      "coordinates": {
+        "lat": 40.5125865,
+        "lng": -74.2484401
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (1NYCPD 123RD PRECINCT) \u2014 1 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 122.03260593946433,
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 69.22,
+        "actual_nearest_ft": 400.4
+      }
+    },
+    {
+      "id": "gt-ust-0009",
+      "coordinates": {
+        "lat": 40.5146787,
+        "lng": -74.2482627
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: 1NYCPD 123RD PRECINCT (998 ft)",
+      "actual_distance_m": 304.2558782456041,
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 25.04,
+        "actual_nearest_ft": 998.2
+      }
+    },
+    {
+      "id": "gt-ust-0010",
+      "coordinates": {
+        "lat": 40.5780583,
+        "lng": -73.9530644
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (150 WEST END AVE) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.868345752785125,
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 238.05,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0011",
+      "coordinates": {
+        "lat": 40.5783252,
+        "lng": -73.9542619
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 215 feet (150 BRIGHTON 15 STREET) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 65.61635060725933,
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 278.3,
+        "actual_nearest_ft": 215.3
+      }
+    },
+    {
+      "id": "gt-ust-0012",
+      "coordinates": {
+        "lat": 40.5808933,
+        "lng": -73.9531693
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: 150 WEST END AVE (998 ft)",
+      "actual_distance_m": 304.0643582062604,
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 354.68,
+        "actual_nearest_ft": 997.6
+      }
+    },
+    {
+      "id": "gt-ust-0013",
+      "coordinates": {
+        "lat": 40.5596272,
+        "lng": -74.1972732
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (SUNOCO #0013-9238) \u2014 6 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.856640691141305,
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 307.91,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0014",
+      "coordinates": {
+        "lat": 40.5602329,
+        "lng": -74.1981324
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (SUNOCO #0013-9238) \u2014 6 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.87901673197088,
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 311.93,
+        "actual_nearest_ft": 399.9
+      }
+    },
+    {
+      "id": "gt-ust-0015",
+      "coordinates": {
+        "lat": 40.5575036,
+        "lng": -74.194595
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: SUNOCO #0013-9238 (999 ft)",
+      "actual_distance_m": 304.6004886653245,
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 136.85,
+        "actual_nearest_ft": 999.4
+      }
+    },
+    {
+      "id": "gt-ust-0016",
+      "coordinates": {
+        "lat": 40.5528774,
+        "lng": -74.142951
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (DELIA BROTHERS SERVICE STATION) \u2014 0 open tank(s) \u2014 18 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.809309071715877,
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 163.23,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0017",
+      "coordinates": {
+        "lat": 40.5536262,
+        "lng": -74.1442738
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (DELIA BROTHERS SERVICE STATION) \u2014 0 open tank(s) \u2014 18 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.9697946248059,
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 300.28,
+        "actual_nearest_ft": 400.2
+      }
+    },
+    {
+      "id": "gt-ust-0018",
+      "coordinates": {
+        "lat": 40.5545024,
+        "lng": -74.1399546
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 118 feet (AMBOY SERVICE STATION, INC.) \u2014 6 open tank(s) \u2014 18 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 36.074857433510495,
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 58.56,
+        "actual_nearest_ft": 118.4
+      }
+    },
+    {
+      "id": "gt-ust-0019",
+      "coordinates": {
+        "lat": 40.5495019,
+        "lng": -74.2271557
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (STATEN ISLAND STAGES LLC) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.85867437639236,
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 127.9,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0020",
+      "coordinates": {
+        "lat": 40.5491014,
+        "lng": -74.2286329
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (STATEN ISLAND STAGES LLC) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.98856416036067,
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 241.26,
+        "actual_nearest_ft": 400.2
+      }
+    },
+    {
+      "id": "gt-ust-0021",
+      "coordinates": {
+        "lat": 40.5488117,
+        "lng": -74.2308086
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: STATEN ISLAND STAGES LLC (1001 ft)",
+      "actual_distance_m": 305.12930605899794,
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 252.66,
+        "actual_nearest_ft": 1001.1
+      }
+    },
+    {
+      "id": "gt-ust-0022",
+      "coordinates": {
+        "lat": 40.5335557,
+        "lng": -74.153103
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (RICHMOND AVENUE PUMPING STATION) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.88035430417357,
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 246.08,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0023",
+      "coordinates": {
+        "lat": 40.5346258,
+        "lng": -74.152231
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (RICHMOND AVENUE PUMPING STATION) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.70290729323676,
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 25.7,
+        "actual_nearest_ft": 399.3
+      }
+    },
+    {
+      "id": "gt-ust-0024",
+      "coordinates": {
+        "lat": 40.531828,
+        "lng": -74.155558
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: RICHMOND AVENUE PUMPING STATION (1000 ft)",
+      "actual_distance_m": 304.7156097147457,
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 228.59,
+        "actual_nearest_ft": 999.7
+      }
+    },
+    {
+      "id": "gt-ust-0025",
+      "coordinates": {
+        "lat": 40.5779164,
+        "lng": -74.1019256
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (BOLLA EM REALTY LLC #11558) \u2014 5 open tank(s) \u2014 18 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.803414152277092,
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 192.29,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0026",
+      "coordinates": {
+        "lat": 40.5781527,
+        "lng": -74.1004268
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 401 feet (BOLLA EM REALTY LLC #11558) \u2014 5 open tank(s) \u2014 18 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 122.08983452414505,
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 88.13,
+        "actual_nearest_ft": 400.6
+      }
+    },
+    {
+      "id": "gt-ust-0027",
+      "coordinates": {
+        "lat": 40.5754556,
+        "lng": -74.1010212
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 475 feet (P.S. 38 - STATEN ISLAND R038) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 144.9257263006839,
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 166.41,
+        "actual_nearest_ft": 475.5
+      }
+    },
+    {
+      "id": "gt-ust-0028",
+      "coordinates": {
+        "lat": 40.5257903,
+        "lng": -74.204702
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (CITGO #58553) \u2014 2 open tank(s) \u2014 2 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.88764678347819,
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 97.18,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0029",
+      "coordinates": {
+        "lat": 40.5267931,
+        "lng": -74.205621
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (CITGO #58553) \u2014 2 open tank(s) \u2014 2 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.71907304678284,
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 333.14,
+        "actual_nearest_ft": 399.3
+      }
+    },
+    {
+      "id": "gt-ust-0030",
+      "coordinates": {
+        "lat": 40.5247787,
+        "lng": -74.2083037
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CITGO #195 (780 ft)",
+      "actual_distance_m": 237.81741766071266,
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 247.74,
+        "actual_nearest_ft": 780.2
+      }
+    },
+    {
+      "id": "gt-ust-0031",
+      "coordinates": {
+        "lat": 40.577064,
+        "lng": -74.1046725
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 24 feet (GARDEN APT HOUSE) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 7.2189916056070516,
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 79.06,
+        "actual_nearest_ft": 23.7
+      }
+    },
+    {
+      "id": "gt-ust-0032",
+      "coordinates": {
+        "lat": 40.5765322,
+        "lng": -74.1036503
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 198 feet (2211 HYLAN BLVD) \u2014 0 open tank(s) \u2014 5 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 60.4549868693605,
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 116.74,
+        "actual_nearest_ft": 198.3
+      }
+    },
+    {
+      "id": "gt-ust-0033",
+      "coordinates": {
+        "lat": 40.5773394,
+        "lng": -74.1085191
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: GATEWAY NATIONAL RECREATION AREA (1001 ft)",
+      "actual_distance_m": 305.21704124394324,
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 276.59,
+        "actual_nearest_ft": 1001.4
+      }
+    },
+    {
+      "id": "gt-ust-0034",
+      "coordinates": {
+        "lat": 40.5752558,
+        "lng": -73.9870009
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (CONEY ISLAND SITE 1B (CAREY GARDENS)) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.81478739789633,
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 20.14,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0035",
+      "coordinates": {
+        "lat": 40.5755405,
+        "lng": -73.9883917
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (CONEY ISLAND SITE 1B (CAREY GARDENS)) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 122.00488783560778,
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 295.85,
+        "actual_nearest_ft": 400.3
+      }
+    },
+    {
+      "id": "gt-ust-0036",
+      "coordinates": {
+        "lat": 40.5759912,
+        "lng": -73.9904853
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CAREY GARDENS (516 ft)",
+      "actual_distance_m": 157.35212895617653,
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 289.82,
+        "actual_nearest_ft": 516.2
+      }
+    },
+    {
+      "id": "gt-ust-0037",
+      "coordinates": {
+        "lat": 40.524526,
+        "lng": -74.2109508
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (CITGO #195) \u2014 2 open tank(s) \u2014 6 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.832784277819187,
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 144.42,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0038",
+      "coordinates": {
+        "lat": 40.5256949,
+        "lng": -74.2105259
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 275 feet (ST JOSEPH & ST THOMAS SCHOOL) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 83.67236777842108,
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 23.83,
+        "actual_nearest_ft": 274.5
+      }
+    },
+    {
+      "id": "gt-ust-0039",
+      "coordinates": {
+        "lat": 40.5270333,
+        "lng": -74.2129778
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: ST JOSEPH & ST THOMAS SCHOOL (607 ft)",
+      "actual_distance_m": 184.87874319402667,
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 328.73,
+        "actual_nearest_ft": 606.6
+      }
+    },
+    {
+      "id": "gt-ust-0040",
+      "coordinates": {
+        "lat": 40.5758147,
+        "lng": -74.1193228
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (COLONIAL SERVICE STATION) \u2014 4 open tank(s) \u2014 9 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.8168633315487,
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 204.18,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0041",
+      "coordinates": {
+        "lat": 40.5757827,
+        "lng": -74.1206247
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (COLONIAL SERVICE STATION) \u2014 4 open tank(s) \u2014 9 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 122.07013607198719,
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 258.45,
+        "actual_nearest_ft": 400.5
+      }
+    },
+    {
+      "id": "gt-ust-0042",
+      "coordinates": {
+        "lat": 40.5766391,
+        "lng": -74.1157061
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: OUR LADY QUEEN OF PEACE SCHOOL (605 ft)",
+      "actual_distance_m": 184.35276439785605,
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 76.55,
+        "actual_nearest_ft": 604.8
+      }
+    },
+    {
+      "id": "gt-ust-0043",
+      "coordinates": {
+        "lat": 40.5705066,
+        "lng": -74.1090177
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (SPEEDWAY # 7597) \u2014 4 open tank(s) \u2014 31 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.8090186140551,
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 179.72,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0044",
+      "coordinates": {
+        "lat": 40.5715321,
+        "lng": -74.1099747
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 360 feet (AMOCO GAS STATION SS 60142) \u2014 0 open tank(s) \u2014 5 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 109.76103237666645,
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 318.49,
+        "actual_nearest_ft": 360.1
+      }
+    },
+    {
+      "id": "gt-ust-0045",
+      "coordinates": {
+        "lat": 40.5690048,
+        "lng": -74.1118371
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 217 feet (2600 HYLAN BLVD) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 66.29252603841657,
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 231.43,
+        "actual_nearest_ft": 217.5
+      }
+    },
+    {
+      "id": "gt-ust-0046",
+      "coordinates": {
+        "lat": 40.513343,
+        "lng": -74.2107718
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (RESURRECTION CEMETERY) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.856439797087706,
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 51.43,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0047",
+      "coordinates": {
+        "lat": 40.5139151,
+        "lng": -74.2098751
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (RESURRECTION CEMETERY) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.90232167657892,
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 50.27,
+        "actual_nearest_ft": 399.9
+      }
+    },
+    {
+      "id": "gt-ust-0048",
+      "coordinates": {
+        "lat": 40.5131288,
+        "lng": -74.2145827
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: RESURRECTION CEMETERY (1001 ft)",
+      "actual_distance_m": 305.2289795001205,
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 268.2,
+        "actual_nearest_ft": 1001.4
+      }
+    },
+    {
+      "id": "gt-ust-0049",
+      "coordinates": {
+        "lat": 40.5124838,
+        "lng": -74.2389245
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (FDNY ENGINE COMPANY 151/LADDER 76) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.806005765635792,
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 194.03,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0050",
+      "coordinates": {
+        "lat": 40.5126625,
+        "lng": -74.2402993
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 401 feet (FDNY ENGINE COMPANY 151/LADDER 76) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 122.08922174605922,
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 268.92,
+        "actual_nearest_ft": 400.6
+      }
+    },
+    {
+      "id": "gt-ust-0051",
+      "coordinates": {
+        "lat": 40.5102171,
+        "lng": -74.2372936
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: FDNY ENGINE COMPANY 151/LADDER 76 (998 ft)",
+      "actual_distance_m": 304.27292446937594,
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 154.24,
+        "actual_nearest_ft": 998.3
+      }
+    },
+    {
+      "id": "gt-ust-0052",
+      "coordinates": {
+        "lat": 40.5245243,
+        "lng": -74.2304834
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (OUTERBRIDGE CROSSING) \u2014 1 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.82576585316281,
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 210.07,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0053",
+      "coordinates": {
+        "lat": 40.5239933,
+        "lng": -74.2292494
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (OUTERBRIDGE CROSSING) \u2014 1 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.89931718071034,
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 130.32,
+        "actual_nearest_ft": 399.9
+      }
+    },
+    {
+      "id": "gt-ust-0054",
+      "coordinates": {
+        "lat": 40.5274397,
+        "lng": -74.2304085
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: OUTERBRIDGE CROSSING (998 ft)",
+      "actual_distance_m": 304.05043718968983,
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 359.04,
+        "actual_nearest_ft": 997.5
+      }
+    },
+    {
+      "id": "gt-ust-0055",
+      "coordinates": {
+        "lat": 40.5470755,
+        "lng": -74.1493796
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (ST CLARE'S CHURCH) \u2014 3 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.851113463065413,
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 49.8,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0056",
+      "coordinates": {
+        "lat": 40.5458487,
+        "lng": -74.1495273
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (ST CLARE'S CHURCH) \u2014 3 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.61838370972217,
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 177.67,
+        "actual_nearest_ft": 399.0
+      }
+    },
+    {
+      "id": "gt-ust-0057",
+      "coordinates": {
+        "lat": 40.5470425,
+        "lng": -74.1531869
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: ST CLARE'S CHURCH (1001 ft)",
+      "actual_distance_m": 305.22715860842357,
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 272.08,
+        "actual_nearest_ft": 1001.4
+      }
+    },
+    {
+      "id": "gt-ust-0058",
+      "coordinates": {
+        "lat": 40.551619,
+        "lng": -74.204895
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (SOUTH SHORE GOLF COURSE) \u2014 2 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.85344720131188,
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 310.0,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0059",
+      "coordinates": {
+        "lat": 40.5521148,
+        "lng": -74.2035069
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (SOUTH SHORE GOLF COURSE) \u2014 2 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.93645013743073,
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 55.02,
+        "actual_nearest_ft": 400.1
+      }
+    },
+    {
+      "id": "gt-ust-0060",
+      "coordinates": {
+        "lat": 40.5529544,
+        "lng": -74.2016456
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: SOUTH SHORE GOLF COURSE (1000 ft)",
+      "actual_distance_m": 304.89326924917845,
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 57.59,
+        "actual_nearest_ft": 1000.3
+      }
+    },
+    {
+      "id": "gt-ust-0061",
+      "coordinates": {
+        "lat": 40.5738971,
+        "lng": -74.170085
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (MOBIL R/S 11381) \u2014 0 open tank(s) \u2014 24 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.87985111532194,
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 244.97,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0062",
+      "coordinates": {
+        "lat": 40.5730836,
+        "lng": -74.170661
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 339 feet (COSTCO GASOLINE (LOC. NO. 316)) \u2014 4 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 103.41152649637517,
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 214.71,
+        "actual_nearest_ft": 339.3
+      }
+    },
+    {
+      "id": "gt-ust-0063",
+      "coordinates": {
+        "lat": 40.5719328,
+        "lng": -74.1674522
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: COSTCO GASOLINE (LOC. NO. 316) (662 ft)",
+      "actual_distance_m": 201.7523668527545,
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 138.52,
+        "actual_nearest_ft": 661.9
+      }
+    },
+    {
+      "id": "gt-ust-0064",
+      "coordinates": {
+        "lat": 40.5758578,
+        "lng": -74.1470492
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (LA TOURETTE GOLF COURSE) \u2014 2 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.831791408601955,
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 214.52,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0065",
+      "coordinates": {
+        "lat": 40.5749538,
+        "lng": -74.1466085
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (LA TOURETTE GOLF COURSE) \u2014 2 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.63511079609653,
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 168.5,
+        "actual_nearest_ft": 399.1
+      }
+    },
+    {
+      "id": "gt-ust-0066",
+      "coordinates": {
+        "lat": 40.5760027,
+        "lng": -74.1432913
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: LA TOURETTE GOLF COURSE (1001 ft)",
+      "actual_distance_m": 305.2291045261694,
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 90.51,
+        "actual_nearest_ft": 1001.4
+      }
+    },
+    {
+      "id": "gt-ust-0067",
+      "coordinates": {
+        "lat": 40.578452,
+        "lng": -73.8409267
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (120-10 ROCKAWAY BEACH BLVD.) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.8144188822633,
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 199.16,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0068",
+      "coordinates": {
+        "lat": 40.5796703,
+        "lng": -73.8413483
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (120-10 ROCKAWAY BEACH BLVD.) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.67378493955546,
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 339.28,
+        "actual_nearest_ft": 399.2
+      }
+    },
+    {
+      "id": "gt-ust-0069",
+      "coordinates": {
+        "lat": 40.5774846,
+        "lng": -73.8441026
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CHESTER KOBER (557 ft)",
+      "actual_distance_m": 169.62319745172877,
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 244.9,
+        "actual_nearest_ft": 556.5
+      }
+    },
+    {
+      "id": "gt-ust-0070",
+      "coordinates": {
+        "lat": 40.5757874,
+        "lng": -73.9615568
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (BRIGHTON HOUSE) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.8393198848975,
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 41.24,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0071",
+      "coordinates": {
+        "lat": 40.5764536,
+        "lng": -73.96269
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (BRIGHTON HOUSE) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.82868789276587,
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 318.52,
+        "actual_nearest_ft": 399.7
+      }
+    },
+    {
+      "id": "gt-ust-0072",
+      "coordinates": {
+        "lat": 40.5756481,
+        "lng": -73.9653398
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 201 feet (3111 TENANTS CORP.) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 61.30310416898281,
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 270.32,
+        "actual_nearest_ft": 201.1
+      }
+    },
+    {
+      "id": "gt-ust-0073",
+      "coordinates": {
+        "lat": 40.5455649,
+        "lng": -74.1661114
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (HILLSIDE SERVICE STATION, INC.) \u2014 4 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.890651455338915,
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 276.7,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0074",
+      "coordinates": {
+        "lat": 40.5449531,
+        "lng": -74.1646269
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (HILLSIDE SERVICE STATION, INC.) \u2014 4 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.96059618931704,
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 122.46,
+        "actual_nearest_ft": 400.1
+      }
+    },
+    {
+      "id": "gt-ust-0075",
+      "coordinates": {
+        "lat": 40.5448019,
+        "lng": -74.1623735
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 198 feet (4463 AMBOY ROAD CORP #5394) \u2014 0 open tank(s) \u2014 4 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 60.31409375641554,
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 105.66,
+        "actual_nearest_ft": 197.9
+      }
+    },
+    {
+      "id": "gt-ust-0076",
+      "coordinates": {
+        "lat": 40.576992,
+        "lng": -74.1028744
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 34 feet (SHIP AHOY SERVICE STATION) \u2014 0 open tank(s) \u2014 10 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 10.396698588798333,
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 56.94,
+        "actual_nearest_ft": 34.1
+      }
+    },
+    {
+      "id": "gt-ust-0077",
+      "coordinates": {
+        "lat": 40.577975,
+        "lng": -74.1030716
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 338 feet (BOLLA EM REALTY LLC #11558) \u2014 5 open tank(s) \u2014 18 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 103.12087713896678,
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 1.17,
+        "actual_nearest_ft": 338.3
+      }
+    },
+    {
+      "id": "gt-ust-0078",
+      "coordinates": {
+        "lat": 40.5764023,
+        "lng": -74.1066506
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: GATEWAY NATIONAL RECREATION AREA (527 ft)",
+      "actual_distance_m": 160.65095202392692,
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 259.95,
+        "actual_nearest_ft": 527.1
+      }
+    },
+    {
+      "id": "gt-ust-0079",
+      "coordinates": {
+        "lat": 40.5783541,
+        "lng": -73.8427575
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (CHESTER KOBER) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.890939466919956,
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 259.09,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0080",
+      "coordinates": {
+        "lat": 40.5794712,
+        "lng": -73.8427454
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (CHESTER KOBER) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.63666869289031,
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 349.88,
+        "actual_nearest_ft": 399.1
+      }
+    },
+    {
+      "id": "gt-ust-0081",
+      "coordinates": {
+        "lat": 40.5785986,
+        "lng": -73.8460868
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: 128 NEWPORT OWNERS CORP (669 ft)",
+      "actual_distance_m": 203.87777145533863,
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 274.31,
+        "actual_nearest_ft": 668.9
+      }
+    },
+    {
+      "id": "gt-ust-0082",
+      "coordinates": {
+        "lat": 40.5691869,
+        "lng": -73.864039
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (NEPONSIT HEALTH CARE CENTER) \u2014 0 open tank(s) \u2014 4 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.802021737115226,
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 182.77,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0083",
+      "coordinates": {
+        "lat": 40.5702514,
+        "lng": -73.8631322
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (NEPONSIT HEALTH CARE CENTER) \u2014 0 open tank(s) \u2014 4 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.80263459618595,
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 38.31,
+        "actual_nearest_ft": 399.6
+      }
+    },
+    {
+      "id": "gt-ust-0084",
+      "coordinates": {
+        "lat": 40.5674596,
+        "lng": -73.8665796
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: NEPONSIT HEALTH CARE CENTER (999 ft)",
+      "actual_distance_m": 304.64315970395126,
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 225.11,
+        "actual_nearest_ft": 999.5
+      }
+    },
+    {
+      "id": "gt-ust-0085",
+      "coordinates": {
+        "lat": 40.5496758,
+        "lng": -74.1509467
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (NORMAN S. FASTMAN) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.86634555343521,
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 303.0,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0086",
+      "coordinates": {
+        "lat": 40.54847,
+        "lng": -74.1507894
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (NORMAN S. FASTMAN) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.62562582534383,
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 182.76,
+        "actual_nearest_ft": 399.0
+      }
+    },
+    {
+      "id": "gt-ust-0087",
+      "coordinates": {
+        "lat": 40.5504279,
+        "lng": -74.1473006
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: NORMAN S. FASTMAN (1001 ft)",
+      "actual_distance_m": 305.11318272390685,
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 71.61,
+        "actual_nearest_ft": 1001.0
+      }
+    },
+    {
+      "id": "gt-ust-0088",
+      "coordinates": {
+        "lat": 40.5723328,
+        "lng": -73.9913085
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (HABER HOUSES (CAREY GARDENS)) \u2014 1 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.84962000787528,
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 134.61,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0089",
+      "coordinates": {
+        "lat": 40.5730548,
+        "lng": -73.9902761
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (HABER HOUSES (CAREY GARDENS)) \u2014 1 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.9613422965437,
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 58.16,
+        "actual_nearest_ft": 400.1
+      }
+    },
+    {
+      "id": "gt-ust-0090",
+      "coordinates": {
+        "lat": 40.575099,
+        "lng": -73.9925393
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 139 feet (CONEY ISLAND I SITE 4 & 5) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 42.33078634071182,
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 343.26,
+        "actual_nearest_ft": 138.9
+      }
+    },
+    {
+      "id": "gt-ust-0091",
+      "coordinates": {
+        "lat": 40.5761624,
+        "lng": -74.1239476
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (ENGINE COMPANY 165) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.81831185046766,
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 332.08,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0092",
+      "coordinates": {
+        "lat": 40.5769357,
+        "lng": -74.1245276
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (ENGINE COMPANY 165) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.7322754207204,
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 330.66,
+        "actual_nearest_ft": 399.4
+      }
+    },
+    {
+      "id": "gt-ust-0093",
+      "coordinates": {
+        "lat": 40.5737552,
+        "lng": -74.1259205
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: ENGINE COMPANY 165 (999 ft)",
+      "actual_distance_m": 304.45629567368326,
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 215.62,
+        "actual_nearest_ft": 998.9
+      }
+    },
+    {
+      "id": "gt-ust-0094",
+      "coordinates": {
+        "lat": 40.5595672,
+        "lng": -74.1966917
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (SHELL SERVICE STATION) \u2014 5 open tank(s) \u2014 6 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.800755587110068,
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 175.9,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0095",
+      "coordinates": {
+        "lat": 40.5606076,
+        "lng": -74.1957791
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (SHELL SERVICE STATION) \u2014 5 open tank(s) \u2014 6 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.81532937294565,
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 40.27,
+        "actual_nearest_ft": 399.7
+      }
+    },
+    {
+      "id": "gt-ust-0096",
+      "coordinates": {
+        "lat": 40.5579875,
+        "lng": -74.1939776
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: SHELL SERVICE STATION (1000 ft)",
+      "actual_distance_m": 304.7302781493429,
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 130.67,
+        "actual_nearest_ft": 999.8
+      }
+    },
+    {
+      "id": "gt-ust-0097",
+      "coordinates": {
+        "lat": 40.5083545,
+        "lng": -74.2294359
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (BP PAGE) \u2014 4 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.806452942619337,
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 354.72,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0098",
+      "coordinates": {
+        "lat": 40.5085325,
+        "lng": -74.2307608
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (BP PAGE) \u2014 4 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 122.03552402258431,
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 290.44,
+        "actual_nearest_ft": 400.4
+      }
+    },
+    {
+      "id": "gt-ust-0099",
+      "coordinates": {
+        "lat": 40.5083313,
+        "lng": -74.2258177
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: RICHBURG CENTRAL SCHOOL-BUS GARAGE (581 ft)",
+      "actual_distance_m": 176.99324634986928,
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 86.2,
+        "actual_nearest_ft": 580.7
+      }
+    },
+    {
+      "id": "gt-ust-0100",
+      "coordinates": {
+        "lat": 40.5382628,
+        "lng": -74.2330482
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (GATEWAY ASSOCIATES LLC) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.894909136309813,
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 86.71,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0101",
+      "coordinates": {
+        "lat": 40.5372524,
+        "lng": -74.2339099
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (GATEWAY ASSOCIATES LLC) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.70080827174824,
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 204.25,
+        "actual_nearest_ft": 399.3
+      }
+    },
+    {
+      "id": "gt-ust-0102",
+      "coordinates": {
+        "lat": 40.5406606,
+        "lng": -74.231607
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: GATEWAY ASSOCIATES LLC (998 ft)",
+      "actual_distance_m": 304.3142758869401,
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 28.35,
+        "actual_nearest_ft": 998.4
+      }
+    },
+    {
+      "id": "gt-ust-0103",
+      "coordinates": {
+        "lat": 40.5779547,
+        "lng": -73.8486216
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (128 NEWPORT OWNERS CORP) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.888937041520116,
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 263.49,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0104",
+      "coordinates": {
+        "lat": 40.5784194,
+        "lng": -73.8496727
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 52 feet (CITGO SERVICE STATION JIM BULLOCHS) \u2014 4 open tank(s) \u2014 1 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 15.959458893274427,
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 293.77,
+        "actual_nearest_ft": 52.4
+      }
+    },
+    {
+      "id": "gt-ust-0105",
+      "coordinates": {
+        "lat": 40.5806899,
+        "lng": -73.8488501
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CITGO SERVICE STATION JIM BULLOCHS (806 ft)",
+      "actual_distance_m": 245.74845166515334,
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 352.07,
+        "actual_nearest_ft": 806.3
+      }
+    },
+    {
+      "id": "gt-ust-0106",
+      "coordinates": {
+        "lat": 40.563639,
+        "lng": -74.1181602
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (ST CHARLES SCHOOL) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.80446134658689,
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 191.77,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0107",
+      "coordinates": {
+        "lat": 40.5646107,
+        "lng": -74.1170807
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 383 feet (TYSENS LANE AUTO SERVICE) \u2014 0 open tank(s) \u2014 6 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 116.67784126195664,
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 45.27,
+        "actual_nearest_ft": 382.8
+      }
+    },
+    {
+      "id": "gt-ust-0108",
+      "coordinates": {
+        "lat": 40.5623693,
+        "lng": -74.1211451
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: ST CHARLES SCHOOL (1000 ft)",
+      "actual_distance_m": 304.8897132158498,
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 237.51,
+        "actual_nearest_ft": 1000.3
+      }
+    },
+    {
+      "id": "gt-ust-0109",
+      "coordinates": {
+        "lat": 40.577152,
+        "lng": -73.8546846
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (P.S. 256 ANNEX - QUEENS Q816) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.811670351247255,
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 340.87,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0110",
+      "coordinates": {
+        "lat": 40.5775148,
+        "lng": -73.8533543
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 400 feet (P.S. 256 ANNEX - QUEENS Q816) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.96894756954167,
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 59.45,
+        "actual_nearest_ft": 400.2
+      }
+    },
+    {
+      "id": "gt-ust-0111",
+      "coordinates": {
+        "lat": 40.5742612,
+        "lng": -73.8552197
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: P.S. 256 ANNEX - QUEENS Q816 (998 ft)",
+      "actual_distance_m": 304.08888863367315,
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 189.96,
+        "actual_nearest_ft": 997.7
+      }
+    },
+    {
+      "id": "gt-ust-0112",
+      "coordinates": {
+        "lat": 40.537875,
+        "lng": -74.1497147
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (DR. LUBE) \u2014 0 open tank(s) \u2014 11 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.836032018013995,
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 218.37,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0113",
+      "coordinates": {
+        "lat": 40.5391039,
+        "lng": -74.149867
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (DR. LUBE) \u2014 0 open tank(s) \u2014 11 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.64439627783796,
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 347.17,
+        "actual_nearest_ft": 399.1
+      }
+    },
+    {
+      "id": "gt-ust-0114",
+      "coordinates": {
+        "lat": 40.5405054,
+        "lng": -74.1511032
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: DR. LUBE (998 ft)",
+      "actual_distance_m": 304.26151017189113,
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 334.41,
+        "actual_nearest_ft": 998.3
+      }
+    },
+    {
+      "id": "gt-ust-0115",
+      "coordinates": {
+        "lat": 40.5776718,
+        "lng": -73.9542382
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (MANHATTAN BEACH) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.89027472027779,
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 271.9,
+        "actual_nearest_ft": 75.1
+      }
+    },
+    {
+      "id": "gt-ust-0116",
+      "coordinates": {
+        "lat": 40.577261,
+        "lng": -73.9553083
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 304 feet (150 BRIGHTON 15 STREET) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 92.697249698848,
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 248.35,
+        "actual_nearest_ft": 304.1
+      }
+    },
+    {
+      "id": "gt-ust-0117",
+      "coordinates": {
+        "lat": 40.5770333,
+        "lng": -73.9574757
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 243 feet (TOWER OWNERS) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 73.98405700502342,
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 256.66,
+        "actual_nearest_ft": 242.7
+      }
+    },
+    {
+      "id": "gt-ust-0118",
+      "coordinates": {
+        "lat": 40.5634266,
+        "lng": -74.1162647
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (THE CAROLINA GARDENS) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.8393601422912,
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 143.64,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0119",
+      "coordinates": {
+        "lat": 40.5630746,
+        "lng": -74.1176956
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 301 feet (ST CHARLES SCHOOL) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 91.79387962293507,
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 241.81,
+        "actual_nearest_ft": 301.2
+      }
+    },
+    {
+      "id": "gt-ust-0120",
+      "coordinates": {
+        "lat": 40.5616752,
+        "lng": -74.1138513
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 255 feet (TYSENS APARTMENTS, LLC.) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 77.69656408117056,
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 134.43,
+        "actual_nearest_ft": 254.9
+      }
+    },
+    {
+      "id": "gt-ust-0121",
+      "coordinates": {
+        "lat": 40.5784628,
+        "lng": -73.8584645
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (BEACH CHANNEL DRIVE HOUSING CORP) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.833226763603975,
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 323.86,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0122",
+      "coordinates": {
+        "lat": 40.5772523,
+        "lng": -73.8578722
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (BEACH CHANNEL DRIVE HOUSING CORP) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.65962474181687,
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 162.54,
+        "actual_nearest_ft": 399.2
+      }
+    },
+    {
+      "id": "gt-ust-0123",
+      "coordinates": {
+        "lat": 40.578333,
+        "lng": -73.8547003
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: P.S. 256 ANNEX - QUEENS Q816 (502 ft)",
+      "actual_distance_m": 152.94307806960902,
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 89.25,
+        "actual_nearest_ft": 501.8
+      }
+    },
+    {
+      "id": "gt-ust-0124",
+      "coordinates": {
+        "lat": 40.577945,
+        "lng": -73.8380911
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (BEACHVIEW APT. CORP.) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.822806836396538,
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 23.05,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0125",
+      "coordinates": {
+        "lat": 40.5788417,
+        "lng": -73.838007
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (BEACHVIEW APT. CORP.) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.6309615339147,
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 7.57,
+        "actual_nearest_ft": 399.0
+      }
+    },
+    {
+      "id": "gt-ust-0126",
+      "coordinates": {
+        "lat": 40.5751736,
+        "lng": -73.8393951
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: BELLE HARBOR APTS CORP (725 ft)",
+      "actual_distance_m": 220.89666196625947,
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 199.41,
+        "actual_nearest_ft": 724.7
+      }
+    },
+    {
+      "id": "gt-ust-0127",
+      "coordinates": {
+        "lat": 40.5647005,
+        "lng": -74.1110996
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (TYSENS APARTMENTS, LLC.) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.832484732518115,
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 211.84,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0128",
+      "coordinates": {
+        "lat": 40.5659691,
+        "lng": -74.1108919
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (TYSENS APARTMENTS, LLC.) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.61989916350933,
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 2.59,
+        "actual_nearest_ft": 399.0
+      }
+    },
+    {
+      "id": "gt-ust-0129",
+      "coordinates": {
+        "lat": 40.5641582,
+        "lng": -74.1144355
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 414 feet (TYSENS LANE AUTO SERVICE) \u2014 0 open tank(s) \u2014 6 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 126.1542797995271,
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 254.82,
+        "actual_nearest_ft": 413.9
+      }
+    },
+    {
+      "id": "gt-ust-0130",
+      "coordinates": {
+        "lat": 40.5250915,
+        "lng": -74.2437023
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (PORT AUTHORITY OF NEW Y./N. JERSEY) \u2014 2 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.819731641048705,
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 21.19,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0131",
+      "coordinates": {
+        "lat": 40.5258985,
+        "lng": -74.2432079
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (PORT AUTHORITY OF NEW Y./N. JERSEY) \u2014 2 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.70129136200393,
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 24.26,
+        "actual_nearest_ft": 399.3
+      }
+    },
+    {
+      "id": "gt-ust-0132",
+      "coordinates": {
+        "lat": 40.5275849,
+        "lng": -74.2430936
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: VALLEY SHELL LLC (990 ft)",
+      "actual_distance_m": 301.63922053534844,
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 11.31,
+        "actual_nearest_ft": 989.6
+      }
+    },
+    {
+      "id": "gt-ust-0133",
+      "coordinates": {
+        "lat": 40.5640046,
+        "lng": -74.1505055
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (P.S. 37 (OLD I24X)  S.I. R840) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.868689117039033,
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 118.95,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0134",
+      "coordinates": {
+        "lat": 40.5630131,
+        "lng": -74.1508701
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (P.S. 37 (OLD I24X)  S.I. R840) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.62430962421506,
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 185.1,
+        "actual_nearest_ft": 399.0
+      }
+    },
+    {
+      "id": "gt-ust-0135",
+      "coordinates": {
+        "lat": 40.5636167,
+        "lng": -74.1471953
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: P.S. 37 (OLD I24X)  S.I. R840 (1001 ft)",
+      "actual_distance_m": 305.1960513921308,
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 100.25,
+        "actual_nearest_ft": 1001.3
+      }
+    },
+    {
+      "id": "gt-ust-0136",
+      "coordinates": {
+        "lat": 40.5636405,
+        "lng": -74.1928593
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP) \u2014 9 open tank(s) \u2014 17 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.804924433763865,
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 174.75,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0137",
+      "coordinates": {
+        "lat": 40.5627829,
+        "lng": -74.1932358
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 168 feet (MARINE UNLOADING FRESH KILLS #1) \u2014 4 open tank(s) \u2014 16 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 51.198272234432075,
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 194.12,
+        "actual_nearest_ft": 168.0
+      }
+    },
+    {
+      "id": "gt-ust-0138",
+      "coordinates": {
+        "lat": 40.5633887,
+        "lng": -74.1964378
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CJ HAMILTON INC (703 ft)",
+      "actual_distance_m": 214.29938667300198,
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 260.41,
+        "actual_nearest_ft": 703.1
+      }
+    },
+    {
+      "id": "gt-ust-0139",
+      "coordinates": {
+        "lat": 40.5568078,
+        "lng": -74.2032561
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (MAYFLOWER PUMPING STATION) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.84783248178469,
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 317.66,
+        "actual_nearest_ft": 74.9
+      }
+    },
+    {
+      "id": "gt-ust-0140",
+      "coordinates": {
+        "lat": 40.555684,
+        "lng": -74.2037382
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (MAYFLOWER PUMPING STATION) \u2014 1 open tank(s) \u2014 0 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.71645892446321,
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 207.44,
+        "actual_nearest_ft": 399.3
+      }
+    },
+    {
+      "id": "gt-ust-0141",
+      "coordinates": {
+        "lat": 40.5567764,
+        "lng": -74.1994737
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: MAYFLOWER PUMPING STATION (1001 ft)",
+      "actual_distance_m": 305.22519313852274,
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 87.48,
+        "actual_nearest_ft": 1001.4
+      }
+    },
+    {
+      "id": "gt-ust-0142",
+      "coordinates": {
+        "lat": 40.5173836,
+        "lng": -74.2315253
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (VALLEY GAS INC.) \u2014 4 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 22.80669957065486,
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 170.27,
+        "actual_nearest_ft": 74.8
+      }
+    },
+    {
+      "id": "gt-ust-0143",
+      "coordinates": {
+        "lat": 40.5166723,
+        "lng": -74.2307767
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (VALLEY GAS INC.) \u2014 4 open tank(s) \u2014 5 closed tank(s) \u2014 status: Open UST(s)",
+      "actual_distance_m": 121.76038874702559,
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 146.54,
+        "actual_nearest_ft": 399.5
+      }
+    },
+    {
+      "id": "gt-ust-0144",
+      "coordinates": {
+        "lat": 40.5198571,
+        "lng": -74.2295592
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: VALLEY GAS INC. (999 ft)",
+      "actual_distance_m": 304.4138485804033,
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 33.96,
+        "actual_nearest_ft": 998.7
+      }
+    },
+    {
+      "id": "gt-ust-0145",
+      "coordinates": {
+        "lat": 40.5726269,
+        "lng": -74.1383343
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (ST PATRICKS SCHOOL) \u2014 0 open tank(s) \u2014 1 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.86153015666997,
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 237.23,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0146",
+      "coordinates": {
+        "lat": 40.5720706,
+        "lng": -74.1369638
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 83 feet (NYC DCAS) \u2014 0 open tank(s) \u2014 2 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 25.409974196333877,
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 127.55,
+        "actual_nearest_ft": 83.4
+      }
+    },
+    {
+      "id": "gt-ust-0147",
+      "coordinates": {
+        "lat": 40.5704161,
+        "lng": -74.1361966
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: NYC DCAS (629 ft)",
+      "actual_distance_m": 191.58309690957944,
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 148.0,
+        "actual_nearest_ft": 628.6
+      }
+    },
+    {
+      "id": "gt-ust-0148",
+      "coordinates": {
+        "lat": 40.5750747,
+        "lng": -73.9843861
+      },
+      "expected_result": "FAIL",
+      "actual_result": "FAIL",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 75 feet (CONEY ISLAND GAS & WASH) \u2014 0 open tank(s) \u2014 20 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 22.85602069952449,
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 310.98,
+        "actual_nearest_ft": 75.0
+      }
+    },
+    {
+      "id": "gt-ust-0149",
+      "coordinates": {
+        "lat": 40.5759724,
+        "lng": -73.9837006
+      },
+      "expected_result": "WARNING",
+      "actual_result": "WARNING",
+      "status": "MATCH",
+      "actual_details": "Underground storage tank facility within 399 feet (CONEY ISLAND GAS & WASH) \u2014 0 open tank(s) \u2014 20 closed tank(s) \u2014 status: Closed UST(s)",
+      "actual_distance_m": 121.67432786789092,
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 19.5,
+        "actual_nearest_ft": 399.2
+      }
+    },
+    {
+      "id": "gt-ust-0150",
+      "coordinates": {
+        "lat": 40.5733791,
+        "lng": -73.9871437
+      },
+      "expected_result": "PASS",
+      "actual_result": "PASS",
+      "status": "MATCH",
+      "actual_details": "Nearest: CONEY ISLAND SITE 1B (CAREY GARDENS) (614 ft)",
+      "actual_distance_m": 187.03718622379046,
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 235.24,
+        "actual_nearest_ft": 613.6
+      }
+    }
+  ]
+}
