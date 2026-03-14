@@ -1,0 +1,4365 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-14T20:56:59.440765+00:00",
+  "_generator": "generate_ground_truth_ust.py",
+  "_facility_count": 50,
+  "_test_count": 150,
+  "_thresholds": {
+    "fail_meters": 90,
+    "warn_meters": 150,
+    "search_meters": 500,
+    "source": "property_evaluator.py check_ust_proximity()"
+  },
+  "addresses": [
+    {
+      "id": "gt-ust-0001",
+      "coordinates": {
+        "lat": 40.5766604,
+        "lng": -73.972191
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility TRUMP VILLAGE SEC 4 INC",
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 44.94,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from TRUMP VILLAGE SEC 4 INC \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0002",
+      "coordinates": {
+        "lat": 40.5774823,
+        "lng": -73.9730584
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility TRUMP VILLAGE SEC 4 INC",
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 332.03,
+        "actual_nearest_ft": 399.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from TRUMP VILLAGE SEC 4 INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0003",
+      "coordinates": {
+        "lat": 40.5789242,
+        "lng": -73.9706692
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility TRUMP VILLAGE SEC 4 INC",
+      "source_facility": {
+        "name": "TRUMP VILLAGE SEC 4 INC",
+        "coordinates": {
+          "lat": 40.576515,
+          "lng": -73.972382
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 28.37,
+        "actual_nearest_ft": 936.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from TRUMP VILLAGE SEC 4 INC \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0004",
+      "coordinates": {
+        "lat": 40.526309,
+        "lng": -74.2107197
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility ST JOSEPH & ST THOMAS SCHOOL",
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 105.54,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from ST JOSEPH & ST THOMAS SCHOOL \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0005",
+      "coordinates": {
+        "lat": 40.5256075,
+        "lng": -74.2120219
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility ST JOSEPH & ST THOMAS SCHOOL",
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 226.31,
+        "actual_nearest_ft": 399.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from ST JOSEPH & ST THOMAS SCHOOL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0006",
+      "coordinates": {
+        "lat": 40.528423,
+        "lng": -74.2133545
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility ST JOSEPH & ST THOMAS SCHOOL",
+      "source_facility": {
+        "name": "ST JOSEPH & ST THOMAS SCHOOL",
+        "coordinates": {
+          "lat": 40.526364,
+          "lng": -74.21098
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 318.76,
+        "actual_nearest_ft": 999.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from ST JOSEPH & ST THOMAS SCHOOL \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0007",
+      "coordinates": {
+        "lat": 40.5120655,
+        "lng": -74.2495807
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility 1NYCPD 123RD PRECINCT",
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 130.19,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from 1NYCPD 123RD PRECINCT \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0008",
+      "coordinates": {
+        "lat": 40.5125865,
+        "lng": -74.2484401
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility 1NYCPD 123RD PRECINCT",
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 69.22,
+        "actual_nearest_ft": 400.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from 1NYCPD 123RD PRECINCT \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0009",
+      "coordinates": {
+        "lat": 40.5146787,
+        "lng": -74.2482627
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility 1NYCPD 123RD PRECINCT",
+      "source_facility": {
+        "name": "1NYCPD 123RD PRECINCT",
+        "coordinates": {
+          "lat": 40.512198,
+          "lng": -74.249787
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 25.04,
+        "actual_nearest_ft": 998.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from 1NYCPD 123RD PRECINCT \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0010",
+      "coordinates": {
+        "lat": 40.5780583,
+        "lng": -73.9530644
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility 150 WEST END AVE",
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 238.05,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from 150 WEST END AVE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0011",
+      "coordinates": {
+        "lat": 40.5783252,
+        "lng": -73.9542619
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility 150 WEST END AVE",
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 278.3,
+        "actual_nearest_ft": 215.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from 150 WEST END AVE \u2014 inside hard-fail buffer (adjusted: nearest facility is 215ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0012",
+      "coordinates": {
+        "lat": 40.5808933,
+        "lng": -73.9531693
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility 150 WEST END AVE",
+      "source_facility": {
+        "name": "150 WEST END AVE",
+        "coordinates": {
+          "lat": 40.578167,
+          "lng": -73.952835
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 354.68,
+        "actual_nearest_ft": 997.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from 150 WEST END AVE \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0013",
+      "coordinates": {
+        "lat": 40.5596272,
+        "lng": -74.1972732
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility SUNOCO #0013-9238",
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 307.91,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from SUNOCO #0013-9238 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0014",
+      "coordinates": {
+        "lat": 40.5602329,
+        "lng": -74.1981324
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility SUNOCO #0013-9238",
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 311.93,
+        "actual_nearest_ft": 399.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from SUNOCO #0013-9238 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0015",
+      "coordinates": {
+        "lat": 40.5575036,
+        "lng": -74.194595
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility SUNOCO #0013-9238",
+      "source_facility": {
+        "name": "SUNOCO #0013-9238",
+        "coordinates": {
+          "lat": 40.559501,
+          "lng": -74.19706
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 136.85,
+        "actual_nearest_ft": 999.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from SUNOCO #0013-9238 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0016",
+      "coordinates": {
+        "lat": 40.5528774,
+        "lng": -74.142951
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility DELIA BROTHERS SERVICE STATION",
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 163.23,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from DELIA BROTHERS SERVICE STATION \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0017",
+      "coordinates": {
+        "lat": 40.5536262,
+        "lng": -74.1442738
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility DELIA BROTHERS SERVICE STATION",
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 300.28,
+        "actual_nearest_ft": 400.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from DELIA BROTHERS SERVICE STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0018",
+      "coordinates": {
+        "lat": 40.5545024,
+        "lng": -74.1399546
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility DELIA BROTHERS SERVICE STATION",
+      "source_facility": {
+        "name": "DELIA BROTHERS SERVICE STATION",
+        "coordinates": {
+          "lat": 40.553074,
+          "lng": -74.143029
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 58.56,
+        "actual_nearest_ft": 118.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from DELIA BROTHERS SERVICE STATION \u2014 inside hard-fail buffer (adjusted: nearest facility is 118ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0019",
+      "coordinates": {
+        "lat": 40.5495019,
+        "lng": -74.2271557
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility STATEN ISLAND STAGES LLC",
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 127.9,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from STATEN ISLAND STAGES LLC \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0020",
+      "coordinates": {
+        "lat": 40.5491014,
+        "lng": -74.2286329
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility STATEN ISLAND STAGES LLC",
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 241.26,
+        "actual_nearest_ft": 400.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from STATEN ISLAND STAGES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0021",
+      "coordinates": {
+        "lat": 40.5488117,
+        "lng": -74.2308086
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility STATEN ISLAND STAGES LLC",
+      "source_facility": {
+        "name": "STATEN ISLAND STAGES LLC",
+        "coordinates": {
+          "lat": 40.549628,
+          "lng": -74.227369
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 252.66,
+        "actual_nearest_ft": 1001.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from STATEN ISLAND STAGES LLC \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0022",
+      "coordinates": {
+        "lat": 40.5335557,
+        "lng": -74.153103
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility RICHMOND AVENUE PUMPING STATION",
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 246.08,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from RICHMOND AVENUE PUMPING STATION \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0023",
+      "coordinates": {
+        "lat": 40.5346258,
+        "lng": -74.152231
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility RICHMOND AVENUE PUMPING STATION",
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 25.7,
+        "actual_nearest_ft": 399.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from RICHMOND AVENUE PUMPING STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0024",
+      "coordinates": {
+        "lat": 40.531828,
+        "lng": -74.155558
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility RICHMOND AVENUE PUMPING STATION",
+      "source_facility": {
+        "name": "RICHMOND AVENUE PUMPING STATION",
+        "coordinates": {
+          "lat": 40.533639,
+          "lng": -74.152856
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 228.59,
+        "actual_nearest_ft": 999.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from RICHMOND AVENUE PUMPING STATION \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0025",
+      "coordinates": {
+        "lat": 40.5779164,
+        "lng": -74.1019256
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility BOLLA EM REALTY LLC #11558",
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 192.29,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from BOLLA EM REALTY LLC #11558 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0026",
+      "coordinates": {
+        "lat": 40.5781527,
+        "lng": -74.1004268
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility BOLLA EM REALTY LLC #11558",
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 88.13,
+        "actual_nearest_ft": 400.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from BOLLA EM REALTY LLC #11558 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0027",
+      "coordinates": {
+        "lat": 40.5754556,
+        "lng": -74.1010212
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility BOLLA EM REALTY LLC #11558",
+      "source_facility": {
+        "name": "BOLLA EM REALTY LLC #11558",
+        "coordinates": {
+          "lat": 40.578117,
+          "lng": -74.101868
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 166.41,
+        "actual_nearest_ft": 475.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from BOLLA EM REALTY LLC #11558 \u2014 inside warning buffer (adjusted: nearest facility is 475ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0028",
+      "coordinates": {
+        "lat": 40.5257903,
+        "lng": -74.204702
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility CITGO #58553",
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 97.18,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from CITGO #58553 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0029",
+      "coordinates": {
+        "lat": 40.5267931,
+        "lng": -74.205621
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility CITGO #58553",
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 333.14,
+        "actual_nearest_ft": 399.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from CITGO #58553 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0030",
+      "coordinates": {
+        "lat": 40.5247787,
+        "lng": -74.2083037
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility CITGO #58553",
+      "source_facility": {
+        "name": "CITGO #58553",
+        "coordinates": {
+          "lat": 40.525816,
+          "lng": -74.20497
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 247.74,
+        "actual_nearest_ft": 780.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from CITGO #58553 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0031",
+      "coordinates": {
+        "lat": 40.577064,
+        "lng": -74.1046725
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility GATEWAY NATIONAL RECREATION AREA",
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 79.06,
+        "actual_nearest_ft": 23.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from GATEWAY NATIONAL RECREATION AREA \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0032",
+      "coordinates": {
+        "lat": 40.5765322,
+        "lng": -74.1036503
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility GATEWAY NATIONAL RECREATION AREA",
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 116.74,
+        "actual_nearest_ft": 198.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from GATEWAY NATIONAL RECREATION AREA \u2014 inside hard-fail buffer (adjusted: nearest facility is 198ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0033",
+      "coordinates": {
+        "lat": 40.5773394,
+        "lng": -74.1085191
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility GATEWAY NATIONAL RECREATION AREA",
+      "source_facility": {
+        "name": "GATEWAY NATIONAL RECREATION AREA",
+        "coordinates": {
+          "lat": 40.577025,
+          "lng": -74.104938
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 276.59,
+        "actual_nearest_ft": 1001.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from GATEWAY NATIONAL RECREATION AREA \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0034",
+      "coordinates": {
+        "lat": 40.5752558,
+        "lng": -73.9870009
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility CONEY ISLAND SITE 1B (CAREY GARDENS)",
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 20.14,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from CONEY ISLAND SITE 1B (CAREY GARDENS) \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0035",
+      "coordinates": {
+        "lat": 40.5755405,
+        "lng": -73.9883917
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility CONEY ISLAND SITE 1B (CAREY GARDENS)",
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 295.85,
+        "actual_nearest_ft": 400.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from CONEY ISLAND SITE 1B (CAREY GARDENS) \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0036",
+      "coordinates": {
+        "lat": 40.5759912,
+        "lng": -73.9904853
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility CONEY ISLAND SITE 1B (CAREY GARDENS)",
+      "source_facility": {
+        "name": "CONEY ISLAND SITE 1B (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.575063,
+          "lng": -73.987094
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 289.82,
+        "actual_nearest_ft": 516.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from CONEY ISLAND SITE 1B (CAREY GARDENS) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0037",
+      "coordinates": {
+        "lat": 40.524526,
+        "lng": -74.2109508
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility CITGO #195",
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 144.42,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from CITGO #195 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0038",
+      "coordinates": {
+        "lat": 40.5256949,
+        "lng": -74.2105259
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility CITGO #195",
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 23.83,
+        "actual_nearest_ft": 274.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from CITGO #195 \u2014 inside hard-fail buffer (adjusted: nearest facility is 275ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0039",
+      "coordinates": {
+        "lat": 40.5270333,
+        "lng": -74.2129778
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility CITGO #195",
+      "source_facility": {
+        "name": "CITGO #195",
+        "coordinates": {
+          "lat": 40.524693,
+          "lng": -74.211108
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 328.73,
+        "actual_nearest_ft": 606.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from CITGO #195 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0040",
+      "coordinates": {
+        "lat": 40.5758147,
+        "lng": -74.1193228
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility COLONIAL SERVICE STATION",
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 204.18,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from COLONIAL SERVICE STATION \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0041",
+      "coordinates": {
+        "lat": 40.5757827,
+        "lng": -74.1206247
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility COLONIAL SERVICE STATION",
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 258.45,
+        "actual_nearest_ft": 400.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from COLONIAL SERVICE STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0042",
+      "coordinates": {
+        "lat": 40.5766391,
+        "lng": -74.1157061
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility COLONIAL SERVICE STATION",
+      "source_facility": {
+        "name": "COLONIAL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.576002,
+          "lng": -74.119212
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 76.55,
+        "actual_nearest_ft": 604.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from COLONIAL SERVICE STATION \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0043",
+      "coordinates": {
+        "lat": 40.5705066,
+        "lng": -74.1090177
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility SPEEDWAY # 7597",
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 179.72,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from SPEEDWAY # 7597 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0044",
+      "coordinates": {
+        "lat": 40.5715321,
+        "lng": -74.1099747
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility SPEEDWAY # 7597",
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 318.49,
+        "actual_nearest_ft": 360.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from SPEEDWAY # 7597 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0045",
+      "coordinates": {
+        "lat": 40.5690048,
+        "lng": -74.1118371
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility SPEEDWAY # 7597",
+      "source_facility": {
+        "name": "SPEEDWAY # 7597",
+        "coordinates": {
+          "lat": 40.570712,
+          "lng": -74.109019
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 231.43,
+        "actual_nearest_ft": 217.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from SPEEDWAY # 7597 \u2014 inside hard-fail buffer (adjusted: nearest facility is 217ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0046",
+      "coordinates": {
+        "lat": 40.513343,
+        "lng": -74.2107718
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility RESURRECTION CEMETERY",
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 51.43,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from RESURRECTION CEMETERY \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0047",
+      "coordinates": {
+        "lat": 40.5139151,
+        "lng": -74.2098751
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility RESURRECTION CEMETERY",
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 50.27,
+        "actual_nearest_ft": 399.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from RESURRECTION CEMETERY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0048",
+      "coordinates": {
+        "lat": 40.5131288,
+        "lng": -74.2145827
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility RESURRECTION CEMETERY",
+      "source_facility": {
+        "name": "RESURRECTION CEMETERY",
+        "coordinates": {
+          "lat": 40.513215,
+          "lng": -74.210983
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 268.2,
+        "actual_nearest_ft": 1001.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from RESURRECTION CEMETERY \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0049",
+      "coordinates": {
+        "lat": 40.5124838,
+        "lng": -74.2389245
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility FDNY ENGINE COMPANY 151/LADDER 76",
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 194.03,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from FDNY ENGINE COMPANY 151/LADDER 76 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0050",
+      "coordinates": {
+        "lat": 40.5126625,
+        "lng": -74.2402993
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility FDNY ENGINE COMPANY 151/LADDER 76",
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 268.92,
+        "actual_nearest_ft": 400.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from FDNY ENGINE COMPANY 151/LADDER 76 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0051",
+      "coordinates": {
+        "lat": 40.5102171,
+        "lng": -74.2372936
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility FDNY ENGINE COMPANY 151/LADDER 76",
+      "source_facility": {
+        "name": "FDNY ENGINE COMPANY 151/LADDER 76",
+        "coordinates": {
+          "lat": 40.512683,
+          "lng": -74.238859
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 154.24,
+        "actual_nearest_ft": 998.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from FDNY ENGINE COMPANY 151/LADDER 76 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0052",
+      "coordinates": {
+        "lat": 40.5245243,
+        "lng": -74.2304834
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility OUTERBRIDGE CROSSING",
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 210.07,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from OUTERBRIDGE CROSSING \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0053",
+      "coordinates": {
+        "lat": 40.5239933,
+        "lng": -74.2292494
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility OUTERBRIDGE CROSSING",
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 130.32,
+        "actual_nearest_ft": 399.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from OUTERBRIDGE CROSSING \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0054",
+      "coordinates": {
+        "lat": 40.5274397,
+        "lng": -74.2304085
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility OUTERBRIDGE CROSSING",
+      "source_facility": {
+        "name": "OUTERBRIDGE CROSSING",
+        "coordinates": {
+          "lat": 40.524702,
+          "lng": -74.230348
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 359.04,
+        "actual_nearest_ft": 997.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from OUTERBRIDGE CROSSING \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0055",
+      "coordinates": {
+        "lat": 40.5470755,
+        "lng": -74.1493796
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility ST CLARE'S CHURCH",
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 49.8,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from ST CLARE'S CHURCH \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0056",
+      "coordinates": {
+        "lat": 40.5458487,
+        "lng": -74.1495273
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility ST CLARE'S CHURCH",
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 177.67,
+        "actual_nearest_ft": 399.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from ST CLARE'S CHURCH \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0057",
+      "coordinates": {
+        "lat": 40.5470425,
+        "lng": -74.1531869
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility ST CLARE'S CHURCH",
+      "source_facility": {
+        "name": "ST CLARE'S CHURCH",
+        "coordinates": {
+          "lat": 40.546943,
+          "lng": -74.149586
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 272.08,
+        "actual_nearest_ft": 1001.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from ST CLARE'S CHURCH \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0058",
+      "coordinates": {
+        "lat": 40.551619,
+        "lng": -74.204895
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility SOUTH SHORE GOLF COURSE",
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 310.0,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from SOUTH SHORE GOLF COURSE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0059",
+      "coordinates": {
+        "lat": 40.5521148,
+        "lng": -74.2035069
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility SOUTH SHORE GOLF COURSE",
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 55.02,
+        "actual_nearest_ft": 400.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from SOUTH SHORE GOLF COURSE \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0060",
+      "coordinates": {
+        "lat": 40.5529544,
+        "lng": -74.2016456
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility SOUTH SHORE GOLF COURSE",
+      "source_facility": {
+        "name": "SOUTH SHORE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.551487,
+          "lng": -74.204688
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 57.59,
+        "actual_nearest_ft": 1000.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from SOUTH SHORE GOLF COURSE \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0061",
+      "coordinates": {
+        "lat": 40.5738971,
+        "lng": -74.170085
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility MOBIL R/S 11381",
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 244.97,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from MOBIL R/S 11381 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0062",
+      "coordinates": {
+        "lat": 40.5730836,
+        "lng": -74.170661
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility MOBIL R/S 11381",
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 214.71,
+        "actual_nearest_ft": 339.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from MOBIL R/S 11381 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0063",
+      "coordinates": {
+        "lat": 40.5719328,
+        "lng": -74.1674522
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility MOBIL R/S 11381",
+      "source_facility": {
+        "name": "MOBIL R/S 11381",
+        "coordinates": {
+          "lat": 40.573984,
+          "lng": -74.16984
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 138.52,
+        "actual_nearest_ft": 661.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from MOBIL R/S 11381 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0064",
+      "coordinates": {
+        "lat": 40.5758578,
+        "lng": -74.1470492
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility LA TOURETTE GOLF COURSE",
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 214.52,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from LA TOURETTE GOLF COURSE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0065",
+      "coordinates": {
+        "lat": 40.5749538,
+        "lng": -74.1466085
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility LA TOURETTE GOLF COURSE",
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 168.5,
+        "actual_nearest_ft": 399.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from LA TOURETTE GOLF COURSE \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0066",
+      "coordinates": {
+        "lat": 40.5760027,
+        "lng": -74.1432913
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility LA TOURETTE GOLF COURSE",
+      "source_facility": {
+        "name": "LA TOURETTE GOLF COURSE",
+        "coordinates": {
+          "lat": 40.576027,
+          "lng": -74.146896
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 90.51,
+        "actual_nearest_ft": 1001.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from LA TOURETTE GOLF COURSE \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0067",
+      "coordinates": {
+        "lat": 40.578452,
+        "lng": -73.8409267
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility 120-10 ROCKAWAY BEACH BLVD.",
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 199.16,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from 120-10 ROCKAWAY BEACH BLVD. \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0068",
+      "coordinates": {
+        "lat": 40.5796703,
+        "lng": -73.8413483
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility 120-10 ROCKAWAY BEACH BLVD.",
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 339.28,
+        "actual_nearest_ft": 399.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from 120-10 ROCKAWAY BEACH BLVD. \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0069",
+      "coordinates": {
+        "lat": 40.5774846,
+        "lng": -73.8441026
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility 120-10 ROCKAWAY BEACH BLVD.",
+      "source_facility": {
+        "name": "120-10 ROCKAWAY BEACH BLVD.",
+        "coordinates": {
+          "lat": 40.578646,
+          "lng": -73.840838
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 244.9,
+        "actual_nearest_ft": 556.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from 120-10 ROCKAWAY BEACH BLVD. \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0070",
+      "coordinates": {
+        "lat": 40.5757874,
+        "lng": -73.9615568
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility BRIGHTON HOUSE",
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 41.24,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from BRIGHTON HOUSE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0071",
+      "coordinates": {
+        "lat": 40.5764536,
+        "lng": -73.96269
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility BRIGHTON HOUSE",
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 318.52,
+        "actual_nearest_ft": 399.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from BRIGHTON HOUSE \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0072",
+      "coordinates": {
+        "lat": 40.5756481,
+        "lng": -73.9653398
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility BRIGHTON HOUSE",
+      "source_facility": {
+        "name": "BRIGHTON HOUSE",
+        "coordinates": {
+          "lat": 40.575633,
+          "lng": -73.961735
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 270.32,
+        "actual_nearest_ft": 201.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from BRIGHTON HOUSE \u2014 inside hard-fail buffer (adjusted: nearest facility is 201ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0073",
+      "coordinates": {
+        "lat": 40.5455649,
+        "lng": -74.1661114
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility HILLSIDE SERVICE STATION, INC.",
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 276.7,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from HILLSIDE SERVICE STATION, INC. \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0074",
+      "coordinates": {
+        "lat": 40.5449531,
+        "lng": -74.1646269
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility HILLSIDE SERVICE STATION, INC.",
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 122.46,
+        "actual_nearest_ft": 400.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from HILLSIDE SERVICE STATION, INC. \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0075",
+      "coordinates": {
+        "lat": 40.5448019,
+        "lng": -74.1623735
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility HILLSIDE SERVICE STATION, INC.",
+      "source_facility": {
+        "name": "HILLSIDE SERVICE STATION, INC.",
+        "coordinates": {
+          "lat": 40.545541,
+          "lng": -74.165843
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 105.66,
+        "actual_nearest_ft": 197.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from HILLSIDE SERVICE STATION, INC. \u2014 inside hard-fail buffer (adjusted: nearest facility is 198ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0076",
+      "coordinates": {
+        "lat": 40.576992,
+        "lng": -74.1028744
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility 2211 HYLAN BLVD",
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 56.94,
+        "actual_nearest_ft": 34.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from 2211 HYLAN BLVD \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0077",
+      "coordinates": {
+        "lat": 40.577975,
+        "lng": -74.1030716
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility 2211 HYLAN BLVD",
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 1.17,
+        "actual_nearest_ft": 338.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from 2211 HYLAN BLVD \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0078",
+      "coordinates": {
+        "lat": 40.5764023,
+        "lng": -74.1066506
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility 2211 HYLAN BLVD",
+      "source_facility": {
+        "name": "2211 HYLAN BLVD",
+        "coordinates": {
+          "lat": 40.57688,
+          "lng": -74.103101
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 259.95,
+        "actual_nearest_ft": 527.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from 2211 HYLAN BLVD \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0079",
+      "coordinates": {
+        "lat": 40.5783541,
+        "lng": -73.8427575
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility CHESTER KOBER",
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 259.09,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from CHESTER KOBER \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0080",
+      "coordinates": {
+        "lat": 40.5794712,
+        "lng": -73.8427454
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility CHESTER KOBER",
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 349.88,
+        "actual_nearest_ft": 399.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from CHESTER KOBER \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0081",
+      "coordinates": {
+        "lat": 40.5785986,
+        "lng": -73.8460868
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility CHESTER KOBER",
+      "source_facility": {
+        "name": "CHESTER KOBER",
+        "coordinates": {
+          "lat": 40.578393,
+          "lng": -73.842492
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 274.31,
+        "actual_nearest_ft": 668.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from CHESTER KOBER \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0082",
+      "coordinates": {
+        "lat": 40.5691869,
+        "lng": -73.864039
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility NEPONSIT HEALTH CARE CENTER",
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 182.77,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from NEPONSIT HEALTH CARE CENTER \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0083",
+      "coordinates": {
+        "lat": 40.5702514,
+        "lng": -73.8631322
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility NEPONSIT HEALTH CARE CENTER",
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 38.31,
+        "actual_nearest_ft": 399.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from NEPONSIT HEALTH CARE CENTER \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0084",
+      "coordinates": {
+        "lat": 40.5674596,
+        "lng": -73.8665796
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility NEPONSIT HEALTH CARE CENTER",
+      "source_facility": {
+        "name": "NEPONSIT HEALTH CARE CENTER",
+        "coordinates": {
+          "lat": 40.569392,
+          "lng": -73.864026
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 225.11,
+        "actual_nearest_ft": 999.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from NEPONSIT HEALTH CARE CENTER \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0085",
+      "coordinates": {
+        "lat": 40.5496758,
+        "lng": -74.1509467
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility NORMAN S. FASTMAN",
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 303.0,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from NORMAN S. FASTMAN \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0086",
+      "coordinates": {
+        "lat": 40.54847,
+        "lng": -74.1507894
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility NORMAN S. FASTMAN",
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 182.76,
+        "actual_nearest_ft": 399.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from NORMAN S. FASTMAN \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0087",
+      "coordinates": {
+        "lat": 40.5504279,
+        "lng": -74.1473006
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility NORMAN S. FASTMAN",
+      "source_facility": {
+        "name": "NORMAN S. FASTMAN",
+        "coordinates": {
+          "lat": 40.549564,
+          "lng": -74.15072
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 71.61,
+        "actual_nearest_ft": 1001.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from NORMAN S. FASTMAN \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0088",
+      "coordinates": {
+        "lat": 40.5723328,
+        "lng": -73.9913085
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility HABER HOUSES (CAREY GARDENS)",
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 134.61,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from HABER HOUSES (CAREY GARDENS) \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0089",
+      "coordinates": {
+        "lat": 40.5730548,
+        "lng": -73.9902761
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility HABER HOUSES (CAREY GARDENS)",
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 58.16,
+        "actual_nearest_ft": 400.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from HABER HOUSES (CAREY GARDENS) \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0090",
+      "coordinates": {
+        "lat": 40.575099,
+        "lng": -73.9925393
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility HABER HOUSES (CAREY GARDENS)",
+      "source_facility": {
+        "name": "HABER HOUSES (CAREY GARDENS)",
+        "coordinates": {
+          "lat": 40.572477,
+          "lng": -73.991501
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 343.26,
+        "actual_nearest_ft": 138.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from HABER HOUSES (CAREY GARDENS) \u2014 inside hard-fail buffer (adjusted: nearest facility is 139ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0091",
+      "coordinates": {
+        "lat": 40.5761624,
+        "lng": -74.1239476
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility ENGINE COMPANY 165",
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 332.08,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from ENGINE COMPANY 165 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0092",
+      "coordinates": {
+        "lat": 40.5769357,
+        "lng": -74.1245276
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility ENGINE COMPANY 165",
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 330.66,
+        "actual_nearest_ft": 399.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from ENGINE COMPANY 165 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0093",
+      "coordinates": {
+        "lat": 40.5737552,
+        "lng": -74.1259205
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility ENGINE COMPANY 165",
+      "source_facility": {
+        "name": "ENGINE COMPANY 165",
+        "coordinates": {
+          "lat": 40.575981,
+          "lng": -74.123821
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 215.62,
+        "actual_nearest_ft": 998.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from ENGINE COMPANY 165 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0094",
+      "coordinates": {
+        "lat": 40.5595672,
+        "lng": -74.1966917
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility SHELL SERVICE STATION",
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 175.9,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from SHELL SERVICE STATION \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0095",
+      "coordinates": {
+        "lat": 40.5606076,
+        "lng": -74.1957791
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility SHELL SERVICE STATION",
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 40.27,
+        "actual_nearest_ft": 399.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from SHELL SERVICE STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0096",
+      "coordinates": {
+        "lat": 40.5579875,
+        "lng": -74.1939776
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility SHELL SERVICE STATION",
+      "source_facility": {
+        "name": "SHELL SERVICE STATION",
+        "coordinates": {
+          "lat": 40.559772,
+          "lng": -74.196711
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 130.67,
+        "actual_nearest_ft": 999.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from SHELL SERVICE STATION \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0097",
+      "coordinates": {
+        "lat": 40.5083545,
+        "lng": -74.2294359
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility BP PAGE",
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 354.72,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from BP PAGE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0098",
+      "coordinates": {
+        "lat": 40.5085325,
+        "lng": -74.2307608
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility BP PAGE",
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 290.44,
+        "actual_nearest_ft": 400.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from BP PAGE \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0099",
+      "coordinates": {
+        "lat": 40.5083313,
+        "lng": -74.2258177
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility BP PAGE",
+      "source_facility": {
+        "name": "BP PAGE",
+        "coordinates": {
+          "lat": 40.50815,
+          "lng": -74.229411
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 86.2,
+        "actual_nearest_ft": 580.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from BP PAGE \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0100",
+      "coordinates": {
+        "lat": 40.5382628,
+        "lng": -74.2330482
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility GATEWAY ASSOCIATES LLC",
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 86.71,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from GATEWAY ASSOCIATES LLC \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0101",
+      "coordinates": {
+        "lat": 40.5372524,
+        "lng": -74.2339099
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility GATEWAY ASSOCIATES LLC",
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 204.25,
+        "actual_nearest_ft": 399.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from GATEWAY ASSOCIATES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0102",
+      "coordinates": {
+        "lat": 40.5406606,
+        "lng": -74.231607
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility GATEWAY ASSOCIATES LLC",
+      "source_facility": {
+        "name": "GATEWAY ASSOCIATES LLC",
+        "coordinates": {
+          "lat": 40.538251,
+          "lng": -74.233318
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 28.35,
+        "actual_nearest_ft": 998.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from GATEWAY ASSOCIATES LLC \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0103",
+      "coordinates": {
+        "lat": 40.5779547,
+        "lng": -73.8486216
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility 128 NEWPORT OWNERS CORP",
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 263.49,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from 128 NEWPORT OWNERS CORP \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0104",
+      "coordinates": {
+        "lat": 40.5784194,
+        "lng": -73.8496727
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility 128 NEWPORT OWNERS CORP",
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 293.77,
+        "actual_nearest_ft": 52.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from 128 NEWPORT OWNERS CORP \u2014 inside hard-fail buffer (adjusted: nearest facility is 52ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0105",
+      "coordinates": {
+        "lat": 40.5806899,
+        "lng": -73.8488501
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility 128 NEWPORT OWNERS CORP",
+      "source_facility": {
+        "name": "128 NEWPORT OWNERS CORP",
+        "coordinates": {
+          "lat": 40.577978,
+          "lng": -73.848353
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 352.07,
+        "actual_nearest_ft": 806.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from 128 NEWPORT OWNERS CORP \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0106",
+      "coordinates": {
+        "lat": 40.563639,
+        "lng": -74.1181602
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility ST CHARLES SCHOOL",
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 191.77,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from ST CHARLES SCHOOL \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0107",
+      "coordinates": {
+        "lat": 40.5646107,
+        "lng": -74.1170807
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility ST CHARLES SCHOOL",
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 45.27,
+        "actual_nearest_ft": 382.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from ST CHARLES SCHOOL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0108",
+      "coordinates": {
+        "lat": 40.5623693,
+        "lng": -74.1211451
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility ST CHARLES SCHOOL",
+      "source_facility": {
+        "name": "ST CHARLES SCHOOL",
+        "coordinates": {
+          "lat": 40.56384,
+          "lng": -74.118105
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 237.51,
+        "actual_nearest_ft": 1000.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from ST CHARLES SCHOOL \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0109",
+      "coordinates": {
+        "lat": 40.577152,
+        "lng": -73.8546846
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility P.S. 256 ANNEX - QUEENS Q816",
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 340.87,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from P.S. 256 ANNEX - QUEENS Q816 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0110",
+      "coordinates": {
+        "lat": 40.5775148,
+        "lng": -73.8533543
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility P.S. 256 ANNEX - QUEENS Q816",
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 59.45,
+        "actual_nearest_ft": 400.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from P.S. 256 ANNEX - QUEENS Q816 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0111",
+      "coordinates": {
+        "lat": 40.5742612,
+        "lng": -73.8552197
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility P.S. 256 ANNEX - QUEENS Q816",
+      "source_facility": {
+        "name": "P.S. 256 ANNEX - QUEENS Q816",
+        "coordinates": {
+          "lat": 40.576958,
+          "lng": -73.854596
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 189.96,
+        "actual_nearest_ft": 997.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from P.S. 256 ANNEX - QUEENS Q816 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0112",
+      "coordinates": {
+        "lat": 40.537875,
+        "lng": -74.1497147
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility DR. LUBE",
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 218.37,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from DR. LUBE \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0113",
+      "coordinates": {
+        "lat": 40.5391039,
+        "lng": -74.149867
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility DR. LUBE",
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 347.17,
+        "actual_nearest_ft": 399.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from DR. LUBE \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0114",
+      "coordinates": {
+        "lat": 40.5405054,
+        "lng": -74.1511032
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility DR. LUBE",
+      "source_facility": {
+        "name": "DR. LUBE",
+        "coordinates": {
+          "lat": 40.538036,
+          "lng": -74.149547
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 334.41,
+        "actual_nearest_ft": 998.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from DR. LUBE \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0115",
+      "coordinates": {
+        "lat": 40.5776718,
+        "lng": -73.9542382
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility MANHATTAN BEACH",
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 271.9,
+        "actual_nearest_ft": 75.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from MANHATTAN BEACH \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0116",
+      "coordinates": {
+        "lat": 40.577261,
+        "lng": -73.9553083
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility MANHATTAN BEACH",
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 248.35,
+        "actual_nearest_ft": 304.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from MANHATTAN BEACH \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0117",
+      "coordinates": {
+        "lat": 40.5770333,
+        "lng": -73.9574757
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility MANHATTAN BEACH",
+      "source_facility": {
+        "name": "MANHATTAN BEACH",
+        "coordinates": {
+          "lat": 40.577665,
+          "lng": -73.953968
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 256.66,
+        "actual_nearest_ft": 242.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from MANHATTAN BEACH \u2014 inside hard-fail buffer (adjusted: nearest facility is 243ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0118",
+      "coordinates": {
+        "lat": 40.5634266,
+        "lng": -74.1162647
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility THE CAROLINA GARDENS",
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 143.64,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from THE CAROLINA GARDENS \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0119",
+      "coordinates": {
+        "lat": 40.5630746,
+        "lng": -74.1176956
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility THE CAROLINA GARDENS",
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 241.81,
+        "actual_nearest_ft": 301.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from THE CAROLINA GARDENS \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0120",
+      "coordinates": {
+        "lat": 40.5616752,
+        "lng": -74.1138513
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility THE CAROLINA GARDENS",
+      "source_facility": {
+        "name": "THE CAROLINA GARDENS",
+        "coordinates": {
+          "lat": 40.563592,
+          "lng": -74.116425
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 134.43,
+        "actual_nearest_ft": 254.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from THE CAROLINA GARDENS \u2014 inside hard-fail buffer (adjusted: nearest facility is 255ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0121",
+      "coordinates": {
+        "lat": 40.5784628,
+        "lng": -73.8584645
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility BEACH CHANNEL DRIVE HOUSING CORP",
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 323.86,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from BEACH CHANNEL DRIVE HOUSING CORP \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0122",
+      "coordinates": {
+        "lat": 40.5772523,
+        "lng": -73.8578722
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility BEACH CHANNEL DRIVE HOUSING CORP",
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 162.54,
+        "actual_nearest_ft": 399.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from BEACH CHANNEL DRIVE HOUSING CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0123",
+      "coordinates": {
+        "lat": 40.578333,
+        "lng": -73.8547003
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility BEACH CHANNEL DRIVE HOUSING CORP",
+      "source_facility": {
+        "name": "BEACH CHANNEL DRIVE HOUSING CORP",
+        "coordinates": {
+          "lat": 40.578297,
+          "lng": -73.858305
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 89.25,
+        "actual_nearest_ft": 501.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from BEACH CHANNEL DRIVE HOUSING CORP \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0124",
+      "coordinates": {
+        "lat": 40.577945,
+        "lng": -73.8380911
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility BEACHVIEW APT. CORP.",
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 23.05,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from BEACHVIEW APT. CORP. \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0125",
+      "coordinates": {
+        "lat": 40.5788417,
+        "lng": -73.838007
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility BEACHVIEW APT. CORP.",
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 7.57,
+        "actual_nearest_ft": 399.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from BEACHVIEW APT. CORP. \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0126",
+      "coordinates": {
+        "lat": 40.5751736,
+        "lng": -73.8393951
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility BEACHVIEW APT. CORP.",
+      "source_facility": {
+        "name": "BEACHVIEW APT. CORP.",
+        "coordinates": {
+          "lat": 40.577756,
+          "lng": -73.838197
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 199.41,
+        "actual_nearest_ft": 724.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from BEACHVIEW APT. CORP. \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0127",
+      "coordinates": {
+        "lat": 40.5647005,
+        "lng": -74.1110996
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility TYSENS APARTMENTS, LLC.",
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 211.84,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from TYSENS APARTMENTS, LLC. \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0128",
+      "coordinates": {
+        "lat": 40.5659691,
+        "lng": -74.1108919
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility TYSENS APARTMENTS, LLC.",
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 2.59,
+        "actual_nearest_ft": 399.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from TYSENS APARTMENTS, LLC. \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0129",
+      "coordinates": {
+        "lat": 40.5641582,
+        "lng": -74.1144355
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility TYSENS APARTMENTS, LLC.",
+      "source_facility": {
+        "name": "TYSENS APARTMENTS, LLC.",
+        "coordinates": {
+          "lat": 40.564875,
+          "lng": -74.110957
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 254.82,
+        "actual_nearest_ft": 413.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 1000ft from TYSENS APARTMENTS, LLC. \u2014 inside warning buffer (adjusted: nearest facility is 414ft away, not 1000ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0130",
+      "coordinates": {
+        "lat": 40.5250915,
+        "lng": -74.2437023
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility PORT AUTHORITY OF NEW Y./N. JERSEY",
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 21.19,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from PORT AUTHORITY OF NEW Y./N. JERSEY \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0131",
+      "coordinates": {
+        "lat": 40.5258985,
+        "lng": -74.2432079
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility PORT AUTHORITY OF NEW Y./N. JERSEY",
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 24.26,
+        "actual_nearest_ft": 399.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from PORT AUTHORITY OF NEW Y./N. JERSEY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0132",
+      "coordinates": {
+        "lat": 40.5275849,
+        "lng": -74.2430936
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility PORT AUTHORITY OF NEW Y./N. JERSEY",
+      "source_facility": {
+        "name": "PORT AUTHORITY OF NEW Y./N. JERSEY",
+        "coordinates": {
+          "lat": 40.5249,
+          "lng": -74.2438
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 11.31,
+        "actual_nearest_ft": 989.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from PORT AUTHORITY OF NEW Y./N. JERSEY \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0133",
+      "coordinates": {
+        "lat": 40.5640046,
+        "lng": -74.1505055
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility P.S. 37 (OLD I24X)  S.I. R840",
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 118.95,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from P.S. 37 (OLD I24X)  S.I. R840 \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0134",
+      "coordinates": {
+        "lat": 40.5630131,
+        "lng": -74.1508701
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility P.S. 37 (OLD I24X)  S.I. R840",
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 185.1,
+        "actual_nearest_ft": 399.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from P.S. 37 (OLD I24X)  S.I. R840 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0135",
+      "coordinates": {
+        "lat": 40.5636167,
+        "lng": -74.1471953
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility P.S. 37 (OLD I24X)  S.I. R840",
+      "source_facility": {
+        "name": "P.S. 37 (OLD I24X)  S.I. R840",
+        "coordinates": {
+          "lat": 40.564104,
+          "lng": -74.150742
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 100.25,
+        "actual_nearest_ft": 1001.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from P.S. 37 (OLD I24X)  S.I. R840 \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0136",
+      "coordinates": {
+        "lat": 40.5636405,
+        "lng": -74.1928593
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 174.75,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0137",
+      "coordinates": {
+        "lat": 40.5627829,
+        "lng": -74.1932358
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 194.12,
+        "actual_nearest_ft": 168.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP \u2014 inside hard-fail buffer (adjusted: nearest facility is 168ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0138",
+      "coordinates": {
+        "lat": 40.5633887,
+        "lng": -74.1964378
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+      "source_facility": {
+        "name": "DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP",
+        "coordinates": {
+          "lat": 40.563845,
+          "lng": -74.192884
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 260.41,
+        "actual_nearest_ft": 703.1
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from DSNY SI DISTRICT 3 GARAGE & BORO REPAIR SHOP \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0139",
+      "coordinates": {
+        "lat": 40.5568078,
+        "lng": -74.2032561
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility MAYFLOWER PUMPING STATION",
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 317.66,
+        "actual_nearest_ft": 74.9
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from MAYFLOWER PUMPING STATION \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0140",
+      "coordinates": {
+        "lat": 40.555684,
+        "lng": -74.2037382
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility MAYFLOWER PUMPING STATION",
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 207.44,
+        "actual_nearest_ft": 399.3
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from MAYFLOWER PUMPING STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0141",
+      "coordinates": {
+        "lat": 40.5567764,
+        "lng": -74.1994737
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility MAYFLOWER PUMPING STATION",
+      "source_facility": {
+        "name": "MAYFLOWER PUMPING STATION",
+        "coordinates": {
+          "lat": 40.556656,
+          "lng": -74.203074
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 87.48,
+        "actual_nearest_ft": 1001.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from MAYFLOWER PUMPING STATION \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0142",
+      "coordinates": {
+        "lat": 40.5173836,
+        "lng": -74.2315253
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility VALLEY GAS INC.",
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 170.27,
+        "actual_nearest_ft": 74.8
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from VALLEY GAS INC. \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0143",
+      "coordinates": {
+        "lat": 40.5166723,
+        "lng": -74.2307767
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility VALLEY GAS INC.",
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 146.54,
+        "actual_nearest_ft": 399.5
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from VALLEY GAS INC. \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0144",
+      "coordinates": {
+        "lat": 40.5198571,
+        "lng": -74.2295592
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility VALLEY GAS INC.",
+      "source_facility": {
+        "name": "VALLEY GAS INC.",
+        "coordinates": {
+          "lat": 40.517586,
+          "lng": -74.231571
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 33.96,
+        "actual_nearest_ft": 998.7
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from VALLEY GAS INC. \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0145",
+      "coordinates": {
+        "lat": 40.5726269,
+        "lng": -74.1383343
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility ST PATRICKS SCHOOL",
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 237.23,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from ST PATRICKS SCHOOL \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0146",
+      "coordinates": {
+        "lat": 40.5720706,
+        "lng": -74.1369638
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility ST PATRICKS SCHOOL",
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 127.55,
+        "actual_nearest_ft": 83.4
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 400ft from ST PATRICKS SCHOOL \u2014 inside hard-fail buffer (adjusted: nearest facility is 83ft away, not 400ft as generated)",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0147",
+      "coordinates": {
+        "lat": 40.5704161,
+        "lng": -74.1361966
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility ST PATRICKS SCHOOL",
+      "source_facility": {
+        "name": "ST PATRICKS SCHOOL",
+        "coordinates": {
+          "lat": 40.572738,
+          "lng": -74.138107
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 148.0,
+        "actual_nearest_ft": 628.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from ST PATRICKS SCHOOL \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0148",
+      "coordinates": {
+        "lat": 40.5750747,
+        "lng": -73.9843861
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 75ft (close) from UST facility CONEY ISLAND GAS & WASH",
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 75,
+        "distance_meters": 22.86,
+        "bearing_deg": 310.98,
+        "actual_nearest_ft": 75.0
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Generated 75ft from CONEY ISLAND GAS & WASH \u2014 inside hard-fail buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0149",
+      "coordinates": {
+        "lat": 40.5759724,
+        "lng": -73.9837006
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 400ft (middle) from UST facility CONEY ISLAND GAS & WASH",
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 400,
+        "distance_meters": 121.92,
+        "bearing_deg": 19.5,
+        "actual_nearest_ft": 399.2
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 400ft from CONEY ISLAND GAS & WASH \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-ust-0150",
+      "coordinates": {
+        "lat": 40.5733791,
+        "lng": -73.9871437
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 1000ft (far) from UST facility CONEY ISLAND GAS & WASH",
+      "source_facility": {
+        "name": "CONEY ISLAND GAS & WASH",
+        "coordinates": {
+          "lat": 40.57494,
+          "lng": -73.984182
+        },
+        "distance_ft": 1000,
+        "distance_meters": 304.8,
+        "bearing_deg": 235.24,
+        "actual_nearest_ft": 613.6
+      },
+      "tier1_health_checks": {
+        "ust_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 1000ft from CONEY ISLAND GAS & WASH \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_ust"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
