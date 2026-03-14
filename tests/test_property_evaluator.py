@@ -571,6 +571,29 @@ class TestCheckHighTrafficRoad:
         result = check_high_traffic_road(40.0, -74.0, store)
         assert result.result == CheckResult.PASS
 
+    def test_high_aadt_beyond_warning_radius_returns_pass(self):
+        """Segment with AADT >= 50K at 400m (beyond 300m warn radius) → PASS.
+
+        Regression test for NES-266: warn_candidates filter was missing the
+        upper distance bound (<= 300m), so segments up to 600m returned
+        WARNING instead of PASS.
+        """
+        from spatial_data import FacilityRecord
+        segment = FacilityRecord(
+            facility_type="hpms", name="I-95",
+            lat=40.0, lng=-74.0,
+            distance_meters=400.0, distance_feet=400.0 * 3.28084,
+            metadata={"aadt": 60000, "route_id": "I-95"},
+        )
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.lines_within.return_value = [segment]
+        result = check_high_traffic_road(40.0, -74.0, store)
+        assert result.result == CheckResult.PASS
+        # Should report nearest high-traffic road in detail
+        assert result.show_detail is True
+        assert "60,000" in result.details
+
 
 # ============================================================================
 # Tier 1: Environmental hazard checks

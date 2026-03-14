@@ -1,0 +1,2815 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-14T19:51:48.413224+00:00",
+  "_generator": "generate_ground_truth_hpms.py",
+  "_segment_count": 50,
+  "_test_count": 100,
+  "_thresholds": {
+    "aadt_threshold": 50000,
+    "fail_radius_m": 150,
+    "warn_radius_m": 300,
+    "source": "property_evaluator.py HIGH_TRAFFIC_* constants"
+  },
+  "addresses": [
+    {
+      "id": "gt-hpms-0001",
+      "coordinates": {
+        "lat": 40.8296792,
+        "lng": -74.3298978
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000280__ segment (AADT 73,211)",
+      "source_segment": {
+        "name": "00000280__",
+        "aadt": 73211,
+        "midpoint": {
+          "lat": 40.8302035,
+          "lng": -74.3293385
+        },
+        "distance_m": 75,
+        "bearing_deg": 218.91
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000280__ (AADT 73,211) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0002",
+      "coordinates": {
+        "lat": 40.8286307,
+        "lng": -74.3310163
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000280__ segment (AADT 73,211)",
+      "source_segment": {
+        "name": "00000280__",
+        "aadt": 73211,
+        "midpoint": {
+          "lat": 40.8302035,
+          "lng": -74.3293385
+        },
+        "distance_m": 225,
+        "bearing_deg": 218.91
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000280__ (AADT 73,211) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0003",
+      "coordinates": {
+        "lat": 40.8267084,
+        "lng": -74.3330669
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000280__ segment (AADT 73,211)",
+      "source_segment": {
+        "name": "00000280__",
+        "aadt": 73211,
+        "midpoint": {
+          "lat": 40.8302035,
+          "lng": -74.3293385
+        },
+        "distance_m": 500,
+        "bearing_deg": 218.91
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000280__ (AADT 73,211) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0004",
+      "coordinates": {
+        "lat": 40.7579127,
+        "lng": -73.8996774
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100236031 segment (AADT 56,926)",
+      "source_segment": {
+        "name": "100236031",
+        "aadt": 56926,
+        "midpoint": {
+          "lat": 40.7576345,
+          "lng": -73.9004875
+        },
+        "distance_m": 75,
+        "bearing_deg": 65.61
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100236031 (AADT 56,926) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0005",
+      "coordinates": {
+        "lat": 40.758469,
+        "lng": -73.8980572
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100236031 segment (AADT 56,926)",
+      "source_segment": {
+        "name": "100236031",
+        "aadt": 56926,
+        "midpoint": {
+          "lat": 40.7576345,
+          "lng": -73.9004875
+        },
+        "distance_m": 225,
+        "bearing_deg": 65.61
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "225m from 100236031 (AADT 56,926) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 257281011 at 131m with AADT 89,858, not 225m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0006",
+      "coordinates": {
+        "lat": 40.759489,
+        "lng": -73.8950869
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100236031 segment (AADT 56,926)",
+      "source_segment": {
+        "name": "100236031",
+        "aadt": 56926,
+        "midpoint": {
+          "lat": 40.7576345,
+          "lng": -73.9004875
+        },
+        "distance_m": 500,
+        "bearing_deg": 65.61
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from 100236031 (AADT 56,926) \u2014 inside 300m warning radius (adjusted: nearest high-traffic segment is 257281011 at 297m with AADT 89,858, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0007",
+      "coordinates": {
+        "lat": 42.7218558,
+        "lng": -73.8073982
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100495071 segment (AADT 102,097)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 102097,
+        "midpoint": {
+          "lat": 42.7223794,
+          "lng": -73.8079752
+        },
+        "distance_m": 75,
+        "bearing_deg": 141.01
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100495071 (AADT 102,097) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0008",
+      "coordinates": {
+        "lat": 42.7208085,
+        "lng": -73.806244
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100495071 segment (AADT 102,097)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 102097,
+        "midpoint": {
+          "lat": 42.7223794,
+          "lng": -73.8079752
+        },
+        "distance_m": 225,
+        "bearing_deg": 141.01
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100495071 (AADT 102,097) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0009",
+      "coordinates": {
+        "lat": 42.7188885,
+        "lng": -73.8041282
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100495071 segment (AADT 102,097)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 102097,
+        "midpoint": {
+          "lat": 42.7223794,
+          "lng": -73.8079752
+        },
+        "distance_m": 500,
+        "bearing_deg": 141.01
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100495071 (AADT 102,097) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0010",
+      "coordinates": {
+        "lat": 41.4530698,
+        "lng": -72.8393375
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A015 segment (AADT 57,500)",
+      "source_segment": {
+        "name": "A015",
+        "aadt": 57500,
+        "midpoint": {
+          "lat": 41.4532692,
+          "lng": -72.8401962
+        },
+        "distance_m": 75,
+        "bearing_deg": 107.21
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from A015 (AADT 57,500) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0011",
+      "coordinates": {
+        "lat": 41.4526712,
+        "lng": -72.8376202
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from A015 segment (AADT 57,500)",
+      "source_segment": {
+        "name": "A015",
+        "aadt": 57500,
+        "midpoint": {
+          "lat": 41.4532692,
+          "lng": -72.8401962
+        },
+        "distance_m": 225,
+        "bearing_deg": 107.21
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from A015 (AADT 57,500) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0012",
+      "coordinates": {
+        "lat": 41.4519402,
+        "lng": -72.8344717
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from A015 segment (AADT 57,500)",
+      "source_segment": {
+        "name": "A015",
+        "aadt": 57500,
+        "midpoint": {
+          "lat": 41.4532692,
+          "lng": -72.8401962
+        },
+        "distance_m": 500,
+        "bearing_deg": 107.21
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from A015 (AADT 57,500) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0013",
+      "coordinates": {
+        "lat": 41.1163246,
+        "lng": -73.8050594
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100861011 segment (AADT 73,429)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 73429,
+        "midpoint": {
+          "lat": 41.1161583,
+          "lng": -73.8059261
+        },
+        "distance_m": 75,
+        "bearing_deg": 75.71
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100861011 (AADT 73,429) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0014",
+      "coordinates": {
+        "lat": 41.1166571,
+        "lng": -73.8033262
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100861011 segment (AADT 73,429)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 73429,
+        "midpoint": {
+          "lat": 41.1161583,
+          "lng": -73.8059261
+        },
+        "distance_m": 225,
+        "bearing_deg": 75.71
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100861011 (AADT 73,429) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0015",
+      "coordinates": {
+        "lat": 41.1172669,
+        "lng": -73.8001486
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100861011 segment (AADT 73,429)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 73429,
+        "midpoint": {
+          "lat": 41.1161583,
+          "lng": -73.8059261
+        },
+        "distance_m": 500,
+        "bearing_deg": 75.71
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100861011 (AADT 73,429) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0016",
+      "coordinates": {
+        "lat": 42.1133509,
+        "lng": -75.9306688
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100113071 segment (AADT 59,013)",
+      "source_segment": {
+        "name": "100113071",
+        "aadt": 59013,
+        "midpoint": {
+          "lat": 42.114016,
+          "lng": -75.930524
+        },
+        "distance_m": 75,
+        "bearing_deg": 189.17
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100113071 (AADT 59,013) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0017",
+      "coordinates": {
+        "lat": 42.1120206,
+        "lng": -75.9309584
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100113071 segment (AADT 59,013)",
+      "source_segment": {
+        "name": "100113071",
+        "aadt": 59013,
+        "midpoint": {
+          "lat": 42.114016,
+          "lng": -75.930524
+        },
+        "distance_m": 225,
+        "bearing_deg": 189.17
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100113071 (AADT 59,013) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0018",
+      "coordinates": {
+        "lat": 42.1095819,
+        "lng": -75.9314892
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100113071 segment (AADT 59,013)",
+      "source_segment": {
+        "name": "100113071",
+        "aadt": 59013,
+        "midpoint": {
+          "lat": 42.114016,
+          "lng": -75.930524
+        },
+        "distance_m": 500,
+        "bearing_deg": 189.17
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100113071 (AADT 59,013) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0019",
+      "coordinates": {
+        "lat": 41.279781,
+        "lng": -73.8190454
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100861011 segment (AADT 70,417)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 70417,
+        "midpoint": {
+          "lat": 41.2795674,
+          "lng": -73.8198956
+        },
+        "distance_m": 75,
+        "bearing_deg": 71.52
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100861011 (AADT 70,417) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0020",
+      "coordinates": {
+        "lat": 41.2802082,
+        "lng": -73.8173448
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100861011 segment (AADT 70,417)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 70417,
+        "midpoint": {
+          "lat": 41.2795674,
+          "lng": -73.8198956
+        },
+        "distance_m": 225,
+        "bearing_deg": 71.52
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100861011 (AADT 70,417) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0021",
+      "coordinates": {
+        "lat": 41.2809914,
+        "lng": -73.8142272
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100861011 segment (AADT 70,417)",
+      "source_segment": {
+        "name": "100861011",
+        "aadt": 70417,
+        "midpoint": {
+          "lat": 41.2795674,
+          "lng": -73.8198956
+        },
+        "distance_m": 500,
+        "bearing_deg": 71.52
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100861011 (AADT 70,417) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0022",
+      "coordinates": {
+        "lat": 40.7236229,
+        "lng": -74.0092307
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100477011 segment (AADT 84,426)",
+      "source_segment": {
+        "name": "100477011",
+        "aadt": 84426,
+        "midpoint": {
+          "lat": 40.7241183,
+          "lng": -74.0086283
+        },
+        "distance_m": 75,
+        "bearing_deg": 222.66
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100477011 (AADT 84,426) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0023",
+      "coordinates": {
+        "lat": 40.7226319,
+        "lng": -74.0104355
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100477011 segment (AADT 84,426)",
+      "source_segment": {
+        "name": "100477011",
+        "aadt": 84426,
+        "midpoint": {
+          "lat": 40.7241183,
+          "lng": -74.0086283
+        },
+        "distance_m": 225,
+        "bearing_deg": 222.66
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "225m from 100477011 (AADT 84,426) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100503011 at 93m with AADT 56,107, not 225m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0024",
+      "coordinates": {
+        "lat": 40.7208152,
+        "lng": -74.0126444
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100477011 segment (AADT 84,426)",
+      "source_segment": {
+        "name": "100477011",
+        "aadt": 84426,
+        "midpoint": {
+          "lat": 40.7241183,
+          "lng": -74.0086283
+        },
+        "distance_m": 500,
+        "bearing_deg": 222.66
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m from 100477011 (AADT 84,426) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100503011 at 62m with AADT 56,107, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0025",
+      "coordinates": {
+        "lat": 41.5598246,
+        "lng": -72.6443486
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A009 segment (AADT 57,300)",
+      "source_segment": {
+        "name": "A009",
+        "aadt": 57300,
+        "midpoint": {
+          "lat": 41.5594663,
+          "lng": -72.6451111
+        },
+        "distance_m": 75,
+        "bearing_deg": 57.87
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from A009 (AADT 57,300) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0026",
+      "coordinates": {
+        "lat": 41.5605412,
+        "lng": -72.6428236
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from A009 segment (AADT 57,300)",
+      "source_segment": {
+        "name": "A009",
+        "aadt": 57300,
+        "midpoint": {
+          "lat": 41.5594663,
+          "lng": -72.6451111
+        },
+        "distance_m": 225,
+        "bearing_deg": 57.87
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from A009 (AADT 57,300) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0027",
+      "coordinates": {
+        "lat": 41.5618549,
+        "lng": -72.6400277
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from A009 segment (AADT 57,300)",
+      "source_segment": {
+        "name": "A009",
+        "aadt": 57300,
+        "midpoint": {
+          "lat": 41.5594663,
+          "lng": -72.6451111
+        },
+        "distance_m": 500,
+        "bearing_deg": 57.87
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from A009 (AADT 57,300) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0028",
+      "coordinates": {
+        "lat": 40.8478755,
+        "lng": -73.9386176
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100514011 segment (AADT 153,184)",
+      "source_segment": {
+        "name": "100514011",
+        "aadt": 153184,
+        "midpoint": {
+          "lat": 40.8485349,
+          "lng": -73.9384353
+        },
+        "distance_m": 75,
+        "bearing_deg": 191.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100514011 (AADT 153,184) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0029",
+      "coordinates": {
+        "lat": 40.8465565,
+        "lng": -73.9389823
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100514011 segment (AADT 153,184)",
+      "source_segment": {
+        "name": "100514011",
+        "aadt": 153184,
+        "midpoint": {
+          "lat": 40.8485349,
+          "lng": -73.9384353
+        },
+        "distance_m": 225,
+        "bearing_deg": 191.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100514011 (AADT 153,184) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0030",
+      "coordinates": {
+        "lat": 40.8441385,
+        "lng": -73.9396508
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100514011 segment (AADT 153,184)",
+      "source_segment": {
+        "name": "100514011",
+        "aadt": 153184,
+        "midpoint": {
+          "lat": 40.8485349,
+          "lng": -73.9384353
+        },
+        "distance_m": 500,
+        "bearing_deg": 191.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100514011 (AADT 153,184) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0031",
+      "coordinates": {
+        "lat": 41.1342202,
+        "lng": -73.292607
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A095 segment (AADT 116,200)",
+      "source_segment": {
+        "name": "A095",
+        "aadt": 116200,
+        "midpoint": {
+          "lat": 41.1346578,
+          "lng": -73.2932871
+        },
+        "distance_m": 75,
+        "bearing_deg": 130.51
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from A095 (AADT 116,200) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0032",
+      "coordinates": {
+        "lat": 41.1333449,
+        "lng": -73.2912467
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from A095 segment (AADT 116,200)",
+      "source_segment": {
+        "name": "A095",
+        "aadt": 116200,
+        "midpoint": {
+          "lat": 41.1346578,
+          "lng": -73.2932871
+        },
+        "distance_m": 225,
+        "bearing_deg": 130.51
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from A095 (AADT 116,200) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0033",
+      "coordinates": {
+        "lat": 41.1317402,
+        "lng": -73.288753
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from A095 segment (AADT 116,200)",
+      "source_segment": {
+        "name": "A095",
+        "aadt": 116200,
+        "midpoint": {
+          "lat": 41.1346578,
+          "lng": -73.2932871
+        },
+        "distance_m": 500,
+        "bearing_deg": 130.51
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from A095 (AADT 116,200) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0034",
+      "coordinates": {
+        "lat": 41.3999279,
+        "lng": -72.843453
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A091 segment (AADT 80,600)",
+      "source_segment": {
+        "name": "A091",
+        "aadt": 80600,
+        "midpoint": {
+          "lat": 41.400586,
+          "lng": -72.8436455
+        },
+        "distance_m": 75,
+        "bearing_deg": 167.63
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from A091 (AADT 80,600) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0035",
+      "coordinates": {
+        "lat": 41.3986117,
+        "lng": -72.8430681
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from A091 segment (AADT 80,600)",
+      "source_segment": {
+        "name": "A091",
+        "aadt": 80600,
+        "midpoint": {
+          "lat": 41.400586,
+          "lng": -72.8436455
+        },
+        "distance_m": 225,
+        "bearing_deg": 167.63
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from A091 (AADT 80,600) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0036",
+      "coordinates": {
+        "lat": 41.3961988,
+        "lng": -72.8423623
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from A091 segment (AADT 80,600)",
+      "source_segment": {
+        "name": "A091",
+        "aadt": 80600,
+        "midpoint": {
+          "lat": 41.400586,
+          "lng": -72.8436455
+        },
+        "distance_m": 500,
+        "bearing_deg": 167.63
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from A091 (AADT 80,600) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0037",
+      "coordinates": {
+        "lat": 40.8292968,
+        "lng": -74.1758275
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000444__ segment (AADT 157,937)",
+      "source_segment": {
+        "name": "00000444__",
+        "aadt": 157937,
+        "midpoint": {
+          "lat": 40.8290064,
+          "lng": -74.1766309
+        },
+        "distance_m": 75,
+        "bearing_deg": 64.47
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000444__ (AADT 157,937) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0038",
+      "coordinates": {
+        "lat": 40.8298775,
+        "lng": -74.1742206
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000444__ segment (AADT 157,937)",
+      "source_segment": {
+        "name": "00000444__",
+        "aadt": 157937,
+        "midpoint": {
+          "lat": 40.8290064,
+          "lng": -74.1766309
+        },
+        "distance_m": 225,
+        "bearing_deg": 64.47
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000444__ (AADT 157,937) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0039",
+      "coordinates": {
+        "lat": 40.8309423,
+        "lng": -74.1712746
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000444__ segment (AADT 157,937)",
+      "source_segment": {
+        "name": "00000444__",
+        "aadt": 157937,
+        "midpoint": {
+          "lat": 40.8290064,
+          "lng": -74.1766309
+        },
+        "distance_m": 500,
+        "bearing_deg": 64.47
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000444__ (AADT 157,937) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0040",
+      "coordinates": {
+        "lat": 41.1923511,
+        "lng": -74.1808183
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100495041 segment (AADT 96,792)",
+      "source_segment": {
+        "name": "100495041",
+        "aadt": 96792,
+        "midpoint": {
+          "lat": 41.192285,
+          "lng": -74.1817093
+        },
+        "distance_m": 75,
+        "bearing_deg": 84.38
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100495041 (AADT 96,792) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0041",
+      "coordinates": {
+        "lat": 41.1924831,
+        "lng": -74.1790363
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100495041 segment (AADT 96,792)",
+      "source_segment": {
+        "name": "100495041",
+        "aadt": 96792,
+        "midpoint": {
+          "lat": 41.192285,
+          "lng": -74.1817093
+        },
+        "distance_m": 225,
+        "bearing_deg": 84.38
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100495041 (AADT 96,792) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0042",
+      "coordinates": {
+        "lat": 41.1927252,
+        "lng": -74.1757692
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100495041 segment (AADT 96,792)",
+      "source_segment": {
+        "name": "100495041",
+        "aadt": 96792,
+        "midpoint": {
+          "lat": 41.192285,
+          "lng": -74.1817093
+        },
+        "distance_m": 500,
+        "bearing_deg": 84.38
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100495041 (AADT 96,792) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0043",
+      "coordinates": {
+        "lat": 40.645636,
+        "lng": -74.2019191
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000095__ segment (AADT 271,691)",
+      "source_segment": {
+        "name": "00000095__",
+        "aadt": 271691,
+        "midpoint": {
+          "lat": 40.6459281,
+          "lng": -74.2027193
+        },
+        "distance_m": 75,
+        "bearing_deg": 115.69
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000095__ (AADT 271,691) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0044",
+      "coordinates": {
+        "lat": 40.645052,
+        "lng": -74.2003187
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000095__ segment (AADT 271,691)",
+      "source_segment": {
+        "name": "00000095__",
+        "aadt": 271691,
+        "midpoint": {
+          "lat": 40.6459281,
+          "lng": -74.2027193
+        },
+        "distance_m": 225,
+        "bearing_deg": 115.69
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000095__ (AADT 271,691) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0045",
+      "coordinates": {
+        "lat": 40.6439813,
+        "lng": -74.1973846
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000095__ segment (AADT 271,691)",
+      "source_segment": {
+        "name": "00000095__",
+        "aadt": 271691,
+        "midpoint": {
+          "lat": 40.6459281,
+          "lng": -74.2027193
+        },
+        "distance_m": 500,
+        "bearing_deg": 115.69
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000095__ (AADT 271,691) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0046",
+      "coordinates": {
+        "lat": 40.4637926,
+        "lng": -74.4036037
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000018__ segment (AADT 79,205)",
+      "source_segment": {
+        "name": "00000018__",
+        "aadt": 79205,
+        "midpoint": {
+          "lat": 40.463514,
+          "lng": -74.40441
+        },
+        "distance_m": 75,
+        "bearing_deg": 65.57
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000018__ (AADT 79,205) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0047",
+      "coordinates": {
+        "lat": 40.4643499,
+        "lng": -74.4019912
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000018__ segment (AADT 79,205)",
+      "source_segment": {
+        "name": "00000018__",
+        "aadt": 79205,
+        "midpoint": {
+          "lat": 40.463514,
+          "lng": -74.40441
+        },
+        "distance_m": 225,
+        "bearing_deg": 65.57
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000018__ (AADT 79,205) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0048",
+      "coordinates": {
+        "lat": 40.4653715,
+        "lng": -74.3990349
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000018__ segment (AADT 79,205)",
+      "source_segment": {
+        "name": "00000018__",
+        "aadt": 79205,
+        "midpoint": {
+          "lat": 40.463514,
+          "lng": -74.40441
+        },
+        "distance_m": 500,
+        "bearing_deg": 65.57
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000018__ (AADT 79,205) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0049",
+      "coordinates": {
+        "lat": 40.7844045,
+        "lng": -73.6487981
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100423032 segment (AADT 208,838)",
+      "source_segment": {
+        "name": "100423032",
+        "aadt": 208838,
+        "midpoint": {
+          "lat": 40.7850718,
+          "lng": -73.648921
+        },
+        "distance_m": 75,
+        "bearing_deg": 172.06
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100423032 (AADT 208,838) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0050",
+      "coordinates": {
+        "lat": 40.78307,
+        "lng": -73.6485524
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100423032 segment (AADT 208,838)",
+      "source_segment": {
+        "name": "100423032",
+        "aadt": 208838,
+        "midpoint": {
+          "lat": 40.7850718,
+          "lng": -73.648921
+        },
+        "distance_m": 225,
+        "bearing_deg": 172.06
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "225m from 100423032 (AADT 208,838) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100552011 at 150m with AADT 134,890, not 225m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0051",
+      "coordinates": {
+        "lat": 40.7806233,
+        "lng": -73.6481019
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100423032 segment (AADT 208,838)",
+      "source_segment": {
+        "name": "100423032",
+        "aadt": 208838,
+        "midpoint": {
+          "lat": 40.7850718,
+          "lng": -73.648921
+        },
+        "distance_m": 500,
+        "bearing_deg": 172.06
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m from 100423032 (AADT 208,838) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100552011 at 124m with AADT 134,890, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0052",
+      "coordinates": {
+        "lat": 40.7720797,
+        "lng": -73.5566479
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100552011 segment (AADT 101,765)",
+      "source_segment": {
+        "name": "100552011",
+        "aadt": 101765,
+        "midpoint": {
+          "lat": 40.7726967,
+          "lng": -73.5570053
+        },
+        "distance_m": 75,
+        "bearing_deg": 156.32
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100552011 (AADT 101,765) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0053",
+      "coordinates": {
+        "lat": 40.7708457,
+        "lng": -73.5559331
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100552011 segment (AADT 101,765)",
+      "source_segment": {
+        "name": "100552011",
+        "aadt": 101765,
+        "midpoint": {
+          "lat": 40.7726967,
+          "lng": -73.5570053
+        },
+        "distance_m": 225,
+        "bearing_deg": 156.32
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100552011 (AADT 101,765) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0054",
+      "coordinates": {
+        "lat": 40.7685834,
+        "lng": -73.5546228
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100552011 segment (AADT 101,765)",
+      "source_segment": {
+        "name": "100552011",
+        "aadt": 101765,
+        "midpoint": {
+          "lat": 40.7726967,
+          "lng": -73.5570053
+        },
+        "distance_m": 500,
+        "bearing_deg": 156.32
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100552011 (AADT 101,765) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0055",
+      "coordinates": {
+        "lat": 41.1152483,
+        "lng": -73.789464
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100858011 segment (AADT 56,037)",
+      "source_segment": {
+        "name": "100858011",
+        "aadt": 56037,
+        "midpoint": {
+          "lat": 41.115785,
+          "lng": -73.7900045
+        },
+        "distance_m": 75,
+        "bearing_deg": 142.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100858011 (AADT 56,037) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0056",
+      "coordinates": {
+        "lat": 41.1141748,
+        "lng": -73.7883829
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100858011 segment (AADT 56,037)",
+      "source_segment": {
+        "name": "100858011",
+        "aadt": 56037,
+        "midpoint": {
+          "lat": 41.115785,
+          "lng": -73.7900045
+        },
+        "distance_m": 225,
+        "bearing_deg": 142.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100858011 (AADT 56,037) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0057",
+      "coordinates": {
+        "lat": 41.1122068,
+        "lng": -73.7864009
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100858011 segment (AADT 56,037)",
+      "source_segment": {
+        "name": "100858011",
+        "aadt": 56037,
+        "midpoint": {
+          "lat": 41.115785,
+          "lng": -73.7900045
+        },
+        "distance_m": 500,
+        "bearing_deg": 142.81
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100858011 (AADT 56,037) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0058",
+      "coordinates": {
+        "lat": 41.5189669,
+        "lng": -74.0251855
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100490012 segment (AADT 61,722)",
+      "source_segment": {
+        "name": "100490012",
+        "aadt": 61722,
+        "midpoint": {
+          "lat": 41.5196402,
+          "lng": -74.0251543
+        },
+        "distance_m": 75,
+        "bearing_deg": 181.99
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100490012 (AADT 61,722) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0059",
+      "coordinates": {
+        "lat": 41.5176202,
+        "lng": -74.025248
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100490012 segment (AADT 61,722)",
+      "source_segment": {
+        "name": "100490012",
+        "aadt": 61722,
+        "midpoint": {
+          "lat": 41.5196402,
+          "lng": -74.0251543
+        },
+        "distance_m": 225,
+        "bearing_deg": 181.99
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100490012 (AADT 61,722) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0060",
+      "coordinates": {
+        "lat": 41.5151514,
+        "lng": -74.0253625
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100490012 segment (AADT 61,722)",
+      "source_segment": {
+        "name": "100490012",
+        "aadt": 61722,
+        "midpoint": {
+          "lat": 41.5196402,
+          "lng": -74.0251543
+        },
+        "distance_m": 500,
+        "bearing_deg": 181.99
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100490012 (AADT 61,722) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0061",
+      "coordinates": {
+        "lat": 41.0135062,
+        "lng": -73.7171051
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100248022 segment (AADT 110,544)",
+      "source_segment": {
+        "name": "100248022",
+        "aadt": 110544,
+        "midpoint": {
+          "lat": 41.0141799,
+          "lng": -73.717101
+        },
+        "distance_m": 75,
+        "bearing_deg": 180.26
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100248022 (AADT 110,544) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0062",
+      "coordinates": {
+        "lat": 41.0121587,
+        "lng": -73.7171134
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100248022 segment (AADT 110,544)",
+      "source_segment": {
+        "name": "100248022",
+        "aadt": 110544,
+        "midpoint": {
+          "lat": 41.0141799,
+          "lng": -73.717101
+        },
+        "distance_m": 225,
+        "bearing_deg": 180.26
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "225m from 100248022 (AADT 110,544) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100546011 at 51m with AADT 101,073, not 225m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0063",
+      "coordinates": {
+        "lat": 41.0096884,
+        "lng": -73.7171285
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100248022 segment (AADT 110,544)",
+      "source_segment": {
+        "name": "100248022",
+        "aadt": 110544,
+        "midpoint": {
+          "lat": 41.0141799,
+          "lng": -73.717101
+        },
+        "distance_m": 500,
+        "bearing_deg": 180.26
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m from 100248022 (AADT 110,544) \u2014 inside 150m fail radius (adjusted: nearest high-traffic segment is 100546011 at 132m with AADT 101,073, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0064",
+      "coordinates": {
+        "lat": 39.7456227,
+        "lng": -75.1429411
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000055__ segment (AADT 51,730)",
+      "source_segment": {
+        "name": "00000055__",
+        "aadt": 51730,
+        "midpoint": {
+          "lat": 39.74604,
+          "lng": -75.143629
+        },
+        "distance_m": 75,
+        "bearing_deg": 128.27
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000055__ (AADT 51,730) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0065",
+      "coordinates": {
+        "lat": 39.7447881,
+        "lng": -75.1415652
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000055__ segment (AADT 51,730)",
+      "source_segment": {
+        "name": "00000055__",
+        "aadt": 51730,
+        "midpoint": {
+          "lat": 39.74604,
+          "lng": -75.143629
+        },
+        "distance_m": 225,
+        "bearing_deg": 128.27
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000055__ (AADT 51,730) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0066",
+      "coordinates": {
+        "lat": 39.743258,
+        "lng": -75.1390428
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000055__ segment (AADT 51,730)",
+      "source_segment": {
+        "name": "00000055__",
+        "aadt": 51730,
+        "midpoint": {
+          "lat": 39.74604,
+          "lng": -75.143629
+        },
+        "distance_m": 500,
+        "bearing_deg": 128.27
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000055__ (AADT 51,730) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0067",
+      "coordinates": {
+        "lat": 40.1344097,
+        "lng": -74.7144578
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000295__ segment (AADT 90,953)",
+      "source_segment": {
+        "name": "00000295__",
+        "aadt": 90953,
+        "midpoint": {
+          "lat": 40.1343501,
+          "lng": -74.7153356
+        },
+        "distance_m": 75,
+        "bearing_deg": 84.93
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000295__ (AADT 90,953) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0068",
+      "coordinates": {
+        "lat": 40.1345287,
+        "lng": -74.7127022
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000295__ segment (AADT 90,953)",
+      "source_segment": {
+        "name": "00000295__",
+        "aadt": 90953,
+        "midpoint": {
+          "lat": 40.1343501,
+          "lng": -74.7153356
+        },
+        "distance_m": 225,
+        "bearing_deg": 84.93
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000295__ (AADT 90,953) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0069",
+      "coordinates": {
+        "lat": 40.1347471,
+        "lng": -74.7094837
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000295__ segment (AADT 90,953)",
+      "source_segment": {
+        "name": "00000295__",
+        "aadt": 90953,
+        "midpoint": {
+          "lat": 40.1343501,
+          "lng": -74.7153356
+        },
+        "distance_m": 500,
+        "bearing_deg": 84.93
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000295__ (AADT 90,953) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0070",
+      "coordinates": {
+        "lat": 42.7387265,
+        "lng": -73.7813476
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100495071 segment (AADT 92,022)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 92022,
+        "midpoint": {
+          "lat": 42.7391228,
+          "lng": -73.7820894
+        },
+        "distance_m": 75,
+        "bearing_deg": 126.04
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 100495071 (AADT 92,022) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0071",
+      "coordinates": {
+        "lat": 42.7379337,
+        "lng": -73.7798641
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 100495071 segment (AADT 92,022)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 92022,
+        "midpoint": {
+          "lat": 42.7391228,
+          "lng": -73.7820894
+        },
+        "distance_m": 225,
+        "bearing_deg": 126.04
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 100495071 (AADT 92,022) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0072",
+      "coordinates": {
+        "lat": 42.7364804,
+        "lng": -73.7771442
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 100495071 segment (AADT 92,022)",
+      "source_segment": {
+        "name": "100495071",
+        "aadt": 92022,
+        "midpoint": {
+          "lat": 42.7391228,
+          "lng": -73.7820894
+        },
+        "distance_m": 500,
+        "bearing_deg": 126.04
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 100495071 (AADT 92,022) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0073",
+      "coordinates": {
+        "lat": 40.6325924,
+        "lng": -74.938739
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000078__ segment (AADT 111,577)",
+      "source_segment": {
+        "name": "00000078__",
+        "aadt": 111577,
+        "midpoint": {
+          "lat": 40.6332583,
+          "lng": -74.9386043
+        },
+        "distance_m": 75,
+        "bearing_deg": 188.72
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 00000078__ (AADT 111,577) \u2014 inside 150m fail radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0074",
+      "coordinates": {
+        "lat": 40.6312605,
+        "lng": -74.9390083
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 225m perpendicular from 00000078__ segment (AADT 111,577)",
+      "source_segment": {
+        "name": "00000078__",
+        "aadt": 111577,
+        "midpoint": {
+          "lat": 40.6332583,
+          "lng": -74.9386043
+        },
+        "distance_m": 225,
+        "bearing_deg": 188.72
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "225m from 00000078__ (AADT 111,577) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0075",
+      "coordinates": {
+        "lat": 40.6288187,
+        "lng": -74.9395021
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from 00000078__ segment (AADT 111,577)",
+      "source_segment": {
+        "name": "00000078__",
+        "aadt": 111577,
+        "midpoint": {
+          "lat": 40.6332583,
+          "lng": -74.9386043
+        },
+        "distance_m": 500,
+        "bearing_deg": 188.72
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from 00000078__ (AADT 111,577) \u2014 outside all buffers",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0076",
+      "coordinates": {
+        "lat": 40.8479624,
+        "lng": -72.7335654
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 236297011 segment (AADT 12,645, below threshold)",
+      "source_segment": {
+        "name": "236297011",
+        "aadt": 12645,
+        "midpoint": {
+          "lat": 40.8483289,
+          "lng": -72.7343128
+        },
+        "distance_m": 75,
+        "bearing_deg": 122.95
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 236297011 (AADT 12,645) \u2014 AADT 12,645 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0077",
+      "coordinates": {
+        "lat": 41.6247545,
+        "lng": -73.0685038
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A008 segment (AADT 33,900, below threshold)",
+      "source_segment": {
+        "name": "A008",
+        "aadt": 33900,
+        "midpoint": {
+          "lat": 41.6242915,
+          "lng": -73.0691585
+        },
+        "distance_m": 75,
+        "bearing_deg": 46.59
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from A008 (AADT 33,900) \u2014 AADT 33,900 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0078",
+      "coordinates": {
+        "lat": 39.4332689,
+        "lng": -74.539298
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000444__ segment (AADT 36,693, below threshold)",
+      "source_segment": {
+        "name": "00000444__",
+        "aadt": 36693,
+        "midpoint": {
+          "lat": 39.4334255,
+          "lng": -74.5401464
+        },
+        "distance_m": 75,
+        "bearing_deg": 103.44
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 00000444__ (AADT 36,693) \u2014 AADT 36,693 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0079",
+      "coordinates": {
+        "lat": 40.4390691,
+        "lng": -74.1578908
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000036__ segment (AADT 36,636, below threshold)",
+      "source_segment": {
+        "name": "00000036__",
+        "aadt": 36636,
+        "midpoint": {
+          "lat": 40.4383962,
+          "lng": -74.1578481
+        },
+        "distance_m": 75,
+        "bearing_deg": 357.23
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 00000036__ (AADT 36,636) \u2014 AADT 36,636 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0080",
+      "coordinates": {
+        "lat": 40.6402448,
+        "lng": -73.904501
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 256266011 segment (AADT 24,705, below threshold)",
+      "source_segment": {
+        "name": "256266011",
+        "aadt": 24705,
+        "midpoint": {
+          "lat": 40.6407642,
+          "lng": -73.9050666
+        },
+        "distance_m": 75,
+        "bearing_deg": 140.43
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 256266011 (AADT 24,705) \u2014 AADT 24,705 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0081",
+      "coordinates": {
+        "lat": 40.9627423,
+        "lng": -74.2492524
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 16000689__ segment (AADT 15,179, below threshold)",
+      "source_segment": {
+        "name": "16000689__",
+        "aadt": 15179,
+        "midpoint": {
+          "lat": 40.9621599,
+          "lng": -74.2497009
+        },
+        "distance_m": 75,
+        "bearing_deg": 30.18
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 16000689__ (AADT 15,179) \u2014 AADT 15,179 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0082",
+      "coordinates": {
+        "lat": 41.2368526,
+        "lng": -73.1600681
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A108 segment (AADT 15,500, below threshold)",
+      "source_segment": {
+        "name": "A108",
+        "aadt": 15500,
+        "midpoint": {
+          "lat": 41.236614,
+          "lng": -73.160906
+        },
+        "distance_m": 75,
+        "bearing_deg": 69.26
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from A108 (AADT 15,500) \u2014 inside 150m fail radius (adjusted: nearby high-traffic segment A015 at 93m with AADT 62,900 overrides low-traffic source segment)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0083",
+      "coordinates": {
+        "lat": 42.8881403,
+        "lng": -73.8200371
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100080011 segment (AADT 10,685, below threshold)",
+      "source_segment": {
+        "name": "100080011",
+        "aadt": 10685,
+        "midpoint": {
+          "lat": 42.8881335,
+          "lng": -73.8209565
+        },
+        "distance_m": 75,
+        "bearing_deg": 89.42
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 100080011 (AADT 10,685) \u2014 AADT 10,685 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0084",
+      "coordinates": {
+        "lat": 41.8831122,
+        "lng": -74.1124176
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100157031 segment (AADT 11,884, below threshold)",
+      "source_segment": {
+        "name": "100157031",
+        "aadt": 11884,
+        "midpoint": {
+          "lat": 41.8836016,
+          "lng": -74.1130396
+        },
+        "distance_m": 75,
+        "bearing_deg": 136.58
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 100157031 (AADT 11,884) \u2014 AADT 11,884 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0085",
+      "coordinates": {
+        "lat": 42.1656372,
+        "lng": -75.8737399
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100043011 segment (AADT 15,791, below threshold)",
+      "source_segment": {
+        "name": "100043011",
+        "aadt": 15791,
+        "midpoint": {
+          "lat": 42.165621,
+          "lng": -75.8728312
+        },
+        "distance_m": 75,
+        "bearing_deg": 271.38
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 100043011 (AADT 15,791) \u2014 AADT 15,791 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0086",
+      "coordinates": {
+        "lat": 40.9365459,
+        "lng": -74.1644432
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000504__ segment (AADT 13,729, below threshold)",
+      "source_segment": {
+        "name": "00000504__",
+        "aadt": 13729,
+        "midpoint": {
+          "lat": 40.9369481,
+          "lng": -74.1651588
+        },
+        "distance_m": 75,
+        "bearing_deg": 126.65
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 00000504__ (AADT 13,729) \u2014 AADT 13,729 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0087",
+      "coordinates": {
+        "lat": 40.7276283,
+        "lng": -74.1757623
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 07141865__ segment (AADT 34,145, below threshold)",
+      "source_segment": {
+        "name": "07141865__",
+        "aadt": 34145,
+        "midpoint": {
+          "lat": 40.7279038,
+          "lng": -74.1765736
+        },
+        "distance_m": 75,
+        "bearing_deg": 114.13
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 07141865__ (AADT 34,145) \u2014 AADT 34,145 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0088",
+      "coordinates": {
+        "lat": 42.7824351,
+        "lng": -73.9116537
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 114870011 segment (AADT 11,773, below threshold)",
+      "source_segment": {
+        "name": "114870011",
+        "aadt": 11773,
+        "midpoint": {
+          "lat": 42.782857,
+          "lng": -73.910938
+        },
+        "distance_m": 75,
+        "bearing_deg": 231.23
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 114870011 (AADT 11,773) \u2014 AADT 11,773 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0089",
+      "coordinates": {
+        "lat": 40.6958984,
+        "lng": -73.2868274
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100554011 segment (AADT 18,748, below threshold)",
+      "source_segment": {
+        "name": "100554011",
+        "aadt": 18748,
+        "midpoint": {
+          "lat": 40.6955519,
+          "lng": -73.2875895
+        },
+        "distance_m": 75,
+        "bearing_deg": 59.05
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 100554011 (AADT 18,748) \u2014 AADT 18,748 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0090",
+      "coordinates": {
+        "lat": 40.7681305,
+        "lng": -73.8997286
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 257244011 segment (AADT 16,833, below threshold)",
+      "source_segment": {
+        "name": "257244011",
+        "aadt": 16833,
+        "midpoint": {
+          "lat": 40.7674715,
+          "lng": -73.8999134
+        },
+        "distance_m": 75,
+        "bearing_deg": 11.99
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "75m from 257244011 (AADT 16,833) \u2014 inside 150m fail radius (adjusted: nearby high-traffic segment 100543012 at 92m with AADT 110,140 overrides low-traffic source segment)",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0091",
+      "coordinates": {
+        "lat": 40.2496952,
+        "lng": -74.6797003
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 11031986__ segment (AADT 11,856, below threshold)",
+      "source_segment": {
+        "name": "11031986__",
+        "aadt": 11856,
+        "midpoint": {
+          "lat": 40.2490216,
+          "lng": -74.679686
+        },
+        "distance_m": 75,
+        "bearing_deg": 359.07
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 11031986__ (AADT 11,856) \u2014 AADT 11,856 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0092",
+      "coordinates": {
+        "lat": 40.7067476,
+        "lng": -73.6756489
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 100192021 segment (AADT 31,593, below threshold)",
+      "source_segment": {
+        "name": "100192021",
+        "aadt": 31593,
+        "midpoint": {
+          "lat": 40.7074157,
+          "lng": -73.6755345
+        },
+        "distance_m": 75,
+        "bearing_deg": 187.4
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 100192021 (AADT 31,593) \u2014 AADT 31,593 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0093",
+      "coordinates": {
+        "lat": 40.682856,
+        "lng": -73.7812142
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 257339011 segment (AADT 12,031, below threshold)",
+      "source_segment": {
+        "name": "257339011",
+        "aadt": 12031,
+        "midpoint": {
+          "lat": 40.6825834,
+          "lng": -73.7820267
+        },
+        "distance_m": 75,
+        "bearing_deg": 66.14
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 257339011 (AADT 12,031) \u2014 AADT 12,031 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0094",
+      "coordinates": {
+        "lat": 39.629225,
+        "lng": -74.8100676
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000054__ segment (AADT 16,607, below threshold)",
+      "source_segment": {
+        "name": "00000054__",
+        "aadt": 16607,
+        "midpoint": {
+          "lat": 39.6296844,
+          "lng": -74.8107074
+        },
+        "distance_m": 75,
+        "bearing_deg": 133.0
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 00000054__ (AADT 16,607) \u2014 AADT 16,607 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0095",
+      "coordinates": {
+        "lat": 41.5895773,
+        "lng": -73.8988576
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 183567011 segment (AADT 11,293, below threshold)",
+      "source_segment": {
+        "name": "183567011",
+        "aadt": 11293,
+        "midpoint": {
+          "lat": 41.5901966,
+          "lng": -73.8992121
+        },
+        "distance_m": 75,
+        "bearing_deg": 156.82
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 183567011 (AADT 11,293) \u2014 AADT 11,293 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0096",
+      "coordinates": {
+        "lat": 39.7561224,
+        "lng": -75.0793794
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 08000630__ segment (AADT 19,318, below threshold)",
+      "source_segment": {
+        "name": "08000630__",
+        "aadt": 19318,
+        "midpoint": {
+          "lat": 39.7557701,
+          "lng": -75.0801264
+        },
+        "distance_m": 75,
+        "bearing_deg": 58.47
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 08000630__ (AADT 19,318) \u2014 AADT 19,318 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0097",
+      "coordinates": {
+        "lat": 40.4124728,
+        "lng": -74.2403646
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 00000034__ segment (AADT 21,713, below threshold)",
+      "source_segment": {
+        "name": "00000034__",
+        "aadt": 21713,
+        "midpoint": {
+          "lat": 40.4120031,
+          "lng": -74.2409989
+        },
+        "distance_m": 75,
+        "bearing_deg": 45.8
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 00000034__ (AADT 21,713) \u2014 AADT 21,713 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0098",
+      "coordinates": {
+        "lat": 41.0814402,
+        "lng": -73.5531138
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from A104 segment (AADT 22,400, below threshold)",
+      "source_segment": {
+        "name": "A104",
+        "aadt": 22400,
+        "midpoint": {
+          "lat": 41.0813657,
+          "lng": -73.5540021
+        },
+        "distance_m": 75,
+        "bearing_deg": 83.65
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from A104 (AADT 22,400) \u2014 AADT 22,400 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0099",
+      "coordinates": {
+        "lat": 40.8674497,
+        "lng": -73.3209639
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 245400011 segment (AADT 18,130, below threshold)",
+      "source_segment": {
+        "name": "245400011",
+        "aadt": 18130,
+        "midpoint": {
+          "lat": 40.8673006,
+          "lng": -73.3218327
+        },
+        "distance_m": 75,
+        "bearing_deg": 77.22
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 245400011 (AADT 18,130) \u2014 AADT 18,130 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hpms-0100",
+      "coordinates": {
+        "lat": 40.7301173,
+        "lng": -73.6152574
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 75m perpendicular from 300508011 segment (AADT 36,902, below threshold)",
+      "source_segment": {
+        "name": "300508011",
+        "aadt": 36902,
+        "midpoint": {
+          "lat": 40.7307638,
+          "lng": -73.6155081
+        },
+        "distance_m": 75,
+        "bearing_deg": 163.63
+      },
+      "tier1_health_checks": {
+        "high_traffic_road": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "75m from 300508011 (AADT 36,902) \u2014 AADT 36,902 below 50,000 threshold \u2014 no trigger regardless of distance",
+          "source": "synthetic from spatial.db facilities_hpms"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
