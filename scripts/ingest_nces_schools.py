@@ -48,8 +48,8 @@ NCES_ENDPOINT = (
 )
 
 OUT_FIELDS = (
-    "NCESSCH,SCH_NAME,LEVEL,SCH_TYPE_TEXT,GSLO,GSHI,"
-    "MEMBER,TOTFRL,CHARTER_TEXT,LEAID,LAT,LON"
+    "NCESSCH,SCH_NAME,SCHOOL_LEVEL,GSLO,GSHI,"
+    "MEMBER,TOTFRL,CHARTER_TEXT,LEAID,LATCOD,LONCOD"
 )
 
 PAGE_SIZE = 2000  # NCES max record count per page
@@ -191,8 +191,8 @@ def ingest(
                 lat = geom.get("y")
                 if lon is None or lat is None:
                     # Fallback to attribute fields
-                    lon = attrs.get("LON")
-                    lat = attrs.get("LAT")
+                    lon = attrs.get("LONCOD")
+                    lat = attrs.get("LATCOD")
                 if lon is None or lat is None:
                     total_skipped += 1
                     continue
@@ -210,8 +210,8 @@ def ingest(
 
                 metadata = {
                     "ncessch": attrs.get("NCESSCH", ""),
-                    "level": attrs.get("LEVEL", ""),
-                    "sch_type": attrs.get("SCH_TYPE_TEXT", ""),
+                    "level": attrs.get("SCHOOL_LEVEL", ""),
+                    "sch_type": "",
                     "gslo": attrs.get("GSLO", ""),
                     "gshi": attrs.get("GSHI", ""),
                     "member": attrs.get("MEMBER"),
