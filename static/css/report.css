@@ -1665,6 +1665,22 @@ h1.narrative-summary {
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
 }
+.park-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+.amenity-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-subtle, #f8f9fa);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
 .osm-note {
   margin-top: var(--space-sm);
   font-size: var(--font-size-small);
@@ -1990,7 +2006,7 @@ h1.narrative-summary {
   .leaflet-control-zoom, .leaflet-control-layers { display: none !important; }
   .health-stat-badge, .health-icon-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .health-check--elevated { box-shadow: none; }
-  .summary-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .summary-pill, .amenity-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .section-card--elevated, .section-card--highlighted { box-shadow: none; }
   .section-card--highlighted > .data-row { border-left: none; }
   .place-card.section-card--highlighted,

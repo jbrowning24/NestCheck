@@ -782,6 +782,13 @@
               {% endif %}
 
               {% if park.osm_enriched %}
+                {% if park.osm_amenity_tags %}
+                  <div class="park-amenities">
+                    {% for tag in park.osm_amenity_tags %}
+                      <span class="amenity-pill">{{ tag }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
                 <div class="osm-note">
                   OpenStreetMap: {% if park.osm_area_sqm %}~{{ "%.0f"|format(park.osm_area_sqm / 4047) }} acres{% endif %}
                   {% if park.osm_path_count %} &middot; {{ park.osm_path_count }} paths{% endif %}
