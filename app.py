@@ -1862,6 +1862,7 @@ def _serialize_green_escape(evaluation):
             "osm_path_count": p.osm_path_count,
             "osm_has_trail": p.osm_has_trail,
             "osm_nature_tags": p.osm_nature_tags,
+            "osm_amenity_tags": p.osm_amenity_tags,
         }
 
     nearby = []
@@ -1876,6 +1877,7 @@ def _serialize_green_escape(evaluation):
             "daily_walk_value": s.daily_walk_value,
             "criteria_status": s.criteria_status,
             "criteria_reasons": s.criteria_reasons,
+            "osm_amenity_tags": s.osm_amenity_tags,
         })
 
     return {

@@ -190,6 +190,17 @@ OSM_TAG_DISPLAY_NAMES = {
     "boundary=national_park": "National Park",
 }
 
+# Amenity features found as OSM nodes inside/near parks.
+# Maps (osm_key, osm_value) → user-facing display label.
+_AMENITY_TAG_MAP = {
+    ("leisure", "playground"): "Playground",
+    ("amenity", "shelter"): "Picnic Shelter",
+    ("leisure", "picnic_table"): "Picnic Tables",
+    ("amenity", "toilets"): "Restrooms",
+    ("amenity", "drinking_water"): "Water Fountain",
+    ("leisure", "dog_park"): "Dog Park",
+}
+
 
 def _display_tag(tag: str) -> str:
     """Return a human-readable label for an OSM tag string like 'natural=wood'.
@@ -255,6 +266,7 @@ class GreenSpaceResult:
     osm_path_count: int = 0
     osm_has_trail: bool = False
     osm_nature_tags: List[str] = field(default_factory=list)
+    osm_amenity_tags: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -696,10 +708,11 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
         "path_count": 0,
         "has_trail": False,
         "nature_tags": [],
+        "amenity_tags": [],
         "enriched": False,
     }
 
-    # Query 1: Find park/green polygons and footways within 300m
+    # Query 1: Find park/green polygons, footways, and amenity nodes within 300m
     query = f"""
     [out:json][timeout:25];
     (
@@ -712,6 +725,14 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
       relation["leisure"="nature_reserve"](around:300,{place_lat},{place_lng});
       way["highway"~"footway|path|cycleway|track"](around:300,{place_lat},{place_lng});
       way["waterway"~"river|stream|canal"](around:300,{place_lat},{place_lng});
+      node["leisure"="playground"](around:300,{place_lat},{place_lng});
+      way["leisure"="playground"](around:300,{place_lat},{place_lng});
+      node["amenity"="shelter"](around:300,{place_lat},{place_lng});
+      node["leisure"="picnic_table"](around:300,{place_lat},{place_lng});
+      node["amenity"="toilets"](around:300,{place_lat},{place_lng});
+      node["amenity"="drinking_water"](around:300,{place_lat},{place_lng});
+      node["leisure"="dog_park"](around:300,{place_lat},{place_lng});
+      way["leisure"="dog_park"](around:300,{place_lat},{place_lng});
     );
     out body;
     >;
@@ -733,12 +754,20 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
     max_area = 0
     path_count = 0
     nature_tags_found = set()
+    amenity_tags_found = set()
     has_trail = False
 
     for el in elements:
+        tags = el.get("tags", {})
+
+        # Amenity features (nodes or ways — playgrounds/dog parks are often area polygons)
+        if tags:
+            for (key, val), label in _AMENITY_TAG_MAP.items():
+                if tags.get(key) == val:
+                    amenity_tags_found.add(label)
+
         if el.get("type") not in ("way", "relation"):
             continue
-        tags = el.get("tags", {})
 
         # Check for park/green polygons with area
         if tags.get("leisure") in ("park", "nature_reserve", "garden"):
@@ -798,6 +827,7 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
     result["path_count"] = path_count
     result["has_trail"] = has_trail
     result["nature_tags"] = sorted(nature_tags_found)
+    result["amenity_tags"] = sorted(amenity_tags_found)
 
     _cached_set(cache_key, result)
     return result
@@ -818,6 +848,7 @@ def _parse_osm_elements_for_place(
         "path_count": 0,
         "has_trail": False,
         "nature_tags": [],
+        "amenity_tags": [],
         "enriched": False,
     }
     if not elements:
@@ -827,12 +858,20 @@ def _parse_osm_elements_for_place(
     max_area = 0
     path_count = 0
     nature_tags_found: set = set()
+    amenity_tags_found: set = set()
     has_trail = False
 
     for el in elements:
+        tags = el.get("tags", {})
+
+        # Amenity features (nodes or ways — playgrounds/dog parks are often area polygons)
+        if tags:
+            for (key, val), label in _AMENITY_TAG_MAP.items():
+                if tags.get(key) == val:
+                    amenity_tags_found.add(label)
+
         if el.get("type") not in ("way", "relation"):
             continue
-        tags = el.get("tags", {})
         if tags.get("leisure") in ("park", "nature_reserve", "garden"):
             nature_tags_found.add(f"leisure={tags['leisure']}")
         if tags.get("landuse") in ("forest", "meadow", "grass", "recreation_ground", "nature_reserve", "conservation"):
@@ -867,6 +906,7 @@ def _parse_osm_elements_for_place(
     result["path_count"] = path_count
     result["has_trail"] = has_trail
     result["nature_tags"] = sorted(nature_tags_found)
+    result["amenity_tags"] = sorted(amenity_tags_found)
     return result
 
 
@@ -883,7 +923,7 @@ def batch_enrich_from_osm(
     if not places:
         return [], 0
 
-    empty_result = {"area_sqm": None, "path_count": 0, "has_trail": False, "nature_tags": [], "enriched": False}
+    empty_result = {"area_sqm": None, "path_count": 0, "has_trail": False, "nature_tags": [], "amenity_tags": [], "enriched": False}
 
     # Check per-place cache first, collect misses
     results: List[Optional[Dict[str, Any]]] = [None] * len(places)
@@ -935,6 +975,14 @@ def batch_enrich_from_osm(
                 f'relation["leisure"="nature_reserve"](around:300,{p_lat},{p_lng});'
                 f'way["highway"~"footway|path|cycleway|track"](around:300,{p_lat},{p_lng});'
                 f'way["waterway"~"river|stream|canal"](around:300,{p_lat},{p_lng});'
+                f'node["leisure"="playground"](around:300,{p_lat},{p_lng});'
+                f'way["leisure"="playground"](around:300,{p_lat},{p_lng});'
+                f'node["amenity"="shelter"](around:300,{p_lat},{p_lng});'
+                f'node["leisure"="picnic_table"](around:300,{p_lat},{p_lng});'
+                f'node["amenity"="toilets"](around:300,{p_lat},{p_lng});'
+                f'node["amenity"="drinking_water"](around:300,{p_lat},{p_lng});'
+                f'node["leisure"="dog_park"](around:300,{p_lat},{p_lng});'
+                f'way["leisure"="dog_park"](around:300,{p_lat},{p_lng});'
             )
 
         union_body = "\n      ".join(around_parts)
@@ -1401,6 +1449,7 @@ def score_green_space(
         osm_path_count=osm_data.get("path_count", 0),
         osm_has_trail=osm_data.get("has_trail", False),
         osm_nature_tags=osm_data.get("nature_tags", []),
+        osm_amenity_tags=osm_data.get("amenity_tags", []),
     )
 
 
@@ -1617,6 +1666,7 @@ def green_escape_to_dict(evaluation: GreenEscapeEvaluation) -> Dict[str, Any]:
             "osm_path_count": s.osm_path_count,
             "osm_has_trail": s.osm_has_trail,
             "osm_nature_tags": s.osm_nature_tags,
+            "osm_amenity_tags": s.osm_amenity_tags,
         }
 
     return {
