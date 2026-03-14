@@ -603,6 +603,8 @@ class GoogleMapsClient:
         # Per-evaluation cache for places_nearby — avoids duplicate searches
         # within the same evaluation run.  Keyed by (lat, lng, type, radius, keyword).
         self._places_cache: Dict[tuple, List[Dict]] = {}
+        # Per-evaluation cache for text_search — same pattern.
+        self._text_search_cache: Dict[tuple, List[Dict]] = {}
 
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
@@ -794,7 +796,17 @@ class GoogleMapsClient:
         lng: float,
         radius_meters: int = 50000
     ) -> List[Dict]:
-        """Search for places using a text query near a location"""
+        """Search for places using a text query near a location.
+
+        Results are cached per-evaluation so repeated identical searches
+        (same coordinates, query, radius) return instantly without
+        an API call.
+        """
+        cache_key = (round(lat, 6), round(lng, 6), query, radius_meters)
+        cached = self._text_search_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         url = f"{self.base_url}/place/textsearch/json"
         params = {
             "query": query,
@@ -807,7 +819,9 @@ class GoogleMapsClient:
         if data["status"] not in ["OK", "ZERO_RESULTS"]:
             raise ValueError(f"Text Search API failed: {data['status']}")
 
-        return _filter_physical_places(data.get("results", []))
+        results = _filter_physical_places(data.get("results", []))
+        self._text_search_cache[cache_key] = results
+        return results
 
     def _distance_matrix_batch(
         self,
@@ -2908,6 +2922,16 @@ def get_neighborhood_snapshot(
             # Coffee & Social Spots needs "coffee_shop" as a third type
             if category == "Coffee & Social Spots":
                 places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
+            # Supplemental text search for Provisioning (NES-258) — catches
+            # major chains missed by the 20-result Nearby Search cap.
+            if category == "Provisioning":
+                try:
+                    places.extend(
+                        maps.text_search("supermarket", lat, lng, radius_meters=8000))
+                except Exception:
+                    logger.warning(
+                        "Text Search supplemental supermarket query failed",
+                        exc_info=True)
             places = _dedupe_by_place_id(places)
 
             # Special handling for Provisioning - apply household provisioning filter
@@ -4828,6 +4852,18 @@ def score_provisioning_access(
         all_stores = []
         all_stores.extend(maps.places_nearby(lat, lng, "supermarket", radius_meters=5000))
         all_stores.extend(maps.places_nearby(lat, lng, "grocery_store", radius_meters=5000))
+        # Supplemental text search to catch major chains missed by the
+        # 20-result Nearby Search cap (NES-258).  Text Search uses
+        # relevance ranking instead of prominence, surfacing well-known
+        # chains like Kroger/Meijer.  8000m (~5 mi) covers car-dependent
+        # suburban areas.
+        try:
+            all_stores.extend(
+                maps.text_search("supermarket", lat, lng, radius_meters=8000))
+        except Exception:
+            # Supplemental — never block scoring if it fails
+            logger.warning("Text Search supplemental supermarket query failed",
+                           exc_info=True)
         all_stores = _dedupe_by_place_id(all_stores)
 
         if not all_stores:
