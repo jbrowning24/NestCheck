@@ -2747,10 +2747,13 @@ def get_nearby_schools(
                 and enrollment > 0
             ):
                 try:
-                    frl_pct = min(
-                        round(float(str(totfrl_raw)) / enrollment * 100, 1),
-                        100.0,
-                    )
+                    totfrl_val = float(str(totfrl_raw))
+                    # NCES uses -1 and -2 as suppression codes for missing data
+                    if totfrl_val >= 0:
+                        frl_pct = min(
+                            round(totfrl_val / enrollment * 100, 1),
+                            100.0,
+                        )
                 except (TypeError, ValueError):
                     pass
 
