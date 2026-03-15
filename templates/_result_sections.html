@@ -929,58 +929,44 @@
         </div>
         {% endif %}
 
-        {# ── COMMUNITY PROFILE ── #}
+        {# ── COMMUNITY PROFILE (city-level, NES-257) ── #}
         {% if result.demographics is defined and result.demographics is not none %}
+        {% set demo = result.demographics %}
         <div id="community-profile" class="data-section">
-          <h2 class="section-title">COMMUNITY PROFILE</h2>
+          <h2 class="section-title">ABOUT {{ demo.place_name|upper }}</h2>
 
           {% if result.insights is defined and result.insights and result.insights.community_profile %}
             <p class="section-insight">{{ result.insights.community_profile }}</p>
           {% endif %}
 
-          {% set demo = result.demographics %}
           <div class="stat-card-grid">
             <div class="stat-card">
-              <div class="stat-card__value">{{ "%.0f"|format(demo.children_pct) }}%</div>
-              <div class="stat-card__label">Households with children</div>
-              {% if demo.county_children_pct is not none %}
-              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_children_pct) }}%</div>
-              {% endif %}
+              <div class="stat-card__value">{{ "{:,}".format(demo.population) }}</div>
+              <div class="stat-card__label">Population</div>
             </div>
             <div class="stat-card">
-              <div class="stat-card__value">{{ "%.0f"|format(demo.renter_pct) }}%</div>
-              <div class="stat-card__label">Renter-occupied housing</div>
-              {% if demo.county_renter_pct is not none %}
-              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_renter_pct) }}%</div>
-              {% endif %}
+              <div class="stat-card__value">{{ "{:,}".format(demo.total_households) }}</div>
+              <div class="stat-card__label">Households</div>
             </div>
-            {% if demo.median_rent is not none %}
+            {% if demo.median_household_income is not none %}
             <div class="stat-card">
-              <div class="stat-card__value">${{ "{:,}".format(demo.median_rent) }}</div>
-              <div class="stat-card__label">Median gross rent</div>
-              {% if demo.county_median_rent is not none %}
-              <div class="stat-card__compare">{{ demo.county_name or "County" }}: ${{ "{:,}".format(demo.county_median_rent) }}</div>
-              {% endif %}
+              <div class="stat-card__value">${{ "{:,}".format(demo.median_household_income) }}</div>
+              <div class="stat-card__label">Median household income</div>
             </div>
             {% endif %}
-            {% if demo.commute and demo.commute.transit_pct >= 1 %}
+            {% if demo.median_age is not none %}
             <div class="stat-card">
-              <div class="stat-card__value">{{ "%.0f"|format(demo.commute.transit_pct) }}%</div>
-              <div class="stat-card__label">Commute by transit</div>
-              {% if demo.county_commute is not none and demo.county_commute.transit_pct is defined %}
-              <div class="stat-card__compare">{{ demo.county_name or "County" }}: {{ "%.0f"|format(demo.county_commute.transit_pct) }}%</div>
-              {% endif %}
+              <div class="stat-card__value">{{ "%.1f"|format(demo.median_age) }}</div>
+              <div class="stat-card__label">Median age</div>
             </div>
             {% endif %}
-            {% if demo.commute and demo.commute.wfh_pct >= 5 %}
             <div class="stat-card">
-              <div class="stat-card__value">{{ "%.0f"|format(demo.commute.wfh_pct) }}%</div>
-              <div class="stat-card__label">Work from home</div>
+              <div class="stat-card__value">{{ "%.0f"|format(demo.owner_pct) }}% / {{ "%.0f"|format(demo.renter_pct) }}%</div>
+              <div class="stat-card__label">Owner / renter</div>
             </div>
-            {% endif %}
           </div>
           <p class="community-profile-source">
-            Source: U.S. Census Bureau, ACS 5-Year Estimates &middot; Tract {{ demo.geoid }}
+            Source: U.S. Census Bureau, ACS 5-Year Estimates
           </p>
         </div>
         {% endif %}
