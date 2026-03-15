@@ -20,6 +20,7 @@ import json
 import os
 import sys
 from datetime import datetime, timezone
+from typing import Optional
 
 # Project root for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -77,11 +78,16 @@ def _build_urban_access(params: dict) -> UrbanAccessProfile:
     return UrbanAccessProfile(primary_transit=primary, major_hub=hub)
 
 
-def _build_transit_access(params: dict) -> TransitAccessResult:
-    """Reconstruct TransitAccessResult from ground-truth JSON params."""
+def _build_transit_access(params: dict) -> Optional[TransitAccessResult]:
+    """Reconstruct TransitAccessResult from ground-truth JSON params.
+
+    Returns None when transit_access is absent, matching the real
+    score_transit_access() contract where transit_access=None triggers
+    distinct code paths from a default TransitAccessResult().
+    """
     ta_data = params.get("transit_access")
     if not ta_data:
-        return TransitAccessResult()
+        return None
     return TransitAccessResult(
         primary_stop=ta_data.get("primary_stop"),
         walk_minutes=ta_data.get("walk_minutes"),

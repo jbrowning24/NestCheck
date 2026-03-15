@@ -1,11 +1,11 @@
 {
   "_schema_version": "0.1.0",
-  "_generated_at": "2026-03-15T14:46:52.180558+00:00",
+  "_generated_at": "2026-03-15T15:13:10.456444+00:00",
   "_generator": "generate_ground_truth_transit.py",
   "_test_count": 30,
   "_scoring_rules": {
     "walk_points": "<=10\u21924, <=20\u21923, <=30\u21922, <=45\u21921, >45\u21920",
-    "drive_points": "<=5\u21923, <=10\u21922, <=20\u21921, >20\u21920 (capped below walk max)",
+    "drive_points": "<=5\u21923, <=10\u21922, <=20\u21921, >20\u21920 (max 3, so walk\u226410 always wins)",
     "frequency_points": "High\u21923, Medium\u21922, Low\u21921, Very low\u21920",
     "hub_points": "<=45\u21923, <=75\u21922, <=110\u21921, >110\u21920",
     "total": "min(10, max(walk, drive) + frequency + hub)",
@@ -1092,7 +1092,7 @@
         "lng": -73.8
       },
       "layer": 4,
-      "layer_notes": "Synthetic \u2014 Confidence: estimated, raw 10 capped to 8",
+      "layer_notes": "Synthetic \u2014 Confidence: estimated, raw 10 capped to 8 (3 nodes)",
       "test_category": "confidence_cap",
       "transit_params": {
         "primary_transit": {

@@ -125,9 +125,11 @@ def _classify_confidence(has_walk_time: bool, node_count: int, frequency_bucket=
     (None, "unknown", "Very low frequency", "Very low").  Both the legacy
     PrimaryTransitOption format ("Very low frequency") and the new
     TransitAccessResult format ("Very low") match the sparse gate.
+    has_hub is derived from node_count >= 5 (line 4219).
     """
+    has_hub = node_count >= 5
     if not has_walk_time and node_count == 0:
-        if frequency_bucket in (None, "unknown", "Very low frequency", "Very low"):
+        if frequency_bucket in (None, "unknown", "Very low frequency", "Very low") and not has_hub:
             return CONFIDENCE_SPARSE
         return CONFIDENCE_ESTIMATED
     if has_walk_time and node_count >= 10:
@@ -442,14 +444,14 @@ def _confidence_cap_cases():
         notes=f"estimated (5 nodes), raw=10, cap=8 → final={score}",
     ))
 
-    # Estimated: capped at 8 with raw=9
+    # Estimated: capped at 8 with raw=10 (walk=10→4pts, different node count)
     conf = _classify_confidence(True, 3, "High")
     raw = min(10, _walk_points(10) + _frequency_points("High") + _hub_points(30))
     score = min(raw, _confidence_cap(conf))
     cases.append(_build_case(
         case_id=52,
         category="confidence_cap",
-        category_label="Confidence: estimated, raw 10 capped to 8",
+        category_label="Confidence: estimated, raw 10 capped to 8 (3 nodes)",
         primary_transit=_make_primary_transit(walk_time_min=10),
         major_hub=_make_hub(travel_time_min=30),
         transit_access=_make_transit_access(
@@ -583,7 +585,7 @@ def main():
         "_test_count": len(all_cases),
         "_scoring_rules": {
             "walk_points": "<=10→4, <=20→3, <=30→2, <=45→1, >45→0",
-            "drive_points": "<=5→3, <=10→2, <=20→1, >20→0 (capped below walk max)",
+            "drive_points": "<=5→3, <=10→2, <=20→1, >20→0 (max 3, so walk≤10 always wins)",
             "frequency_points": "High→3, Medium→2, Low→1, Very low→0",
             "hub_points": "<=45→3, <=75→2, <=110→1, >110→0",
             "total": "min(10, max(walk, drive) + frequency + hub)",
