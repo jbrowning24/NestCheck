@@ -28,6 +28,7 @@ GROUND_TRUTH_DIR = os.path.join(PROJECT_ROOT, "data", "ground_truth")
 _DIMENSION_LABELS = {
     "ust": "UST proximity",
     "hpms": "HPMS high-traffic",
+    "coffee": "Coffee scoring (Tier 2)",
 }
 
 

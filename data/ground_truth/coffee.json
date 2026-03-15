@@ -1,0 +1,1213 @@
+{
+  "_schema_version": "0.2.0",
+  "_generated_at": "2026-03-15T14:49:05.636958+00:00",
+  "_generator": "generate_ground_truth_coffee.py",
+  "_scoring_model_version": "1.6.0",
+  "_test_count": 58,
+  "_seed": 42,
+  "_curve_knots": [
+    [
+      0,
+      10
+    ],
+    [
+      10,
+      10
+    ],
+    [
+      15,
+      8
+    ],
+    [
+      20,
+      6
+    ],
+    [
+      30,
+      4
+    ],
+    [
+      45,
+      2
+    ],
+    [
+      60,
+      2
+    ]
+  ],
+  "_floor": 2.0,
+  "_quality_ceiling": true,
+  "test_cases": [
+    {
+      "id": "gt-coffee-knot-01",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=0 \u2192 score=10",
+      "inputs": {
+        "walk_time_min": 0
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-coffee-knot-02",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=10 \u2192 score=10",
+      "inputs": {
+        "walk_time_min": 10
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-coffee-knot-03",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=15 \u2192 score=8",
+      "inputs": {
+        "walk_time_min": 15
+      },
+      "expected": {
+        "piecewise_score": 8,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 8
+      }
+    },
+    {
+      "id": "gt-coffee-knot-04",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=20 \u2192 score=6",
+      "inputs": {
+        "walk_time_min": 20
+      },
+      "expected": {
+        "piecewise_score": 6,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 6
+      }
+    },
+    {
+      "id": "gt-coffee-knot-05",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=30 \u2192 score=4",
+      "inputs": {
+        "walk_time_min": 30
+      },
+      "expected": {
+        "piecewise_score": 4,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 4
+      }
+    },
+    {
+      "id": "gt-coffee-knot-06",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=45 \u2192 score=2",
+      "inputs": {
+        "walk_time_min": 45
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-coffee-knot-07",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=60 \u2192 score=2",
+      "inputs": {
+        "walk_time_min": 60
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-coffee-interp-01",
+      "test_type": "interpolation",
+      "description": "Midpoint between (10,10) and (15,8): walk_time=12.5 \u2192 score=9.0",
+      "inputs": {
+        "walk_time_min": 12.5
+      },
+      "expected": {
+        "piecewise_score": 9.0,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 9.0
+      }
+    },
+    {
+      "id": "gt-coffee-interp-02",
+      "test_type": "interpolation",
+      "description": "Midpoint between (15,8) and (20,6): walk_time=17.5 \u2192 score=7.0",
+      "inputs": {
+        "walk_time_min": 17.5
+      },
+      "expected": {
+        "piecewise_score": 7.0,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 7.0
+      }
+    },
+    {
+      "id": "gt-coffee-interp-03",
+      "test_type": "interpolation",
+      "description": "Midpoint between (20,6) and (30,4): walk_time=25.0 \u2192 score=5.0",
+      "inputs": {
+        "walk_time_min": 25.0
+      },
+      "expected": {
+        "piecewise_score": 5.0,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 5.0
+      }
+    },
+    {
+      "id": "gt-coffee-interp-04",
+      "test_type": "interpolation",
+      "description": "Midpoint between (30,4) and (45,2): walk_time=37.5 \u2192 score=3.0",
+      "inputs": {
+        "walk_time_min": 37.5
+      },
+      "expected": {
+        "piecewise_score": 3.0,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 3.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-01",
+      "test_type": "monotonicity",
+      "description": "walk_time=0.00 (score=10.00) <= walk_time=1.50 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 0,
+        "walk_time_b": 1.5006
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-02",
+      "test_type": "monotonicity",
+      "description": "walk_time=1.50 (score=10.00) <= walk_time=5.00 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 1.5006,
+        "walk_time_b": 5.0
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-03",
+      "test_type": "monotonicity",
+      "description": "walk_time=5.00 (score=10.00) <= walk_time=5.22 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 5.0,
+        "walk_time_b": 5.2163
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-04",
+      "test_type": "monotonicity",
+      "description": "walk_time=5.22 (score=10.00) <= walk_time=10.00 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 5.2163,
+        "walk_time_b": 10
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-05",
+      "test_type": "monotonicity",
+      "description": "walk_time=10.00 (score=10.00) <= walk_time=12.50 (score=9.00)",
+      "inputs": {
+        "walk_time_a": 10,
+        "walk_time_b": 12.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 9.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-06",
+      "test_type": "monotonicity",
+      "description": "walk_time=12.50 (score=9.00) <= walk_time=13.39 (score=8.64)",
+      "inputs": {
+        "walk_time_a": 12.5,
+        "walk_time_b": 13.3926
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 9.0,
+        "score_b": 8.6429
+      }
+    },
+    {
+      "id": "gt-coffee-mono-07",
+      "test_type": "monotonicity",
+      "description": "walk_time=13.39 (score=8.64) <= walk_time=15.00 (score=8.00)",
+      "inputs": {
+        "walk_time_a": 13.3926,
+        "walk_time_b": 15
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 8.6429,
+        "score_b": 8.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-08",
+      "test_type": "monotonicity",
+      "description": "walk_time=15.00 (score=8.00) <= walk_time=16.50 (score=7.40)",
+      "inputs": {
+        "walk_time_a": 15,
+        "walk_time_b": 16.5018
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 8.0,
+        "score_b": 7.3993
+      }
+    },
+    {
+      "id": "gt-coffee-mono-09",
+      "test_type": "monotonicity",
+      "description": "walk_time=16.50 (score=7.40) <= walk_time=17.50 (score=7.00)",
+      "inputs": {
+        "walk_time_a": 16.5018,
+        "walk_time_b": 17.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 7.3993,
+        "score_b": 7.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-10",
+      "test_type": "monotonicity",
+      "description": "walk_time=17.50 (score=7.00) <= walk_time=20.00 (score=6.00)",
+      "inputs": {
+        "walk_time_a": 17.5,
+        "walk_time_b": 20
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 7.0,
+        "score_b": 6.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-11",
+      "test_type": "monotonicity",
+      "description": "walk_time=20.00 (score=6.00) <= walk_time=25.00 (score=5.00)",
+      "inputs": {
+        "walk_time_a": 20,
+        "walk_time_b": 25.0
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.0,
+        "score_b": 5.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-12",
+      "test_type": "monotonicity",
+      "description": "walk_time=25.00 (score=5.00) <= walk_time=30.00 (score=4.00)",
+      "inputs": {
+        "walk_time_a": 25.0,
+        "walk_time_b": 30
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.0,
+        "score_b": 4.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-13",
+      "test_type": "monotonicity",
+      "description": "walk_time=30.00 (score=4.00) <= walk_time=37.50 (score=3.00)",
+      "inputs": {
+        "walk_time_a": 30,
+        "walk_time_b": 37.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.0,
+        "score_b": 3.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-14",
+      "test_type": "monotonicity",
+      "description": "walk_time=37.50 (score=3.00) <= walk_time=38.37 (score=2.88)",
+      "inputs": {
+        "walk_time_a": 37.5,
+        "walk_time_b": 38.3656
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 3.0,
+        "score_b": 2.8846
+      }
+    },
+    {
+      "id": "gt-coffee-mono-15",
+      "test_type": "monotonicity",
+      "description": "walk_time=38.37 (score=2.88) <= walk_time=40.60 (score=2.59)",
+      "inputs": {
+        "walk_time_a": 38.3656,
+        "walk_time_b": 40.602
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.8846,
+        "score_b": 2.5864
+      }
+    },
+    {
+      "id": "gt-coffee-mono-16",
+      "test_type": "monotonicity",
+      "description": "walk_time=40.60 (score=2.59) <= walk_time=44.19 (score=2.11)",
+      "inputs": {
+        "walk_time_a": 40.602,
+        "walk_time_b": 44.1883
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.5864,
+        "score_b": 2.1082
+      }
+    },
+    {
+      "id": "gt-coffee-mono-17",
+      "test_type": "monotonicity",
+      "description": "walk_time=44.19 (score=2.11) <= walk_time=45.00 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 44.1883,
+        "walk_time_b": 45
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.1082,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-18",
+      "test_type": "monotonicity",
+      "description": "walk_time=45.00 (score=2.00) <= walk_time=52.50 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 45,
+        "walk_time_b": 52.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-19",
+      "test_type": "monotonicity",
+      "description": "walk_time=52.50 (score=2.00) <= walk_time=53.53 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 52.5,
+        "walk_time_b": 53.5308
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-coffee-mono-20",
+      "test_type": "monotonicity",
+      "description": "walk_time=53.53 (score=2.00) <= walk_time=60.00 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 53.5308,
+        "walk_time_b": 60
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2
+      }
+    },
+    {
+      "id": "gt-coffee-clamp-01",
+      "test_type": "clamping",
+      "description": "walk_time=-10 (before first knot) \u2192 clamped to 10",
+      "inputs": {
+        "walk_time_min": -10
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-coffee-clamp-02",
+      "test_type": "clamping",
+      "description": "walk_time=120 (after last knot) \u2192 clamped to 2",
+      "inputs": {
+        "walk_time_min": 120
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "quality_ceiling": null,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-coffee-floor-01",
+      "test_type": "floor",
+      "description": "walk_time=60 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 60
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0,
+        "final_score_max": null,
+        "final_score_exact": null
+      }
+    },
+    {
+      "id": "gt-coffee-floor-02",
+      "test_type": "floor",
+      "description": "walk_time=90 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 90
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0,
+        "final_score_max": null,
+        "final_score_exact": null
+      }
+    },
+    {
+      "id": "gt-coffee-floor-03",
+      "test_type": "floor",
+      "description": "walk_time=120 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 120
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0,
+        "final_score_max": null,
+        "final_score_exact": null
+      }
+    },
+    {
+      "id": "gt-coffee-ceilmax-01",
+      "test_type": "ceiling_max",
+      "description": "Maximal diversity (3 sub-types, 4 social buckets, 250+ median reviews) \u2192 ceiling=10, walk_time=0 \u2192 score=10",
+      "inputs": {
+        "walk_time_min": 0,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 250
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 300
+          },
+          {
+            "types": [
+              "food"
+            ],
+            "user_ratings_total": 200
+          }
+        ],
+        "social_bucket_count": 4
+      },
+      "expected": {
+        "piecewise_score": 10.0,
+        "quality_ceiling": 10,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 10.0
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-01-empty",
+      "test_type": "quality_ceiling",
+      "description": "No eligible places \u2192 base ceiling",
+      "inputs": {
+        "eligible_places": [],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 4
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-02-1type-0bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 0 social buckets, low reviews (20) \u2192 base only",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 4
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-03-2type-0bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "2 sub-types, 0 social buckets, low reviews \u2192 base + diversity(1)",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 5
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-04-3type-0bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "3 sub-types, 0 social buckets, low reviews \u2192 base + diversity(2)",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 30
+          },
+          {
+            "types": [
+              "food"
+            ],
+            "user_ratings_total": 25
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 6
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-05-1type-2bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 2 social buckets, low reviews \u2192 base + bucket(1)",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 2
+      },
+      "expected": {
+        "quality_ceiling": 5
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-06-1type-3bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 3 social buckets, low reviews \u2192 base + bucket(2)",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 3
+      },
+      "expected": {
+        "quality_ceiling": 6
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-07-1type-4bucket-low",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 4+ social buckets, low reviews \u2192 base + bucket(3)",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 4
+      },
+      "expected": {
+        "quality_ceiling": 7
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-08-1type-0bucket-med50",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 0 buckets, median reviews ~60 \u2192 base + depth(0.5) \u2192 4",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 60
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 70
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 4
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-09-1type-0bucket-med100",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 0 buckets, median reviews ~120 \u2192 base + depth(1.0) \u2192 5",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 120
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 130
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 5
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-10-1type-0bucket-med200",
+      "test_type": "quality_ceiling",
+      "description": "1 sub-type, 0 buckets, median reviews ~250 \u2192 base + depth(1.5) \u2192 6",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 250
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 300
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "quality_ceiling": 6
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-11-2type-2bucket-med100",
+      "test_type": "quality_ceiling",
+      "description": "2 sub-types, 2 social buckets, median 100+ \u2192 full mid-range",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 120
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 110
+          }
+        ],
+        "social_bucket_count": 2
+      },
+      "expected": {
+        "quality_ceiling": 7
+      }
+    },
+    {
+      "id": "gt-coffee-ceil-12-3type-4bucket-med200",
+      "test_type": "quality_ceiling",
+      "description": "Full diversity: 3 sub-types, 4 buckets, 200+ reviews \u2192 10",
+      "inputs": {
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 250
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 300
+          },
+          {
+            "types": [
+              "food"
+            ],
+            "user_ratings_total": 200
+          }
+        ],
+        "social_bucket_count": 4
+      },
+      "expected": {
+        "quality_ceiling": 10
+      }
+    },
+    {
+      "id": "gt-coffee-ceilcap-01",
+      "test_type": "ceiling_caps",
+      "description": "walk_time=0 (proximity=10), minimal diversity \u2192 ceiling=4, final capped at 4",
+      "inputs": {
+        "walk_time_min": 0,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "piecewise_score": 10.0,
+        "quality_ceiling": 4,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 4.0
+      }
+    },
+    {
+      "id": "gt-coffee-ceilcap-02",
+      "test_type": "ceiling_caps",
+      "description": "walk_time=10 (proximity=10), 2 types + 2 buckets \u2192 ceiling=6, final capped at 6",
+      "inputs": {
+        "walk_time_min": 10,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 2
+      },
+      "expected": {
+        "piecewise_score": 10.0,
+        "quality_ceiling": 6,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 6.0
+      }
+    },
+    {
+      "id": "gt-coffee-ceilcap-03",
+      "test_type": "ceiling_caps",
+      "description": "walk_time=15 (proximity=8), minimal diversity \u2192 ceiling=4, final capped at 4",
+      "inputs": {
+        "walk_time_min": 15,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 0
+      },
+      "expected": {
+        "piecewise_score": 8.0,
+        "quality_ceiling": 4,
+        "final_score_min": null,
+        "final_score_max": null,
+        "final_score_exact": 4.0
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-01",
+      "test_type": "pipeline_composition",
+      "description": "proximity=10 capped once by low-diversity ceiling (4)",
+      "inputs": {
+        "walk_time_min": 0,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          }
+        ],
+        "social_bucket_count": 0,
+        "confidence": "verified"
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "quality_ceiling": 4,
+        "after_ceiling": 4,
+        "after_confidence": 4,
+        "after_floor": 4,
+        "final_points": 4
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-02",
+      "test_type": "pipeline_composition",
+      "description": "proximity=10, full diversity ceiling=10 \u2192 no cap \u2192 10",
+      "inputs": {
+        "walk_time_min": 5,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 250
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 300
+          },
+          {
+            "types": [
+              "food"
+            ],
+            "user_ratings_total": 200
+          }
+        ],
+        "social_bucket_count": 4,
+        "confidence": "verified"
+      },
+      "expected": {
+        "piecewise_score": 10.0,
+        "quality_ceiling": 10,
+        "after_ceiling": 10.0,
+        "after_confidence": 10.0,
+        "after_floor": 10.0,
+        "final_points": 10
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-03",
+      "test_type": "pipeline_composition",
+      "description": "proximity=6, ceiling=7, confidence cap=8 \u2192 ceiling doesn't bind, final=6",
+      "inputs": {
+        "walk_time_min": 20,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 120
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 110
+          }
+        ],
+        "social_bucket_count": 2,
+        "confidence": "estimated"
+      },
+      "expected": {
+        "piecewise_score": 6.0,
+        "quality_ceiling": 7,
+        "after_ceiling": 6.0,
+        "after_confidence": 6.0,
+        "after_floor": 6.0,
+        "final_points": 6
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-04",
+      "test_type": "pipeline_composition",
+      "description": "proximity=2 (clamped), ceiling=4 \u2192 ceiling doesn't bind, floor=2 \u2192 2",
+      "inputs": {
+        "walk_time_min": 90,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          }
+        ],
+        "social_bucket_count": 0,
+        "confidence": "verified"
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "quality_ceiling": 4,
+        "after_ceiling": 2,
+        "after_confidence": 2,
+        "after_floor": 2.0,
+        "final_points": 2
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-05",
+      "test_type": "pipeline_composition",
+      "description": "proximity=10, ceiling=4 \u2192 single cap \u2192 4 (double-cap regression would show lower)",
+      "inputs": {
+        "walk_time_min": 10,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 20
+          },
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 30
+          }
+        ],
+        "social_bucket_count": 0,
+        "confidence": "verified"
+      },
+      "expected": {
+        "piecewise_score": 10.0,
+        "quality_ceiling": 4,
+        "after_ceiling": 4,
+        "after_confidence": 4,
+        "after_floor": 4,
+        "final_points": 4
+      }
+    },
+    {
+      "id": "gt-coffee-pipeline-06",
+      "test_type": "pipeline_composition",
+      "description": "proximity=8, ceiling=7 \u2192 ceiling binds \u2192 7",
+      "inputs": {
+        "walk_time_min": 15,
+        "eligible_places": [
+          {
+            "types": [
+              "cafe",
+              "food"
+            ],
+            "user_ratings_total": 120
+          },
+          {
+            "types": [
+              "bakery",
+              "food"
+            ],
+            "user_ratings_total": 110
+          }
+        ],
+        "social_bucket_count": 2,
+        "confidence": "verified"
+      },
+      "expected": {
+        "piecewise_score": 8.0,
+        "quality_ceiling": 7,
+        "after_ceiling": 7,
+        "after_confidence": 7,
+        "after_floor": 7,
+        "final_points": 7
+      }
+    }
+  ]
+}
