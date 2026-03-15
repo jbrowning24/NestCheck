@@ -459,8 +459,11 @@ def test_band_classification(addr_id, city, expected_band):
         midpoint = int((lo + hi) / 2 + 0.5)
         dim_tuples.append((midpoint, 10, None))
 
-    # Road noise is not in the fixture dimensions but is a 6th production
-    # dimension.  Use the synthetic road_noise input if available.
+    # Road noise has no expected_range in the fixture but IS a scored
+    # production dimension.  Compute from synthetic inputs so composite
+    # matches the 6-dimension production pipeline.  This is deterministic
+    # (apply_piecewise on a scalar dba value) so it doesn't introduce the
+    # fragility that midpoints avoid for the other 5 dimensions.
     rn_key = f"{addr_id}:road_noise"
     rn_inputs = SYNTHETIC_INPUTS.get(rn_key)
     if rn_inputs:
