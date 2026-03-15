@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 
 # API endpoints
 _CENSUS_GEOCODER = "https://geocoding.geo.census.gov/geocoder/geographies/coordinates"
+# Pinned to 2022 vintage — the most recent ACS 5-year estimates available.
+# Bump when Census releases the next vintage (typically late in the following
+# year), then verify all _ACS_PLACE_VARS still exist in the new schema.
 _ACS_BASE = "https://api.census.gov/data/2022/acs/acs5"
 
 # Timeouts (seconds)
@@ -74,8 +77,8 @@ _ACS_PLACE_VARS = [
 
 # Suffix patterns stripped from Census place/subdivision names for display
 _PLACE_NAME_SUFFIXES = re.compile(
-    r"\s+(city|town|township|village|borough|CDP|municipality|plantation|"
-    r"comunidad|zona urbana)$",
+    r"\s+(city|town|charter township|township|village|borough|CDP|"
+    r"municipality|plantation|comunidad|zona urbana)$",
     re.IGNORECASE,
 )
 
@@ -119,8 +122,15 @@ class CityProfile:
 # =============================================================================
 
 def _place_cache_key(state: str, place: str,
-                     geo_type: str = "place") -> str:
-    """Cache key for place or county-subdivision level data."""
+                     geo_type: str = "place",
+                     county: Optional[str] = None) -> str:
+    """Cache key for place or county-subdivision level data.
+
+    COUSUB FIPS codes are unique within a county but not within a state,
+    so county must be part of the key for county_subdivision entries.
+    """
+    if geo_type == "county_subdivision" and county:
+        return f"{geo_type}:{state}{county}{place}"
     return f"{geo_type}:{state}{place}"
 
 
@@ -298,7 +308,11 @@ def _fetch_acs_place(state: str, place: str, api_key: str,
     variables = ",".join(_ACS_PLACE_VARS)
     params: Dict[str, str] = {"get": f"NAME,{variables}"}
 
-    if geo_type == "county_subdivision" and county:
+    if geo_type == "county_subdivision":
+        if not county:
+            logger.warning("county_subdivision geo_type requires county; "
+                           "got %r for place %s", county, place)
+            return None
         params["for"] = f"county subdivision:{place}"
         params["in"] = f"state:{state} county:{county}"
         label = f"cousub {state}{county}{place}"
@@ -400,7 +414,7 @@ def get_demographics(lat: float, lng: float) -> Optional[CityProfile]:
     county = place_info.get("county")
 
     # Step 2: Check cache
-    cache_key = _place_cache_key(state, place, geo_type)
+    cache_key = _place_cache_key(state, place, geo_type, county)
     cached = get_census_cache(cache_key)
     if cached is not None:
         try:

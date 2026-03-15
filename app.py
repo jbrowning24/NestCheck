@@ -2766,7 +2766,7 @@ def _weather_context(weather):
     if not sentences:
         return None
 
-    return ". ".join(sentences)
+    return ". ".join(sentences) + "."
 
 
 def _insight_community_profile(demographics, result_dict):
@@ -3260,6 +3260,11 @@ def view_snapshot(snapshot_id):
 
     # NES-249: Walkability summary for sidebar widget (display-time only)
     result["walkability_summary"] = _build_walkability_summary(result)
+
+    # NES-257: demographics is not backfilled — old snapshots simply lack the
+    # key and the template hides the section when result.demographics is
+    # None/absent.  Live re-fetch would be possible but is deliberately
+    # avoided to keep view_snapshot() side-effect-free.
 
     return render_template(
         "snapshot.html",
