@@ -44,8 +44,11 @@ from scoring_config import (
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     THIRD_PLACE_CATEGORY_CEILINGS,
     THIRD_PLACE_DEPTH_BONUS_THRESHOLD, THIRD_PLACE_DEPTH_PENALTY_THRESHOLD,
+    _FITNESS_DRIVE_KNOTS,
+    WALK_DRIVE_BOTH_THRESHOLD,
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
+from census import get_demographics
 from spatial_data import SpatialDataStore
 
 load_dotenv()
@@ -411,6 +414,9 @@ class EvaluationResult:
 
     # Nearby individual schools from NCES 2022-23 (NES-216)
     nearby_schools: Optional[List[NearbySchool]] = None
+
+    # City-level demographics from Census ACS (NES-257)
+    demographics: Optional[Any] = None
 
 
 # =============================================================================
@@ -5036,6 +5042,19 @@ def score_fitness_access(
         fitness_kw = maps.places_nearby(lat, lng, "gym", radius_meters=3000, keyword="fitness")
         fitness_places.extend(fitness_kw)
 
+        # Supplemental text search to catch major chains missed by the
+        # 20-result Nearby Search cap (NES-259).  Text Search uses
+        # relevance ranking instead of prominence, surfacing well-known
+        # chains like Planet Fitness, LA Fitness, YMCA.  8000m (~5 mi)
+        # covers car-dependent suburban areas.
+        try:
+            fitness_places.extend(
+                maps.text_search("gym", lat, lng, radius_meters=8000))
+        except Exception:
+            # Supplemental — never block scoring if it fails
+            logger.warning("Text Search supplemental gym query failed",
+                           exc_info=True)
+
         fitness_places = _dedupe_by_place_id(fitness_places)
 
         # Type-based eligibility filter (NES-279) — parity with coffee function.
@@ -5091,9 +5110,9 @@ def score_fitness_access(
         _eligible_ids = {f.get("place_id") for f in eligible_places}
 
         # Collect all facilities for neighborhood display; score only eligible
-        best_score = 0
+        best_walk_score = 0
         best_facility = None
-        best_details = ""
+        best_walk_time = 9999
         scored_facilities = []
 
         for facility, walk_time in zip(fitness_places, walk_times):
@@ -5109,14 +5128,63 @@ def score_fitness_access(
                 )
                 score = base_score * quality_mult
 
-            if is_eligible and score > best_score:
-                best_score = score
+            if is_eligible and (score > best_walk_score
+                                or (score == best_walk_score
+                                    and walk_time < best_walk_time)):
+                best_walk_score = score
                 best_facility = facility
-                facility_name = facility.get("name", "Fitness center")
-                reviews = facility.get("user_ratings_total", 0)
-                best_details = f"{facility_name} ({rating}★, {reviews} reviews) — {walk_time} min walk"
+                best_walk_time = walk_time
 
             scored_facilities.append((score, walk_time, facility))
+
+        # -- Drive-time scoring for the best facility (NES-259) --------
+        # Suburban gyms 8 min by car were scoring 1/10 on walk time alone.
+        # Fetch one drive time for the top-scored facility (same cost
+        # discipline as transit — single Distance Matrix call).
+        best_drive_time = None
+        best_drive_score = 0
+        if best_facility and best_walk_time > WALK_DRIVE_BOTH_THRESHOLD:
+            try:
+                best_drive_time = maps.driving_time(
+                    (lat, lng),
+                    (best_facility["geometry"]["location"]["lat"],
+                     best_facility["geometry"]["location"]["lng"]),
+                )
+                if best_drive_time and best_drive_time != 9999:
+                    drive_base = apply_piecewise(
+                        _FITNESS_DRIVE_KNOTS, best_drive_time)
+                    drive_quality = apply_quality_multiplier(
+                        SCORING_MODEL.fitness.quality_multipliers,
+                        best_facility.get("rating", 0),
+                    )
+                    best_drive_score = drive_base * drive_quality
+                else:
+                    best_drive_time = None
+            except Exception:
+                logger.warning("Fitness drive time lookup failed",
+                               exc_info=True)
+                best_drive_time = None
+
+        # Use the better of walk and drive scores
+        best_score = max(best_walk_score, best_drive_score)
+
+        # Build details string
+        if best_facility:
+            facility_name = best_facility.get("name", "Fitness center")
+            rating = best_facility.get("rating", 0)
+            reviews = best_facility.get("user_ratings_total", 0)
+            if best_drive_score > best_walk_score and best_drive_time:
+                best_details = (
+                    f"{facility_name} ({rating}★, {reviews} reviews)"
+                    f" — {best_drive_time} min drive"
+                )
+            else:
+                best_details = (
+                    f"{facility_name} ({rating}★, {reviews} reviews)"
+                    f" — {best_walk_time} min walk"
+                )
+        else:
+            best_details = ""
 
         # Sort by score desc, then walk time asc; take top 5
         scored_facilities.sort(key=lambda x: (-x[0], x[1]))
@@ -5126,12 +5194,20 @@ def score_fitness_access(
                 "rating": f.get("rating"),
                 "review_count": f.get("user_ratings_total", 0),
                 "walk_time_min": wt,
+                "drive_time_min": None,  # populated below for best facility
                 "lat": f["geometry"]["location"]["lat"],
                 "lng": f["geometry"]["location"]["lng"],
                 "place_id": f.get("place_id"),
             }
             for _sc, wt, f in scored_facilities[:5]
         ]
+        # Attach the drive time to the best facility's neighborhood entry
+        if best_drive_time and best_facility:
+            _best_pid = best_facility.get("place_id")
+            for np in neighborhood_places:
+                if np.get("place_id") == _best_pid:
+                    np["drive_time_min"] = best_drive_time
+                    break
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
         # Data confidence (NES-189)
@@ -5376,6 +5452,13 @@ def evaluate_property(
     # Nearby individual schools from NCES (NES-216) — zero API calls
     try:
         result.nearby_schools = get_nearby_schools(lat, lng, _spatial_store)
+    except Exception:
+        pass
+
+    # City-level demographics from Census ACS (NES-257)
+    try:
+        result.demographics = _staged(
+            "demographics", get_demographics, lat, lng)
     except Exception:
         pass
 

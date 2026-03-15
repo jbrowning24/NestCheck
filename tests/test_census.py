@@ -1,7 +1,7 @@
-"""Unit tests for census.py — Census ACS demographic data integration.
+"""Unit tests for census.py — Census ACS city-level demographic data (NES-257).
 
-Tests cover: cache key generation, safe type conversions, ACS row parsing,
-serialization round-trips, tract lookup fallback chain, and the public
+Tests cover: cache key generation, safe type conversions, place-level ACS
+row parsing, serialization round-trips, place lookup, and the public
 get_demographics API.
 """
 
@@ -11,20 +11,18 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 from census import (
-    _tract_cache_key,
-    _county_cache_key,
+    _place_cache_key,
     _safe_int,
+    _safe_float,
     _safe_pct,
-    _parse_acs_row,
-    _serialize,
-    _serialize_commute,
-    _deserialize,
-    _deserialize_commute,
+    _clean_place_name,
+    _parse_place_row,
+    _serialize_city,
+    _deserialize_city,
     serialize_for_result,
-    _lookup_tract,
+    _lookup_place,
     get_demographics,
-    CensusProfile,
-    CommuteBreakdown,
+    CityProfile,
     _CENSUS_MISSING,
 )
 
@@ -34,15 +32,12 @@ from census import (
 # =========================================================================
 
 class TestCacheKeys:
-    def test_tract_key_format(self):
-        assert _tract_cache_key("36", "119", "025300") == "tract:36119025300"
+    def test_place_key_format(self):
+        assert _place_cache_key("26", "59440") == "place:2659440"
 
-    def test_county_key_format(self):
-        assert _county_cache_key("36", "119") == "county:36119"
-
-    def test_different_tracts_different_keys(self):
-        k1 = _tract_cache_key("36", "119", "025300")
-        k2 = _tract_cache_key("36", "119", "025400")
+    def test_different_places_different_keys(self):
+        k1 = _place_cache_key("26", "59440")
+        k2 = _place_cache_key("36", "81677")
         assert k1 != k2
 
 
@@ -72,6 +67,21 @@ class TestSafeInt:
         assert _safe_int("N/A", 0) == 0
 
 
+class TestSafeFloat:
+    def test_normal_float(self):
+        assert _safe_float("40.5") == 40.5
+
+    def test_rounds_to_one_decimal(self):
+        assert _safe_float("40.567") == 40.6
+
+    def test_none_returns_default(self):
+        assert _safe_float(None) is None
+        assert _safe_float(None, 0.0) == 0.0
+
+    def test_census_missing_sentinel(self):
+        assert _safe_float(_CENSUS_MISSING) is None
+
+
 class TestSafePct:
     def test_normal_percentage(self):
         assert _safe_pct(25, 100) == 25.0
@@ -90,217 +100,231 @@ class TestSafePct:
 
 
 # =========================================================================
-# ACS row parsing
+# Place name cleaning
 # =========================================================================
 
-def _make_acs_row(
-    total_hh=1000, hh_children=350,
-    total_occ=980, owner=600, renter=380,
-    total_comm=800, drive=500, carpool=80, transit=100,
-    bike=20, walk=40, wfh=60,
-    median_rent=1800,
+class TestCleanPlaceName:
+    def test_strips_city_suffix(self):
+        assert _clean_place_name("Novi city") == "Novi"
+
+    def test_strips_town_suffix(self):
+        assert _clean_place_name("Greenwich town") == "Greenwich"
+
+    def test_strips_village_suffix(self):
+        assert _clean_place_name("Tarrytown village") == "Tarrytown"
+
+    def test_strips_cdp_suffix(self):
+        assert _clean_place_name("Levittown CDP") == "Levittown"
+
+    def test_strips_borough_suffix(self):
+        assert _clean_place_name("Princeton borough") == "Princeton"
+
+    def test_preserves_multiword_names(self):
+        assert _clean_place_name("White Plains city") == "White Plains"
+
+    def test_preserves_name_without_suffix(self):
+        assert _clean_place_name("Manhattan") == "Manhattan"
+
+    def test_handles_whitespace(self):
+        assert _clean_place_name("  Novi city  ") == "Novi"
+
+
+# =========================================================================
+# ACS place-level row parsing
+# =========================================================================
+
+def _make_place_row(
+    population=65870, total_hh=26516,
+    median_income=110588, median_age=40.0,
+    total_occ=26516, owner=18011, renter=8505,
 ):
-    """Build a synthetic ACS row dict matching Census API format."""
+    """Build a synthetic ACS place-level row matching Census API format."""
     return {
-        "B11005_001E": str(total_hh),
-        "B11005_002E": str(hh_children),
+        "B01003_001E": str(population),
+        "B11001_001E": str(total_hh),
+        "B19013_001E": str(median_income),
+        "B01002_001E": str(median_age),
         "B25003_001E": str(total_occ),
         "B25003_002E": str(owner),
         "B25003_003E": str(renter),
-        "B08301_001E": str(total_comm),
-        "B08301_003E": str(drive),
-        "B08301_004E": str(carpool),
-        "B08301_010E": str(transit),
-        "B08301_018E": str(bike),
-        "B08301_019E": str(walk),
-        "B08301_021E": str(wfh),
-        "B25064_001E": str(median_rent),
     }
 
 
-class TestParseAcsRow:
+class TestParsePlaceRow:
     def test_normal_row(self):
-        row = _make_acs_row()
-        parsed = _parse_acs_row(row)
+        row = _make_place_row()
+        parsed = _parse_place_row(row)
 
-        assert parsed["total_households"] == 1000
-        assert parsed["households_with_children"] == 350
-        assert parsed["children_pct"] == 35.0
-        assert parsed["owner_pct"] == pytest.approx(61.2, abs=0.1)
-        assert parsed["renter_pct"] == pytest.approx(38.8, abs=0.1)
-        assert parsed["median_rent"] == 1800
+        assert parsed["population"] == 65870
+        assert parsed["total_households"] == 26516
+        assert parsed["median_household_income"] == 110588
+        assert parsed["median_age"] == 40.0
+        assert parsed["owner_pct"] == pytest.approx(67.9, abs=0.1)
+        assert parsed["renter_pct"] == pytest.approx(32.1, abs=0.1)
 
-        commute = parsed["commute"]
-        assert isinstance(commute, CommuteBreakdown)
-        assert commute.drive_alone_pct == 62.5
-        assert commute.transit_pct == 12.5
-        assert commute.walk_pct == 5.0
-        assert commute.bike_pct == 2.5
-        assert commute.wfh_pct == 7.5
+    def test_missing_income(self):
+        row = _make_place_row()
+        row["B19013_001E"] = _CENSUS_MISSING
+        parsed = _parse_place_row(row)
+        assert parsed["median_household_income"] is None
 
-    def test_missing_values_handled(self):
-        row = _make_acs_row()
-        row["B25064_001E"] = _CENSUS_MISSING  # median rent suppressed
-        row["B11005_002E"] = ""  # children missing
-
-        parsed = _parse_acs_row(row)
-        assert parsed["median_rent"] is None
-        assert parsed["households_with_children"] == 0
-        assert parsed["children_pct"] == 0.0
+    def test_missing_age(self):
+        row = _make_place_row()
+        row["B01002_001E"] = ""
+        parsed = _parse_place_row(row)
+        assert parsed["median_age"] is None
 
     def test_zero_denominators(self):
-        row = _make_acs_row(total_hh=0, total_occ=0, total_comm=0)
-        parsed = _parse_acs_row(row)
-
-        assert parsed["children_pct"] == 0.0
+        row = _make_place_row(total_occ=0)
+        parsed = _parse_place_row(row)
         assert parsed["owner_pct"] == 0.0
-        assert parsed["commute"].drive_alone_pct == 0.0
+        assert parsed["renter_pct"] == 0.0
 
 
 # =========================================================================
 # Serialization round-trips
 # =========================================================================
 
-def _make_profile():
-    """Build a full CensusProfile for serialization tests."""
-    return CensusProfile(
-        state_fips="36",
-        county_fips="119",
-        tract_code="025300",
-        geoid="36119025300",
-        total_households=1000,
-        households_with_children=350,
-        children_pct=35.0,
-        total_occupied=980,
-        owner_occupied=600,
-        renter_occupied=380,
-        owner_pct=61.2,
-        renter_pct=38.8,
-        total_commuters=800,
-        commute=CommuteBreakdown(
-            drive_alone_pct=62.5,
-            carpool_pct=10.0,
-            transit_pct=12.5,
-            walk_pct=5.0,
-            bike_pct=2.5,
-            wfh_pct=7.5,
-        ),
-        median_rent=1800,
-        county_name="Westchester County",
-        county_children_pct=32.0,
-        county_owner_pct=65.0,
-        county_renter_pct=35.0,
-        county_commute=CommuteBreakdown(
-            drive_alone_pct=58.0,
-            carpool_pct=8.0,
-            transit_pct=18.0,
-            walk_pct=4.0,
-            bike_pct=1.0,
-            wfh_pct=11.0,
-        ),
-        county_median_rent=1650,
+def _make_city_profile():
+    """Build a full CityProfile for serialization tests."""
+    return CityProfile(
+        state_fips="26",
+        place_fips="59440",
+        place_name="Novi",
+        population=65870,
+        total_households=26516,
+        median_household_income=110588,
+        median_age=40.0,
+        total_occupied=26516,
+        owner_occupied=18011,
+        renter_occupied=8505,
+        owner_pct=67.9,
+        renter_pct=32.1,
     )
 
 
 class TestSerialization:
     def test_round_trip(self):
-        original = _make_profile()
-        serialized = _serialize(original)
-        restored = _deserialize(serialized)
+        original = _make_city_profile()
+        serialized = _serialize_city(original)
+        restored = _deserialize_city(serialized)
 
-        assert restored.geoid == original.geoid
-        assert restored.children_pct == original.children_pct
-        assert restored.commute.transit_pct == original.commute.transit_pct
-        assert restored.county_name == "Westchester County"
-        assert restored.county_commute.transit_pct == 18.0
-        assert restored.median_rent == 1800
-        assert restored.county_median_rent == 1650
+        assert restored.place_name == "Novi"
+        assert restored.population == 65870
+        assert restored.median_household_income == 110588
+        assert restored.median_age == 40.0
+        assert restored.owner_pct == 67.9
 
     def test_json_round_trip(self):
-        original = _make_profile()
-        json_str = json.dumps(_serialize(original))
-        restored = _deserialize(json.loads(json_str))
-        assert restored.geoid == original.geoid
-        assert restored.commute.wfh_pct == original.commute.wfh_pct
+        original = _make_city_profile()
+        json_str = json.dumps(_serialize_city(original))
+        restored = _deserialize_city(json.loads(json_str))
+        assert restored.place_name == original.place_name
+        assert restored.population == original.population
 
     def test_serialize_for_result_with_profile(self):
-        p = _make_profile()
+        p = _make_city_profile()
         result = serialize_for_result(p)
         assert result is not None
-        assert result["geoid"] == "36119025300"
-        assert "commute" in result
-        assert result["commute"]["transit_pct"] == 12.5
+        assert result["place_name"] == "Novi"
+        assert result["population"] == 65870
+        assert result["median_household_income"] == 110588
 
     def test_serialize_for_result_none(self):
         assert serialize_for_result(None) is None
 
-    def test_commute_round_trip(self):
-        original = CommuteBreakdown(
-            drive_alone_pct=60.0, carpool_pct=8.0, transit_pct=15.0,
-            walk_pct=5.0, bike_pct=2.0, wfh_pct=10.0,
-        )
-        serialized = _serialize_commute(original)
-        restored = _deserialize_commute(serialized)
-        assert restored.transit_pct == 15.0
-        assert restored.wfh_pct == 10.0
-
-    def test_deserialize_missing_county_commute(self):
-        """Profile with county_commute=None deserializes correctly."""
-        p = _make_profile()
-        p.county_commute = None
-        serialized = _serialize(p)
-        assert serialized["county_commute"] is None
-
-        restored = _deserialize(serialized)
-        assert restored.county_commute is None
+    def test_deserialize_missing_optional_fields(self):
+        """Profile with missing optional fields deserializes correctly."""
+        data = {
+            "state_fips": "26",
+            "place_fips": "59440",
+            "place_name": "Novi",
+            "population": 65870,
+            "total_households": 26516,
+            # median_household_income and median_age omitted
+            "total_occupied": 26516,
+            "owner_occupied": 18011,
+            "renter_occupied": 8505,
+            "owner_pct": 67.9,
+            "renter_pct": 32.1,
+        }
+        restored = _deserialize_city(data)
+        assert restored.median_household_income is None
+        assert restored.median_age is None
+        assert restored.population == 65870
 
 
 # =========================================================================
-# Tract lookup fallback chain
+# Place lookup
 # =========================================================================
 
-class TestLookupTract:
-    @patch("census._lookup_tract_census")
-    @patch("census._lookup_tract_fcc")
-    def test_fcc_success(self, mock_fcc, mock_census):
-        mock_fcc.return_value = {"state": "36", "county": "119", "tract": "025300"}
+class TestLookupPlace:
+    @patch("census.requests.get")
+    def test_incorporated_place_found(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "result": {
+                "geographies": {
+                    "Incorporated Places": [
+                        {"STATE": "26", "PLACE": "59440", "NAME": "Novi city"}
+                    ],
+                }
+            }
+        }
+        mock_get.return_value = mock_resp
 
-        result = _lookup_tract(41.0, -73.8)
+        result = _lookup_place(42.48, -83.47)
+        assert result == {"state": "26", "place": "59440", "name": "Novi city"}
 
-        assert result == {"state": "36", "county": "119", "tract": "025300"}
-        mock_census.assert_not_called()
+    @patch("census.requests.get")
+    def test_cdp_fallback(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "result": {
+                "geographies": {
+                    "Incorporated Places": [],
+                    "Census Designated Places": [
+                        {"STATE": "36", "PLACE": "42081", "NAME": "Levittown CDP"}
+                    ],
+                }
+            }
+        }
+        mock_get.return_value = mock_resp
 
-    @patch("census._lookup_tract_census")
-    @patch("census._lookup_tract_fcc")
-    def test_fcc_fails_census_fallback(self, mock_fcc, mock_census):
-        mock_fcc.return_value = None
-        mock_census.return_value = {"state": "36", "county": "119", "tract": "025300"}
+        result = _lookup_place(40.72, -73.51)
+        assert result == {"state": "36", "place": "42081", "name": "Levittown CDP"}
 
-        result = _lookup_tract(41.0, -73.8)
+    @patch("census.requests.get")
+    def test_no_place_returns_none(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "result": {
+                "geographies": {
+                    "Incorporated Places": [],
+                    "Census Designated Places": [],
+                }
+            }
+        }
+        mock_get.return_value = mock_resp
 
-        assert result is not None
-        mock_census.assert_called_once()
-
-    @patch("census._lookup_tract_census")
-    @patch("census._lookup_tract_fcc")
-    def test_both_fail_returns_none(self, mock_fcc, mock_census):
-        mock_fcc.return_value = None
-        mock_census.return_value = None
-
-        result = _lookup_tract(41.0, -73.8)
-
+        result = _lookup_place(41.0, -73.8)
         assert result is None
 
-    @patch("census._lookup_tract_census")
-    @patch("census._lookup_tract_fcc")
-    def test_fcc_empty_fields_triggers_fallback(self, mock_fcc, mock_census):
-        mock_fcc.return_value = {"state": "", "county": "119", "tract": "025300"}
-        mock_census.return_value = {"state": "36", "county": "119", "tract": "025300"}
+    @patch("census.requests.get")
+    def test_api_failure_returns_none(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.ok = False
+        mock_resp.status_code = 500
+        mock_get.return_value = mock_resp
 
-        result = _lookup_tract(41.0, -73.8)
-
-        mock_census.assert_called_once()
-        assert result["state"] == "36"
+        result = _lookup_place(41.0, -73.8)
+        assert result is None
 
 
 # =========================================================================
@@ -310,71 +334,44 @@ class TestLookupTract:
 class TestGetDemographics:
     @patch("census.set_census_cache")
     @patch("census.get_census_cache", return_value=None)
-    @patch("census._fetch_acs")
-    @patch("census._lookup_tract")
-    def test_cache_miss_fetches_and_caches(self, mock_tract, mock_acs,
+    @patch("census._fetch_acs_place")
+    @patch("census._lookup_place")
+    def test_cache_miss_fetches_and_caches(self, mock_place, mock_acs,
                                             mock_get_cache, mock_set_cache):
-        mock_tract.return_value = {"state": "36", "county": "119", "tract": "025300"}
-        tract_row = _make_acs_row()
-        county_row = _make_acs_row(
-            total_hh=200000, hh_children=64000,
-            total_occ=195000, owner=126750, renter=68250,
-            median_rent=1650,
-        )
-        county_row["NAME"] = "Westchester County, New York"
-        mock_acs.side_effect = [tract_row, county_row]
+        mock_place.return_value = {"state": "26", "place": "59440", "name": "Novi city"}
+        mock_acs.return_value = _make_place_row()
 
-        result = get_demographics(41.0, -73.8)
+        result = get_demographics(42.48, -83.47)
 
         assert result is not None
-        assert result.children_pct == 35.0
-        assert result.county_name == "Westchester County"
-        assert result.county_children_pct == 32.0
-        # Tract cache + county cache = 2 set_census_cache calls
-        assert mock_set_cache.call_count == 2
+        assert result.place_name == "Novi"
+        assert result.population == 65870
+        assert result.median_household_income == 110588
+        assert mock_set_cache.call_count == 1
 
     @patch("census.get_census_cache")
-    @patch("census._lookup_tract")
-    def test_cache_hit_skips_api(self, mock_tract, mock_get_cache):
-        mock_tract.return_value = {"state": "36", "county": "119", "tract": "025300"}
-        cached_profile = _serialize(_make_profile())
+    @patch("census._lookup_place")
+    def test_cache_hit_skips_api(self, mock_place, mock_get_cache):
+        mock_place.return_value = {"state": "26", "place": "59440", "name": "Novi city"}
+        cached_profile = _serialize_city(_make_city_profile())
         mock_get_cache.return_value = json.dumps(cached_profile)
 
-        result = get_demographics(41.0, -73.8)
+        result = get_demographics(42.48, -83.47)
 
         assert result is not None
-        assert result.geoid == "36119025300"
-        assert result.children_pct == 35.0
+        assert result.place_name == "Novi"
+        assert result.population == 65870
 
-    @patch("census._lookup_tract", return_value=None)
-    def test_tract_failure_returns_none(self, mock_tract):
+    @patch("census._lookup_place", return_value=None)
+    def test_place_failure_returns_none(self, mock_place):
         result = get_demographics(41.0, -73.8)
         assert result is None
 
     @patch("census.get_census_cache", return_value=None)
-    @patch("census._fetch_acs", return_value=None)
-    @patch("census._lookup_tract")
-    def test_acs_failure_returns_none(self, mock_tract, mock_acs, mock_cache):
-        mock_tract.return_value = {"state": "36", "county": "119", "tract": "025300"}
+    @patch("census._fetch_acs_place", return_value=None)
+    @patch("census._lookup_place")
+    def test_acs_failure_returns_none(self, mock_place, mock_acs, mock_cache):
+        mock_place.return_value = {"state": "26", "place": "59440", "name": "Novi city"}
 
-        result = get_demographics(41.0, -73.8)
+        result = get_demographics(42.48, -83.47)
         assert result is None
-
-    @patch("census.set_census_cache")
-    @patch("census.get_census_cache", return_value=None)
-    @patch("census._fetch_acs")
-    @patch("census._lookup_tract")
-    def test_county_failure_still_returns_profile(self, mock_tract, mock_acs,
-                                                   mock_get_cache, mock_set_cache):
-        mock_tract.return_value = {"state": "36", "county": "119", "tract": "025300"}
-        tract_row = _make_acs_row()
-        # Tract succeeds, county fails
-        mock_acs.side_effect = [tract_row, None]
-
-        result = get_demographics(41.0, -73.8)
-
-        assert result is not None
-        assert result.children_pct == 35.0
-        # County fields should be None
-        assert result.county_children_pct is None
-        assert result.county_commute is None

@@ -1094,48 +1094,23 @@ class TestJoinLabels:
 # ---------------------------------------------------------------------------
 
 def _make_demographics(
-    children_pct=35.0,
+    place_name="Novi",
+    population=61000,
+    total_households=24000,
+    median_household_income=85000,
+    median_age=38.5,
     renter_pct=38.8,
     owner_pct=61.2,
-    transit_pct=12.5,
-    walk_pct=5.0,
-    bike_pct=2.5,
-    wfh_pct=7.5,
-    drive_alone_pct=62.5,
-    median_rent=1800,
-    county_children_pct=32.0,
-    county_renter_pct=35.0,
-    county_transit_pct=18.0,
-    county_median_rent=1650,
-    county_name="Westchester County",
 ):
-    """Build a synthetic demographics dict matching serialized CensusProfile."""
+    """Build a synthetic demographics dict matching serialized CityProfile (NES-257)."""
     return {
-        "children_pct": children_pct,
+        "place_name": place_name,
+        "population": population,
+        "total_households": total_households,
+        "median_household_income": median_household_income,
+        "median_age": median_age,
         "renter_pct": renter_pct,
         "owner_pct": owner_pct,
-        "commute": {
-            "drive_alone_pct": drive_alone_pct,
-            "transit_pct": transit_pct,
-            "walk_pct": walk_pct,
-            "bike_pct": bike_pct,
-            "wfh_pct": wfh_pct,
-            "carpool_pct": 10.0,
-        },
-        "median_rent": median_rent,
-        "county_children_pct": county_children_pct,
-        "county_renter_pct": county_renter_pct,
-        "county_commute": {
-            "transit_pct": county_transit_pct,
-            "drive_alone_pct": 58.0,
-            "walk_pct": 4.0,
-            "bike_pct": 1.0,
-            "wfh_pct": 11.0,
-            "carpool_pct": 8.0,
-        },
-        "county_median_rent": county_median_rent,
-        "county_name": county_name,
-        "geoid": "36119025300",
     }
 
 
@@ -1143,34 +1118,37 @@ class TestInsightCommunityProfile:
     def test_none_demographics_returns_none(self):
         assert _insight_community_profile(None, {}) is None
 
-    def test_children_first(self):
+    def test_population_sentence(self):
         demo = _make_demographics()
         result = _insight_community_profile(demo, {})
 
         assert result is not None
-        # Children sentence should come before tenure sentence
-        children_pos = result.find("children")
-        rent_pos = result.find("rent")
-        assert children_pos < rent_pos or rent_pos == -1
+        assert "Novi" in result
+        assert "61,000" in result
+        assert "24,000" in result
 
-    def test_county_comparison_included(self):
+    def test_income_included(self):
         demo = _make_demographics()
         result = _insight_community_profile(demo, {})
 
-        assert "Westchester County" in result
-        assert "32%" in result  # county children pct
+        assert "$85,000" in result
 
-    def test_transit_comparison_for_high_transit(self):
-        demo = _make_demographics(transit_pct=15.0)
+    def test_tenure_included(self):
+        demo = _make_demographics()
         result = _insight_community_profile(demo, {})
 
-        assert "transit" in result.lower()
-        assert "18%" in result  # county transit pct
+        assert "owner-occupied" in result
+        assert "61%" in result
 
-    def test_basic_ordering(self):
-        """Basic community profile includes children info."""
+    def test_median_age_included(self):
         demo = _make_demographics()
+        result = _insight_community_profile(demo, {})
+
+        assert "38.5" in result
+
+    def test_empty_place_name_uses_fallback(self):
+        demo = _make_demographics(place_name="")
         result = _insight_community_profile(demo, {})
 
         assert result is not None
-        assert "children" in result.lower()
+        assert "This area" in result

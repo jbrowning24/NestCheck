@@ -2195,6 +2195,11 @@ def result_to_dict(result):
     else:
         output["nearby_schools"] = None
 
+    # City-level demographics from Census ACS (NES-257)
+    output["demographics"] = _serialize_census(
+        getattr(result, "demographics", None)
+    )
+
     # Walk quality — MAPS-Mini pipeline (NES-192)
     wq = getattr(result, "walk_quality", None)
     if wq is not None:
@@ -2765,53 +2770,51 @@ def _weather_context(weather):
 
 
 def _insight_community_profile(demographics, result_dict):
-    """Generate a narrative insight for the Community Profile section."""
+    """Generate a narrative insight for the Community Profile section.
+
+    Uses city/place-level Census ACS data (NES-257).  Factual framing
+    only — no characterizations of desirability (Fair Housing guardrail).
+    """
     if not demographics:
         return None
 
-    children_pct = demographics.get("children_pct", 0)
+    place_name = demographics.get("place_name", "") or "This area"
+    population = demographics.get("population", 0)
+    total_households = demographics.get("total_households", 0)
+    median_income = demographics.get("median_household_income")
+    median_age = demographics.get("median_age")
     renter_pct = demographics.get("renter_pct", 0)
     owner_pct = demographics.get("owner_pct", 0)
-    county_name = demographics.get("county_name", "the county")
-    county_children_pct = demographics.get("county_children_pct")
-    county_renter_pct = demographics.get("county_renter_pct")
-    median_rent = demographics.get("median_rent")
-    county_median_rent = demographics.get("county_median_rent")
-
-    commute = demographics.get("commute", {})
-    transit_pct = commute.get("transit_pct", 0)
-    drive_alone_pct = commute.get("drive_alone_pct", 0)
-
-    county_commute = demographics.get("county_commute", {})
-    county_transit_pct = county_commute.get("transit_pct", 0) if county_commute else 0
-
-    # Build sentence components
-    def _children_sentence():
-        s = f"About {children_pct:.0f}% of households have children"
-        if county_children_pct is not None:
-            s += f" (vs. {county_children_pct:.0f}% across {county_name})"
-        return s
-
-    def _tenure_sentence():
-        if renter_pct >= owner_pct:
-            return f"This tract is majority renter-occupied ({renter_pct:.0f}%)"
-        return f"This tract is majority owner-occupied ({owner_pct:.0f}%)"
-
-    def _commute_sentence():
-        if transit_pct >= 10:
-            s = f"{transit_pct:.0f}% of commuters use transit"
-            if county_transit_pct:
-                s += f" (vs. {county_transit_pct:.0f}% countywide)"
-            return s
-        return f"{drive_alone_pct:.0f}% of commuters drive alone"
 
     sentences = []
-    sentences.append(_children_sentence())
-    sentences.append(_tenure_sentence())
-    sentences.append(_commute_sentence())
 
-    # Filter None values
-    sentences = [s for s in sentences if s]
+    # Population + households
+    if population and total_households:
+        sentences.append(
+            f"{place_name} has a population of {population:,} "
+            f"across {total_households:,} households"
+        )
+
+    # Median household income
+    if median_income is not None:
+        sentences.append(
+            f"The median household income is ${median_income:,}"
+        )
+
+    # Tenure
+    if owner_pct or renter_pct:
+        if renter_pct >= owner_pct:
+            sentences.append(
+                f"Housing is majority renter-occupied ({renter_pct:.0f}%)"
+            )
+        else:
+            sentences.append(
+                f"Housing is majority owner-occupied ({owner_pct:.0f}%)"
+            )
+
+    # Median age
+    if median_age is not None:
+        sentences.append(f"The median age is {median_age:.1f}")
 
     if not sentences:
         return None
