@@ -2923,6 +2923,8 @@ def get_neighborhood_snapshot(
             # Coffee & Social Spots needs "coffee_shop" as a third type
             if category == "Coffee & Social Spots":
                 places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
+                # Keyword-supplemented search for chain coverage (NES-279)
+                places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
             # Supplemental text search for Provisioning (NES-258) — catches
             # major chains missed by the 20-result Nearby Search cap.
             if category == "Provisioning":
@@ -2976,7 +2978,11 @@ def get_neighborhood_snapshot(
             # Special handling for Coffee & Social Spots — apply quality filter
             if category == "Coffee & Social Spots":
                 eligible_places = []
-                excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
+                excluded_types = [
+                    "convenience_store", "gas_station", "meal_takeaway", "fast_food",
+                    "supermarket", "bar", "night_club", "hookah_bar", "liquor_store",
+                    "event_venue",
+                ]
 
                 for place in places:
                     types = place.get("types", [])
@@ -4399,6 +4405,10 @@ def score_third_place_access(
         all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000))
         all_places.extend(maps.places_nearby(lat, lng, "bakery", radius_meters=3000))
         all_places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
+
+        # Keyword-supplemented search for chain coverage (NES-279)
+        all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
+
         all_places = _dedupe_by_place_id(all_places)
 
         _empty_counts = {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}
@@ -4416,7 +4426,11 @@ def score_third_place_access(
 
         # Filter for third-place quality
         eligible_places = []
-        excluded_types = ["convenience_store", "gas_station", "meal_takeaway", "fast_food", "supermarket"]
+        excluded_types = [
+            "convenience_store", "gas_station", "meal_takeaway", "fast_food",
+            "supermarket", "bar", "night_club", "hookah_bar", "liquor_store",
+            "event_venue",
+        ]
 
         for place in all_places:
             # Get place types
@@ -5017,7 +5031,32 @@ def score_fitness_access(
         # so we search with keyword instead
         yoga = maps.places_nearby(lat, lng, "gym", radius_meters=3000, keyword="yoga")
         fitness_places.extend(yoga)
+
+        # Keyword-supplemented search for chain coverage (NES-279)
+        fitness_kw = maps.places_nearby(lat, lng, "gym", radius_meters=3000, keyword="fitness")
+        fitness_places.extend(fitness_kw)
+
         fitness_places = _dedupe_by_place_id(fitness_places)
+
+        # Type-based eligibility filter (NES-279) — parity with coffee function.
+        # Removes misclassified businesses (real estate, insurance, etc.)
+        _fitness_required_types = ["gym", "health", "physiotherapist"]
+        _fitness_excluded_types = [
+            "real_estate_agency", "insurance_agency", "lawyer", "accounting",
+            "finance", "local_government_office", "travel_agency", "car_dealer",
+            "car_repair", "beauty_salon", "hair_care", "spa",
+        ]
+        _type_filtered = []
+        for f in fitness_places:
+            types = f.get("types", [])
+            has_required = any(t in types for t in _fitness_required_types)
+            if not has_required:
+                continue
+            has_excluded = any(t in types for t in _fitness_excluded_types)
+            if has_excluded:
+                continue
+            _type_filtered.append(f)
+        fitness_places = _type_filtered
 
         if not fitness_places:
             conf, conf_note = _classify_places_confidence(0, 0)
