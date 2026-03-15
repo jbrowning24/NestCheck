@@ -42,8 +42,6 @@ from scoring_config import (
     QualityCeilingConfig,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
-    THIRD_PLACE_CATEGORY_CEILINGS,
-    THIRD_PLACE_DEPTH_BONUS_THRESHOLD, THIRD_PLACE_DEPTH_PENALTY_THRESHOLD,
     _FITNESS_DRIVE_KNOTS,
     WALK_DRIVE_BOTH_THRESHOLD,
 )
@@ -64,6 +62,28 @@ def get_score_band(score: int) -> dict:
             return {"label": band.label, "css_class": band.css_class}
     last = SCORING_MODEL.score_bands[-1]
     return {"label": last.label, "css_class": last.css_class}
+
+
+def compute_composite_score(
+    dimension_scores: List[Tuple[Optional[int], int, Optional[str]]],
+) -> int:
+    """Compute 0-100 composite score from dimension (points, max_points, data_confidence) tuples.
+
+    Excludes dimensions with points=None or data_confidence="not_scored".
+    Returns equal-weight normalized score matching evaluate_property() logic.
+    """
+    scorable = [
+        (pts, mx) for pts, mx, conf in dimension_scores
+        if pts is not None and conf != CONFIDENCE_NOT_SCORED
+    ]
+    if not scorable:
+        return 0
+    total = sum(pts for pts, _ in scorable)
+    mx = sum(m for _, m in scorable)
+    if mx <= 0:
+        return 0
+    return int(total / mx * 100 + 0.5)
+
 
 # =============================================================================
 # CONFIGURATION
@@ -4104,20 +4124,28 @@ def _classify_places_confidence(
 def _compute_quality_ceiling(
     eligible_places: list,
     ceiling_config: QualityCeilingConfig,
+    social_bucket_count: int = 0,
 ) -> int:
     """Compute quality-adjusted score ceiling from venue diversity and depth.
 
     The ceiling prevents proximity-only high scores when venues are
     low-diversity (all delis/one category) or low-signal (few reviews).
 
-    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+    Formula: max_score = base_ceiling + diversity_bonus + social_bucket_bonus
+             + depth_bonus, capped at 10.
+
+    Args:
+        eligible_places: venues that passed quality filters.
+        ceiling_config: threshold configuration.
+        social_bucket_count: number of distinct social-category buckets
+            (from _social_buckets_for_venue / _SOCIAL_BUCKET_MAP).
 
     Returns an integer ceiling (0-10).
     """
     if not eligible_places:
         return round(ceiling_config.base_ceiling)
 
-    # --- Category diversity: count distinct sub-types ---
+    # --- Sub-type diversity: count distinct _classify_coffee_sub_type categories ---
     distinct_types = set()
     for place in eligible_places:
         sub_type = _classify_coffee_sub_type(place.get("types", []))
@@ -4128,6 +4156,13 @@ def _compute_quality_ceiling(
     for min_cats, bonus in ceiling_config.diversity_thresholds:
         if num_categories >= min_cats:
             diversity_bonus = bonus
+            break
+
+    # --- Social bucket diversity ---
+    social_bucket_bonus = 0.0
+    for min_buckets, bonus in ceiling_config.social_bucket_thresholds:
+        if social_bucket_count >= min_buckets:
+            social_bucket_bonus = bonus
             break
 
     # --- Review depth: median user_ratings_total ---
@@ -4142,7 +4177,8 @@ def _compute_quality_ceiling(
             depth_bonus = bonus
             break
 
-    raw_ceiling = ceiling_config.base_ceiling + diversity_bonus + depth_bonus
+    raw_ceiling = (ceiling_config.base_ceiling + diversity_bonus
+                   + social_bucket_bonus + depth_bonus)
     return min(round(raw_ceiling), 10)
 
 
@@ -4522,35 +4558,13 @@ def score_third_place_access(
             "total": len(eligible_places),
         }
 
-        # --- Quality ceiling (Phase 2) ---
-        # Cap the walk-time score by scene diversity + review depth.
-        # 1. Category diversity: count distinct social buckets
+        # --- Quality ceiling (unified) ---
+        # Cap the walk-time score by sub-type diversity, social bucket
+        # diversity, and review depth — all via QualityCeilingConfig.
+        # Count social buckets for the social_bucket_bonus dimension.
         _all_buckets: set = set()
         for p in eligible_places:
             _all_buckets.update(_social_buckets_for_venue(p.get("types", [])))
-        _diversity_count = len(_all_buckets)
-
-        # Look up ceiling from the tier map (4+ uses the max key)
-        _ceiling_key = min(_diversity_count, max(THIRD_PLACE_CATEGORY_CEILINGS))
-        quality_ceiling = THIRD_PLACE_CATEGORY_CEILINGS[_ceiling_key]
-
-        # 2. Review depth: median review count across qualifying venues
-        _review_counts = sorted(
-            p.get("user_ratings_total", 0) for p in eligible_places
-        )
-        _n = len(_review_counts)
-        if _n % 2 == 1:
-            median_reviews = _review_counts[_n // 2]
-        else:
-            median_reviews = (_review_counts[_n // 2 - 1] + _review_counts[_n // 2]) / 2
-
-        if median_reviews > THIRD_PLACE_DEPTH_BONUS_THRESHOLD:
-            quality_ceiling = min(quality_ceiling + 1, 10)
-        elif median_reviews < THIRD_PLACE_DEPTH_PENALTY_THRESHOLD:
-            quality_ceiling = max(quality_ceiling - 1, 1)
-
-        # Final score = min(walk_time_score, ceiling)
-        best_score = min(best_score, quality_ceiling)
 
         # Format details
         name = best_place.get("name", "Coffee spot")
@@ -4569,6 +4583,7 @@ def score_third_place_access(
         if ceiling_config is not None:
             quality_ceiling = _compute_quality_ceiling(
                 eligible_places, ceiling_config,
+                social_bucket_count=len(_all_buckets),
             )
             best_score = min(best_score, quality_ceiling)
 
@@ -4686,6 +4701,74 @@ def score_road_noise(
     )
 
 
+def _transit_walkability_points(walk_time: int) -> int:
+    """Walk-to-station points (0-4)."""
+    if walk_time <= 10:
+        return 4
+    if walk_time <= 20:
+        return 3
+    if walk_time <= 30:
+        return 2
+    if walk_time <= 45:
+        return 1
+    return 0
+
+
+def _transit_drive_accessibility_points(drive_time: Optional[int]) -> int:
+    """Drive-to-station fallback points (0-3).
+
+    Capped at 3 so driving never matches the best walking score (4).
+    """
+    if drive_time is None or drive_time >= 9999:
+        return 0
+    if drive_time <= 5:
+        return 3
+    if drive_time <= 10:
+        return 2
+    if drive_time <= 20:
+        return 1
+    return 0
+
+
+def _transit_hub_travel_points(travel_time: Optional[int]) -> int:
+    """Hub travel points (0-3)."""
+    if travel_time is None or travel_time <= 0:
+        return 0
+    if travel_time <= 45:
+        return 3
+    if travel_time <= 75:
+        return 2
+    if travel_time <= 110:
+        return 1
+    return 0
+
+
+def _transit_frequency_points(frequency_bucket: str) -> int:
+    """Frequency points (0-3) from bucket label."""
+    return {
+        "High": 3, "Medium": 2, "Low": 1, "Very low": 0,
+    }.get(frequency_bucket, 0)
+
+
+def compute_transit_score(
+    walk_time_min: int,
+    frequency_bucket: str,
+    hub_travel_time_min: Optional[int] = None,
+    drive_time_min: Optional[int] = None,
+) -> int:
+    """Compute transit score (0-10) from pre-computed scalar inputs.
+
+    Pure function — no API calls.
+    Formula: min(10, max(walk_pts, drive_pts) + freq_pts + hub_pts)
+    """
+    walk_pts = _transit_walkability_points(walk_time_min)
+    drive_pts = _transit_drive_accessibility_points(drive_time_min)
+    accessibility = max(walk_pts, drive_pts)
+    freq_pts = _transit_frequency_points(frequency_bucket)
+    hub_pts = _transit_hub_travel_points(hub_travel_time_min)
+    return min(10, accessibility + freq_pts + hub_pts)
+
+
 def score_transit_access(
     maps: GoogleMapsClient,
     lat: float,
@@ -4701,45 +4784,6 @@ def score_transit_access(
     proxy).  When urban_access is supplied, reuses its primary_transit and
     major_hub instead of making duplicate API calls.
     """
-    def walkability_points(walk_time: int) -> int:
-        if walk_time <= 10:
-            return 4
-        if walk_time <= 20:
-            return 3
-        if walk_time <= 30:
-            return 2
-        if walk_time <= 45:
-            return 1
-        return 0
-
-    def drive_accessibility_points(drive_time: Optional[int]) -> int:
-        """Award partial walkability credit for short drives to transit.
-
-        Capped at 3 so driving never matches the best walking score (4).
-        Designed for car-dependent suburban addresses where driving to a
-        Metro-North station is the practical commute pattern.
-        """
-        if drive_time is None or drive_time >= 9999:
-            return 0
-        if drive_time <= 5:
-            return 3
-        if drive_time <= 10:
-            return 2
-        if drive_time <= 20:
-            return 1
-        return 0
-
-    def hub_travel_points(travel_time: Optional[int]) -> int:
-        if travel_time is None or travel_time <= 0:
-            return 0
-        if travel_time <= 45:
-            return 3
-        if travel_time <= 75:
-            return 2
-        if travel_time <= 110:
-            return 1
-        return 0
-
     try:
         # Reuse cached urban_access results when available to avoid
         # duplicate find_primary_transit + determine_major_hub API calls
@@ -4769,25 +4813,20 @@ def score_transit_access(
                 data_confidence_note=conf_note,
             )
 
-        walk_points = walkability_points(primary_transit.walk_time_min)
+        walk_points = _transit_walkability_points(primary_transit.walk_time_min)
 
         # Drive-time fallback: for car-dependent addresses where walking
         # to transit is impractical, award partial credit if driving is
         # quick.  drive_points is capped at 3 (never matches best walk
         # score of 4) so walkable properties always score higher.
-        drive_points = drive_accessibility_points(primary_transit.drive_time_min)
+        drive_points = _transit_drive_accessibility_points(primary_transit.drive_time_min)
         used_drive_fallback = drive_points > walk_points
         accessibility_points = max(walk_points, drive_points)
 
         # Use smart heuristic bucket when available, else fall back to
         # the original review-count frequency_class.
         if transit_access and transit_access.frequency_bucket:
-            frequency_points = {
-                "High": 3,
-                "Medium": 2,
-                "Low": 1,
-                "Very low": 0,
-            }.get(transit_access.frequency_bucket, 0)
+            frequency_points = _transit_frequency_points(transit_access.frequency_bucket)
             frequency_label = f"{transit_access.frequency_bucket} frequency"
         else:
             frequency_class = primary_transit.frequency_class or "Very low frequency"
@@ -4800,7 +4839,7 @@ def score_transit_access(
             frequency_label = frequency_class
 
         hub_time = major_hub.travel_time_min if major_hub else None
-        hub_points = hub_travel_points(hub_time)
+        hub_points = _transit_hub_travel_points(hub_time)
 
         total_points = min(10, accessibility_points + frequency_points + hub_points)
 
@@ -5713,12 +5752,11 @@ def evaluate_property(
         result.tier2_total = sum(s.points for s in _scorable)
         result.tier2_max = sum(s.max_points for s in _scorable)
 
-        # Equal-weight normalization: each scorable dimension contributes
-        # equally to the 0-100 composite score.
-        if result.tier2_max > 0:
-            result.tier2_normalized = int(result.tier2_total / result.tier2_max * 100 + 0.5)
-        else:
-            result.tier2_normalized = 0
+        # Equal-weight normalization via shared compute_composite_score()
+        result.tier2_normalized = compute_composite_score([
+            (s.points, s.max_points, getattr(s, "data_confidence", None))
+            for s in result.tier2_scores
+        ])
 
     # ===================
     # TIER 3 BONUSES

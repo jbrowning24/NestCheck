@@ -1,7 +1,8 @@
 """Tests for the coffee/social quality-adjusted score ceiling.
 
 Verifies that _compute_quality_ceiling() correctly modulates the
-maximum achievable score based on category diversity and review depth.
+maximum achievable score based on sub-type diversity, social bucket
+diversity, and review depth — all via a single QualityCeilingConfig.
 """
 
 import pytest
@@ -28,41 +29,41 @@ class TestComputeQualityCeiling:
     CONFIG = QualityCeilingConfig()  # default thresholds
 
     def test_empty_places_returns_base_ceiling(self):
-        assert _compute_quality_ceiling([], self.CONFIG) == 5
+        assert _compute_quality_ceiling([], self.CONFIG) == 4
 
-    def test_single_category_low_reviews_returns_base(self):
-        """1 category, median reviews < 50 → base only (5)."""
+    def test_single_category_low_reviews_no_buckets(self):
+        """1 sub-type, 0 social buckets, median reviews < 50 → base only (4)."""
         places = [_make_place("cafe", 20), _make_place("cafe", 30)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 5
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=0) == 4
 
     def test_single_category_medium_reviews(self):
-        """1 category, median reviews 50-99 → base + depth(1.0) = 6."""
+        """1 sub-type, 0 social buckets, median reviews 50-99 → base + depth(0.5) = 4.5 → 4."""
         places = [_make_place("cafe", 60), _make_place("cafe", 70)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 6
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=0) == 4
 
     def test_single_category_high_reviews(self):
-        """1 category, median reviews 200+ → base + depth(2.0) = 7."""
+        """1 sub-type, 0 social buckets, median reviews 200+ → base + depth(1.5) = 5.5 → 6."""
         places = [_make_place("cafe", 250), _make_place("cafe", 300)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 7
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=0) == 6
 
-    def test_two_categories_low_reviews(self):
-        """2 categories, low reviews → base + diversity(1.5) = 6.5 → round = 6."""
+    def test_two_subtypes_two_buckets_low_reviews(self):
+        """2 sub-types, 2 social buckets, low reviews → base(4) + div(1) + bucket(1) = 6."""
         places = [_make_place("cafe", 20), _make_place("bakery", 30)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 6
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=2) == 6
 
-    def test_two_categories_medium_reviews(self):
-        """2 categories, median 100+ → base + diversity(1.5) + depth(1.5) = 8."""
+    def test_two_subtypes_two_buckets_medium_reviews(self):
+        """2 sub-types, 2 social buckets, median 100+ → base(4) + div(1) + bucket(1) + depth(1) = 7."""
         places = [_make_place("cafe", 120), _make_place("bakery", 110)]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 8
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=2) == 7
 
-    def test_three_categories_high_reviews(self):
-        """3 categories, median 200+ → base + diversity(3.0) + depth(2.0) = 10."""
+    def test_three_subtypes_four_buckets_high_reviews(self):
+        """3 sub-types, 4 social buckets, median 200+ → base(4) + div(2) + bucket(3) + depth(1.5) = 10.5 → 10."""
         places = [
             _make_place("cafe", 250),
             _make_place("bakery", 300),
             _make_place("coffee_shop", 200),
         ]
-        assert _compute_quality_ceiling(places, self.CONFIG) == 10
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=4) == 10
 
     def test_caps_at_10(self):
         """Custom config that exceeds 10 is capped."""
@@ -71,6 +72,9 @@ class TestComputeQualityCeiling:
             diversity_thresholds=(
                 (3, 3.0),
                 (2, 2.0),
+            ),
+            social_bucket_thresholds=(
+                (3, 2.0),
             ),
             depth_thresholds=(
                 (200, 3.0),
@@ -82,25 +86,38 @@ class TestComputeQualityCeiling:
             _make_place("bakery", 250),
             _make_place("coffee_shop", 280),
         ]
-        # base(6) + div(3) + depth(3) = 12 → capped to 10
-        assert _compute_quality_ceiling(places, config) == 10
+        # base(6) + div(3) + bucket(2) + depth(3) = 14 → capped to 10
+        assert _compute_quality_ceiling(places, config, social_bucket_count=3) == 10
 
     def test_mixed_reviews_uses_median(self):
         """Median review count, not mean, determines depth bonus."""
-        # 3 places: reviews = [10, 60, 1000] → median = 60 → depth bonus 1.0
+        # 3 places: reviews = [10, 60, 1000] → median = 60 → depth bonus 0.5
         places = [
             _make_place("cafe", 10),
             _make_place("cafe", 60),
             _make_place("cafe", 1000),
         ]
-        # 1 category → diversity 0.0; median 60 → depth 1.0; total = 6
-        assert _compute_quality_ceiling(places, self.CONFIG) == 6
+        # 1 sub-type → diversity 0.0; 0 buckets → 0.0; median 60 → depth 0.5; total = 4.5 → 4
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=0) == 4
 
     def test_custom_base_ceiling(self):
         """Custom base_ceiling is respected."""
         config = QualityCeilingConfig(base_ceiling=3.0)
         places = [_make_place("cafe", 20)]
         assert _compute_quality_ceiling(places, config) == 3
+
+    def test_social_buckets_only_bonus(self):
+        """Social buckets provide bonus even with single sub-type."""
+        places = [_make_place("cafe", 20), _make_place("cafe", 30)]
+        # 1 sub-type → div 0; 3 buckets → +2.0; low reviews → depth 0; total = 6
+        assert _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=3) == 6
+
+    def test_zero_social_buckets_defaults_gracefully(self):
+        """social_bucket_count=0 (default) gives no social bucket bonus."""
+        places = [_make_place("cafe", 60)]
+        result_default = _compute_quality_ceiling(places, self.CONFIG)
+        result_explicit = _compute_quality_ceiling(places, self.CONFIG, social_bucket_count=0)
+        assert result_default == result_explicit
 
 
 class TestQualityCeilingIntegration:

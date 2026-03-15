@@ -42,24 +42,39 @@ class QualityCeilingConfig:
     The ceiling prevents high scores when venue options are low-diversity
     (all one category) or low-signal (few reviews).
 
-    Formula: max_score = base_ceiling + diversity_bonus + depth_bonus, capped at 10.
+    Formula: max_score = base_ceiling + diversity_bonus + social_bucket_bonus
+             + depth_bonus, capped at 10.
+
+    Two diversity signals:
+      - Sub-type diversity: distinct Google Places sub-types (bakery/cafe/coffee_shop).
+      - Social bucket diversity: broader social categories via _SOCIAL_BUCKET_MAP
+        (coffee/bakery/bar/restaurant/other).
     """
-    base_ceiling: float = 5.0       # starting ceiling before bonuses
-    # Category diversity: distinct Google Places sub-types among eligible venues.
-    # _classify_coffee_sub_type returns at most 3 types (bakery/cafe/coffee_shop),
+    base_ceiling: float = 4.0       # starting ceiling before bonuses
+    # Sub-type diversity: distinct _classify_coffee_sub_type categories.
+    # Returns at most 3 types (bakery/cafe/coffee_shop),
     # so thresholds above 3 are unreachable with the current classifier.
     diversity_thresholds: Tuple[Tuple[int, float], ...] = (
         # (min_distinct_categories, bonus_points)
-        (3, 3.0),   # 3 categories  → +3.0
-        (2, 1.5),   # 2 categories  → +1.5
-        # 1 category  → +0.0 (no bonus)
+        (3, 2.0),   # 3 sub-types  → +2.0
+        (2, 1.0),   # 2 sub-types  → +1.0
+        # 1 sub-type  → +0.0 (no bonus)
+    )
+    # Social bucket diversity: distinct social-category buckets via _SOCIAL_BUCKET_MAP.
+    # Up to 5 buckets (coffee/bakery/bar/restaurant/other).
+    social_bucket_thresholds: Tuple[Tuple[int, float], ...] = (
+        # (min_distinct_buckets, bonus_points)
+        (4, 3.0),   # 4+ buckets → +3.0  (full social scene)
+        (3, 2.0),   # 3 buckets  → +2.0  (good variety)
+        (2, 1.0),   # 2 buckets  → +1.0  (decent variety)
+        # 1 bucket   → +0.0 (no bonus)
     )
     # Review depth: median user_ratings_total across eligible venues
     depth_thresholds: Tuple[Tuple[int, float], ...] = (
         # (min_median_reviews, bonus_points)
-        (200, 2.0),  # median 200+ → +2.0
-        (100, 1.5),  # median 100+ → +1.5
-        (50, 1.0),   # median 50+  → +1.0
+        (200, 1.5),  # median 200+ → +1.5
+        (100, 1.0),  # median 100+ → +1.0
+        (50, 0.5),   # median 50+  → +0.5
         # median <50  → +0.0 (no bonus)
     )
 
@@ -307,7 +322,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.5.1",
+    version="1.6.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
@@ -542,21 +557,3 @@ HEALTH_CHECK_CITATIONS: Dict[str, list] = {
 }
 
 
-# =============================================================================
-# Coffee/Social quality ceiling — caps walk-time score by scene diversity
-# =============================================================================
-# Category diversity: distinct social-category buckets among qualifying venues
-# determines a ceiling on the walk-time score.  A close but thin scene
-# (one creamery + delis) can no longer score 10/10.
-
-THIRD_PLACE_CATEGORY_CEILINGS: Dict[int, int] = {
-    1: 5,   # single category = limited scene
-    2: 7,   # two categories = decent variety
-    3: 9,   # three categories = good variety
-    4: 10,  # four+ categories = full scene
-}
-
-# Review depth adjusts the ceiling ±1 based on median review count
-# across qualifying venues — a proxy for establishment maturity.
-THIRD_PLACE_DEPTH_BONUS_THRESHOLD = 200    # median reviews above this → +1
-THIRD_PLACE_DEPTH_PENALTY_THRESHOLD = 50   # median reviews below this → −1
