@@ -4221,7 +4221,7 @@ def _classify_transit_confidence(
 
     if not has_walk_time and node_count == 0:
         # No transit data at all — sparse if frequency unknown and no hub
-        if frequency_class in (None, "unknown", "Very low frequency") and not has_hub:
+        if frequency_class in (None, "unknown", "Very low frequency", "Very low") and not has_hub:
             return CONFIDENCE_SPARSE, "Sparse transit data for this location"
         return CONFIDENCE_ESTIMATED, "No transit data available for this location"
 
