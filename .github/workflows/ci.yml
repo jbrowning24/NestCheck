@@ -1,0 +1,69 @@
+# NES-278: Scoring regression gate
+#
+# After merge, enable branch protection on `main` requiring the
+# `scoring-tests` status check to pass before merging.
+
+name: CI — Scoring Regression Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  scoring-tests:
+    name: Scoring Regression Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Run scoring regression tests
+        run: python -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py -v --tb=short
+        env:
+          SECRET_KEY: ci-test-key
+          GOOGLE_MAPS_API_KEY: fake-key-for-ci
+
+  ground-truth-validation:
+    name: Ground Truth Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install SpatiaLite
+        run: sudo apt-get update && sudo apt-get install -y libspatialite-dev libsqlite3-mod-spatialite
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for spatial.db
+        id: check-db
+        run: |
+          if [ -f data/spatial.db ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::spatial.db not available — skipping ground truth validation. See data/ground_truth/README.md for setup instructions."
+          fi
+
+      - name: Run ground truth validators
+        if: steps.check-db.outputs.available == 'true'
+        run: python scripts/validate_all_ground_truth.py --verbose
+        env:
+          SECRET_KEY: ci-test-key
+          GOOGLE_MAPS_API_KEY: fake-key-for-ci
