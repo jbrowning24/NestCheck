@@ -1,0 +1,1314 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-15T15:13:10.456444+00:00",
+  "_generator": "generate_ground_truth_transit.py",
+  "_test_count": 30,
+  "_scoring_rules": {
+    "walk_points": "<=10\u21924, <=20\u21923, <=30\u21922, <=45\u21921, >45\u21920",
+    "drive_points": "<=5\u21923, <=10\u21922, <=20\u21921, >20\u21920 (max 3, so walk\u226410 always wins)",
+    "frequency_points": "High\u21923, Medium\u21922, Low\u21921, Very low\u21920",
+    "hub_points": "<=45\u21923, <=75\u21922, <=110\u21921, >110\u21920",
+    "total": "min(10, max(walk, drive) + frequency + hub)",
+    "confidence_cap": "verified\u219210, estimated\u21928, sparse\u21926",
+    "source": "property_evaluator.py score_transit_access()"
+  },
+  "addresses": [
+    {
+      "id": "gt-transit-0001",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 5 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 5,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=5min, freq=Medium, hub=60min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0002",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 10 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=60min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0003",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 15 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 7,
+          "expected_confidence": "estimated",
+          "notes": "walk=15min, freq=Medium, hub=60min \u2192 score=7"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0004",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 20 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 20,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 7,
+          "expected_confidence": "estimated",
+          "notes": "walk=20min, freq=Medium, hub=60min \u2192 score=7"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0005",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 30 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 30,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 6,
+          "expected_confidence": "estimated",
+          "notes": "walk=30min, freq=Medium, hub=60min \u2192 score=6"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0006",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Walk time monotonicity: 50 min walk",
+      "test_category": "monotonicity_walk",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 50,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 4,
+          "expected_confidence": "estimated",
+          "notes": "walk=50min, freq=Medium, hub=60min \u2192 score=4"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0011",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Hub commute scaling: 30 min to hub",
+      "test_category": "hub_commute_scaling",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=30min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0012",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Hub commute scaling: 45 min to hub",
+      "test_category": "hub_commute_scaling",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 45,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=45min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0013",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Hub commute scaling: 60 min to hub",
+      "test_category": "hub_commute_scaling",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=60min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0014",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Hub commute scaling: 75 min to hub",
+      "test_category": "hub_commute_scaling",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 75,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=75min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0015",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Hub commute scaling: 120 min to hub",
+      "test_category": "hub_commute_scaling",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 120,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 6,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, freq=Medium, hub=120min \u2192 score=6"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0021",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Frequency scaling: High",
+      "test_category": "frequency",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 50,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=15min, freq=High, hub=50min \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0022",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Frequency scaling: Medium",
+      "test_category": "frequency",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 50,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 7,
+          "expected_confidence": "estimated",
+          "notes": "walk=15min, freq=Medium, hub=50min \u2192 score=7"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0023",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Frequency scaling: Low",
+      "test_category": "frequency",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 50,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Low",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 6,
+          "expected_confidence": "estimated",
+          "notes": "walk=15min, freq=Low, hub=50min \u2192 score=6"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0024",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Frequency scaling: Very low",
+      "test_category": "frequency",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 50,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Very low",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 5,
+          "expected_confidence": "estimated",
+          "notes": "walk=15min, freq=Very low, hub=50min \u2192 score=5"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0031",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Drive fallback: walk=50min, drive=5min",
+      "test_category": "drive_fallback",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 50,
+          "drive_time_min": 5,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 7,
+          "expected_confidence": "estimated",
+          "notes": "walk=50min, drive=5min, freq=Medium, hub=60min \u2014 Walk impractical, drive fallback boosts score \u2192 score=7"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0032",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Drive fallback: walk=50min, drive=10min",
+      "test_category": "drive_fallback",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 50,
+          "drive_time_min": 10,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 6,
+          "expected_confidence": "estimated",
+          "notes": "walk=50min, drive=10min, freq=Medium, hub=60min \u2014 Walk impractical, moderate drive fallback \u2192 score=6"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0033",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Drive fallback: walk=50min, drive=25min",
+      "test_category": "drive_fallback",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 50,
+          "drive_time_min": 25,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 4,
+          "expected_confidence": "estimated",
+          "notes": "walk=50min, drive=25min, freq=Medium, hub=60min \u2014 Walk impractical, drive too long to help \u2192 score=4"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0034",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Drive fallback: walk=10min, drive=3min",
+      "test_category": "drive_fallback",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": 3,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "walk=10min, drive=3min, freq=Medium, hub=60min \u2014 Walk excellent (4pts), drive good (3pts) \u2014 walk wins \u2192 score=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0035",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Drive fallback: walk=35min, drive=8min",
+      "test_category": "drive_fallback",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 35,
+          "drive_time_min": 8,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 60,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 6,
+          "expected_confidence": "estimated",
+          "notes": "walk=35min, drive=8min, freq=Medium, hub=60min \u2014 Walk marginal (1pt), drive good (2pts) \u2014 drive wins \u2192 score=6"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0040",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 No transit: empty urban_access",
+      "test_category": "no_transit_floor",
+      "transit_params": {
+        "primary_transit": null,
+        "major_hub": null,
+        "transit_access": null
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 0,
+          "expected_confidence": "sparse",
+          "notes": "No primary transit found \u2192 floor score 0, sparse confidence"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0041",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 No transit: transit_access with no stop",
+      "test_category": "no_transit_floor",
+      "transit_params": {
+        "primary_transit": null,
+        "major_hub": null,
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Very low",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 0,
+          "density_node_count": 0
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 0,
+          "expected_confidence": "sparse",
+          "notes": "Transit access computed but no stops found \u2192 floor score 0, sparse confidence"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0042",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 No transit: hub exists but no station",
+      "test_category": "no_transit_floor",
+      "transit_params": {
+        "primary_transit": null,
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 45,
+          "transit_mode": "train"
+        },
+        "transit_access": null
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 0,
+          "expected_confidence": "sparse",
+          "notes": "Hub accessible but no transit station \u2192 floor score 0, sparse confidence"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0050",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Confidence: verified, uncapped",
+      "test_category": "confidence_cap",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 5,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 25,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 10,
+          "expected_confidence": "verified",
+          "notes": "verified (25 nodes), raw=10 \u2192 final=10"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0051",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Confidence: estimated, raw 10 capped to 8",
+      "test_category": "confidence_cap",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 5,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 5,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "estimated (5 nodes), raw=10, cap=8 \u2192 final=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0052",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Confidence: estimated, raw 10 capped to 8 (3 nodes)",
+      "test_category": "confidence_cap",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 3,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 8,
+          "expected_confidence": "estimated",
+          "notes": "estimated (3 nodes), raw=10, cap=8 \u2192 final=8"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0053",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Confidence: estimated, score below cap",
+      "test_category": "confidence_cap",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 90,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Low",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 1,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 5,
+          "expected_confidence": "estimated",
+          "notes": "estimated (1 node), raw=5, below cap=8 \u2192 final=5"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0054",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Confidence: verified, score 8 uncapped",
+      "test_category": "confidence_cap",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 10,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 45,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "Medium",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 15,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 9,
+          "expected_confidence": "verified",
+          "notes": "verified (15 nodes), raw=9 \u2192 final=9"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0060",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Cap at 10: components sum to exactly 10",
+      "test_category": "cap_at_10",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 5,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 12,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 10,
+          "expected_confidence": "verified",
+          "notes": "walk=4 + freq=3 + hub=3 = 10, min(10,10) \u2192 10"
+        }
+      }
+    },
+    {
+      "id": "gt-transit-0061",
+      "coordinates": {
+        "lat": 41.0,
+        "lng": -73.8
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 Cap at 10: components sum to 9",
+      "test_category": "cap_at_10",
+      "transit_params": {
+        "primary_transit": {
+          "name": "Test Station",
+          "mode": "Train",
+          "lat": 41.0,
+          "lng": -73.8,
+          "walk_time_min": 15,
+          "drive_time_min": null,
+          "user_ratings_total": 500,
+          "frequency_class": null
+        },
+        "major_hub": {
+          "name": "Grand Central Terminal",
+          "travel_time_min": 30,
+          "transit_mode": "train"
+        },
+        "transit_access": {
+          "primary_stop": null,
+          "walk_minutes": null,
+          "mode": null,
+          "frequency_bucket": "High",
+          "score_0_10": 0,
+          "reasons": [],
+          "nearby_node_count": 12,
+          "density_node_count": 8
+        }
+      },
+      "tier1_health_checks": {},
+      "tier2_scored_dimensions": {
+        "urban_access": {
+          "expected_score": 9,
+          "expected_confidence": "verified",
+          "notes": "walk=3 + freq=3 + hub=3 = 9, min(10,9) \u2192 9"
+        }
+      }
+    }
+  ]
+}

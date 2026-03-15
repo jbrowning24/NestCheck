@@ -382,9 +382,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited \u2014 Car Likely Needed",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 3,
-      "notes": "Core Westchester use case. Tests the scorer's ability to distinguish 'some walkability' from 'truly walkable.' Midpoint of ranges is ~42% (Limited); could reach Moderate (60%) if coffee, grocery, and parks all hit range ceilings. Fitness and transit are the weak links. Charming village but a car is helpful beyond Main St.",
+      "notes": "Core Westchester use case. Tests the scorer's ability to distinguish 'some walkability' from 'truly walkable.' Midpoint composite lands at 55 (Moderate boundary); band reflects midpoint-based calculation. Fitness and transit are the weak links. Charming village but a car is helpful beyond Main St.",
       "last_validated": null
     },
     {
@@ -1032,9 +1032,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Moderate \u2014 Some Trade-offs",
+      "expected_band": "Strong Daily Fit",
       "overall_vibe": 3,
-      "notes": "Tests a neighborhood with good bones (light rail, large park) but weaker commercial amenities. Jefferson Park should score well if it qualifies \u2014 48 acres and well-rated. Transit boost from Link station is significant.",
+      "notes": "Tests a neighborhood with good bones (light rail, large park) but weaker commercial amenities. Jefferson Park should score well if it qualifies \u2014 48 acres and well-rated. Transit boost from Link station is significant. Midpoint composite at 75 (Strong boundary); band reflects midpoint-based calculation.",
       "last_validated": null
     },
     {
@@ -1422,9 +1422,9 @@
         }
       },
       "expected_tier1_pass": null,
-      "expected_band": "Limited \u2014 Car Likely Needed",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 2,
-      "notes": "Primary test for high_traffic_road gate. Georgia Avenue is one of DC's busiest arterials \u2014 wide, high-speed traffic, classified as US Route 29. AADT needs HPMS verification to determine if it exceeds the 50K threshold. Midpoint of ranges is ~46% (Limited). Band is secondary to the Tier 1 assertion for this address.",
+      "notes": "Primary test for high_traffic_road gate. Georgia Avenue is one of DC's busiest arterials \u2014 wide, high-speed traffic, classified as US Route 29. AADT needs HPMS verification to determine if it exceeds the 50K threshold. Midpoint composite at 55 (Moderate boundary); band reflects midpoint-based calculation. Band is secondary to the Tier 1 assertion for this address.",
       "last_validated": null
     },
     {
@@ -1617,9 +1617,9 @@
         }
       },
       "expected_tier1_pass": true,
-      "expected_band": "Limited \u2014 Car Likely Needed",
+      "expected_band": "Moderate \u2014 Some Trade-offs",
       "overall_vibe": 2,
-      "notes": "Tests LA suburban city pattern. Has more walkability than pure sprawl (Plano) but still car-dependent for most trips. Central Ave OSM classification is uncertain \u2014 could be a Tier 1 edge case.",
+      "notes": "Tests LA suburban city pattern. Has more walkability than pure sprawl (Plano) but still car-dependent for most trips. Central Ave OSM classification is uncertain \u2014 could be a Tier 1 edge case. Midpoint composite at 57 (near Moderate boundary); band reflects midpoint-based calculation.",
       "last_validated": null
     },
     {

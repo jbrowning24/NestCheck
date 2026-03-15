@@ -1353,6 +1353,58 @@ def _score_nature_feel(osm_data: Dict[str, Any], name: str, types: List[str]) ->
     return min(2.0, round(score, 1)), "; ".join(parts)
 
 
+def compute_park_score(
+    walk_time_min: int,
+    rating: Optional[float] = None,
+    reviews: int = 0,
+    name: str = "",
+    types: Optional[List[str]] = None,
+    park_acres: Optional[float] = None,
+    osm_area_sqm: Optional[float] = None,
+    osm_path_count: int = 0,
+    osm_has_trail: bool = False,
+    osm_nature_tags: Optional[List[str]] = None,
+) -> float:
+    """Compute Daily Walk Value (0-10) from pre-computed scalar inputs.
+
+    Pure function -- no API calls.  Delegates to the same subscore functions
+    used by score_green_space(), so scoring math is never duplicated.
+    """
+    if types is None:
+        types = []
+    if osm_nature_tags is None:
+        osm_nature_tags = []
+
+    # Build osm_data dict from scalar inputs
+    osm_enriched = (
+        osm_area_sqm is not None
+        or osm_path_count > 0
+        or osm_has_trail
+        or len(osm_nature_tags) > 0
+    )
+    osm_data: Dict[str, Any] = {
+        "enriched": osm_enriched,
+        "area_sqm": osm_area_sqm,
+        "path_count": osm_path_count,
+        "has_trail": osm_has_trail,
+        "nature_tags": osm_nature_tags,
+    }
+
+    wt_score, _ = _score_walk_time(walk_time_min)
+    sz_score, _, _ = _score_size_loop(
+        osm_data,
+        rating,
+        reviews,
+        name,
+        parkserve_acres=park_acres,
+    )
+    q_score, _ = _score_quality(rating, reviews)
+    nf_score, _ = _score_nature_feel(osm_data, name, types)
+
+    total = round(wt_score + sz_score + q_score + nf_score, 1)
+    return min(10.0, total)
+
+
 def score_green_space(
     place: Dict[str, Any],
     lat: float,
