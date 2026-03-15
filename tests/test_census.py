@@ -6,6 +6,7 @@ get_demographics API.
 """
 
 import json
+import unittest.mock
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -34,6 +35,15 @@ from census import (
 class TestCacheKeys:
     def test_place_key_format(self):
         assert _place_cache_key("26", "59440") == "place:2659440"
+
+    def test_cousub_key_includes_county(self):
+        key = _place_cache_key("26", "17640", "county_subdivision", "125")
+        assert key == "county_subdivision:2612517640"
+
+    def test_different_counties_different_cousub_keys(self):
+        k1 = _place_cache_key("26", "17640", "county_subdivision", "125")
+        k2 = _place_cache_key("26", "17640", "county_subdivision", "099")
+        assert k1 != k2
 
     def test_different_places_different_keys(self):
         k1 = _place_cache_key("26", "59440")
@@ -119,8 +129,17 @@ class TestCleanPlaceName:
     def test_strips_borough_suffix(self):
         assert _clean_place_name("Princeton borough") == "Princeton"
 
+    def test_strips_charter_township_suffix(self):
+        assert _clean_place_name("Commerce charter township") == "Commerce"
+
+    def test_strips_township_suffix(self):
+        assert _clean_place_name("Hempstead township") == "Hempstead"
+
     def test_preserves_multiword_names(self):
         assert _clean_place_name("White Plains city") == "White Plains"
+
+    def test_preserves_multiword_with_dots(self):
+        assert _clean_place_name("St. Clair Shores city") == "St. Clair Shores"
 
     def test_preserves_name_without_suffix(self):
         assert _clean_place_name("Manhattan") == "Manhattan"
@@ -276,7 +295,10 @@ class TestLookupPlace:
         mock_get.return_value = mock_resp
 
         result = _lookup_place(42.48, -83.47)
-        assert result == {"state": "26", "place": "59440", "name": "Novi city"}
+        assert result["state"] == "26"
+        assert result["place"] == "59440"
+        assert result["name"] == "Novi city"
+        assert result["geo_type"] == "place"
 
     @patch("census.requests.get")
     def test_cdp_fallback(self, mock_get):
@@ -296,7 +318,38 @@ class TestLookupPlace:
         mock_get.return_value = mock_resp
 
         result = _lookup_place(40.72, -73.51)
-        assert result == {"state": "36", "place": "42081", "name": "Levittown CDP"}
+        assert result["state"] == "36"
+        assert result["place"] == "42081"
+        assert result["geo_type"] == "place"
+
+    @patch("census.requests.get")
+    def test_county_subdivision_fallback(self, mock_get):
+        """Unincorporated townships fall back to County Subdivisions."""
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "result": {
+                "geographies": {
+                    "Incorporated Places": [],
+                    "Census Designated Places": [],
+                    "County Subdivisions": [
+                        {
+                            "STATE": "26", "COUSUB": "17640",
+                            "COUNTY": "125",
+                            "NAME": "Commerce charter township",
+                        }
+                    ],
+                }
+            }
+        }
+        mock_get.return_value = mock_resp
+
+        result = _lookup_place(42.57, -83.49)
+        assert result["state"] == "26"
+        assert result["place"] == "17640"
+        assert result["geo_type"] == "county_subdivision"
+        assert result["county"] == "125"
 
     @patch("census.requests.get")
     def test_no_place_returns_none(self, mock_get):
@@ -308,6 +361,7 @@ class TestLookupPlace:
                 "geographies": {
                     "Incorporated Places": [],
                     "Census Designated Places": [],
+                    "County Subdivisions": [],
                 }
             }
         }
@@ -338,7 +392,10 @@ class TestGetDemographics:
     @patch("census._lookup_place")
     def test_cache_miss_fetches_and_caches(self, mock_place, mock_acs,
                                             mock_get_cache, mock_set_cache):
-        mock_place.return_value = {"state": "26", "place": "59440", "name": "Novi city"}
+        mock_place.return_value = {
+            "state": "26", "place": "59440", "name": "Novi city",
+            "geo_type": "place",
+        }
         mock_acs.return_value = _make_place_row()
 
         result = get_demographics(42.48, -83.47)
@@ -348,6 +405,34 @@ class TestGetDemographics:
         assert result.population == 65870
         assert result.median_household_income == 110588
         assert mock_set_cache.call_count == 1
+        # Verify ACS called with place geo_type
+        mock_acs.assert_called_once()
+        call_kwargs = mock_acs.call_args
+        assert call_kwargs[1].get("geo_type", "place") == "place"
+
+    @patch("census.set_census_cache")
+    @patch("census.get_census_cache", return_value=None)
+    @patch("census._fetch_acs_place")
+    @patch("census._lookup_place")
+    def test_county_subdivision_passes_county_to_acs(self, mock_place, mock_acs,
+                                                      mock_get_cache, mock_set_cache):
+        """County subdivision path passes geo_type and county to ACS fetch."""
+        mock_place.return_value = {
+            "state": "26", "place": "17640",
+            "name": "Commerce charter township",
+            "geo_type": "county_subdivision", "county": "125",
+        }
+        mock_acs.return_value = _make_place_row(population=43081, total_hh=16530)
+
+        result = get_demographics(42.57, -83.49)
+
+        assert result is not None
+        assert result.place_name == "Commerce"
+        assert result.population == 43081
+        mock_acs.assert_called_once_with(
+            "26", "17640", unittest.mock.ANY,
+            geo_type="county_subdivision", county="125",
+        )
 
     @patch("census.get_census_cache")
     @patch("census._lookup_place")
