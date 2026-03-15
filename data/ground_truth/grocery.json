@@ -1,0 +1,517 @@
+{
+  "_schema_version": "0.2.0",
+  "_generated_at": "2026-03-15T14:45:20.899835+00:00",
+  "_generator": "generate_ground_truth_grocery.py",
+  "_scoring_model_version": "1.6.0",
+  "_test_count": 36,
+  "_seed": 42,
+  "_curve_knots": [
+    [
+      0,
+      10
+    ],
+    [
+      10,
+      10
+    ],
+    [
+      15,
+      8
+    ],
+    [
+      20,
+      6
+    ],
+    [
+      30,
+      4
+    ],
+    [
+      45,
+      2
+    ],
+    [
+      60,
+      2
+    ]
+  ],
+  "_floor": 2.0,
+  "_quality_ceiling": false,
+  "test_cases": [
+    {
+      "id": "gt-grocery-knot-01",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=0 \u2192 score=10",
+      "inputs": {
+        "walk_time_min": 0
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-grocery-knot-02",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=10 \u2192 score=10",
+      "inputs": {
+        "walk_time_min": 10
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-grocery-knot-03",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=15 \u2192 score=8",
+      "inputs": {
+        "walk_time_min": 15
+      },
+      "expected": {
+        "piecewise_score": 8,
+        "final_score_exact": 8
+      }
+    },
+    {
+      "id": "gt-grocery-knot-04",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=20 \u2192 score=6",
+      "inputs": {
+        "walk_time_min": 20
+      },
+      "expected": {
+        "piecewise_score": 6,
+        "final_score_exact": 6
+      }
+    },
+    {
+      "id": "gt-grocery-knot-05",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=30 \u2192 score=4",
+      "inputs": {
+        "walk_time_min": 30
+      },
+      "expected": {
+        "piecewise_score": 4,
+        "final_score_exact": 4
+      }
+    },
+    {
+      "id": "gt-grocery-knot-06",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=45 \u2192 score=2",
+      "inputs": {
+        "walk_time_min": 45
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-grocery-knot-07",
+      "test_type": "knot_boundary",
+      "description": "Exact knot at walk_time=60 \u2192 score=2",
+      "inputs": {
+        "walk_time_min": 60
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-grocery-interp-01",
+      "test_type": "interpolation",
+      "description": "Midpoint between (10,10) and (15,8): walk_time=12.5 \u2192 score=9.0",
+      "inputs": {
+        "walk_time_min": 12.5
+      },
+      "expected": {
+        "piecewise_score": 9.0,
+        "final_score_exact": 9.0
+      }
+    },
+    {
+      "id": "gt-grocery-interp-02",
+      "test_type": "interpolation",
+      "description": "Midpoint between (15,8) and (20,6): walk_time=17.5 \u2192 score=7.0",
+      "inputs": {
+        "walk_time_min": 17.5
+      },
+      "expected": {
+        "piecewise_score": 7.0,
+        "final_score_exact": 7.0
+      }
+    },
+    {
+      "id": "gt-grocery-interp-03",
+      "test_type": "interpolation",
+      "description": "Midpoint between (20,6) and (30,4): walk_time=25.0 \u2192 score=5.0",
+      "inputs": {
+        "walk_time_min": 25.0
+      },
+      "expected": {
+        "piecewise_score": 5.0,
+        "final_score_exact": 5.0
+      }
+    },
+    {
+      "id": "gt-grocery-interp-04",
+      "test_type": "interpolation",
+      "description": "Midpoint between (30,4) and (45,2): walk_time=37.5 \u2192 score=3.0",
+      "inputs": {
+        "walk_time_min": 37.5
+      },
+      "expected": {
+        "piecewise_score": 3.0,
+        "final_score_exact": 3.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-01",
+      "test_type": "monotonicity",
+      "description": "walk_time=0.00 (score=10.00) <= walk_time=1.50 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 0,
+        "walk_time_b": 1.5006
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-02",
+      "test_type": "monotonicity",
+      "description": "walk_time=1.50 (score=10.00) <= walk_time=5.00 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 1.5006,
+        "walk_time_b": 5.0
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-03",
+      "test_type": "monotonicity",
+      "description": "walk_time=5.00 (score=10.00) <= walk_time=5.22 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 5.0,
+        "walk_time_b": 5.2163
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-04",
+      "test_type": "monotonicity",
+      "description": "walk_time=5.22 (score=10.00) <= walk_time=10.00 (score=10.00)",
+      "inputs": {
+        "walk_time_a": 5.2163,
+        "walk_time_b": 10
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 10.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-05",
+      "test_type": "monotonicity",
+      "description": "walk_time=10.00 (score=10.00) <= walk_time=12.50 (score=9.00)",
+      "inputs": {
+        "walk_time_a": 10,
+        "walk_time_b": 12.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 10.0,
+        "score_b": 9.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-06",
+      "test_type": "monotonicity",
+      "description": "walk_time=12.50 (score=9.00) <= walk_time=13.39 (score=8.64)",
+      "inputs": {
+        "walk_time_a": 12.5,
+        "walk_time_b": 13.3926
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 9.0,
+        "score_b": 8.6429
+      }
+    },
+    {
+      "id": "gt-grocery-mono-07",
+      "test_type": "monotonicity",
+      "description": "walk_time=13.39 (score=8.64) <= walk_time=15.00 (score=8.00)",
+      "inputs": {
+        "walk_time_a": 13.3926,
+        "walk_time_b": 15
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 8.6429,
+        "score_b": 8.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-08",
+      "test_type": "monotonicity",
+      "description": "walk_time=15.00 (score=8.00) <= walk_time=16.50 (score=7.40)",
+      "inputs": {
+        "walk_time_a": 15,
+        "walk_time_b": 16.5018
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 8.0,
+        "score_b": 7.3993
+      }
+    },
+    {
+      "id": "gt-grocery-mono-09",
+      "test_type": "monotonicity",
+      "description": "walk_time=16.50 (score=7.40) <= walk_time=17.50 (score=7.00)",
+      "inputs": {
+        "walk_time_a": 16.5018,
+        "walk_time_b": 17.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 7.3993,
+        "score_b": 7.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-10",
+      "test_type": "monotonicity",
+      "description": "walk_time=17.50 (score=7.00) <= walk_time=20.00 (score=6.00)",
+      "inputs": {
+        "walk_time_a": 17.5,
+        "walk_time_b": 20
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 7.0,
+        "score_b": 6.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-11",
+      "test_type": "monotonicity",
+      "description": "walk_time=20.00 (score=6.00) <= walk_time=25.00 (score=5.00)",
+      "inputs": {
+        "walk_time_a": 20,
+        "walk_time_b": 25.0
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.0,
+        "score_b": 5.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-12",
+      "test_type": "monotonicity",
+      "description": "walk_time=25.00 (score=5.00) <= walk_time=30.00 (score=4.00)",
+      "inputs": {
+        "walk_time_a": 25.0,
+        "walk_time_b": 30
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.0,
+        "score_b": 4.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-13",
+      "test_type": "monotonicity",
+      "description": "walk_time=30.00 (score=4.00) <= walk_time=37.50 (score=3.00)",
+      "inputs": {
+        "walk_time_a": 30,
+        "walk_time_b": 37.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.0,
+        "score_b": 3.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-14",
+      "test_type": "monotonicity",
+      "description": "walk_time=37.50 (score=3.00) <= walk_time=38.37 (score=2.88)",
+      "inputs": {
+        "walk_time_a": 37.5,
+        "walk_time_b": 38.3656
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 3.0,
+        "score_b": 2.8846
+      }
+    },
+    {
+      "id": "gt-grocery-mono-15",
+      "test_type": "monotonicity",
+      "description": "walk_time=38.37 (score=2.88) <= walk_time=40.60 (score=2.59)",
+      "inputs": {
+        "walk_time_a": 38.3656,
+        "walk_time_b": 40.602
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.8846,
+        "score_b": 2.5864
+      }
+    },
+    {
+      "id": "gt-grocery-mono-16",
+      "test_type": "monotonicity",
+      "description": "walk_time=40.60 (score=2.59) <= walk_time=44.19 (score=2.11)",
+      "inputs": {
+        "walk_time_a": 40.602,
+        "walk_time_b": 44.1883
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.5864,
+        "score_b": 2.1082
+      }
+    },
+    {
+      "id": "gt-grocery-mono-17",
+      "test_type": "monotonicity",
+      "description": "walk_time=44.19 (score=2.11) <= walk_time=45.00 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 44.1883,
+        "walk_time_b": 45
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.1082,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-18",
+      "test_type": "monotonicity",
+      "description": "walk_time=45.00 (score=2.00) <= walk_time=52.50 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 45,
+        "walk_time_b": 52.5
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-19",
+      "test_type": "monotonicity",
+      "description": "walk_time=52.50 (score=2.00) <= walk_time=53.53 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 52.5,
+        "walk_time_b": 53.5308
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2.0
+      }
+    },
+    {
+      "id": "gt-grocery-mono-20",
+      "test_type": "monotonicity",
+      "description": "walk_time=53.53 (score=2.00) <= walk_time=60.00 (score=2.00)",
+      "inputs": {
+        "walk_time_a": 53.5308,
+        "walk_time_b": 60
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 2.0,
+        "score_b": 2
+      }
+    },
+    {
+      "id": "gt-grocery-clamp-01",
+      "test_type": "clamping",
+      "description": "walk_time=-10 (before first knot) \u2192 clamped to 10",
+      "inputs": {
+        "walk_time_min": -10
+      },
+      "expected": {
+        "piecewise_score": 10,
+        "final_score_exact": 10
+      }
+    },
+    {
+      "id": "gt-grocery-clamp-02",
+      "test_type": "clamping",
+      "description": "walk_time=120 (after last knot) \u2192 clamped to 2",
+      "inputs": {
+        "walk_time_min": 120
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "final_score_exact": 2
+      }
+    },
+    {
+      "id": "gt-grocery-floor-01",
+      "test_type": "floor",
+      "description": "walk_time=60 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 60
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0
+      }
+    },
+    {
+      "id": "gt-grocery-floor-02",
+      "test_type": "floor",
+      "description": "walk_time=90 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 90
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0
+      }
+    },
+    {
+      "id": "gt-grocery-floor-03",
+      "test_type": "floor",
+      "description": "walk_time=120 \u2192 raw_score=2, floor=2.0 \u2192 final >= 2.0",
+      "inputs": {
+        "walk_time_min": 120
+      },
+      "expected": {
+        "piecewise_score": 2,
+        "floor": 2.0,
+        "final_score_min": 2.0
+      }
+    }
+  ]
+}
