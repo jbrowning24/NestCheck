@@ -223,6 +223,19 @@ _COFFEE_KNOTS = (
     PiecewiseKnot(60, 2),
 )
 
+# Car-friendly mode: drive time in minutes → score.
+# ≤5 min neighborhood-adjacent, 10 min comfortable errand, 15 min a trip,
+# 20 min inconvenient, 25+ effectively inaccessible for routine use.
+_COFFEE_DRIVE_KNOTS = (
+    PiecewiseKnot(0, 10),
+    PiecewiseKnot(5, 10),
+    PiecewiseKnot(10, 8),
+    PiecewiseKnot(15, 6),
+    PiecewiseKnot(20, 3),
+    PiecewiseKnot(25, 1),
+    PiecewiseKnot(30, 0),
+)
+
 _GROCERY_KNOTS = (
     PiecewiseKnot(0, 10),
     PiecewiseKnot(10, 10),
@@ -231,6 +244,18 @@ _GROCERY_KNOTS = (
     PiecewiseKnot(30, 4),
     PiecewiseKnot(45, 2),
     PiecewiseKnot(60, 2),
+)
+
+# Car-friendly mode: drive time in minutes → score.
+# Same breakpoints as coffee — driving normalizes the experience.
+_GROCERY_DRIVE_KNOTS = (
+    PiecewiseKnot(0, 10),
+    PiecewiseKnot(5, 10),
+    PiecewiseKnot(10, 8),
+    PiecewiseKnot(15, 6),
+    PiecewiseKnot(20, 3),
+    PiecewiseKnot(25, 1),
+    PiecewiseKnot(30, 0),
 )
 
 # Fitness: distance_curve(walk_time) × quality_multiplier(rating).
@@ -243,6 +268,18 @@ _FITNESS_KNOTS = (
     PiecewiseKnot(30, 3),
     PiecewiseKnot(45, 1),
     PiecewiseKnot(60, 1),
+)
+
+# Car-friendly mode: drive time in minutes → score.
+# Same breakpoints as coffee/grocery — driving normalizes the experience.
+_FITNESS_DRIVE_KNOTS = (
+    PiecewiseKnot(0, 10),
+    PiecewiseKnot(5, 10),
+    PiecewiseKnot(10, 8),
+    PiecewiseKnot(15, 6),
+    PiecewiseKnot(20, 3),
+    PiecewiseKnot(25, 1),
+    PiecewiseKnot(30, 0),
 )
 
 _FITNESS_QUALITY_MULTIPLIERS = (
