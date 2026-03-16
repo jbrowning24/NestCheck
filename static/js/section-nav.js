@@ -42,7 +42,7 @@
       }
     });
   }, {
-    rootMargin: "-80px 0px -60% 0px",
+    rootMargin: "-52px 0px -70% 0px",
     threshold: 0
   });
 

@@ -62,12 +62,12 @@
 
 /* ================================================================
    Report Layout — Two-column grid with sticky right rail
-   Desktop (>= 1200px): main content + 280px rail
-   Below 1200px: single column, rail hidden
+   Desktop (>= 1024px): main 720px + 280px rail
+   Below 1024px: single column, rail hidden
    ================================================================ */
 
 .report-layout {
-  max-width: 1120px;
+  max-width: 1024px;
   margin: 0 auto;
   padding: 0 var(--space-lg);
 }
@@ -192,12 +192,12 @@
 }
 
 /* ================================================================
-   Desktop — activate rail layout (>= 1200px)
+   Desktop — activate rail layout (>= 1024px)
    ================================================================ */
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   .report-layout {
     display: grid;
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: minmax(0, 720px) 280px;
     gap: var(--space-lg);
     align-items: start;
   }
@@ -209,6 +209,8 @@
     max-height: calc(100vh - 100px);
     max-height: calc(100dvh - 100px);
     overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
   }
 }
 

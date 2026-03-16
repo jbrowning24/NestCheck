@@ -38,6 +38,9 @@
       {# ════════════════════════════════════════════════════════════════ #}
       <div class="report-main">
 
+        {# ── TIER 1: VERDICT ───────────────────────────────────────────── #}
+        <div class="report-tier report-tier--verdict" id="report-tier-verdict">
+
         {# ── VERDICT (hidden element for section anchor + backward compat) ── #}
         <div id="verdict" class="sr-only"></div>
 
@@ -91,9 +94,16 @@
         </div>
         {% endif %}
 
+        </div>{# .report-tier--verdict #}
+
+        {# ── TIER 2: ANALYSIS ──────────────────────────────────────────── #}
+        {# NOTE: Current order is Dimensions → Health. Spec wants Health first. #}
+        {# Reordering deferred to a later phase to minimize risk.               #}
+        <div class="report-tier report-tier--analysis" id="report-tier-analysis">
+
         {# ── DIMENSION SCORES ── #}
         {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
-        <div class="data-section">
+        <div id="section-dimensions" class="data-section">
           <h2 class="section-title">DIMENSION SCORES</h2>
           <p class="dim-section-intro">
             Each dimension is scored 0–10 based on walk time to the nearest quality option, adjusted for venue quality and variety.
@@ -918,6 +928,11 @@
         </div>
         {% endif %}
 
+        </div>{# .report-tier--analysis #}
+
+        {# ── TIER 3: CONTEXT ──────────────────────────────────────────── #}
+        <div class="report-tier report-tier--context" id="report-tier-context">
+
         {# ── AREA CONTEXT ── #}
         {% set _has_context = (result.demographics is defined and result.demographics is not none)
             or (result.school_district is defined and result.school_district is not none)
@@ -1130,6 +1145,8 @@
 
         </div>{# #how-we-score #}
         {% endif %}
+
+        </div>{# .report-tier--context #}
 
       </div>{# .report-main #}
 

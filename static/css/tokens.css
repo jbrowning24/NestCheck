@@ -12,6 +12,7 @@
   --color-brand-light: #1A3A5C;    /* Lighter navy for hover states */
   --color-accent: #2563EB;         /* Bright blue — CTAs, links, interactive */
   --color-accent-hover: #1D4ED8;
+  --color-accent-light: #EFF6FF;   /* Selected states, active nav */
 
   /* Map to existing token names */
   --color-primary: var(--color-accent);
@@ -19,7 +20,7 @@
   --color-primary-light: var(--color-brand-light);
 
   /* ---- Backgrounds -------------------------------------------- */
-  --color-bg-page: #F8F9FB;        /* Warm off-white, not stark white */
+  --color-bg-page: #F8FAFC;        /* Spec surface-alt */
   --color-bg-card: #FFFFFF;
   --color-bg-elevated: #FFFFFF;
   --color-bg-subtle: #F1F3F6;      /* Slight contrast for nested elements */
@@ -28,10 +29,12 @@
   /* Map to existing token names */
   --color-bg: var(--color-bg-page);
   --color-surface: var(--color-bg-card);
+  --color-surface-alt: var(--color-bg-page);     /* Spec alias */
+  --color-surface-raised: var(--color-bg-card);  /* Spec alias */
   --color-surface-subtle: var(--color-bg-subtle);
 
   /* ---- Text — 5-step scale ------------------------------------ */
-  --color-text-primary: #0F172A;   /* Near-black, high contrast */
+  --color-text-primary: #1E293B;   /* Spec primary — slightly softer than pure near-black */
   --color-text-secondary: #475569; /* Descriptions, supporting text */
   --color-text-muted: #64748b;     /* Supporting text, explanations */
   --color-text-faint: #94A3B8;     /* Labels, metadata */
@@ -41,6 +44,7 @@
 
   /* Map to existing token names */
   --color-text: var(--color-text-primary);
+  --color-text-tertiary: var(--color-text-faint); /* Spec 3-level alias */
   --color-text-strong: var(--color-text);
   --color-text-dark: var(--color-text);
   --color-text-heading: var(--color-text-secondary);
@@ -57,6 +61,7 @@
   /* Aliases */
   --color-border-muted: var(--color-border);
   --color-border-card: var(--color-border-light);
+  --color-border-medium: var(--color-border-strong); /* Spec alias */
 
   /* ---- Status: Pass / Good ------------------------------------ */
   --color-pass: #16A34A;
@@ -82,6 +87,16 @@
   --color-info: #2563EB;
   --color-info-bg: #EFF6FF;
   --color-info-border: #BFDBFE;
+
+  /* ---- Health Severity Scale (spec-aligned aliases) ----------- */
+  --color-health-pass: var(--color-pass);
+  --color-health-pass-bg: var(--color-pass-bg);
+  --color-health-caution: var(--color-warning);
+  --color-health-caution-bg: var(--color-warning-bg);
+  --color-health-concern: var(--band-limited);     /* #EA580C */
+  --color-health-concern-bg: var(--band-limited-light); /* #FFF7ED */
+  --color-health-fail: var(--color-fail);
+  --color-health-fail-bg: var(--color-fail-bg);
 
   /* ---- Status: Borderline ------------------------------------- */
   --color-borderline-bg: #fff3e0;
@@ -117,6 +132,11 @@
   --color-band-poor: var(--band-limited);
   --color-band-very-poor: var(--band-poor);
 
+  /* Spec 3-band scoring system (Phase 2 migration target) */
+  --color-band-strong: #1D6B3F;   /* band 7-10 */
+  --color-band-moderate: #9A6700; /* band 4-6 */
+  --color-band-limited: #6B7280;  /* band 0-3 */
+
   /* ---- Accent / Misc ------------------------------------------ */
   --color-amber: #d97706;
   --color-amber-border: #f59e0b;
@@ -131,9 +151,9 @@
   /* ---- Typography --------------------------------------------- */
 
   /* Font families */
-  --font-heading: 'DM Sans', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-heading: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Legacy alias */
   --font-sans: var(--font-body);
@@ -146,6 +166,14 @@
   --font-size-body: 0.9375rem;     /* 15px — body text */
   --font-size-small: 0.8125rem;    /* 13px — labels, metadata */
   --font-size-xs: 0.75rem;         /* 12px — fine print, badges */
+
+  /* Spec 6-level type scale */
+  --type-verdict: clamp(1.25rem, 2.5vw, 1.625rem); /* 20-26px — responsive verdict headline */
+  --type-section: 0.75rem;         /* 12px — uppercase section labels */
+  --type-heading: 1.05rem;         /* ~17px — section headings */
+  --type-body: 0.9rem;             /* ~14px — body text */
+  --type-detail: 0.8rem;           /* ~13px — labels, metadata */
+  --type-caption: 0.7rem;          /* ~11px — fine print, badges */
 
   /* Legacy type scale aliases */
   --text-3xl: var(--font-size-display);
@@ -191,6 +219,11 @@
   --font-weight-bold: 700;
   --font-weight-extrabold: 800;
 
+  /* Spec weight aliases */
+  --weight-normal: var(--font-weight-normal);
+  --weight-medium: var(--font-weight-medium);
+  --weight-semibold: var(--font-weight-semibold);
+
   /* Line heights */
   --line-height-none: 1;
   --line-height-tight: 1.2;
@@ -205,41 +238,46 @@
   --letter-spacing-label: 0.05em;
   --letter-spacing-meta: 0.08em;
 
+  /* Spec tracking aliases */
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-section: var(--letter-spacing-meta); /* 0.08em */
+
   /* ---- Five-level typographic hierarchy (report) ---------------- */
   /* Level 1 — Page headline (narrative summary)                     */
-  --type-l1-size: var(--font-size-h1);        /* 28px */
-  --type-l1-weight: var(--font-weight-normal); /* 400  */
+  --type-l1-size: var(--type-verdict);           /* clamp(20-26px) */
+  --type-l1-weight: var(--font-weight-normal);   /* 400  */
   --type-l1-leading: 1.15;
-  --type-l1-tracking: var(--letter-spacing-tight); /* -0.02em */
+  --type-l1-tracking: var(--tracking-tight);     /* -0.01em */
   --type-l1-color: var(--color-text-muted);
 
   /* Level 2 — Section label (uppercase dividers)                    */
-  --type-l2-size: 0.875rem;                    /* 14px */
+  --type-l2-size: var(--type-section);           /* 0.75rem / 12px */
   --type-l2-weight: var(--font-weight-semibold); /* 600 */
   --type-l2-leading: var(--line-height-tight);
-  --type-l2-tracking: var(--letter-spacing-label); /* 0.05em */
+  --type-l2-tracking: var(--tracking-section);   /* 0.08em */
   --type-l2-color: var(--color-text-faint);
   --type-l2-transform: uppercase;
 
   /* Level 3 — Section heading (area context, sub-page titles)       */
-  --type-l3-size: var(--font-size-h3);         /* 18px */
+  --type-l3-size: var(--type-heading);           /* 1.05rem / ~17px */
   --type-l3-weight: var(--font-weight-semibold); /* 600 */
   --type-l3-leading: var(--line-height-tight);
-  --type-l3-tracking: normal;
+  --type-l3-tracking: var(--tracking-normal);    /* 0 */
   --type-l3-color: var(--color-text-primary);
 
   /* Level 4 — Subsection heading (nearby schools, sub-groupings)    */
-  --type-l4-size: var(--font-size-body);       /* 15px */
+  --type-l4-size: var(--type-body);              /* 0.9rem / ~14px */
   --type-l4-weight: var(--font-weight-semibold); /* 600 */
   --type-l4-leading: var(--line-height-normal);
-  --type-l4-tracking: normal;
+  --type-l4-tracking: var(--tracking-normal);    /* 0 */
   --type-l4-color: var(--color-text-primary);
 
   /* Level 5 — Meta label (card headers, badge text)                 */
-  --type-l5-size: 0.6875rem;                   /* 11px */
+  --type-l5-size: var(--type-caption);           /* 0.7rem / ~11px */
   --type-l5-weight: var(--font-weight-semibold); /* 600 */
   --type-l5-leading: var(--line-height-tight);
-  --type-l5-tracking: var(--letter-spacing-meta); /* 0.08em */
+  --type-l5-tracking: var(--tracking-section);   /* 0.08em */
   --type-l5-color: var(--color-text-faint);
   --type-l5-transform: uppercase;
 
@@ -265,6 +303,10 @@
   --space-10: 40px;
   --space-16: 64px;
 
+  /* Spec 6-step scale (conflicts with legacy --space-5/--space-6) */
+  --spec-space-5: 24px;  /* Spec step 5 = legacy --space-6 */
+  --spec-space-6: 32px;  /* Spec step 6 = legacy --space-8 */
+
   /* Aliases — old token names */
   --space-12: var(--space-3);
   --space-14: var(--space-3);
@@ -279,14 +321,18 @@
   --space-60: var(--space-16);
 
   /* ---- Elevation ---------------------------------------------- */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* Spec elevation aliases */
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: var(--shadow-elevated);
 
   /* ---- Border Radius ------------------------------------------ */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-full: 9999px;
 
   /* ---- Transitions -------------------------------------------- */
