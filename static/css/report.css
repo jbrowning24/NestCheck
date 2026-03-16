@@ -17,16 +17,40 @@
   box-shadow: var(--shadow-card);
 }
 
+/* --- Three-Tier Content Structure --- */
+.report-tier + .report-tier {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border-light);
+}
+.report-tier--context {
+  background-color: var(--color-surface-alt);
+  margin-left: calc(-1 * var(--space-xl));
+  margin-right: calc(-1 * var(--space-xl));
+  padding-left: var(--space-xl);
+  padding-right: var(--space-xl);
+  border-radius: var(--radius-md);
+}
+
+/* --- Section Heading Scroll Margin --- */
+[id^="section-"],
+#verdict, #health-safety, #your-neighborhood, #getting-around,
+#parks-green-space, #how-we-score, #community-profile,
+#school-district, #ejscreen-profile, #emergency-services,
+#libraries, #pharmacies {
+  scroll-margin-top: 52px;
+}
+
 /* --- Report Header --- */
 .report-header {
   padding-bottom: var(--space-lg);
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid var(--color-border-light);
   margin-bottom: var(--space-xl);
 }
 .report-header-meta {
   display: flex;
   gap: var(--space-lg);
-  font-size: 13px;
+  font-size: var(--type-detail);
   color: var(--color-text-muted);
 }
 .rh-label {
@@ -118,7 +142,7 @@ h1.narrative-summary {
 }
 /* .metrics-list--dimensions removed — replaced by .dimension-grid scorecards */
 .metrics-list--health {
-  background: #FAFAFA;
+  background: var(--color-surface-alt);
 }
 
 /* --- Dimension Section Intro --- */
@@ -141,11 +165,11 @@ h1.narrative-summary {
 /* --- Dimension Scorecards --- */
 .dimension-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-md);
 }
 .dim-card {
-  background: var(--color-bg-card, #ffffff);
+  background: var(--color-bg-card, #FFFFFF);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   padding: var(--space-base);
@@ -266,10 +290,10 @@ h1.narrative-summary {
 }
 .card-band-label {
   font-family: var(--font-heading);
-  font-size: 32px;
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-verdict);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
   margin-bottom: 0;
 }
 .verdict-score-row {
@@ -285,8 +309,8 @@ h1.narrative-summary {
 }
 .verdict-score-ring .score-ring { width: 100%; height: 100%; }
 .verdict-score-ring .score-ring-value {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--type-heading);
+  font-weight: var(--font-weight-semibold);
 }
 .verdict-score-text {
   flex: 1;
@@ -328,8 +352,8 @@ h1.narrative-summary {
 }
 .count-number {
   font-family: var(--font-heading);
-  font-size: 32px;
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-verdict);
+  font-weight: var(--font-weight-semibold);
   line-height: 1;
 }
 /* --- L5: Count Label --- */
@@ -340,7 +364,7 @@ h1.narrative-summary {
   letter-spacing: var(--type-l5-tracking);
 }
 .health-count--clear .count-number { color: var(--color-text-primary); }
-.health-count--warning .count-number { color: var(--color-orange, #F17317); }
+.health-count--warning .count-number { color: var(--color-orange, #d97706); }
 .health-count--issue .count-number { color: var(--color-fail); }
 
 /* --- Walk Scores Mini (sidebar) --- */
@@ -354,13 +378,13 @@ h1.narrative-summary {
   border-top: 1px solid var(--color-border-light);
 }
 .ws-mini-label {
-  font-size: 13px;
+  font-size: var(--type-detail);
   color: var(--color-text-muted);
 }
 .ws-mini-value {
   font-family: var(--font-heading);
-  font-size: 18px;
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-heading);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -385,7 +409,7 @@ h1.narrative-summary {
   border-left: 4px solid var(--color-fail);
 }
 .proximity-grouped .proximity-grouped-checks {
-  font-size: 0.85em;
+  font-size: var(--type-detail);
   color: var(--color-text-secondary);
   margin-top: 4px;
   font-style: italic;
@@ -453,7 +477,7 @@ h1.narrative-summary {
   letter-spacing: 0.03em;
 }
 .health-tier2-toggle-icon {
-  font-size: 10px;
+  font-size: var(--type-caption);
   color: var(--color-text-muted);
   transition: transform var(--transition-fast);
 }
@@ -558,7 +582,7 @@ h1.narrative-summary {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   white-space: nowrap;
-  background: var(--color-bg-subtle, #f8f9fa);
+  background: var(--color-bg-subtle, #F1F3F6);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
@@ -566,8 +590,8 @@ h1.narrative-summary {
 .summary-pill--pass    { background: var(--color-pass-bg);    color: var(--color-pass-text);    border-color: var(--color-pass-border); }
 .summary-pill--warning { background: var(--color-warning-bg); color: var(--color-warning-text); border-color: var(--color-warning-border); }
 .summary-pill--fail    { background: var(--color-fail-bg);    color: var(--color-fail-text);    border-color: var(--color-fail-border); }
-.summary-pill--neutral { background: var(--color-bg-subtle, #f8f9fa); color: var(--color-text-secondary); border-color: var(--color-border); }
-.summary-pill--accent  { background: var(--color-accent-bg, #eff6ff); color: var(--color-accent-text, #1e40af); border-color: var(--color-accent-border, #bfdbfe); }
+.summary-pill--neutral { background: var(--color-bg-subtle, #F1F3F6); color: var(--color-text-secondary); border-color: var(--color-border); }
+.summary-pill--accent  { background: var(--color-accent-bg, #EFF6FF); color: var(--color-accent-text, #1e40af); border-color: var(--color-accent-border, #bfdbfe); }
 
 /* ── Section card weight modifiers (shared anatomy) ── */
 .section-card--quiet {
@@ -585,7 +609,7 @@ h1.narrative-summary {
 }
 .section-card--highlighted {
   box-shadow: var(--shadow-card);
-  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-left: 3px solid var(--color-accent, #2563EB);
   padding-left: var(--space-md);
 }
 
@@ -998,10 +1022,10 @@ h1.narrative-summary {
 }
 .neighborhood-category:last-child { margin-bottom: 0; }
 .category-label {
-  font-size: 13px;
+  font-size: var(--type-section);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-section);
   margin-bottom: var(--space-sm);
   font-weight: var(--font-weight-semibold);
 }
@@ -1183,8 +1207,8 @@ h1.narrative-summary {
   gap: 2px;
 }
 .walk-quality-score-value {
-  font-size: 1.75rem;
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-verdict);
+  font-weight: var(--font-weight-semibold);
   line-height: 1;
 }
 .walk-quality-score-label {
@@ -1236,6 +1260,7 @@ h1.narrative-summary {
 }
 .wq-source-gsv { background: rgba(59, 130, 246, 0.1); color: var(--color-accent); }
 .wq-source-osm { background: rgba(34, 197, 94, 0.1); color: var(--color-pass-text); }
+/* TODO: tokenize walk quality source color — purple is a one-off accent not in the design system */
 .wq-source-combined { background: rgba(168, 85, 247, 0.1); color: #8b5cf6; }
 .wq-feature-bar-container {
   height: 6px;
@@ -1422,7 +1447,7 @@ h1.narrative-summary {
 .nearby-school-card__level { font-weight: var(--font-weight-medium); }
 .nearby-school-card__charter {
   background: var(--color-info-bg);
-  color: #0369a1;
+  color: var(--color-info);
   padding: 1px 6px;
   border-radius: 3px;
   font-size: var(--font-size-xs);
@@ -1601,10 +1626,10 @@ h1.narrative-summary {
 
 /* --- Section Label --- */
 .section-label {
-  font-size: 13px;
+  font-size: var(--type-section);
   color: var(--color-text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-section);
   margin-bottom: var(--space-sm);
   font-weight: var(--font-weight-semibold);
 }
@@ -1677,7 +1702,7 @@ h1.narrative-summary {
   padding: 2px var(--space-sm);
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  background: var(--color-bg-subtle, #f8f9fa);
+  background: var(--color-bg-subtle, #F1F3F6);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
 }
@@ -1747,8 +1772,8 @@ h1.narrative-summary {
   font-family: var(--font-heading);
 }
 .verdict-failed-score-num {
-  font-size: 1.6rem;
-  font-weight: var(--font-weight-bold);
+  font-size: var(--type-verdict);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-danger-text-dark);
 }
 .verdict-failed-score-sep {
@@ -1835,7 +1860,7 @@ h1.narrative-summary {
 /* ================================================================
    Snapshot context: hide internal sidebar when external rail exists
    ================================================================ */
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   .report-layout .report-sidebar {
     display: none;
   }
@@ -1871,7 +1896,7 @@ h1.narrative-summary {
 }
 /* Park highlight with highlighted modifier */
 .park-highlight.section-card--highlighted {
-  border-left: 3px solid var(--color-accent, #3b82f6);
+  border-left: 3px solid var(--color-accent, #2563EB);
   box-shadow: var(--shadow-card);
   padding-left: var(--space-md);
 }
@@ -1947,9 +1972,7 @@ h1.narrative-summary {
     flex-direction: column;
     gap: var(--space-xs);
   }
-  .narrative-summary {
-    font-size: 1.5rem; /* 24px — stepped down from L1 28px */
-  }
+  /* .narrative-summary font-size now handled by clamp() in --type-verdict */
   .place-card { width: 150px; padding: var(--space-md); }
   .place-card--headline { width: 190px; }
   .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
@@ -1961,8 +1984,7 @@ h1.narrative-summary {
 @media (max-width: 640px) {
   .report { padding: var(--space-sm); }
   .report-container { padding: var(--space-base); border-radius: var(--radius-md); }
-  .narrative-summary { font-size: 1.375rem; /* 22px — mobile L1 */ }
-  .card-band-label { font-size: 26px; }
+  /* .narrative-summary and .card-band-label font-sizes now handled by clamp() in --type-verdict */
   .sidebar-card { padding: var(--space-base); }
   .place-card { width: 140px; padding: var(--space-md); }
   .place-card--headline { width: 180px; }
@@ -1983,7 +2005,7 @@ h1.narrative-summary {
   .wq-feature-row { grid-template-columns: 1fr 80px 28px; }
   .wq-feature-label { font-size: var(--text-xs); }
   .health-summary-counts { gap: var(--space-base); }
-  .count-number { font-size: 24px; }
+  /* .count-number font-size now handled by clamp() in --type-verdict */
 }
 
 /* ================================================================
@@ -1998,7 +2020,7 @@ h1.narrative-summary {
   .report-grid { display: block; }
   .report-sidebar { display: none; }
   .data-section { break-inside: avoid; }
-  .place-card { box-shadow: none; border: 1px solid #ddd; }
+  .place-card { box-shadow: none; border: 1px solid var(--color-border-light); }
   .preview-upgrade-cta { display: none; }
   .disclaimer { break-inside: avoid; }
   .collapsible-body.collapsed { display: block !important; max-height: none !important; }
@@ -2010,7 +2032,7 @@ h1.narrative-summary {
   .section-card--elevated, .section-card--highlighted { box-shadow: none; }
   .section-card--highlighted > .data-row { border-left: none; }
   .place-card.section-card--highlighted,
-  .park-highlight.section-card--highlighted { border-left: 2px solid #3b82f6; }
+  .park-highlight.section-card--highlighted { border-left: 2px solid var(--color-accent); }
   .section-card--quiet { color: var(--color-text-primary); }
   .mini-fill-bar__fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body::before {
@@ -2018,9 +2040,9 @@ h1.narrative-summary {
     display: block;
     text-align: center;
     font-size: var(--font-size-small);
-    color: #888;
+    color: var(--color-text-tertiary);
     padding: var(--space-sm) 0 var(--space-xs);
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--color-border-light);
     margin-bottom: var(--space-base);
   }
 }

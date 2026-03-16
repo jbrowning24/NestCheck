@@ -4,6 +4,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/snapshot.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
@@ -224,7 +225,13 @@
 {% endif %}
 
 {% set is_snapshot = false %}
-{% include '_result_sections.html' %}
+<div class="report-layout">
+  {% include '_result_sections.html' %}
+
+  <aside class="report-layout__rail">
+    {% include '_report_rail.html' %}
+  </aside>
+</div>
 {% endif %}
 
 {% endblock %}
@@ -870,4 +877,5 @@
 {% endif %}
 
 <script src="{{ url_for('static', filename='js/neighborhood-map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/section-nav.js') }}"></script>
 {% endblock %}

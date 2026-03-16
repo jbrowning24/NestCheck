@@ -143,7 +143,7 @@ footer {
   left: 0;
   right: 0;
   background: var(--color-brand);
-  color: #e0e0e0;
+  color: var(--color-text-tertiary);
   padding: var(--space-md) var(--space-lg);
   padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
   font-size: var(--font-size-cookie);
@@ -155,7 +155,7 @@ footer {
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
 .cookie-banner a {
-  color: #93c5fd;
+  color: var(--color-accent-light);
   text-decoration: underline;
   white-space: nowrap;
 }
