@@ -47,7 +47,12 @@ from scoring_config import (
 )
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from census import get_demographics
-from spatial_data import SpatialDataStore
+from spatial_data import (
+    SpatialDataStore,
+    VenueCache,
+    _PLACE_TYPE_TO_CATEGORY,
+    _infer_text_search_category,
+)
 
 load_dotenv()
 
@@ -621,7 +626,12 @@ class GoogleMapsClient:
     # the whole evaluation.  10 s is generous for Google Maps — p99 is < 2 s.
     DEFAULT_TIMEOUT = 10
 
-    def __init__(self, api_key: str):
+    def __init__(
+        self,
+        api_key: str,
+        venue_cache: Optional["VenueCache"] = None,
+        source_address: str = "",
+    ):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.session = requests.Session()
@@ -631,6 +641,9 @@ class GoogleMapsClient:
         self._places_cache: Dict[tuple, List[Dict]] = {}
         # Per-evaluation cache for text_search — same pattern.
         self._text_search_cache: Dict[tuple, List[Dict]] = {}
+        # Persistent spatial venue cache (NES-290) — write-only side effect.
+        self._venue_cache = venue_cache
+        self._source_address = source_address
 
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
@@ -730,8 +743,17 @@ class GoogleMapsClient:
 
         results = _filter_physical_places(data.get("results", []))
         self._places_cache[cache_key] = results
+        # Persist to spatial venue cache (NES-290) — write-only side effect
+        if self._venue_cache is not None:
+            try:
+                cat = _PLACE_TYPE_TO_CATEGORY.get(place_type, place_type)
+                self._venue_cache.upsert_venues(
+                    results, cat, self._source_address
+                )
+            except Exception:
+                pass
         return results
-    
+
     def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
         """Get detailed information about a place"""
         url = f"{self.base_url}/place/details/json"
@@ -847,6 +869,15 @@ class GoogleMapsClient:
 
         results = _filter_physical_places(data.get("results", []))
         self._text_search_cache[cache_key] = results
+        # Persist to spatial venue cache (NES-290) — write-only side effect
+        if self._venue_cache is not None:
+            try:
+                cat = _infer_text_search_category(query)
+                self._venue_cache.upsert_venues(
+                    results, cat, self._source_address
+                )
+            except Exception:
+                pass
         return results
 
     def _distance_matrix_batch(
@@ -5442,7 +5473,10 @@ def evaluate_property(
 
     eval_start = time.time()
 
-    maps = GoogleMapsClient(api_key)
+    _venue_cache = VenueCache()
+    maps = GoogleMapsClient(
+        api_key, venue_cache=_venue_cache, source_address=listing.address
+    )
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
