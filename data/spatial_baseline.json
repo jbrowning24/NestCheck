@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-03-17T16:06:54.273196+00:00",
+  "row_counts": {
+    "facilities_sems": 2116,
+    "facilities_fema_nfhl": 0,
+    "facilities_hpms": 423702,
+    "facilities_ust": 200,
+    "facilities_school_districts": 1121,
+    "facilities_nces_schools": 8423,
+    "state_education_performance": 750
+  }
+}

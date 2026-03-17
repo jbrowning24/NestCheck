@@ -1,0 +1,15 @@
+# ---------------------------------------------------------------------------
+# NestCheck — Railway cron config: Weekly Spatial Health Check
+#
+# Separate Railway service pointing to this repo.
+# Dashboard setup: set "Railway Config File" to /railway-cron-spatial-health.toml
+# See docs/railway-cron-setup.md for full instructions.
+# ---------------------------------------------------------------------------
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "python startup_ingest.py && python scripts/spatial_health_check.py --email $SPATIAL_HEALTH_NOTIFY_EMAIL"
+cronSchedule = "0 14 * * 1"
+restartPolicyType = "NEVER"

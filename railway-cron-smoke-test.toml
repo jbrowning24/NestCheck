@@ -1,0 +1,15 @@
+# ---------------------------------------------------------------------------
+# NestCheck — Railway cron config: Daily Smoke Test
+#
+# Separate Railway service pointing to this repo.
+# Dashboard setup: set "Railway Config File" to /railway-cron-smoke-test.toml
+# See docs/railway-cron-setup.md for full instructions.
+# ---------------------------------------------------------------------------
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "python scripts/daily_smoke_test.py --email $SMOKE_TEST_NOTIFY_EMAIL"
+cronSchedule = "0 12 * * *"
+restartPolicyType = "NEVER"
