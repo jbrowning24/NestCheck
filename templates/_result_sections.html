@@ -8,7 +8,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, subscore_dots, callout, annotation, drill_down_icon, school_card, health_check_icon, confidence_badge %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -18,17 +18,6 @@
 {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
 {% set warning_count = safety_checks | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
 {% set issue_count = safety_checks | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
-
-{# ── Pre-compute dimension band counts for verdict card ── #}
-{% set _band_counts = namespace(strong=0, moderate=0, limited=0) %}
-{% if result.dimension_summaries is defined and result.dimension_summaries %}
-  {% for dim in result.dimension_summaries if dim.band is defined and dim.band %}
-    {% if dim.band.key == "strong" %}{% set _band_counts.strong = _band_counts.strong + 1 %}
-    {% elif dim.band.key == "moderate" %}{% set _band_counts.moderate = _band_counts.moderate + 1 %}
-    {% elif dim.band.key == "limited" %}{% set _band_counts.limited = _band_counts.limited + 1 %}
-    {% endif %}
-  {% endfor %}
-{% endif %}
 
 <div class="report">
   <div class="report-container">
@@ -55,43 +44,13 @@
         {# ── VERDICT (hidden element for section anchor + backward compat) ── #}
         <div id="verdict" class="sr-only"></div>
 
-        {# ── PASSING VERDICT CARD ── #}
-        {% if not is_preview and show_score %}
-        <div class="verdict-card">
-          <div class="verdict-card__top">
-            {{ verdict_badge(result.final_score, band_class) }}
-            <span class="verdict-badge__label">{{ band_label }}</span>
-          </div>
-          {% if result.summary_narrative is defined and result.summary_narrative %}
-          <div class="narrative-summary verdict-card__narrative">{{ result.summary_narrative | safe }}</div>
-          {% else %}
-          <p class="narrative-summary verdict-card__narrative">
-            This address has <strong>passed</strong> health screening, rated as a <strong>{{ band_label }}</strong> for daily living.
-          </p>
-          {% endif %}
-          <div class="verdict-card__pills">
-            {% if _band_counts.strong %}<span class="summary-pill summary-pill--pass">{{ _band_counts.strong }} Strong</span>{% endif %}
-            {% if _band_counts.moderate %}<span class="summary-pill summary-pill--warning">{{ _band_counts.moderate }} Moderate</span>{% endif %}
-            {% if _band_counts.limited %}<span class="summary-pill summary-pill--fail">{{ _band_counts.limited }} Limited</span>{% endif %}
-          </div>
-          <div class="verdict-card__health">
-            {% set _concern_total = warning_count + issue_count %}
-            <span class="verdict-health-pill {% if _concern_total %}verdict-health-pill--caution{% else %}verdict-health-pill--pass{% endif %}">
-              {{ clear_count }} Clear{% if _concern_total %} &middot; {{ _concern_total }} Concern{{ 's' if _concern_total != 1 }}{% endif %}
-            </span>
-          </div>
-        </div>
-        {% endif %}
-
-        {# ── NARRATIVE (non-passing states: preview or failed) ── #}
-        {% if is_preview or not show_score %}
-          {% if result.summary_narrative is defined and result.summary_narrative %}
-          <div class="narrative-summary">{{ result.summary_narrative | safe }}</div>
-          {% else %}
-          <h1 class="narrative-summary">
-            This address {% if result.passed_tier1 %}has <strong>passed</strong> health screening{% else %}has <strong>health concerns</strong> that need attention{% endif %}.
-          </h1>
-          {% endif %}
+        {# ── NARRATIVE SUMMARY ── #}
+        {% if result.summary_narrative is defined and result.summary_narrative %}
+        <div class="narrative-summary">{{ result.summary_narrative | safe }}</div>
+        {% else %}
+        <h1 class="narrative-summary">
+          This address {% if result.passed_tier1 %}has <strong>passed</strong> health screening{% else %}has <strong>health concerns</strong> that need attention{% endif %}{% if show_score %}, rated as a <strong>{{ band_label }}</strong> for daily living{% endif %}.
+        </h1>
         {% endif %}
 
         {# ── PREVIEW: Health status banner ── #}
@@ -135,44 +94,6 @@
         </div>
         {% endif %}
 
-        {# ── SCORING KEY ── #}
-        {% if not is_preview and show_score %}
-        {# TODO: pass scoring_key_data from Python #}
-        <div class="scoring-key">
-          <div class="scoring-key__row">
-            <span class="scoring-key__dot scoring-key__dot--exceptional"></span>
-            <span class="scoring-key__band">Exceptional</span>
-            <span class="scoring-key__range">85–100</span>
-            <span class="scoring-key__desc">Outstanding daily-life fit across all dimensions</span>
-          </div>
-          <div class="scoring-key__row">
-            <span class="scoring-key__dot scoring-key__dot--strong"></span>
-            <span class="scoring-key__band">Strong</span>
-            <span class="scoring-key__range">70–84</span>
-            <span class="scoring-key__desc">Most daily needs met within a short walk</span>
-          </div>
-          <div class="scoring-key__row">
-            <span class="scoring-key__dot scoring-key__dot--moderate"></span>
-            <span class="scoring-key__band">Moderate</span>
-            <span class="scoring-key__range">55–69</span>
-            <span class="scoring-key__desc">Some trade-offs — a few needs require driving</span>
-          </div>
-          <div class="scoring-key__row">
-            <span class="scoring-key__dot scoring-key__dot--limited"></span>
-            <span class="scoring-key__band">Limited</span>
-            <span class="scoring-key__range">40–54</span>
-            <span class="scoring-key__desc">Car likely needed for most daily errands</span>
-          </div>
-          <div class="scoring-key__row">
-            <span class="scoring-key__dot scoring-key__dot--poor"></span>
-            <span class="scoring-key__band">Significant Gaps</span>
-            <span class="scoring-key__range">0–39</span>
-            <span class="scoring-key__desc">Major gaps in walkable daily-life amenities</span>
-          </div>
-          <a href="#how-we-score" class="scoring-key__link">How we score{{ drill_down_icon() }}</a>
-        </div>
-        {% endif %}
-
         </div>{# .report-tier--verdict #}
 
         {# ── TIER 2: ANALYSIS ──────────────────────────────────────────── #}
@@ -183,16 +104,25 @@
         {# ── DIMENSION SCORES ── #}
         {% if not is_preview and result.dimension_summaries is defined and result.dimension_summaries %}
         <div id="section-dimensions" class="data-section">
-          <h2 class="section-title section-header">DIMENSION SCORES</h2>
+          <h2 class="section-title">DIMENSION SCORES</h2>
           <p class="dim-section-intro">
             Each dimension is scored 0–10 based on walk time to the nearest quality option, adjusted for venue quality and variety.
             Scores are combined into a single 0–100 rating.
             <a href="#how-we-score" class="dim-section-link">How we score</a>
           </p>
+          {% set _strong = namespace(n=0) %}
+          {% set _moderate = namespace(n=0) %}
+          {% set _limited = namespace(n=0) %}
+          {% for dim in result.dimension_summaries if dim.band is defined and dim.band %}
+            {% if dim.band.key == "strong" %}{% set _strong.n = _strong.n + 1 %}
+            {% elif dim.band.key == "moderate" %}{% set _moderate.n = _moderate.n + 1 %}
+            {% elif dim.band.key == "limited" %}{% set _limited.n = _limited.n + 1 %}
+            {% endif %}
+          {% endfor %}
           <div class="section-summary-row">
-            {% if _band_counts.strong %}<span class="summary-pill summary-pill--pass">{{ _band_counts.strong }} Strong</span>{% endif %}
-            {% if _band_counts.moderate %}<span class="summary-pill summary-pill--warning">{{ _band_counts.moderate }} Moderate</span>{% endif %}
-            {% if _band_counts.limited %}<span class="summary-pill summary-pill--fail">{{ _band_counts.limited }} Limited</span>{% endif %}
+            {% if _strong.n %}<span class="summary-pill summary-pill--pass">{{ _strong.n }} Strong</span>{% endif %}
+            {% if _moderate.n %}<span class="summary-pill summary-pill--warning">{{ _moderate.n }} Moderate</span>{% endif %}
+            {% if _limited.n %}<span class="summary-pill summary-pill--fail">{{ _limited.n }} Limited</span>{% endif %}
           </div>
           <div class="dimension-grid">
             {% for dim in result.dimension_summaries %}
@@ -234,9 +164,6 @@
                 <span class="dim-card__name">{{ dim.name }}</span>
                 <span class="dim-card__score dim-card__score--{{ band_key }}">{{ dim.score }}/{{ dim.max_score }}</span>
               </div>
-              <div class="dim-card__bar">
-                <div class="dim-card__bar-fill dim-card__bar-fill--{{ band_key }}" style="width: {{ ((dim.score / dim.max_score * 100) | int) if dim.max_score else 0 }}%"></div>
-              </div>
               <div class="dim-card__band">
                 <span class="dim-card__band-label dim-band--{{ band_key }}">{{ dim.band.label if dim.band is defined and dim.band and dim.band.label is defined else band_key | capitalize }}</span>
                 {% if dim.data_confidence is defined and dim.data_confidence and dim.data_confidence not in ('verified', 'HIGH') %}
@@ -246,7 +173,6 @@
               {% if dim.summary %}
               <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
-              {# TODO: generate annotation text in Python for low-scoring dimensions (score ≤ 3) #}
             </div>
             {% endif %}
             {% endfor %}
@@ -256,7 +182,7 @@
 
         {# ── HEALTH & ENVIRONMENT ── #}
         <div id="health-safety" class="data-section">
-          <h2 class="section-title section-header">HEALTH &amp; ENVIRONMENT</h2>
+          <h2 class="section-title">HEALTH &amp; ENVIRONMENT</h2>
 
           {% if result.insights is defined and result.insights and result.insights.proximity %}
             <p class="section-insight">{{ result.insights.proximity }}</p>
@@ -306,19 +232,17 @@
                 {% if pc.explanation %}
                   <div class="proximity-detail">{{ pc.explanation }}</div>
                 {% endif %}
-                {# TODO: generate annotation text in Python for caution/fail health checks #}
                 {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
                      target="_blank" rel="noopener noreferrer">View satellite imagery <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
                 {% endif %}
                 {% if pc.health_context is defined and pc.health_context %}
-                  {% set _ctx_id = "health-context-" ~ (pc.name | lower | replace(' ', '-') | replace('/', '-')) %}
-                  <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="{{ _ctx_id }}">
-                    <span class="collapse-icon health-context-label"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
-                    <span class="health-context-label">Why we check this{{ drill_down_icon() }}</span>
+                  <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                    <span class="collapse-icon health-context-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
+                    <span class="health-context-label">Why we check this</span>
                   </div>
-                  <div id="{{ _ctx_id }}" class="collapsible-body collapsed health-context-body">
+                  <div class="collapsible-body collapsed health-context-body">
                     {% for paragraph in pc.health_context %}
                       <p class="health-context-paragraph">{{ paragraph }}</p>
                     {% endfor %}
@@ -336,48 +260,49 @@
               {% endif %}
             {% endfor %}
 
-            {# ── Tier 2: Area-level environmental indicators ── #}
+            {# ── Tier 2: Area-level environmental indicators (compact) ── #}
             {% if tier2_items %}
-            {% set t2_graduated = tier2_items | rejectattr('result_type', 'equalto', 'CLEAR') | list %}
-            {% set t2_compact = tier2_items | selectattr('result_type', 'equalto', 'CLEAR') | list %}
-
-            {# Graduated Tier 2 items → full individual cards (same as Tier 1) #}
-            {% for pc in t2_graduated %}
-              {% set band_css = "proximity-" + pc.proximity_band | lower %}
-              <div class="proximity-item {{ band_css }} health-check--elevated" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
-                <div class="proximity-name">
-                  {% set _icon = {"CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
-                  {{ health_check_icon(_icon) }}
-                  {{ pc.headline }}
-                </div>
-                {% if pc.explanation %}
-                  <div class="proximity-detail">{{ pc.explanation }}</div>
-                {% endif %}
-              </div>
-            {% endfor %}
-
-            {# Compact group for remaining CLEAR items #}
-            {% if t2_compact %}
+            {% set t2_non_clear = tier2_items | rejectattr('result_type', 'equalto', 'CLEAR') | list %}
             <div class="health-tier2-section">
-              <div class="health-tier2-header collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="health-tier2-body">
-                <span class="collapse-icon health-tier2-toggle-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
-                <span class="health-tier2-title">Additional checks ({{ t2_compact | length }} clear)</span>
+              <div class="health-tier2-header collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="{{ 'true' if t2_non_clear else 'false' }}">
+                <span class="collapse-icon health-tier2-toggle-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
+                <span class="health-tier2-title">Area Environmental Indicators</span>
+                <span class="health-tier2-summary">
+                  {% set t2_clear = tier2_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
+                  {% set t2_warning = tier2_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
+                  {% set t2_issue = tier2_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+                  {% if t2_issue %}<span class="summary-pill summary-pill--fail health-stat-badge health-stat-badge--issue">{{ t2_issue }}</span>{% endif %}
+                  {% if t2_warning %}<span class="summary-pill summary-pill--warning health-stat-badge health-stat-badge--warning">{{ t2_warning }}</span>{% endif %}
+                  {% if t2_clear and not t2_issue and not t2_warning %}<span class="summary-pill summary-pill--pass health-stat-badge health-stat-badge--clear">{{ t2_clear }} Clear</span>{% endif %}
+                </span>
               </div>
-              <div id="health-tier2-body" class="collapsible-body collapsed health-tier2-body">
-                {% for pc in t2_compact %}
-                  <div class="proximity-item proximity-item--compact proximity-neutral health-check--quiet" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+              <div class="collapsible-body {{ 'collapsed' if not t2_non_clear }} health-tier2-body">
+                {% for pc in tier2_items %}
+                  {% if pc.is_grouped | default(false) %}
+                  <div class="proximity-item proximity-item--compact proximity-notable proximity-grouped">
                     <div class="proximity-name">
-                      {{ health_check_icon("clear", quiet=true) }}
+                      {{ health_check_icon("unverified") }}
+                      {{ pc.headline }}
+                    </div>
+                    <div class="proximity-detail">{{ pc.explanation }}</div>
+                  </div>
+                  {% else %}
+                  {% set band_css = "proximity-" + pc.proximity_band | lower %}
+                  {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
+                  <div class="proximity-item proximity-item--compact {{ band_css }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
+                    <div class="proximity-name">
+                      {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
+                      {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
                       {{ pc.headline }}
                     </div>
                     {% if pc.explanation %}
                       <div class="proximity-detail">{{ pc.explanation }}</div>
                     {% endif %}
                   </div>
+                  {% endif %}
                 {% endfor %}
               </div>
             </div>
-            {% endif %}
             {% endif %}
 
           {% else %}
@@ -412,11 +337,11 @@
               <div class="proximity-detail road-noise-detail">
                 Estimated ~{{ "%.0f"|format(rn.estimated_dba) }} dBA from {{ rn.worst_road_name }}{% if rn.worst_road_ref %} ({{ rn.worst_road_ref }}){% endif %}, {{ "%.0f"|format(rn.distance_ft) }} ft away
               </div>
-              <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="road-noise-methodology">
-                <span class="collapse-icon road-noise-label"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
+              <div class="collapsible-toggle road-noise-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon road-noise-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span class="road-noise-label">About the estimate</span>
               </div>
-              <div id="road-noise-methodology" class="collapsible-body collapsed road-noise-methodology">
+              <div class="collapsible-body collapsed road-noise-methodology">
                 {{ rn.methodology_note }}
               </div>
             </div>
@@ -427,7 +352,7 @@
         {# ── YOUR NEIGHBORHOOD ── #}
         {% if result.neighborhood_places is defined and result.neighborhood_places %}
         <div id="your-neighborhood" class="data-section">
-          <h2 class="section-title section-header">YOUR NEIGHBORHOOD</h2>
+          <h2 class="section-title">YOUR NEIGHBORHOOD</h2>
 
           {% if result.insights is defined and result.insights and result.insights.your_neighborhood %}
             <p class="section-insight">{{ result.insights.your_neighborhood }}</p>
@@ -576,7 +501,7 @@
 
         {# ── GETTING AROUND ── #}
         <div id="getting-around" class="data-section">
-          <h2 class="section-title section-header">GETTING AROUND</h2>
+          <h2 class="section-title">GETTING AROUND</h2>
 
           {% if result.insights is defined and result.insights and result.insights.getting_around %}
             <p class="section-insight">{{ result.insights.getting_around }}</p>
@@ -726,11 +651,11 @@
 
               {{ confidence_badge(wq.data_confidence, wq.data_confidence_note, variant='block') }}
 
-              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="walk-quality-methodology">
-                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
+              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span>How walk quality differs from Walk Score</span>
               </div>
-              <div id="walk-quality-methodology" class="collapsible-body collapsed">
+              <div class="collapsible-body collapsed">
                 <div class="proximity-methodology">
                   {{ wq.methodology_note }}
                 </div>
@@ -784,11 +709,11 @@
                 {% if sc.separate_footways > 0 %} &bull; {{ sc.separate_footways }} dedicated sidewalk{{ "s" if sc.separate_footways != 1 }}{% endif %}
               </div>
               {{ confidence_badge(sc.data_confidence, sc.data_confidence_note, variant='block') }}
-              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="sidewalk-coverage-methodology">
-                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
+              <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+                <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
                 <span>About this metric</span>
               </div>
-              <div id="sidewalk-coverage-methodology" class="collapsible-body collapsed">
+              <div class="collapsible-body collapsed">
                 {{ sc.methodology_note }}
               </div>
             </div>
@@ -798,7 +723,7 @@
 
         {# ── PARKS & GREEN SPACE ── #}
         <div id="parks-green-space" class="data-section">
-          <h2 class="section-title section-header">PARKS &amp; GREEN SPACE</h2>
+          <h2 class="section-title">PARKS &amp; GREEN SPACE</h2>
 
           {% if result.insights is defined and result.insights and result.insights.parks %}
             <p class="section-insight">{{ result.insights.parks }}</p>
@@ -827,7 +752,7 @@
 
           {% if result.green_escape and result.green_escape.best_daily_park %}
             {% set park = result.green_escape.best_daily_park %}
-            <div class="park-highlight">
+            <div class="park-highlight section-card--highlighted">
               {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% if park.types_display %} &middot; {{ park.types_display }}{% endif %}{% endset %}
               {% if park.place_id and not park.place_id.startswith("parkserve_") %}
                 {% set park_name %}<a href="https://www.google.com/maps/place/?q=place_id:{{ park.place_id }}" target="_blank" rel="noopener noreferrer" class="park-maps-link">{{ park.name }}</a>{% endset %}
@@ -848,7 +773,20 @@
               {% if park.subscores %}
               <div class="subscore-grid">
                 {% for ss in park.subscores %}
-                  {{ subscore_dots(ss.score, ss.max_score, ss.name, ss.reason, ss.is_estimate | default(false)) }}
+                  <div class="subscore-card">
+                    <div class="subscore-label">
+                      {{ ss.name }}{% if ss.is_estimate %} <span class="est">(est)</span>{% endif %}
+                    </div>
+                    <div class="subscore-value-row">
+                      <div class="mini-fill-bar">
+                        {% set _pct = (ss.score / ss.max_score * 100)|round if ss.max_score else 0 %}
+                        {% set _fill_band = "strong" if _pct >= 66 else ("moderate" if _pct >= 33 else "limited") %}
+                        <div class="mini-fill-bar__fill mini-fill-bar__fill--{{ _fill_band }}" style="width: {{ _pct }}%"></div>
+                      </div>
+                      <span class="subscore-value">{{ "%.0f"|format(ss.score) }} / {{ "%.0f"|format(ss.max_score) }}</span>
+                    </div>
+                    <div class="subscore-reason">{{ ss.reason }}</div>
+                  </div>
                 {% endfor %}
               </div>
               {% endif %}
@@ -916,7 +854,7 @@
 
         {% if has_emergency or has_libraries or has_pharmacies %}
         <div class="data-section">
-          <h2 class="section-title section-header">LOCAL SERVICES</h2>
+          <h2 class="section-title">LOCAL SERVICES</h2>
 
           {% if has_emergency %}
           <div id="emergency-services" class="local-service-group">
@@ -1010,7 +948,7 @@
         {% if result.demographics is defined and result.demographics is not none %}
         {% set demo = result.demographics %}
         <div id="community-profile" class="data-section">
-          <h2 class="section-title section-header">ABOUT {{ demo.place_name|upper }}</h2>
+          <h2 class="section-title">ABOUT {{ demo.place_name|upper }}</h2>
 
           {% if result.insights is defined and result.insights and result.insights.community_profile %}
             <p class="section-insight">{{ result.insights.community_profile }}</p>
@@ -1052,7 +990,7 @@
         {% if result.school_district is defined and result.school_district is not none %}
         {% set sd = result.school_district %}
         <div id="school-district" class="data-section">
-          <h2 class="section-title section-header">SCHOOL DISTRICT</h2>
+          <h2 class="section-title">SCHOOL DISTRICT</h2>
 
           <div class="school-district-header">
             <span class="school-district-name">{{ sd.district_name }}</span>
@@ -1133,13 +1071,13 @@
             ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
           ] %}
         <div id="ejscreen-profile" class="data-section">
-          <h2 class="section-title section-header">EPA ENVIRONMENTAL PROFILE</h2>
+          <h2 class="section-title">EPA ENVIRONMENTAL PROFILE</h2>
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
-          <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false" aria-controls="ejscreen-indicators-body">
-            <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,2 8,6 4,10"/></svg></span>
+          <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
+            <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
             <span>View all indicators</span>
           </div>
-          <div id="ejscreen-indicators-body" class="collapsible-body collapsed">
+          <div class="collapsible-body collapsed">
             <div class="ejscreen-indicators">
               {% for field_key, label, is_check in ej_indicators %}
                 {% if ej[field_key] is defined and ej[field_key] is not none %}
@@ -1162,7 +1100,7 @@
               {% endfor %}
             </div>
             <div class="ejscreen-source">
-              Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener noreferrer">EPA EJScreen 2024{{ drill_down_icon() }}</a>
+              Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
               &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
               &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
             </div>
@@ -1184,7 +1122,7 @@
         {# ── HOW WE SCORE ── #}
         {% if not is_preview %}
         <div id="how-we-score" class="data-section">
-          <h2 class="section-title section-header">HOW WE SCORE</h2>
+          <h2 class="section-title">HOW WE SCORE</h2>
 
           <p class="scoring-explanation">
             NestCheck evaluates six daily-life factors, each scored 0–10.
