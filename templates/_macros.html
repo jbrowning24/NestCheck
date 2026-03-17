@@ -57,9 +57,26 @@
 {% endmacro %}
 
 
+{# ── verdict_badge ───────────────────────────────────────────────────
+   Square score badge for the main-column verdict card (Phase 4).
+   72px rounded square with band-coloured border + score number.
 
-{% macro data_row(name, detail=None, value=None, variant="hub", no_border=false) %}
+   Args:
+     score:      Numeric score 0–100 (required).
+     band_class: CSS class for band colouring, e.g. "band-strong".
+   ── #}
+{% macro verdict_badge(score, band_class='') %}
+<div class="verdict-badge {{ band_class }}">
+  <span class="verdict-badge__score">{{ score }}</span>
+</div>
+{% endmacro %}
+
+
+{% macro data_row(name, icon=None, detail=None, value=None, variant="hub", no_border=false) %}
 <div class="data-row data-row--{{ variant }}{% if no_border %} data-row--no-border{% endif %}">
+  {% if icon is not none %}
+    <span class="data-row__icon">{{ icon | safe }}</span>
+  {% endif %}
   <div class="data-row__info">
     <div class="data-row__name">{{ name }}</div>
     {% if detail is not none %}
@@ -133,13 +150,16 @@
 {%- set _tier = tier | lower -%}
 {%- if _tier in ('high',) %}{% set _tier = 'verified' %}{% endif -%}
 {%- if _tier in ('medium',) %}{% set _tier = 'estimated' %}{% endif -%}
-{%- if _tier in ('low', 'sparse') %}{% set _tier = 'estimated' %}{% endif -%}
+{%- if _tier in ('low',) %}{% set _tier = 'sparse' %}{% endif -%}
 {%- if _tier == 'verified' -%}
   {%- set _label = 'Verified' -%}
   {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3.5,8.5 6.5,11.5 12.5,5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' -%}
 {%- elif _tier == 'not_scored' -%}
   {%- set _label = 'Not scored' -%}
   {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' -%}
+{%- elif _tier == 'sparse' -%}
+  {%- set _label = 'Sparse data' -%}
+  {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3,10 C5,6 7,6 8,8 C9,10 11,10 13,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' -%}
 {%- else -%}
   {%- set _label = 'Estimated' -%}
   {%- set _icon_svg = '<svg class="cb__icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3,10 C5,6 7,6 8,8 C9,10 11,10 13,6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' -%}
@@ -158,6 +178,79 @@
   <span class="cb__label">{{ _label }}</span>
 </span>
 {%- endif -%}
+{% endmacro %}
+
+
+{# ── callout ─────────────────────────────────────────────────────────
+   Informational callout with left-border accent (Phase 6).
+   Not a CTA — no dismiss, no hover state on container.
+
+   SAFETY: `text` is rendered with `| safe` — callers that pass external
+   data (API results, user input) MUST escape via markupsafe.escape()
+   before passing to this macro. Hardcoded template strings are fine.
+
+   Args:
+     variant: "neutral" (blue accent) or "caution" (amber accent).
+     icon:    Optional inline SVG string (20px).
+     text:    Body text (supports safe HTML for inline links).
+#}
+{% macro callout(variant='neutral', icon=None, text='') %}
+<div class="callout callout--{{ variant }}">
+  {% if icon is not none %}
+    <span class="callout__icon">{{ icon | safe }}</span>
+  {% endif %}
+  <span class="callout__text">{{ text | safe }}</span>
+</div>
+{% endmacro %}
+
+
+{# ── annotation ──────────────────────────────────────────────────────
+   Inline editorial annotation — single sentence, visually subordinate.
+   Reads as a parenthetical at the point of need.
+
+   Args:
+     text: Annotation text (max 120 chars recommended).
+#}
+{% macro annotation(text) %}
+<div class="annotation">{{ text | truncate(120) }}</div>
+{% endmacro %}
+
+
+{# ── drill_down_icon ─────────────────────────────────────────────────
+   12×12 external-link arrow. Hidden by default on desktop, appears on
+   parent hover/focus. Always visible on mobile.
+#}
+{% macro drill_down_icon() %}
+<svg class="drill-down-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+  <path d="M3.5 1.5H10.5V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M10.5 1.5L1.5 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+{% endmacro %}
+
+
+{# ── subscore_dots ────────────────────────────────────────────────────
+   Filled/unfilled segment pattern for fractional subscores (Phase 5).
+   Renders a row of dots (●●○ for 2/3).
+
+   Args:
+     score:     Numeric score (required).
+     max:       Max possible score (required).
+     label:     Subscore label, e.g. "Walk Time" (required).
+     rationale: One-line explanation (optional).
+     is_estimate: If true, appends "(est)" to label (optional).
+#}
+{% macro subscore_dots(score, max, label, rationale='', is_estimate=false) %}
+<div class="subscore-dots-card">
+  <div class="subscore-dots-label">{{ label }}{% if is_estimate %} <span class="subscore-dots-est">(est)</span>{% endif %}</div>
+  <div class="subscore-dots-row">
+    {% for i in range(max | int) %}
+      <span class="subscore-dot {% if i < (score | int) %}subscore-dot--filled{% else %}subscore-dot--empty{% endif %}"></span>
+    {% endfor %}
+  </div>
+  {% if rationale %}
+    <div class="subscore-dots-rationale">{{ rationale }}</div>
+  {% endif %}
+</div>
 {% endmacro %}
 
 

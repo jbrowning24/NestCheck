@@ -3,7 +3,7 @@
 {# Included by snapshot.html inside .report-layout__rail.             #}
 {# Expects: result (same context as _result_sections.html).           #}
 {# ================================================================== #}
-{% from "_macros.html" import score_ring %}
+{% from "_macros.html" import score_ring, annotation %}
 
 {# ── MINI SCORE CARD ─────────────────────────────────────────────── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -32,11 +32,25 @@
 </div>
 {% endif %}
 
-{# ── WALKABILITY SUMMARY (NES-249) ───────────────────────────────── #}
+{# ── WALKABILITY SUMMARY (NES-249, Phase 6E) ───────────────────────── #}
 {% if result.walkability_summary %}
 {% set ws = result.walkability_summary %}
+{% set _walkable_count = ws.categories | selectattr('status', 'equalto', 'walkable') | list | length if ws.categories else 0 %}
+{% set _total_count = ws.categories | rejectattr('status', 'equalto', 'no_data') | list | length if ws.categories else 0 %}
 <div class="report-rail-walk">
   <div class="rail-walk__title">Walkability</div>
+  {# Verdict label — walkable threshold #}
+  {% if _total_count > 0 %}
+  <div class="rail-walk__verdict-label {% if _walkable_count >= 4 %}rail-walk__verdict-label--strong{% elif _walkable_count >= 2 %}rail-walk__verdict-label--moderate{% else %}rail-walk__verdict-label--limited{% endif %}">
+    {%- if _walkable_count >= 4 -%}
+      Most daily needs are walkable
+    {%- elif _walkable_count >= 2 -%}
+      Mixed — some walkable, some need driving
+    {%- else -%}
+      Car-dependent — most errands need driving
+    {%- endif -%}
+  </div>
+  {% endif %}
   <div class="rail-walk__list">
     {% for cat in ws.categories %}
     {% if cat.status != "no_data" %}
@@ -56,6 +70,7 @@
   {% if ws.verdict %}
   <p class="rail-walk__verdict">{{ ws.verdict }}</p>
   {% endif %}
+  {# v1.1: link to Getting Around section #}
 </div>
 {% endif %}
 
