@@ -1,0 +1,15 @@
+# ---------------------------------------------------------------------------
+# NestCheck — Railway cron config: Monthly Regression Baseline
+#
+# Separate Railway service pointing to this repo.
+# Dashboard setup: set "Railway Config File" to /railway-cron-regression.toml
+# See docs/railway-cron-setup.md for full instructions.
+# ---------------------------------------------------------------------------
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "python scripts/regression_baseline.py --email $REGRESSION_NOTIFY_EMAIL"
+cronSchedule = "0 13 1 * *"
+restartPolicyType = "NEVER"

@@ -1,0 +1,18 @@
+# ---------------------------------------------------------------------------
+# NestCheck — Railway configuration (web service)
+#
+# This file configures the PRIMARY web service only.
+# Cron services (smoke-test, spatial-health, regression) are separate Railway
+# services created via the dashboard, each pointing to this same repo.
+# See docs/railway-cron-setup.md for cron service setup instructions.
+# ---------------------------------------------------------------------------
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "gunicorn app:app -c gunicorn_config.py --bind 0.0.0.0:$PORT --timeout 180 --workers 2"
+healthcheckPath = "/healthz"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

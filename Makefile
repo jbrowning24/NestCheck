@@ -32,3 +32,47 @@ validate:
 
 # Full CI gate — both scoring tests and ground truth validation
 ci: test-scoring validate
+
+# ---------------------------------------------------------------------------
+# Regression baselines (monthly)
+# ---------------------------------------------------------------------------
+
+# Compare current evaluations against saved baselines
+regression:
+	python3 scripts/regression_baseline.py
+
+# Compare without sending email
+regression-dry:
+	python3 scripts/regression_baseline.py --dry-run
+
+# Save new baselines after intentional scoring changes
+regression-update:
+	python3 scripts/regression_baseline.py --update-baselines
+
+# ---------------------------------------------------------------------------
+# Spatial data health check (weekly)
+# ---------------------------------------------------------------------------
+
+# Check spatial.db health and print report
+spatial-health:
+	python3 scripts/spatial_health_check.py
+
+# Record current row counts as the new baseline
+spatial-baseline:
+	python3 scripts/spatial_health_check.py --record-baseline
+
+# Check and send digest email (set SPATIAL_HEALTH_EMAIL or pass EMAIL=)
+spatial-health-email:
+	python3 scripts/spatial_health_check.py --email $(or $(EMAIL),$(SPATIAL_HEALTH_EMAIL))
+
+# ---------------------------------------------------------------------------
+# Daily smoke test (evaluation pipeline)
+# ---------------------------------------------------------------------------
+
+# Run smoke test, print results to terminal
+smoke-test:
+	python3 scripts/daily_smoke_test.py
+
+# Run and send email on failure/warning
+smoke-test-email:
+	python3 scripts/daily_smoke_test.py --email $(or $(EMAIL),$(SMOKE_TEST_NOTIFY_EMAIL))
