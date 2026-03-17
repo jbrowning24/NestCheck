@@ -13,7 +13,8 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -594,3 +595,272 @@ def create_facility_table(
         conn.commit()
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Venue Cache — write path (NES-290)
+# ---------------------------------------------------------------------------
+
+# Maps Google Places place_type to NestCheck category.
+# Covers every places_nearby() call site in property_evaluator.py.
+_PLACE_TYPE_TO_CATEGORY: Dict[str, str] = {
+    # Coffee & Social
+    "cafe": "coffee",
+    "bakery": "coffee",
+    "coffee_shop": "coffee",
+    # Grocery
+    "supermarket": "grocery",
+    "grocery_store": "grocery",
+    "grocery_or_supermarket": "grocery",
+    # Fitness
+    "gym": "fitness",
+    # Parks & Green Space
+    "park": "park",
+    "playground": "park",
+    "campground": "park",
+    "natural_feature": "park",
+    "trail": "park",
+    "rv_park": "park",
+    "tourist_attraction": "park",
+    # Transit
+    "train_station": "transit",
+    "subway_station": "transit",
+    "light_rail_station": "transit",
+    "transit_station": "transit",
+    "bus_station": "transit",
+    # Schools & Childcare
+    "school": "school",
+    "primary_school": "school",
+    "child_care": "childcare",
+    "preschool": "childcare",
+    # Safety checks
+    "gas_station": "gas_station",
+    # Hub search
+    "locality": "locality",
+}
+
+# Substring rules for inferring category from text_search() queries.
+# Checked in order — first match wins.
+_TEXT_QUERY_CATEGORY_RULES = [
+    ("supermarket", "grocery"),
+    ("grocery", "grocery"),
+    ("gym", "fitness"),
+    ("fitness", "fitness"),
+    ("coffee", "coffee"),
+    ("cafe", "coffee"),
+    ("school", "school"),
+    ("daycare", "childcare"),
+    ("preschool", "childcare"),
+]
+
+
+def _infer_text_search_category(query: str) -> str:
+    """Infer NestCheck category from a text_search query string."""
+    q = query.lower()
+    for keyword, category in _TEXT_QUERY_CATEGORY_RULES:
+        if keyword in q:
+            return category
+    return "other"
+
+
+class VenueCache:
+    """Write-through cache for Google Places venues in spatial.db.
+
+    Phase 1 (NES-290): write-only. Upserts every venue returned by Google
+    Places API as a side effect of normal evaluations. Never blocks or
+    crashes evaluations — all writes are swallowed on error.
+    """
+
+    # Hardcoded constant — safe for SQL interpolation without the
+    # _VALID_FACILITY_TYPES whitelist because it never comes from user input.
+    # Not prefixed with "facilities_" because venues are a different entity.
+    _TABLE = "venue_cache"
+
+    def __init__(self):
+        self._table_ready: bool = False
+
+    def _ensure_table(self) -> bool:
+        """Create venue_cache table if it doesn't exist.
+
+        Returns True when the table is confirmed ready. Returns False on any
+        error (SpatiaLite unavailable, DB path unwritable, etc.) — the caller
+        should skip the write silently.
+        """
+        if self._table_ready:
+            return True
+        try:
+            db_path = _spatial_db_path()
+            parent = os.path.dirname(db_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                row = conn.execute(
+                    "SELECT 1 FROM sqlite_master "
+                    "WHERE type='table' AND name=?",
+                    (self._TABLE,),
+                ).fetchone()
+                if row is not None:
+                    self._table_ready = True
+                    return True
+
+                # Ensure SpatiaLite metadata exists (no-op if already init'd)
+                try:
+                    conn.execute("SELECT InitSpatialMetaData(1)")
+                except Exception:
+                    pass
+
+                conn.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {self._TABLE} (
+                        place_id TEXT PRIMARY KEY,
+                        name TEXT,
+                        category TEXT,
+                        latitude REAL,
+                        longitude REAL,
+                        rating REAL,
+                        rating_count INTEGER,
+                        price_level INTEGER,
+                        business_status TEXT,
+                        raw_response TEXT,
+                        first_seen TEXT NOT NULL,
+                        last_verified TEXT NOT NULL,
+                        source_address TEXT
+                    )
+                    """
+                )
+
+                # SpatiaLite DDL is NOT idempotent — wrap each call so
+                # concurrent first-time creation from multiple workers
+                # doesn't fail when the second worker finds column/index
+                # already exists.
+                try:
+                    conn.execute(
+                        f"SELECT AddGeometryColumn('{self._TABLE}', "
+                        f"'geometry', 4326, 'POINT', 'XY')"
+                    )
+                except Exception:
+                    pass
+                try:
+                    conn.execute(
+                        f"SELECT CreateSpatialIndex('{self._TABLE}', "
+                        f"'geometry')"
+                    )
+                except Exception:
+                    pass
+
+                conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS idx_{self._TABLE}_category "
+                    f"ON {self._TABLE} (category)"
+                )
+                conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS "
+                    f"idx_{self._TABLE}_last_verified "
+                    f"ON {self._TABLE} (last_verified)"
+                )
+
+                conn.commit()
+                self._table_ready = True
+                logger.info("Created venue_cache table in spatial.db")
+                return True
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("Failed to ensure venue_cache table: %s", e)
+            return False
+
+    def upsert_venues(
+        self,
+        places: List[Dict],
+        category: str,
+        source_address: str,
+    ) -> None:
+        """Upsert a batch of Google Places results into venue_cache.
+
+        New place_ids get a full INSERT with first_seen = now.
+        Existing place_ids get last_verified, rating, business_status, etc.
+        updated; first_seen, source_address, and category are preserved from
+        the original INSERT.
+
+        Swallows all errors — never impacts evaluation.
+        """
+        if not places:
+            return
+        if not self._ensure_table():
+            return
+
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        try:
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                for place in places:
+                    try:
+                        place_id = place.get("place_id")
+                        if not place_id:
+                            continue
+
+                        loc = place.get("geometry", {}).get("location", {})
+                        lat = loc.get("lat")
+                        lng = loc.get("lng")
+                        if lat is None or lng is None:
+                            continue
+
+                        conn.execute(
+                            f"""
+                            INSERT INTO {self._TABLE}
+                                (place_id, name, category, latitude, longitude,
+                                 rating, rating_count, price_level,
+                                 business_status, raw_response,
+                                 first_seen, last_verified, source_address,
+                                 geometry)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                                    MakePoint(?, ?, 4326))
+                            ON CONFLICT(place_id) DO UPDATE SET
+                                name = excluded.name,
+                                latitude = excluded.latitude,
+                                longitude = excluded.longitude,
+                                rating = excluded.rating,
+                                rating_count = excluded.rating_count,
+                                price_level = excluded.price_level,
+                                business_status = excluded.business_status,
+                                raw_response = excluded.raw_response,
+                                last_verified = excluded.last_verified,
+                                geometry = excluded.geometry
+                            """,
+                            (
+                                place_id,
+                                place.get("name", ""),
+                                category,
+                                lat,
+                                lng,
+                                place.get("rating"),
+                                place.get("user_ratings_total"),
+                                place.get("price_level"),
+                                place.get("business_status", "OPERATIONAL"),
+                                json.dumps(place),
+                                now,
+                                now,
+                                source_address,
+                                lng,
+                                lat,
+                            ),
+                        )
+                    except Exception as e:
+                        logger.debug(
+                            "Venue cache upsert skipped for %s: %s",
+                            place.get("place_id", "?"),
+                            e,
+                        )
+                        continue
+
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("Venue cache batch upsert failed: %s", e)
