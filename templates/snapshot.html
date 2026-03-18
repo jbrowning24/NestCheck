@@ -26,10 +26,108 @@
   <meta property="og:type" content="article">
   <meta property="og:url" content="{{ request.url }}">
   {% if not is_preview %}
-  <meta property="og:image" content="{{ url_for('static', filename='images/og-default.png', _external=True) }}">
+  <meta property="og:image" content="{{ url_for('serve_og_image', snapshot_id=snapshot_id, _external=True) }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   {% endif %}
+{% endblock %}
+
+{% block json_ld %}
+{% if not is_preview %}
+{#
+  SEO structured data: WebPage + Residence + PropertyValue + BreadcrumbList.
+  Uses PropertyValue for scores (not Review — algorithmic scores don't qualify
+  for Google review rich results and risk a manual action).
+
+  BreadcrumbList is two levels today (Home > Address) but structured to accept
+  geographic nesting (Home > County > Town > Address) when location pages exist.
+
+  Guarded by is_preview to match the OG image block — preview snapshots have
+  incomplete data and must not emit structured data for partial evaluations.
+#}
+{% set _addr = result.address | default('') %}
+{% set _score_band = result.score_band if result.score_band is mapping else none %}
+{% set _show = result.show_score if result.show_score is defined else result.passed_tier1 %}
+{% set _breadcrumbs = result.breadcrumbs if result.breadcrumbs is defined else none %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "name": "NestCheck — {{ _addr | e }}",
+      "url": "{{ request.url.split('?')[0] }}",
+      {% if _show and _score_band %}
+      "description": "{{ result.verdict | e }} — {{ _score_band.label | e }}",
+      {% else %}
+      "description": "NestCheck health and livability evaluation for {{ _addr | e }}",
+      {% endif %}
+      "mainEntity": {
+        "@type": "Residence",
+        "name": "{{ _addr | e }}",
+        {% if result.coordinates is defined and result.coordinates %}
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": {{ result.coordinates.lat }},
+          "longitude": {{ result.coordinates.lng }}
+        },
+        {% endif %}
+        "additionalProperty": [
+          {% if _show %}
+          {
+            "@type": "PropertyValue",
+            "name": "NestCheck Score",
+            "value": {{ result.final_score | default(0) }},
+            "minValue": 0,
+            "maxValue": 100,
+            "description": "{{ _score_band.label | e if _score_band else '' }}"
+          }{% set _scored_dims = result.dimension_summaries | default([]) | selectattr('points') | list %}{% if _scored_dims %},
+          {% for dim in _scored_dims %}
+          {
+            "@type": "PropertyValue",
+            "name": "{{ dim.name | e }}",
+            "value": {{ dim.points }},
+            "minValue": 0,
+            "maxValue": {{ dim.max | default(10) }}
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+          {% endif %}
+          {% else %}
+          {
+            "@type": "PropertyValue",
+            "name": "Health Screening",
+            "value": "{{ result.verdict | e }}"
+          }
+          {% endif %}
+        ]
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "{{ request.host_url }}"
+        }{% if _breadcrumbs %}{% for crumb in _breadcrumbs %},
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index + 1 }},
+          "name": "{{ crumb.name | e }}",
+          "item": "{{ crumb.url }}"
+        }{% endfor %}{% endif %},
+        {
+          "@type": "ListItem",
+          "position": {{ (_breadcrumbs | length + 2) if _breadcrumbs else 2 }},
+          "name": "{{ _addr | e }}"
+        }
+      ]
+    }
+  ]
+}
+</script>
+{% endif %}
 {% endblock %}
 
 {% block nav_links %}

@@ -470,6 +470,18 @@ class TestPricingRoute:
         assert resp.status_code == 200
 
 
+class TestCoverageRoute:
+    def test_coverage_200(self, client):
+        resp = client.get("/coverage")
+        assert resp.status_code == 200
+
+    def test_coverage_contains_table(self, client):
+        resp = client.get("/coverage")
+        html = resp.data.decode()
+        assert "Data Coverage" in html
+        assert "cov-table" in html
+
+
 class TestEventRoute:
     def test_valid_event(self, client):
         resp = client.post(

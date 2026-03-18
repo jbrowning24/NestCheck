@@ -1,0 +1,518 @@
+[
+  {
+    "address": "1 Martine Ave, White Plains, NY 10606",
+    "town": "White Plains",
+    "rationale": "Downtown White Plains near transit hub and commercial strip \u2014 walkability test",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "55 Bank St, White Plains, NY 10606",
+    "town": "White Plains",
+    "rationale": "Near I-287 interchange and Mamaroneck Ave gas stations",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "300 Hamilton Ave, White Plains, NY 10601",
+    "town": "White Plains",
+    "rationale": "Near Route 22 corridor and commercial strip",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "100 Westchester Ave, White Plains, NY 10604",
+    "town": "White Plains",
+    "rationale": "Route 22 / I-287 junction \u2014 corporate park area, car-dependent",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "42 Popham Rd, Scarsdale, NY 10583",
+    "town": "Scarsdale",
+    "rationale": "Scarsdale Village center \u2014 highly walkable affluent suburb",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "2 Fenimore Rd, Scarsdale, NY 10583",
+    "town": "Scarsdale",
+    "rationale": "Near Scarsdale train station \u2014 walk score vs reality test",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "88 Mamaroneck Rd, Scarsdale, NY 10583",
+    "town": "Scarsdale",
+    "rationale": "Residential Scarsdale near Hutchinson River Pkwy",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "15 Foxhall Rd, Scarsdale, NY 10583",
+    "town": "Scarsdale",
+    "rationale": "Deep residential Scarsdale \u2014 provisioning gap test",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "1 Pondfield Rd, Bronxville, NY 10708",
+    "town": "Bronxville",
+    "rationale": "Bronxville village center \u2014 one of the most walkable spots in Westchester",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "77 Pondfield Rd, Bronxville, NY 10708",
+    "town": "Bronxville",
+    "rationale": "Bronxville commercial district \u2014 walkability and provisioning",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "120 Kraft Ave, Bronxville, NY 10708",
+    "town": "Bronxville",
+    "rationale": "Near Bronx River Pkwy \u2014 highway proximity in affluent area",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "15 Palmer Ave, Larchmont, NY 10538",
+    "town": "Larchmont",
+    "rationale": "Larchmont village center \u2014 walkable with good provisioning",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "100 Beach Ave, Larchmont, NY 10538",
+    "town": "Larchmont",
+    "rationale": "Near I-95 / New England Thruway \u2014 highway noise and proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "2100 Palmer Ave, Larchmont, NY 10538",
+    "town": "Larchmont",
+    "rationale": "Near Boston Post Rd commercial strip with gas stations",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "320 Mamaroneck Ave, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Mamaroneck Ave commercial corridor \u2014 walkable but near busy road",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "140 Prospect Ave, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Near Metro-North and I-95 \u2014 transit access vs highway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "804 E Boston Post Rd, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Boston Post Rd \u2014 gas stations and commercial strip adjacent to residential",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "1 Station Plaza, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Mamaroneck train station area \u2014 transit-oriented walkability",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "65 Chatsworth Ave, Larchmont, NY 10538",
+    "town": "Larchmont",
+    "rationale": "Residential Larchmont \u2014 walkability from train vs provisioning access",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "100 Pelham Rd, New Rochelle, NY 10805",
+    "town": "New Rochelle",
+    "rationale": "Near Hutchinson River Pkwy on/off ramp \u2014 highway proximity test",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "20 Burling Ln, New Rochelle, NY 10804",
+    "town": "New Rochelle",
+    "rationale": "Premium residential near Wykagyl \u2014 provisioning gap potential",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "1 Radisson Plaza, New Rochelle, NY 10801",
+    "town": "New Rochelle",
+    "rationale": "Downtown New Rochelle near transit hub \u2014 walkability center",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "150 North Ave, New Rochelle, NY 10801",
+    "town": "New Rochelle",
+    "rationale": "North Ave corridor \u2014 near gas stations and commercial uses",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "17 Wolfs Ln, Pelham, NY 10803",
+    "town": "Pelham",
+    "rationale": "Pelham village walkable center near Metro-North",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "811 Pelhamdale Ave, Pelham, NY 10803",
+    "town": "Pelham",
+    "rationale": "Near Hutchinson River Pkwy \u2014 residential backing onto highway",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "230 Fifth Ave, Pelham, NY 10803",
+    "town": "Pelham",
+    "rationale": "Pelham residential \u2014 spread from village center walkability test",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "1 Main St, Tarrytown, NY 10591",
+    "town": "Tarrytown",
+    "rationale": "Tarrytown village center \u2014 walkable rivertown with good provisioning",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "55 Wildey St, Tarrytown, NY 10591",
+    "town": "Tarrytown",
+    "rationale": "Near I-87/I-287 interchange \u2014 major highway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "100 White Plains Rd, Tarrytown, NY 10591",
+    "town": "Tarrytown",
+    "rationale": "Route 119 commercial corridor \u2014 gas stations and auto uses",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "28 Main St, Hastings-on-Hudson, NY 10706",
+    "town": "Hastings-on-Hudson",
+    "rationale": "Hastings village center \u2014 one of the most walkable rivertowns",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "555 Warburton Ave, Hastings-on-Hudson, NY 10706",
+    "town": "Hastings-on-Hudson",
+    "rationale": "Near Saw Mill River Pkwy \u2014 residential backing onto parkway",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "5 Clinton Ave, Dobbs Ferry, NY 10522",
+    "town": "Dobbs Ferry",
+    "rationale": "Dobbs Ferry village center \u2014 walkable with river access",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "45 Ashford Ave, Dobbs Ferry, NY 10522",
+    "town": "Dobbs Ferry",
+    "rationale": "Near Saw Mill River Pkwy interchange \u2014 suburban with highway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "25 Main St, Ossining, NY 10562",
+    "town": "Ossining",
+    "rationale": "Ossining village center \u2014 walkable but less affluent, different provisioning mix",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "200 North Highland Ave, Ossining, NY 10562",
+    "town": "Ossining",
+    "rationale": "Near Route 9 corridor \u2014 commercial strip proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "50 Croton Dam Rd, Ossining, NY 10562",
+    "town": "Ossining",
+    "rationale": "Northern Ossining hills \u2014 car-dependent, green space rich",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "1 Purchase St, Rye, NY 10580",
+    "town": "Rye",
+    "rationale": "Rye village center \u2014 walkable affluent suburb",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "90 Theodore Fremd Ave, Rye, NY 10580",
+    "town": "Rye",
+    "rationale": "Near I-95 / I-287 \u2014 major highway proximity in premium location",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "1100 King St, Rye Brook, NY 10573",
+    "town": "Rye",
+    "rationale": "Near Port Chester industrial area \u2014 mixed use proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "16 N Broadway, Irvington, NY 10533",
+    "town": "Irvington",
+    "rationale": "Irvington village center \u2014 walkable rivertown",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "70 S Buckhout St, Irvington, NY 10533",
+    "town": "Irvington",
+    "rationale": "Irvington residential \u2014 walkability spread from village core",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "5 Depot Plaza, Pleasantville, NY 10570",
+    "town": "Pleasantville",
+    "rationale": "Pleasantville village center near Metro-North \u2014 inland walkability test",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "480 Bedford Rd, Pleasantville, NY 10570",
+    "town": "Pleasantville",
+    "rationale": "Near Saw Mill River Pkwy \u2014 parkway proximity in suburban setting",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "500 Central Ave, Scarsdale, NY 10583",
+    "town": "Scarsdale",
+    "rationale": "Central Ave commercial corridor \u2014 gas stations adjacent to residential",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "750 Central Park Ave, Yonkers, NY 10704",
+    "town": "Yonkers",
+    "rationale": "Central Ave / Route 100 \u2014 heavy commercial strip with gas stations everywhere",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "200 Kimball Ave, Yonkers, NY 10704",
+    "town": "Yonkers",
+    "rationale": "Near Cross County Parkway \u2014 highway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "1 Larkin Plaza, Yonkers, NY 10701",
+    "town": "Yonkers",
+    "rationale": "Downtown Yonkers waterfront \u2014 urban walkability test",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "400 Nepperhan Ave, Yonkers, NY 10701",
+    "town": "Yonkers",
+    "rationale": "Industrial Yonkers near Saw Mill River \u2014 environmental proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "100 Ravine Ave, Yonkers, NY 10701",
+    "town": "Yonkers",
+    "rationale": "Near I-87 / Saw Mill junction \u2014 multiple highway corridors",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "20 Leroy Ave, Eastchester, NY 10709",
+    "town": "Eastchester",
+    "rationale": "Near Hutchinson River Pkwy \u2014 residential backing onto parkway",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "400 White Plains Rd, Eastchester, NY 10709",
+    "town": "Eastchester",
+    "rationale": "Eastchester commercial corridor \u2014 gas stations near residential",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "540 Ashford Ave, Ardsley, NY 10502",
+    "town": "Ardsley",
+    "rationale": "Near Saw Mill River Pkwy and I-87 \u2014 double highway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "28 American Ln, Ardsley, NY 10502",
+    "town": "Ardsley",
+    "rationale": "Ardsley village center \u2014 walkability in a small village",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "20 Heatherdell Rd, Ardsley, NY 10502",
+    "town": "Ardsley",
+    "rationale": "Ardsley residential near Saw Mill \u2014 provisioning gap potential",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "50 N Broadway, Nyack, NY 10960",
+    "town": "Nyack",
+    "rationale": "Nyack village center \u2014 walkable rivertown across the Hudson (cross-county comparison)",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "10 Franklin Ave, Harrison, NY 10528",
+    "town": "Harrison",
+    "rationale": "Harrison village \u2014 near I-287 interchange, transit accessible",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "100 Halstead Ave, Harrison, NY 10528",
+    "town": "Harrison",
+    "rationale": "Near I-95 and I-287 junction \u2014 major interchange proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "1 Bridge St, Irvington, NY 10533",
+    "town": "Irvington",
+    "rationale": "Near waterfront and Metro-North \u2014 rivertown walkability test",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "145 Bedford Rd, Armonk, NY 10504",
+    "town": "Armonk",
+    "rationale": "Near Route 22 \u2014 northern Westchester commercial corridor",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "10 Wampus Ave, Armonk, NY 10504",
+    "town": "Armonk",
+    "rationale": "Armonk hamlet center \u2014 small-town walkability in car-dependent area",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "15 Croton Ave, Mount Kisco, NY 10549",
+    "town": "Mount Kisco",
+    "rationale": "Mount Kisco village center \u2014 most walkable northern Westchester town",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "333 N Bedford Rd, Mount Kisco, NY 10549",
+    "town": "Mount Kisco",
+    "rationale": "Route 117 corridor \u2014 commercial strip near residential",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "41 South Moger Ave, Mount Kisco, NY 10549",
+    "town": "Mount Kisco",
+    "rationale": "Near Metro-North station \u2014 transit-oriented walkability",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "100 Katonah Ave, Katonah, NY 10536",
+    "town": "Katonah",
+    "rationale": "Katonah hamlet center \u2014 small walkable pocket in car-dependent area",
+    "expected_type": "provisioning_gap"
+  },
+  {
+    "address": "50 Somerstown Rd, Somers, NY 10589",
+    "town": "Somers",
+    "rationale": "Northern Westchester \u2014 car-dependent baseline for contrast",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "731 Central Park Ave, Yonkers, NY 10704",
+    "town": "Yonkers",
+    "rationale": "Directly adjacent to Shell gas station on Central Ave commercial strip; high-traffic corridor with continuous commercial/gas station exposure",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "18 Aka Terrace, Yonkers, NY 10704",
+    "town": "Yonkers",
+    "rationale": "Residential side street off Central Park Ave between gas stations at 731 and 1001 Central Park Ave; sandwiched between commercial uses",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "245 S Central Ave, Hartsdale, NY 10530",
+    "town": "Hartsdale",
+    "rationale": "Adjacent to Amoco gas station on Central Ave commercial strip; gas station health proximity on busy corridor",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "17 N Central Ave, Hartsdale, NY 10530",
+    "town": "Hartsdale",
+    "rationale": "Near Sunoco station on North Central Ave; gas station cluster area on commercial strip",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "708 E Boston Post Rd, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Adjacent to Shell gas station on Boston Post Road commercial strip; gas station proximity plus high-traffic road",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "570 Colonial Ave, Pelham, NY 10803",
+    "town": "Pelham",
+    "rationale": "Colonial Ave accessed directly from Hutch Exit 5A; Sandford Blvd becomes Colonial Ave passing under Hutch overpass",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "25 Secor Ln, Pelham, NY 10803",
+    "town": "Pelham",
+    "rationale": "Secor Lane within 1-minute drive of Hutch Exit 4; residential street with direct parkway proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "12 Mill Rd, Eastchester, NY 10709",
+    "town": "Eastchester",
+    "rationale": "Mill Road splits off from Hutch exit; residential street divided by parkway construction, directly adjacent to Hutchinson River Parkway",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "30 California Rd, Eastchester, NY 10709",
+    "town": "Eastchester",
+    "rationale": "California Road connects from Hutch exit via Mill Road; residential area reshaped by parkway and I-95 construction",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "157 Salem Rd, Pound Ridge, NY 10576",
+    "town": "Pound Ridge",
+    "rationale": "Rural Pound Ridge with no highway exit, no train station, only two-lane roads; extremely car-dependent",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "85 Titicus Rd, North Salem, NY 10560",
+    "town": "North Salem",
+    "rationale": "Rural North Salem on two-lane country road; extreme car dependency, no nearby commercial services",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "25 Hook Rd, Bedford, NY 10506",
+    "town": "Bedford",
+    "rationale": "Bedford residential on country road; car-dependent area with rural character, contrast with southern Westchester villages",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "325 Huguenot St, New Rochelle, NY 10801",
+    "town": "New Rochelle",
+    "rationale": "Downtown New Rochelle with 97 walk score; steps from Metro-North, restaurants, shops on Huguenot Street",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "42 Palisade St, Dobbs Ferry, NY 10522",
+    "town": "Dobbs Ferry",
+    "rationale": "Palisade Street near walkable Cedar Street village center; mom-and-pop shops and family restaurants",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "15 Cedar St, Dobbs Ferry, NY 10522",
+    "town": "Dobbs Ferry",
+    "rationale": "Cedar Street walkable village core with artisanal bakeries, bookstores; near Metro-North making car less necessary",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "45 Pondfield Rd, Bronxville, NY 10708",
+    "town": "Bronxville",
+    "rationale": "Pondfield Road is heart of Bronxville village; Womrath Books, restaurants, one-square-mile walkable village",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "68 Wheeler Ave, Pleasantville, NY 10570",
+    "town": "Pleasantville",
+    "rationale": "Heart of Pleasantville walkable village; farmers market, independent shops, cafes steps from Metro-North",
+    "expected_type": "walkability_contrast"
+  },
+  {
+    "address": "544 King St, Port Chester, NY 10573",
+    "town": "Port Chester",
+    "rationale": "King Street 50 steps from Metro-North and 5 minutes from I-95; walkable downtown but highway-adjacent",
+    "expected_type": "mixed"
+  },
+  {
+    "address": "10 Edison Pl, Port Chester, NY 10573",
+    "town": "Port Chester",
+    "rationale": "Residential street in Port Chester near I-95/I-287 interchange; major highway junction proximity",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "555 Broadway, Hastings-on-Hudson, NY 10706",
+    "town": "Hastings-on-Hudson",
+    "rationale": "Hastings Terraces on Broadway/Route 9; high-traffic road exposure on major commercial corridor",
+    "expected_type": "health_proximity"
+  },
+  {
+    "address": "151 Fenimore Rd, Mamaroneck, NY 10543",
+    "town": "Mamaroneck",
+    "rationale": "Quarter mile from I-95 Exit 18N in Mamaroneck flats; residential area between I-95 and Boston Post Road",
+    "expected_type": "health_proximity"
+  }
+]
