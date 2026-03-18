@@ -76,3 +76,23 @@ smoke-test:
 # Run and send email on failure/warning
 smoke-test-email:
 	python3 scripts/daily_smoke_test.py --email $(or $(EMAIL),$(SMOKE_TEST_NOTIFY_EMAIL))
+
+# ---------------------------------------------------------------------------
+# Seed evaluation sprint (content strategy)
+# ---------------------------------------------------------------------------
+
+# Run pending evaluations against production
+seed-sprint:
+	python3 scripts/seed_evaluation_sprint.py
+
+# Retry failed evaluations
+seed-sprint-retry:
+	python3 scripts/seed_evaluation_sprint.py --retry-failures
+
+# Show sprint progress
+seed-sprint-status:
+	python3 scripts/seed_evaluation_sprint.py --status
+
+# Export results to CSV for content planning
+seed-sprint-export:
+	python3 scripts/seed_evaluation_sprint.py --export-csv

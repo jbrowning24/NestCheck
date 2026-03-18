@@ -181,6 +181,27 @@
 {% endmacro %}
 
 
+{# ── coverage_badge ──────────────────────────────────────────────────
+   Section-level data coverage indicator (NES-288).
+   Shows whether the data backing a report section is complete for the
+   user's state.  FULL coverage renders no badge (absence = solid data).
+
+   tier: "partial" | "minimal" | "none" (string, from get_section_coverage)
+   state_name: Human-readable state name for tooltip (e.g. "Michigan")
+
+   SAFETY: Only hardcoded strings rendered with | safe (no external data).
+   ─────────────────────────────────────────────────────────────────── #}
+{% macro coverage_badge(tier, state_name='this state') %}
+{%- if tier == 'partial' -%}
+  <span class="cov-badge cov-badge--estimated"
+        title="Some data sources have limited coverage in {{ state_name }}">Estimated</span>
+{%- elif tier in ('minimal', 'none') -%}
+  <span class="cov-badge cov-badge--sparse"
+        title="Most data sources have limited coverage in {{ state_name }}">Sparse data</span>
+{%- endif -%}
+{% endmacro %}
+
+
 {# ── callout ─────────────────────────────────────────────────────────
    Informational callout with left-border accent (Phase 6).
    Not a CTA — no dismiss, no hover state on container.

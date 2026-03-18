@@ -8,7 +8,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -182,7 +182,9 @@
 
         {# ── HEALTH & ENVIRONMENT ── #}
         <div id="health-safety" class="data-section">
-          <h2 class="section-title">HEALTH &amp; ENVIRONMENT</h2>
+          <h2 class="section-title">HEALTH &amp; ENVIRONMENT{% if result.coverage is defined and result.coverage.health is defined %}
+            {{ coverage_badge(result.coverage.health, result.state_name | default('this state')) }}
+          {% endif %}</h2>
 
           {% if result.insights is defined and result.insights and result.insights.proximity %}
             <p class="section-insight">{{ result.insights.proximity }}</p>
@@ -501,7 +503,9 @@
 
         {# ── GETTING AROUND ── #}
         <div id="getting-around" class="data-section">
-          <h2 class="section-title">GETTING AROUND</h2>
+          <h2 class="section-title">GETTING AROUND{% if result.coverage is defined and result.coverage.getting_around is defined %}
+            {{ coverage_badge(result.coverage.getting_around, result.state_name | default('this state')) }}
+          {% endif %}</h2>
 
           {% if result.insights is defined and result.insights and result.insights.getting_around %}
             <p class="section-insight">{{ result.insights.getting_around }}</p>
@@ -723,7 +727,9 @@
 
         {# ── PARKS & GREEN SPACE ── #}
         <div id="parks-green-space" class="data-section">
-          <h2 class="section-title">PARKS &amp; GREEN SPACE</h2>
+          <h2 class="section-title">PARKS &amp; GREEN SPACE{% if result.coverage is defined and result.coverage.parks is defined %}
+            {{ coverage_badge(result.coverage.parks, result.state_name | default('this state')) }}
+          {% endif %}</h2>
 
           {% if result.insights is defined and result.insights and result.insights.parks %}
             <p class="section-insight">{{ result.insights.parks }}</p>
@@ -990,7 +996,9 @@
         {% if result.school_district is defined and result.school_district is not none %}
         {% set sd = result.school_district %}
         <div id="school-district" class="data-section">
-          <h2 class="section-title">SCHOOL DISTRICT</h2>
+          <h2 class="section-title">SCHOOL DISTRICT{% if result.coverage is defined and result.coverage.school_district is defined %}
+            {{ coverage_badge(result.coverage.school_district, result.state_name | default('this state')) }}
+          {% endif %}</h2>
 
           <div class="school-district-header">
             <span class="school-district-name">{{ sd.district_name }}</span>
@@ -1071,7 +1079,9 @@
             ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
           ] %}
         <div id="ejscreen-profile" class="data-section">
-          <h2 class="section-title">EPA ENVIRONMENTAL PROFILE</h2>
+          <h2 class="section-title">EPA ENVIRONMENTAL PROFILE{% if result.coverage is defined and result.coverage.ejscreen is defined %}
+            {{ coverage_badge(result.coverage.ejscreen, result.state_name | default('this state')) }}
+          {% endif %}</h2>
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
             <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
