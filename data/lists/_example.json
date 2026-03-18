@@ -1,0 +1,15 @@
+{
+  "slug": "_example",
+  "title": "Best Walkable Neighborhoods in Westchester County",
+  "meta_description": "NestCheck's evaluation of the most walkable addresses in Westchester County, scored by proximity to grocery, coffee, fitness, and transit.",
+  "intro": "We evaluated dozens of Westchester addresses for everyday walkability — how easily you can reach grocery stores, coffee shops, fitness options, and transit on foot. These addresses scored highest.",
+  "target_keyword": "walkable neighborhoods westchester county",
+  "entries": [
+    {
+      "snapshot_id": "REPLACE_WITH_REAL_SNAPSHOT_ID",
+      "narrative": "This address scores well on walkability, but the nearest grocery store is a 27-minute walk — a provisioning gap common in lower-density Westchester towns."
+    }
+  ],
+  "related_lists": [],
+  "cta_text": "Evaluate your own address \u2192"
+}

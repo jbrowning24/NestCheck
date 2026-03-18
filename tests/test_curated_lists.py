@@ -218,3 +218,22 @@ class TestListRoute:
         assert resp.status_code == 200
         assert b"Empty List" in resp.data
         assert b"Evaluate your own address" in resp.data
+
+
+class TestSitemap:
+    def test_list_pages_in_sitemap(self, client, tmp_path, monkeypatch):
+        config = {
+            "slug": "sitemap-test",
+            "title": "Sitemap Test List",
+            "meta_description": "For sitemap test.",
+            "intro": "Intro.",
+            "entries": [],
+        }
+        (tmp_path / "sitemap-test.json").write_text(json.dumps(config))
+        monkeypatch.setattr("app._LISTS_DIR", str(tmp_path))
+
+        resp = client.get("/sitemap.xml")
+        assert resp.status_code == 200
+        assert b"/lists/sitemap-test" in resp.data
+        assert b"<priority>0.7</priority>" in resp.data
+        assert b"<changefreq>monthly</changefreq>" in resp.data
