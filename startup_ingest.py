@@ -36,12 +36,16 @@ import re
 #   full_name — full state name (used by UST)
 #
 # HIFLD ingests nationally (no state attribute field). FEMA NFHL still uses
-# bbox and needs separate per-metro strategy (NES-286).
+# per-metro bboxes with automatic 0.5-degree grid chunking (NES-286).
 TARGET_STATES = {
     "NY": {"fips": "36", "full_name": "New York"},
     "NJ": {"fips": "34", "full_name": "New Jersey"},
     "CT": {"fips": "09", "full_name": "Connecticut"},
     "MI": {"fips": "26", "full_name": "Michigan"},
+    "CA": {"fips": "06", "full_name": "California"},
+    "TX": {"fips": "48", "full_name": "Texas"},
+    "FL": {"fips": "12", "full_name": "Florida"},
+    "IL": {"fips": "17", "full_name": "Illinois"},
 }
 
 
@@ -179,7 +183,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset sems: missing or empty, starting ingestion...")
         _run_ingest("sems", _ingest_sems)
 
-    # --- FEMA NFHL (flood zones, tri-state) ---
+    # --- FEMA NFHL (flood zones, per-metro with grid chunking) ---
     has_data, count = _table_has_data(db_path, "facilities_fema_nfhl")
     if has_data:
         logger.info("Dataset fema_nfhl: present (%d records), skipping", count)
@@ -297,8 +301,8 @@ def _ingest_sems():
 
 
 def _ingest_fema():
-    from scripts.ingest_fema import ingest as do_ingest
-    do_ingest(bbox=(-75.6, 38.9, -71.8, 42.1))
+    from scripts.ingest_fema import ingest_metros
+    ingest_metros(target_states=list(TARGET_STATES.keys()))
 
 
 def _ingest_hpms():
@@ -356,6 +360,26 @@ def _ingest_mi_performance():
     do_ingest()
 
 
+def _ingest_ca_performance():
+    from scripts.ingest_ca_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_tx_performance():
+    from scripts.ingest_tx_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_fl_performance():
+    from scripts.ingest_fl_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_il_performance():
+    from scripts.ingest_il_performance import ingest as do_ingest
+    do_ingest()
+
+
 def _ingest_nces_schools():
     from scripts.ingest_nces_schools import ingest as do_ingest
     from spatial_data import init_spatial_db, create_facility_table
@@ -375,4 +399,8 @@ _STATE_EDUCATION_INGEST = {
     "NJ": _ingest_nj_performance,
     "CT": _ingest_ct_performance,
     "MI": _ingest_mi_performance,
+    "CA": _ingest_ca_performance,
+    "TX": _ingest_tx_performance,
+    "FL": _ingest_fl_performance,
+    "IL": _ingest_il_performance,
 }

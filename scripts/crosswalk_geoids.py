@@ -66,6 +66,10 @@ CSV_FILES: list[tuple[str, str, str]] = [
     ("nj_district_performance.csv", "NJ", "34"),
     ("ct_district_performance.csv", "CT", "09"),
     ("mi_district_performance.csv", "MI", "26"),
+    ("ca_district_performance.csv", "CA", "06"),
+    ("tx_district_performance.csv", "TX", "48"),
+    ("fl_district_performance.csv", "FL", "12"),
+    ("il_district_performance.csv", "IL", "17"),
 ]
 
 
@@ -95,28 +99,49 @@ def _normalize(name: str) -> str:
 
 
 def _fetch_tiger_districts(fips: str) -> dict[str, tuple[str, str]]:
-    """Fetch TIGER districts for a state → {normalized_name: (geoid, full_name)}."""
-    resp = requests.get(
-        TIGER_SD_ENDPOINT,
-        params={
-            "where": f"STATE='{fips}'",
-            "outFields": "GEOID,NAME,BASENAME",
-            "returnGeometry": "false",
-            "f": "json",
-            "resultRecordCount": 1000,
-        },
-        timeout=60,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    if "error" in data:
-        raise RuntimeError(f"ArcGIS error: {data['error']}")
+    """Fetch TIGER districts for a state → {normalized_name: (geoid, full_name)}.
 
-    features = data.get("features", [])
-    logger.info("TIGER returned %d districts for FIPS %s", len(features), fips)
+    Paginates automatically when the API returns the maximum 1000 records
+    per request (affects states with 1000+ districts, e.g. TX).
+    """
+    _PAGE_SIZE = 1000
+    all_features: list[dict] = []
+    offset = 0
+
+    while True:
+        resp = requests.get(
+            TIGER_SD_ENDPOINT,
+            params={
+                "where": f"STATE='{fips}'",
+                "outFields": "GEOID,NAME,BASENAME",
+                "returnGeometry": "false",
+                "f": "json",
+                "resultRecordCount": _PAGE_SIZE,
+                "resultOffset": offset,
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if "error" in data:
+            raise RuntimeError(f"ArcGIS error: {data['error']}")
+
+        features = data.get("features", [])
+        all_features.extend(features)
+
+        if len(features) < _PAGE_SIZE:
+            break
+
+        offset += _PAGE_SIZE
+        logger.info(
+            "TIGER query returned %d records (cap), paginating... (offset=%d)",
+            _PAGE_SIZE, offset,
+        )
+
+    logger.info("TIGER returned %d districts for FIPS %s", len(all_features), fips)
 
     result: dict[str, tuple[str, str]] = {}
-    for feat in features:
+    for feat in all_features:
         attrs = feat["attributes"]
         geoid = attrs["GEOID"]
         name = attrs["NAME"]
