@@ -3641,6 +3641,35 @@ def pricing():
     return render_template("pricing.html")
 
 
+@app.route("/coverage")
+def coverage_page():
+    """Data coverage transparency page — per-state, per-source availability.
+
+    Uses manifest-only data (no spatial.db queries) for fast page loads.
+    verify_coverage() is reserved for admin/diagnostic use.
+    """
+    try:
+        from coverage_config import (
+            get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
+        )
+        states = get_all_states()
+        state_details = {}
+        for state in states:
+            state_details[state["code"]] = get_source_coverage(state["code"])
+        source_list = SOURCE_DISPLAY_LIST
+    except Exception:
+        states = []
+        state_details = {}
+        source_list = []
+
+    return render_template(
+        "coverage.html",
+        states=states,
+        state_details=state_details,
+        source_list=source_list,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Stripe Checkout routes
 # ---------------------------------------------------------------------------

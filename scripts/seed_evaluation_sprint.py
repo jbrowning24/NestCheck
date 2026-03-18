@@ -47,7 +47,7 @@ STATE_FILE = _DATA_DIR / "seed_sprint_state.json"
 EXPORT_CSV = _DATA_DIR / "seed_sprint_results.csv"
 
 # --- Defaults ---
-DEFAULT_BASE_URL = "https://nestcheck.app"
+DEFAULT_BASE_URL = "https://nestcheck.org"
 POLL_INTERVAL = 3.0        # seconds between job status polls
 POLL_TIMEOUT = 180.0       # max seconds to wait for one evaluation
 INTER_EVAL_DELAY = 2.0     # seconds between evaluations (be polite)
@@ -94,6 +94,7 @@ def _create_session(base_url: str, builder_secret: str | None) -> requests.Sessi
     """Create a requests session with builder cookie and CSRF token."""
     session = requests.Session()
     session.headers["Accept"] = "application/json"
+    session.headers["Referer"] = base_url + "/"
 
     # Set builder cookie to bypass payment gate
     if builder_secret:
