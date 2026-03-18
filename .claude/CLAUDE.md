@@ -391,7 +391,7 @@ NestCheck/
 
 ## Core Principles
 
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
+- **Simplicity Bias**: Before implementing any solution, ask: "How can we make this simpler and dumber while still achieving the goal?" Prefer the dumbest thing that works. If a feature needs a config system, ask if a hardcoded value works first. If a function needs three parameters, ask if it can work with one. Complexity must be justified — simplicity is the default.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
 
