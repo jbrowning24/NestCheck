@@ -98,6 +98,7 @@ nav a.nav-link {
   transition: color var(--transition-fast);
 }
 nav a.nav-link:hover { color: var(--color-text-primary); }
+nav a.nav-link[aria-current="page"] { color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
 nav a.nav-link--cta {
   border: 1.5px solid var(--color-accent);
   border-radius: 6px;
