@@ -8,7 +8,7 @@
 <meta property="og:title" content="{{ config.title }}">
 <meta property="og:description" content="{{ config.meta_description }}">
 <meta property="og:type" content="website">
-<meta property="og:url" content="{{ request.url }}">
+<meta property="og:url" content="{{ request.url.split('?')[0] }}">
 {% endblock %}
 
 {% block json_ld %}
@@ -16,8 +16,8 @@
 {
   "@context": "https://schema.org",
   "@type": "ItemList",
-  "name": "{{ config.title }}",
-  "description": "{{ config.meta_description }}",
+  "name": "{{ config.title | e }}",
+  "description": "{{ config.meta_description | e }}",
   "numberOfItems": {{ entries | length }},
   "itemListElement": [
     {% for entry in entries %}
