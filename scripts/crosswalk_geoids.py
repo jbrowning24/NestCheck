@@ -65,6 +65,7 @@ CSV_FILES: list[tuple[str, str, str]] = [
     ("nysed_district_performance.csv", "NY", "36"),
     ("nj_district_performance.csv", "NJ", "34"),
     ("ct_district_performance.csv", "CT", "09"),
+    ("mi_district_performance.csv", "MI", "26"),
 ]
 
 
@@ -72,7 +73,7 @@ def _normalize(name: str) -> str:
     """Normalize a district name for fuzzy matching."""
     n = name.lower().strip()
     for suffix in [
-        " school district",
+        " community school district",
         " city school district",
         " central school district",
         " union free school district",
@@ -80,7 +81,11 @@ def _normalize(name: str) -> str:
         " borough school district",
         " village school district",
         " regional school district",
+        " area school district",
+        " school district",
         " public schools",
+        " community schools",
+        " area schools",
         " town school district",
     ]:
         if n.endswith(suffix):

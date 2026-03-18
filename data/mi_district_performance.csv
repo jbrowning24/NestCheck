@@ -1,0 +1,515 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+2600005,Battle Creek Public Schools,Calhoun,64,19,8,,16140,2020-21
+2600006,Bessemer Area School District,Gogebic,95,37,27,,14483,2020-21
+2600007,Harbor Beach Community Schools,Huron,95,46,30,,12501,2020-21
+2600012,St. Ignace Area Schools,Mackinac,95,42,32,,12158,2020-21
+2600013,Marquette Area Public Schools,Marquette,86,55,45,,11366,2020-21
+2600014,Ewen-Trout Creek Consolidated Schools,Ontonagon,90,42,27,,16258,2020-21
+2600015,Wayne-Westland Community School District,Wayne,79,27,11,,15519,2020-21
+2600016,Crestwood School District,Wayne,92,43,32,,12106,2020-21
+2600017,Bad Axe Public Schools,Huron,77,41,33,,11489,2020-21
+2600018,L'Anse Area Schools,Baraga,84,36,31,,12606,2020-21
+2600019,Superior Central Schools,Alger,95,47,32,,12693,2020-21
+2601103,Detroit Public Schools Community District,Wayne,72,24,10,,17246,2020-21
+2601890,Adams Township School District,Houghton,84,43,41,,10450,2020-21
+2601920,Addison Community Schools,Lenawee,84,40,22,,11644,2020-21
+2601950,Adrian City School District,Lenawee,82,35,25,,13109,2020-21
+2601980,Airport Community School District,Monroe,86,46,38,,11648,2020-21
+2602010,Akron-Fairgrove Schools,Tuscola,69,37,22,,12976,2020-21
+2602040,Alba Public Schools,Antrim,75,24,LE10,,12766,2020-21
+2602160,Alcona Community Schools,Alcona,95,36,24,,13750,2020-21
+2602190,Algonac Community School District,St. Clair,82,40,30,,11170,2020-21
+2602220,Allegan Public Schools,Allegan,79,37,26,,11795,2020-21
+2602520,Allen Park Public Schools,Wayne,89,46,24,,11388,2020-21
+2602550,Allendale Public School District,Ottawa,97,61,47,,11646,2020-21
+2602640,Alma Public Schools,Gratiot,87,44,28,,11708,2020-21
+2602670,Almont Community Schools,Lapeer,97,59,44,,10907,2020-21
+2602730,Alpena Public Schools,Alpena,83,38,26,,11325,2020-21
+2602790,Anchor Bay School District,St. Clair,93,54,44,,12234,2020-21
+2602820,Ann Arbor Public Schools,Washtenaw,91,81,71,,15265,2020-21
+2603240,Armada Area Schools,Macomb,97,62,53,,11426,2020-21
+2603480,Ashley Community Schools,Gratiot,69,37,27,,11696,2020-21
+2603510,Athens Area Schools,Calhoun,95,46,23,,12576,2020-21
+2603540,Atherton Community Schools,Genesee,67,23,13,,11789,2020-21
+2603570,Atlanta Community Schools,Montmorency,90,37,22,,12476,2020-21
+2603600,Au Gres-Sims School District,Arenac,74,47,32,,11970,2020-21
+2603690,Avondale School District,Oakland,74,48,34,,13004,2020-21
+2603810,Baldwin Community Schools,Lake,69,17,8,,19670,2020-21
+2603870,Bangor Public Schools,Van Buren,52,26,14,,12063,2020-21
+2603900,Bangor Township Schools,Bay,87,46,26,,10394,2020-21
+2603990,Baraga Area Schools,Baraga,90,37,17,,14200,2020-21
+2604020,Bark River-Harris School District,Menominee,95,50,44,,11329,2020-21
+2604170,Bath Community Schools,Clinton,92,47,25,,10700,2020-21
+2604260,Bay City School District,Bay,83,40,27,,11840,2020-21
+2604290,Beal City Public Schools,Isabella,95,50,40,,10527,2020-21
+2604320,Bear Lake School District,Manistee,90,32,22,,10378,2020-21
+2604350,Beaver Island Community School,Charlevoix,,50,50,,37429,2020-21
+2604440,Beaverton Rural Schools,Gladwin,87,37,24,,11517,2020-21
+2604470,Bedford Public Schools,Monroe,97,53,33,,10447,2020-21
+2604500,Beecher Community School District,Genesee,74,8,LE5,,14863,2020-21
+2604530,Belding Area School District,Ionia,97,31,23,,11600,2020-21
+2604620,Bellaire Public Schools,Antrim,95,42,22,,16564,2020-21
+2604650,Bellevue Community Schools,Eaton,84,30,14,,10800,2020-21
+2604740,Bendle Public Schools,Genesee,72,29,6,,12993,2020-21
+2604800,Bentley Community Schools,Genesee,72,27,10,,11005,2020-21
+2604830,Benton Harbor Area Schools,Berrien,57,3,LE1,,14276,2020-21
+2604950,Benzie County Central School,Benzie,82,44,33,,10762,2020-21
+2605010,Berkley School District,Oakland,97,62,47,,15978,2020-21
+2605430,Berrien Springs Public Schools,Berrien,38,41,21,,11842,2020-21
+2605690,Big Bay de Noc School District,Delta,24,42,22,,14705,2020-21
+2605780,Big Rapids Public Schools,Mecosta,69,52,36,,11639,2020-21
+2605820,Birch Run Area School District,Saginaw,87,44,33,,10755,2020-21
+2605850,Birmingham City School District,Oakland,97,71,58,,18145,2020-21
+2606000,Blissfield Community Schools,Lenawee,92,42,30,,11056,2020-21
+2606090,Bloomfield Hills School District,Oakland,96,74,65,,19782,2020-21
+2606270,Bloomingdale Public School District,Van Buren,77,25,13,,11666,2020-21
+2606500,Boyne City Public Schools,Charlevoix,82,54,39,,12483,2020-21
+2606510,Boyne Falls Public School District,Charlevoix,24,42,37,,16029,2020-21
+2606570,Brandon School District,Oakland,84,48,35,,11369,2020-21
+2606600,Brandywine Community Schools,Berrien,72,38,25,,11163,2020-21
+2606630,Breckenridge Community Schools,Gratiot,95,42,29,,12508,2020-21
+2606720,Breitung Township Schools,Dickinson,97,55,39,,10665,2020-21
+2606780,Bridgeport-Spaulding Community School District,Saginaw,72,17,7,,10810,2020-21
+2606840,Bridgman Public Schools,Berrien,95,69,60,,17225,2020-21
+2606870,Brighton Area Schools,Livingston,95,69,59,,14284,2020-21
+2606900,Brimley Area Schools,Chippewa,95,44,23,,12046,2020-21
+2606930,Britton Deerfield School District,Lenawee,95,47,23,,12031,2020-21
+2606960,Bronson Community School District,Branch,92,38,26,,10197,2020-21
+2606990,Columbia School District,Jackson,82,51,30,,10499,2020-21
+2607040,Brown City Community School District,Sanilac,92,39,25,,12474,2020-21
+2607080,Flat Rock Community Schools,Wayne,77,37,26,,10786,2020-21
+2607140,Buchanan Community School District,Berrien,82,56,40,,11702,2020-21
+2607170,Buckley Community School District,Wexford,69,39,33,,10524,2020-21
+2607320,Bullock Creek School District,Midland,92,55,37,,11912,2020-21
+2607410,Burr Oak Community School District,St. Joseph,90,32,LE5,,9558,2020-21
+2607470,Burt Township School District,Alger,,30,30,,30667,2020-21
+2607530,Byron Area Schools,Shiawassee,87,46,31,,10953,2020-21
+2607560,Byron Center Public Schools,Kent,96,73,69,,11086,2020-21
+2607590,Cadillac Area Public Schools,Wexford,73,53,45,,10602,2020-21
+2607620,Caledonia Community Schools,Kent,94,68,58,,11914,2020-21
+2607690,Calumet Public Schools,Houghton,67,54,37,,,2020-21
+2607710,Camden-Frontier School District,Hillsdale,95,40,22,,11869,2020-21
+2607800,Capac Community School District,St. Clair,87,39,23,,11684,2020-21
+2607890,Carman-Ainsworth Community School District,Genesee,83,28,12,,11130,2020-21
+2608010,Carney-Nadeau Public Schools,Menominee,54,37,22,,11242,2020-21
+2608040,Caro Community Schools,Tuscola,87,36,22,,11482,2020-21
+2608070,Carrollton School District,Saginaw,82,26,9,,13204,2020-21
+2608130,Carson City-Crystal Area School District,Montcalm,72,27,17,,10117,2020-21
+2608160,Carsonville-Port Sanilac School District,Sanilac,69,42,27,,12060,2020-21
+2608280,Caseville Public Schools,Huron,90,32,8,,12790,2020-21
+2608400,Cass City Public Schools,Tuscola,92,56,37,,11220,2020-21
+2608430,Cassopolis Public Schools,Cass,72,29,14,,12376,2020-21
+2608520,Cedar Springs Public Schools,Kent,84,48,35,,11209,2020-21
+2608580,Center Line Public Schools,Macomb,77,29,14,,13971,2020-21
+2608610,Central Lake Public Schools,Antrim,90,32,22,,13769,2020-21
+2608640,Central Montcalm Public Schools,Montcalm,87,38,21,,11594,2020-21
+2608670,Centreville Public Schools,St. Joseph,92,44,29,,10768,2020-21
+2608730,Charlevoix Public Schools,Charlevoix,97,55,44,,14009,2020-21
+2608770,Charlotte Public Schools,Eaton,87,40,31,,10489,2020-21
+2608880,Chassell Township School District,Houghton,69,47,42,,,2020-21
+2608910,Cheboygan Area Schools,Cheboygan,87,43,27,,10921,2020-21
+2608940,Chelsea School District,Washtenaw,99,57,53,,13499,2020-21
+2609150,Chesaning Union Schools,Saginaw,87,48,41,,11015,2020-21
+2609560,Chippewa Hills School District,Mecosta,77,42,24,,11172,2020-21
+2609570,Chippewa Valley Schools,Macomb,93,50,39,,11752,2020-21
+2609750,Clare Public Schools,Clare,82,45,27,,10633,2020-21
+2609840,Clarenceville School District,Wayne,87,33,18,,11127,2020-21
+2609900,Clarkston Community School District,Oakland,90,58,48,,12961,2020-21
+2609930,Clawson City School District,Oakland,82,55,33,,12849,2020-21
+2610020,Climax-Scotts Community School District,Kalamazoo,74,39,19,,11896,2020-21
+2610050,Clinton Community Schools,Lenawee,97,51,38,,10641,2020-21
+2610080,Clintondale Community Schools,Macomb,41,20,7,,11336,2020-21
+2610110,Clio Area School District,Genesee,84,44,27,,10737,2020-21
+2610140,Coldwater Community Schools,Branch,87,37,26,,11149,2020-21
+2610200,Coleman Community School District,Midland,95,39,16,,11895,2020-21
+2610380,Coloma Community Schools,Berrien,87,39,17,,12722,2020-21
+2610410,Colon Community School District,St. Joseph,84,28,17,,10858,2020-21
+2610560,Fairview Area School District,Oscoda,69,57,37,,11572,2020-21
+2610590,Comstock Public Schools,Kalamazoo,52,32,18,,13300,2020-21
+2610620,Comstock Park Public Schools,Kent,97,46,34,,11448,2020-21
+2610650,Concord Community Schools,Jackson,97,41,23,,12123,2020-21
+2610750,Constantine Public School District,St. Joseph,72,34,18,,10505,2020-21
+2610830,Coopersville Public School District,Ottawa,97,46,36,,11558,2020-21
+2610860,Corunna Public School District,Shiawassee,92,40,24,,11824,2020-21
+2610980,Covert Public Schools,Van Buren,69,27,8,,16074,2020-21
+2611030,Crawford AuSable Schools,Crawford,82,50,43,,11053,2020-21
+2611140,Croswell-Lexington Community School District,Sanilac,87,47,30,,10630,2020-21
+2611190,Forest Park School District,Iron,90,39,27,,11614,2020-21
+2611400,Dansville Schools,Ingham,95,51,26,,9723,2020-21
+2611430,Davison Community Schools,Genesee,89,57,40,,10694,2020-21
+2611550,DeWitt Public Schools,Clinton,98,60,51,,10186,2020-21
+2611600,Dearborn City School District,Wayne,95,39,26,,13709,2020-21
+2611610,Dearborn Heights School District 7,Wayne,77,26,13,,11345,2020-21
+2611640,Westwood Community Schools,Wayne,52,11,6,,14828,2020-21
+2611670,Decatur Public Schools,Van Buren,84,37,21,,11392,2020-21
+2611700,Deckerville Community School District,Sanilac,95,40,35,,12855,2020-21
+2611910,Delton-Kellogg School District,Barry,72,40,27,,11576,2020-21
+2611970,DeTour Area Schools,Chippewa,75,70,70,,39409,2020-21
+2612030,Dexter Community School District,Washtenaw,97,63,54,,13245,2020-21
+2612150,Dowagiac Union Schools,Cass,77,31,19,,11041,2020-21
+2612240,Dryden Community Schools,Lapeer,95,37,27,,10304,2020-21
+2612300,Dundee Community Schools,Monroe,92,57,42,,11094,2020-21
+2612330,Durand Area Schools,Shiawassee,92,38,17,,11066,2020-21
+2612420,East China School District,St. Clair,94,46,32,,11404,2020-21
+2612450,Eastpointe Community Schools,Macomb,69,11,3,,12340,2020-21
+2612480,East Grand Rapids Public School District,Kent,96,79,65,,11153,2020-21
+2612540,East Jackson Community Schools,Jackson,72,29,9,,14485,2020-21
+2612560,East Jordan Public Schools,Charlevoix,87,49,37,,13514,2020-21
+2612600,East Lansing School District,Ingham,91,73,50,,10857,2020-21
+2612690,Eaton Rapids Public Schools,Eaton,82,42,22,,11755,2020-21
+2612810,Eau Claire Public Schools,Berrien,64,20,9,,12626,2020-21
+2612930,Ecorse Public School District,Wayne,52,7,3,,14383,2020-21
+2612960,Montabella Community Schools,Montcalm,77,36,20,,12148,2020-21
+2612990,Edwardsburg Public Schools,Cass,92,66,51,,9995,2020-21
+2613050,Elk Rapids Schools,Antrim,87,65,47,,10406,2020-21
+2613090,Elkton-Pigeon-Bay Port Schools,Huron,95,47,31,,12807,2020-21
+2613110,Ellsworth Community Schools,Antrim,90,47,32,,12470,2020-21
+2613500,Escanaba Area Public Schools,Delta,90,46,31,,11124,2020-21
+2613530,Essexville-Hampton Public Schools,Bay,87,49,29,,10914,2020-21
+2613560,Evart Public Schools,Osceola,82,34,27,,12237,2020-21
+2614070,Farmington Public School District,Oakland,93,58,45,,14593,2020-21
+2614100,Farwell Area Schools,Clare,82,34,24,,11555,2020-21
+2614230,Fennville Public Schools,Allegan,82,32,18,,12059,2020-21
+2614250,Fenton Area Public Schools,Genesee,87,57,38,,10760,2020-21
+2614280,Ferndale Public Schools,Oakland,76,39,18,,12327,2020-21
+2614460,Fitzgerald Public Schools,Macomb,79,23,8,,13478,2020-21
+2614520,Flint City School District,Genesee,52,8,LE1,,20637,2020-21
+2614550,Flushing Community Schools,Genesee,87,41,25,,10752,2020-21
+2614570,Forest Area Community Schools,Kalkaska,74,31,16,,11823,2020-21
+2614610,Forest Hills Public Schools,Kent,96,74,65,,11828,2020-21
+2614690,Gwinn Area Community Schools,Marquette,84,30,16,,12533,2020-21
+2614700,Fowler Public Schools,Clinton,95,69,58,,11247,2020-21
+2614730,Fowlerville Community Schools,Livingston,84,42,30,,10809,2020-21
+2614760,Frankenmuth School District,Saginaw,97,60,48,,10021,2020-21
+2614790,Frankfort-Elberta Area Schools,Benzie,95,57,57,,16881,2020-21
+2614820,Fraser Public Schools,Macomb,95,43,31,,12377,2020-21
+2615060,Freeland Community School District,Saginaw,92,61,54,,9660,2020-21
+2615150,Fremont Public School District,Newaygo,82,45,34,,11378,2020-21
+2615390,Fruitport Community Schools,Muskegon,89,44,29,,12359,2020-21
+2615420,Fulton Schools,Gratiot,57,42,12,,11466,2020-21
+2615450,Galesburg-Augusta Community School District,Kalamazoo,72,41,24,,13728,2020-21
+2615540,Garden City School District,Wayne,74,36,22,,16594,2020-21
+2615600,Engadine Consolidated Schools,Mackinac,52,32,22,,12229,2020-21
+2615730,Gaylord Community Schools,Otsego,83,53,43,,11887,2020-21
+2615750,Genesee School District,Genesee,95,28,14,,10317,2020-21
+2615830,Roscommon Area Public Schools,Roscommon,95,44,30,,14228,2020-21
+2615870,Gibraltar School District,Wayne,89,46,29,,11185,2020-21
+2615970,Gladstone Area Schools,Delta,82,45,32,,10228,2020-21
+2615990,Gladwin Community Schools,Gladwin,87,51,28,,11674,2020-21
+2616020,Glen Lake Community Schools,Leelanau,95,56,47,,19280,2020-21
+2616050,Gobles Public School District,Van Buren,84,50,34,,12116,2020-21
+2616080,Godfrey-Lee Public Schools,Kent,87,27,9,,11573,2020-21
+2616110,Godwin Heights Public Schools,Kent,87,34,10,,13704,2020-21
+2616320,Goodrich Area Schools,Genesee,97,56,46,,11216,2020-21
+2616350,Grand Blanc Community Schools,Genesee,89,54,33,,10556,2020-21
+2616380,Grand Haven Area Public Schools,Ottawa,87,68,52,,12929,2020-21
+2616410,Grand Ledge Public Schools,Eaton,96,54,36,,10539,2020-21
+2616440,Grand Rapids Public Schools,Kent,81,29,15,,14164,2020-21
+2616470,Grandville Public Schools,Kent,96,61,49,,11566,2020-21
+2616500,Grant Public School District,Newaygo,82,40,23,,10992,2020-21
+2616830,Grass Lake Community Schools,Jackson,92,49,37,,11189,2020-21
+2617160,Greenville Public Schools,Montcalm,90,52,35,,10931,2020-21
+2617220,Grosse Ile Township Schools,Wayne,97,64,50,,12362,2020-21
+2617250,Gull Lake Community Schools,Kalamazoo,87,59,40,,12490,2020-21
+2617370,Hale Area Schools,Iosco,90,37,27,,14119,2020-21
+2617400,Hamilton Community Schools,Allegan,89,55,44,,12288,2020-21
+2617520,Hamtramck Public Schools,Wayne,80,17,9,,12895,2020-21
+2617550,Hancock Public Schools,Houghton,84,57,53,,11722,2020-21
+2617640,Hanover-Horton Schools,Jackson,92,50,29,,10730,2020-21
+2617700,Harbor Springs School District,Emmet,97,58,41,,17365,2020-21
+2617730,Harper Creek Community Schools,Calhoun,97,40,25,,11558,2020-21
+2617760,Harper Woods City Schools,Wayne,63,15,4,,11890,2020-21
+2617820,Harrison Community Schools,Clare,72,28,17,,12447,2020-21
+2617860,Hart Public School District,Oceana,87,38,18,,11649,2020-21
+2617880,Hartford Public School District,Van Buren,77,26,14,,10726,2020-21
+2617910,Hartland Consolidated Schools,Livingston,96,62,52,,9914,2020-21
+2617940,Haslett Public Schools,Ingham,95,63,55,,12277,2020-21
+2617970,Hastings Area School District,Barry,74,48,33,,10074,2020-21
+2618030,Hazel Park City School District,Oakland,43,24,10,,15671,2020-21
+2618180,Hemlock Public School District,Saginaw,67,47,33,,10395,2020-21
+2618270,Hesperia Community Schools,Newaygo,82,27,16,,12346,2020-21
+2618330,Highland Park City Schools,Wayne,,,,,,2020-21
+2618360,Hillman Community Schools,Montmorency,64,40,22,,11380,2020-21
+2618390,Hillsdale Community Schools,Hillsdale,87,38,26,,11445,2020-21
+2618420,Holland City School District,Ottawa,86,43,26,,13790,2020-21
+2618450,Holly Area School District,Oakland,90,52,31,,12425,2020-21
+2618480,Holt Public Schools,Ingham,84,46,28,,11680,2020-21
+2618510,Holton Public Schools,Muskegon,82,32,19,,11888,2020-21
+2618540,Homer Community Schools,Calhoun,92,29,18,,10970,2020-21
+2618570,Hopkins Public Schools,Allegan,97,51,48,,10988,2020-21
+2618600,Houghton Lake Community School District,Roscommon,62,36,18,,12121,2020-21
+2618720,Howell Public Schools,Livingston,91,52,41,,10656,2020-21
+2618810,Hudson Area Schools,Lenawee,67,33,18,,11133,2020-21
+2618840,Hudsonville Public School District,Ottawa,97,70,55,,11560,2020-21
+2618930,Huron School District,Wayne,94,46,37,,11927,2020-21
+2618990,Huron Valley Schools,Oakland,92,56,42,,12182,2020-21
+2619050,Ida Public School District,Monroe,97,55,39,,10800,2020-21
+2619100,Imlay City Community Schools,Lapeer,97,47,31,,11159,2020-21
+2619170,Inland Lakes Schools,Cheboygan,95,34,23,,13203,2020-21
+2619250,Ionia Public Schools,Ionia,72,39,23,,10454,2020-21
+2619410,Iron Mountain Public Schools,Dickinson,67,44,24,,10629,2020-21
+2619470,Ironwood Area Schools,Gogebic,77,40,23,,11699,2020-21
+2619530,Ishpeming Public School District,Marquette,87,47,28,,11948,2020-21
+2619580,Ithaca Public Schools,Gratiot,92,48,31,,10920,2020-21
+2619620,Jackson Public Schools,Jackson,72,28,15,,12367,2020-21
+2619800,Jefferson Schools,Monroe,82,38,19,,11684,2020-21
+2619830,Jenison Public Schools,Ottawa,97,66,57,,12364,2020-21
+2619890,Johannesburg-Lewiston Area School District,Otsego,95,42,33,,11874,2020-21
+2619920,Jonesville Community Schools,Hillsdale,92,40,29,,11321,2020-21
+2619950,Kalamazoo Public School District,Kalamazoo,76,72,43,,12689,2020-21
+2620010,Kaleva Norman Dickson School District,Manistee,84,34,18,,11020,2020-21
+2620050,Kalkaska Public Schools,Kalkaska,72,38,24,,12926,2020-21
+2620070,Kearsley Community Schools,Genesee,80,38,24,,10869,2020-21
+2620160,Kelloggsville Public Schools,Kent,82,32,9,,12426,2020-21
+2620280,Kenowa Hills Public Schools,Kent,91,46,33,,12207,2020-21
+2620310,Kent City Community Schools,Kent,92,38,30,,12122,2020-21
+2620340,Kentwood Public Schools,Kent,84,46,34,,11950,2020-21
+2620380,Kingsley Area Schools,Grand Traverse,92,65,46,,10888,2020-21
+2620400,Kingston Community School District,Tuscola,84,49,39,,10146,2020-21
+2620550,Laingsburg Community School District,Shiawassee,92,55,32,,9508,2020-21
+2620610,Lake City Area School District,Missaukee,82,39,33,,11491,2020-21
+2620670,Lake Fenton Community Schools,Genesee,97,52,40,,10293,2020-21
+2620700,Lake Linden-Hubbell School District,Houghton,95,42,37,,11837,2020-21
+2620730,Lake Orion Community Schools,Oakland,96,64,49,,13083,2020-21
+2620820,Lakeshore School District,Berrien,92,65,56,,10708,2020-21
+2620850,Lakeview School District,Calhoun,90,40,28,,10696,2020-21
+2620880,Lakeview Public Schools,Macomb,95,51,32,,11915,2020-21
+2620910,Lakeview Community Schools,Montcalm,87,44,28,,12057,2020-21
+2620940,Lakeville Community Schools,Genesee,82,30,18,,11348,2020-21
+2620980,Lakewood Public Schools,Barry,92,49,34,,11127,2020-21
+2621120,Lamphere Public Schools,Oakland,87,49,28,,15289,2020-21
+2621150,Lansing Public School District,Ingham,69,37,12,,15882,2020-21
+2621180,Lapeer Community Schools,Lapeer,80,49,31,,11555,2020-21
+2621210,Lawrence Public School District,Van Buren,95,36,22,,12649,2020-21
+2621240,Lawton Community School District,Van Buren,87,45,27,,10706,2020-21
+2621390,Leland Public School District,Leelanau,84,53,50,,15285,2020-21
+2621420,Les Cheneaux Community Schools,Mackinac,75,52,47,,16000,2020-21
+2621450,Leslie Public Schools,Ingham,82,39,23,,13272,2020-21
+2621570,Lincoln Consolidated School District,Washtenaw,84,33,17,,12934,2020-21
+2621600,Lincoln Park Public Schools,Wayne,81,32,15,,16167,2020-21
+2621690,Linden Community Schools,Genesee,96,54,38,,10557,2020-21
+2621750,Litchfield Community Schools,Hillsdale,90,17,LE5,,13121,2020-21
+2621810,Alanson Public Schools,Emmet,69,37,27,,13390,2020-21
+2621840,Livonia Public Schools,Wayne,94,59,46,,13848,2020-21
+2621870,L'Anse Creuse Public Schools,Macomb,90,51,31,,11688,2020-21
+2622050,Lowell Area Schools,Kent,93,64,51,,11060,2020-21
+2622200,Ludington Area School District,Mason,92,50,37,,11678,2020-21
+2622230,Mackinac Island Public Schools,Mackinac,,54,34,,30542,2020-21
+2622260,Mackinaw City Public Schools,Emmet,75,47,27,,20933,2020-21
+2622290,Madison Public Schools,Oakland,82,21,9,,15163,2020-21
+2622320,Madison School District,Lenawee,87,51,34,,11831,2020-21
+2622350,Mancelona Public Schools,Antrim,87,41,28,,12438,2020-21
+2622380,Manchester Community Schools,Washtenaw,97,46,37,,11760,2020-21
+2622410,Manistee Area Schools,Manistee,82,38,33,,11223,2020-21
+2622470,Manistique Area Schools,Schoolcraft,95,42,29,,12469,2020-21
+2622500,Manton Consolidated Schools,Wexford,92,43,27,,11253,2020-21
+2622620,Maple Valley Schools,Eaton,87,36,27,,12088,2020-21
+2622740,Marcellus Community Schools,Cass,95,38,25,,12528,2020-21
+2622800,Marion Public Schools,Osceola,69,47,27,,13890,2020-21
+2622860,Marlette Community Schools,Sanilac,95,55,38,,11288,2020-21
+2622970,Marshall Public Schools,Calhoun,76,44,28,,12247,2020-21
+2622980,Martin Public Schools,Allegan,95,43,24,,10510,2020-21
+2623040,Marysville Public Schools,St. Clair,97,53,42,,9121,2020-21
+2623070,Mason Public Schools,Ingham,93,57,44,,11095,2020-21
+2623100,Mason Consolidated Schools,Monroe,92,49,38,,10759,2020-21
+2623130,Mason County Central Schools,Mason,92,39,24,,10633,2020-21
+2623160,Mason County Eastern District,Mason,90,42,27,,11059,2020-21
+2623250,Mattawan Consolidated School,Van Buren,94,62,51,,10221,2020-21
+2623280,Mayville Community School District,Tuscola,64,33,27,,10469,2020-21
+2623310,McBain Rural Agricultural Schools,Missaukee,92,54,43,,11058,2020-21
+2623460,Melvindale-North Allen Park School District,Wayne,88,16,7,,12025,2020-21
+2623490,Memphis Community Schools,Macomb,95,52,34,,12166,2020-21
+2623520,Mendon Community School District,St. Joseph,84,31,15,,10227,2020-21
+2623550,Menominee Area Public Schools,Menominee,97,42,26,,11318,2020-21
+2623580,Meridian Public Schools,Midland,92,47,30,,11578,2020-21
+2623610,Merrill Community Schools,Saginaw,84,32,19,,10932,2020-21
+2623670,Mesick Consolidated Schools,Wexford,84,47,25,,12473,2020-21
+2623790,Michigan Center School District,Jackson,97,37,19,,11607,2020-21
+2623820,Midland Public Schools,Midland,91,64,49,,11853,2020-21
+2623830,Mid Peninsula School District,Delta,75,12,LE5,,11753,2020-21
+2623850,Milan Area Schools,Monroe,88,42,31,,12159,2020-21
+2623910,Millington Community Schools,Tuscola,92,37,23,,10753,2020-21
+2624000,Mio-AuSable Schools,Oscoda,84,33,31,,13748,2020-21
+2624120,Mona Shores Public School District,Muskegon,95,48,30,,11674,2020-21
+2624150,Monroe Public Schools,Monroe,86,47,24,,11361,2020-21
+2624180,Montague Area Public Schools,Muskegon,87,40,38,,12233,2020-21
+2624420,Montrose Community Schools,Genesee,77,41,27,,11204,2020-21
+2624570,Morenci Area Schools,Lenawee,84,43,28,,11960,2020-21
+2624600,Morley Stanwood Community Schools,Mecosta,92,33,24,,12590,2020-21
+2624630,Morrice Area Schools,Shiawassee,84,43,20,,11622,2020-21
+2624690,Mount Clemens Community School District,Macomb,64,11,4,,15998,2020-21
+2624720,Mount Morris Consolidated School District,Genesee,52,19,7,,12070,2020-21
+2624750,Mount Pleasant City School District,Isabella,74,48,33,,12637,2020-21
+2624810,Munising Public Schools,Alger,95,49,28,,12646,2020-21
+2624840,Muskegon City School District,Muskegon,82,12,4,,13199,2020-21
+2624870,Muskegon Heights School District,Muskegon,,,,,,2020-21
+2624960,Napoleon Community Schools,Jackson,87,48,28,,10294,2020-21
+2625020,Negaunee Public Schools,Marquette,97,58,41,,11612,2020-21
+2625140,New Buffalo Area School District,Berrien,84,64,58,,26109,2020-21
+2625230,New Haven Community Schools,Macomb,82,39,25,,11195,2020-21
+2625290,New Lothrop Area Public School,Shiawassee,97,58,42,,10526,2020-21
+2625320,Newaygo Public School District,Newaygo,97,40,23,,11018,2020-21
+2625350,Tahquamenon Area Schools,Luce,84,37,23,,12541,2020-21
+2625400,N.I.C.E. Community Schools,Marquette,97,53,35,,12907,2020-21
+2625560,Niles Community School District,Berrien,72,43,33,,11846,2020-21
+2625650,North Adams-Jerome Schools,Hillsdale,75,27,8,,10980,2020-21
+2625680,North Branch Area Schools,Lapeer,87,49,37,,9478,2020-21
+2625740,Grosse Pointe Public Schools,Wayne,96,68,56,,16350,2020-21
+2625780,North Huron School District,Huron,90,37,27,,14561,2020-21
+2625800,North Muskegon Public Schools,Muskegon,97,67,52,,11260,2020-21
+2625920,Northport Public School District,Leelanau,75,47,27,,29582,2020-21
+2625950,Northview Public School District,Kent,88,50,32,,11186,2020-21
+2625980,Northville Public Schools,Wayne,97,75,68,,13583,2020-21
+2626010,Northwest School District,Jackson,78,41,19,,9947,2020-21
+2626040,Norway-Vulcan Area Schools,Dickinson,92,47,51,,11318,2020-21
+2626130,Novi Community School District,Oakland,93,72,73,,12531,2020-21
+2626190,Oak Park City School District,Oakland,67,15,5,,13809,2020-21
+2626220,Oakridge Public Schools,Muskegon,82,40,17,,10833,2020-21
+2626280,Okemos Public Schools,Ingham,96,76,60,,11655,2020-21
+2626370,Olivet Community Schools,Eaton,92,54,37,,10664,2020-21
+2626400,Onaway Area Community School District,Presque Isle,95,40,27,,12254,2020-21
+2626490,Onekama Consolidated Schools,Manistee,95,47,37,,12804,2020-21
+2626520,Onsted Community Schools,Lenawee,82,48,30,,11012,2020-21
+2626550,Ontonagon Area Schools,Ontonagon,90,52,32,,11903,2020-21
+2626760,Orchard View Schools,Muskegon,57,25,12,,12421,2020-21
+2626940,Dollar Bay-Tamarack City Area Schools,Houghton,90,52,32,,9786,2020-21
+2626970,Oscoda Area Schools,Iosco,95,38,31,,11572,2020-21
+2627060,Otsego Public Schools,Allegan,92,57,39,,11092,2020-21
+2627150,Ovid-Elsie Area Schools,Clinton,92,46,33,,11310,2020-21
+2627180,Owendale-Gagetown Area Schools,Huron,75,27,17,,12221,2020-21
+2627210,Owosso Public Schools,Shiawassee,86,33,21,,11047,2020-21
+2627240,Oxford Area Community Schools,Oakland,92,58,42,,13193,2020-21
+2627420,Parchment School District,Kalamazoo,82,36,22,,12384,2020-21
+2627660,Paw Paw Public School District,Van Buren,77,55,34,,11015,2020-21
+2627690,Peck Community School District,Sanilac,90,27,12,,11138,2020-21
+2627720,Pellston Public Schools,Emmet,84,41,25,,14564,2020-21
+2627810,Pennfield School District,Calhoun,92,33,18,,11089,2020-21
+2627840,Pentwater Public School District,Oceana,90,52,47,,13488,2020-21
+2627900,Perry Public School District,Shiawassee,92,43,27,,11516,2020-21
+2627930,Public Schools of Petoskey,Emmet,77,64,49,,12087,2020-21
+2627960,Pewamo-Westphalia Community School District,Clinton,97,67,57,,11256,2020-21
+2628020,Pickford Public Schools,Chippewa,90,42,29,,10582,2020-21
+2628140,Pinckney Community Schools,Livingston,88,52,34,,10412,2020-21
+2628170,Pinconning Area Schools,Bay,82,45,26,,10846,2020-21
+2628200,Pine River Area Schools,Osceola,92,38,22,,11433,2020-21
+2628500,Pittsford Area Schools,Hillsdale,84,27,8,,12404,2020-21
+2628530,Plainwell Community Schools,Allegan,88,48,30,,10420,2020-21
+2628560,Plymouth-Canton Community Schools,Wayne,90,66,58,,11951,2020-21
+2628740,Pontiac City School District,Oakland,59,17,8,,14924,2020-21
+2628830,Port Huron Area School District,St. Clair,78,37,23,,11991,2020-21
+2628890,Houghton-Portage Township Schools,Houghton,97,69,65,,10459,2020-21
+2628950,Portage Public Schools,Kalamazoo,94,63,48,,11311,2020-21
+2629120,Portland Public School District,Ionia,72,50,30,,10221,2020-21
+2629130,Posen Consolidated School District,Presque Isle,90,47,32,,11271,2020-21
+2629160,Potterville Public Schools,Eaton,82,39,20,,11527,2020-21
+2629220,North Central Area Schools,Menominee,90,57,22,,11967,2020-21
+2629250,Quincy Community School District,Branch,92,43,27,,10085,2020-21
+2629340,Rapid River Public Schools,Delta,90,47,32,,12190,2020-21
+2629370,Ravenna Public Schools,Muskegon,92,39,16,,11294,2020-21
+2629400,Reading Community Schools,Hillsdale,84,36,27,,11743,2020-21
+2629460,Redford Union School District,Wayne,63,23,8,,18546,2020-21
+2629490,Reed City Area Public Schools,Osceola,92,39,30,,11348,2020-21
+2629520,Reese Public Schools,Tuscola,92,49,38,,12214,2020-21
+2629540,Reeths-Puffer Schools,Muskegon,89,44,28,,11448,2020-21
+2629580,Republic-Michigamme Schools,Marquette,75,44,24,,24587,2020-21
+2629670,Richmond Community Schools,Macomb,97,46,30,,10909,2020-21
+2629760,River Rouge School District,Wayne,82,12,3,,11702,2020-21
+2629790,River Valley School District,Berrien,95,56,30,,17146,2020-21
+2629910,Riverview Community School District,Wayne,93,45,28,,10647,2020-21
+2629940,Rochester Community School District,Oakland,97,69,60,,11794,2020-21
+2630030,Rockford Public Schools,Kent,92,64,59,,11193,2020-21
+2630060,Rogers City Area Schools,Presque Isle,95,44,24,,13421,2020-21
+2630090,Romeo Community Schools,Macomb,93,51,43,,11870,2020-21
+2630120,Romulus Community Schools,Wayne,72,21,9,,13180,2020-21
+2630210,Roseville Community Schools,Macomb,89,24,11,,12255,2020-21
+2630300,Royal Oak City School District,Oakland,93,59,41,,13129,2020-21
+2630360,Rudyard Area Schools,Chippewa,90,42,34,,12126,2020-21
+2630390,Saginaw City School District,Saginaw,81,29,20,,14269,2020-21
+2630450,Saginaw Township Community Schools,Saginaw,76,45,27,,11325,2020-21
+2630480,North Dickinson County Schools,Dickinson,90,42,42,,11686,2020-21
+2630660,Saline Area Schools,Washtenaw,94,70,59,,12984,2020-21
+2630780,Sand Creek Community Schools,Lenawee,84,48,35,,11499,2020-21
+2630840,Sandusky Community School District,Sanilac,84,48,40,,10536,2020-21
+2630930,Saranac Community Schools,Ionia,95,39,35,,10449,2020-21
+2630960,Saugatuck Public Schools,Allegan,84,64,51,,12825,2020-21
+2630990,Sault Ste. Marie Area Schools,Chippewa,82,44,35,,11346,2020-21
+2631020,Schoolcraft Community Schools,Kalamazoo,87,56,55,,11374,2020-21
+2631320,Shelby Public Schools,Oceana,82,31,18,,13478,2020-21
+2631380,Shepherd Public School District,Isabella,82,43,30,,10298,2020-21
+2632220,South Lake Schools,Macomb,97,26,11,,12862,2020-21
+2632250,South Lyon Community Schools,Oakland,96,59,46,,11057,2020-21
+2632280,South Redford School District,Wayne,89,29,11,,14046,2020-21
+2632300,South Haven Public Schools,Van Buren,82,37,20,,12046,2020-21
+2632310,Southfield Public School District,Oakland,88,37,17,,18011,2020-21
+2632340,Southgate Community School District,Wayne,73,36,21,,14282,2020-21
+2632370,Sparta Area Schools,Kent,87,47,33,,11543,2020-21
+2632550,Spring Lake Public Schools,Ottawa,97,77,72,,12049,2020-21
+2632610,Springport Public Schools,Jackson,87,33,25,,12155,2020-21
+2632640,St. Charles Community Schools,Saginaw,82,47,35,,10162,2020-21
+2632670,Lake Shore Public Schools,Macomb,83,40,22,,13049,2020-21
+2632820,St. Johns Public Schools,Clinton,94,50,33,,10433,2020-21
+2632850,St. Joseph Public Schools,Berrien,97,64,53,,10520,2020-21
+2632880,St. Louis Public Schools,Gratiot,87,37,19,,11287,2020-21
+2632910,West Iron County Public Schools,Iron,95,46,38,,14103,2020-21
+2632940,Standish-Sterling Community School District,Arenac,92,51,37,,11801,2020-21
+2633000,Stephenson Area Public Schools,Menominee,84,50,39,,11028,2020-21
+2633030,Stockbridge Community Schools,Ingham,92,38,30,,11207,2020-21
+2633090,Sturgis Public Schools,St. Joseph,84,32,20,,10945,2020-21
+2633120,Summerfield School District,Monroe,95,49,39,,11388,2020-21
+2633360,Suttons Bay Public Schools,Leelanau,67,37,22,,11779,2020-21
+2633410,Swan Valley School District,Saginaw,92,56,42,,9238,2020-21
+2633420,Swartz Creek Community Schools,Genesee,86,44,23,,11535,2020-21
+2633510,Tawas Area Schools,Iosco,92,51,34,,10626,2020-21
+2633540,Taylor School District,Wayne,65,27,14,,14110,2020-21
+2633720,Tecumseh Public Schools,Lenawee,88,48,34,,10895,2020-21
+2633750,Tekonsha Community Schools,Calhoun,90,27,8,,12717,2020-21
+2633810,Thornapple Kellogg School District,Barry,94,51,40,,11227,2020-21
+2633840,Three Rivers Community Schools,St. Joseph,87,45,37,,12588,2020-21
+2633870,Traverse City Area Public Schools,Grand Traverse,91,56,45,,11776,2020-21
+2633900,Trenton Public Schools,Wayne,97,53,44,,14726,2020-21
+2633930,Tri County Area Schools,Kent,97,42,26,,11793,2020-21
+2634260,Troy School District,Oakland,94,75,68,,12735,2020-21
+2634380,Ubly Community Schools,Huron,95,52,32,,13285,2020-21
+2634410,Union City Community Schools,Branch,82,39,22,,11511,2020-21
+2634440,Unionville-Sebewaing Area School District,Huron,92,46,34,,11560,2020-21
+2634470,Utica Community Schools,Macomb,96,53,38,,11538,2020-21
+2634560,Van Buren Public Schools,Wayne,79,43,33,,12586,2020-21
+2634620,Vanderbilt Area Schools,Otsego,75,24,15,,13433,2020-21
+2634650,Vandercook Lake Public Schools,Jackson,84,27,14,,11240,2020-21
+2634680,Van Dyke Public Schools,Macomb,77,19,7,,13865,2020-21
+2634710,Vassar Public Schools,Tuscola,87,24,20,,13365,2020-21
+2634920,Vestaburg Community Schools,Montcalm,42,37,27,,11190,2020-21
+2634950,Vicksburg Community Schools,Kalamazoo,84,56,42,,11476,2020-21
+2635010,Wakefield-Marenisco School District,Gogebic,90,37,27,,12149,2020-21
+2635040,Waldron Area Schools,Hillsdale,69,22,8,,12664,2020-21
+2635130,Walkerville Rural Community School District,Oceana,75,22,17,,15058,2020-21
+2635160,Walled Lake Consolidated Schools,Oakland,92,60,52,,12504,2020-21
+2635190,Warren Consolidated Schools,Macomb,89,39,18,,13946,2020-21
+2635220,Warren Woods Public Schools,Macomb,81,40,23,,12828,2020-21
+2635310,Waterford School District,Oakland,87,42,26,,13902,2020-21
+2635340,Watersmeet Township School District,Gogebic,,24,LE10,,,2020-21
+2635460,Watervliet School District,Berrien,57,43,31,,10697,2020-21
+2635520,Waverly Community Schools,Eaton,94,40,22,,12264,2020-21
+2635550,Wayland Union Schools,Allegan,82,51,45,,11456,2020-21
+2635730,Webberville Community Schools,Ingham,95,42,24,,10393,2020-21
+2635820,West Bloomfield School District,Oakland,97,55,42,,12933,2020-21
+2635850,West Branch-Rose City Area Schools,Ogemaw,92,43,27,,11506,2020-21
+2635910,West Ottawa Public School District,Ottawa,89,52,37,,12217,2020-21
+2635940,Western School District,Jackson,81,50,33,,10602,2020-21
+2635970,Westwood Heights Schools,Genesee,63,12,LE5,,10978,2020-21
+2636060,White Cloud Public Schools,Newaygo,77,32,17,,12322,2020-21
+2636120,White Pigeon Community Schools,St. Joseph,95,28,12,,11651,2020-21
+2636240,Whitefish Township Schools,Chippewa,,15,LE10,,20750,2020-21
+2636270,Whiteford Agricultural School District,Monroe,95,60,52,,10871,2020-21
+2636300,Whitehall School District,Muskegon,82,55,40,,12628,2020-21
+2636330,Whitmore Lake Public Schools,Washtenaw,92,44,34,,14860,2020-21
+2636390,Whittemore-Prescott Area Schools,Iosco,95,25,11,,12273,2020-21
+2636420,Williamston Community Schools,Ingham,97,62,49,,10435,2020-21
+2636480,Wolverine Community Schools,Cheboygan,90,27,8,,11299,2020-21
+2636485,Woodhaven-Brownstown School District,Wayne,86,49,32,,12431,2020-21
+2636540,Wyandotte City School District,Wayne,84,45,27,,16249,2020-21
+2636570,Wyoming Public Schools,Kent,83,39,16,,12133,2020-21
+2636600,Yale Public Schools,St. Clair,87,62,40,,10692,2020-21
+2636630,Ypsilanti Community Schools,Washtenaw,72,20,11,,16079,2020-21
+2636660,Zeeland Public Schools,Ottawa,92,64,47,,12342,2020-21
+2699997,School District Not Defined,,,,,,,2020-21
