@@ -1,0 +1,329 @@
+/* ================================================================
+   list.css — Curated list pages and eval snippet component.
+   Tokens from tokens.css; patterns follow base.css conventions.
+   ================================================================ */
+
+/* ---- List Page Layout ---- */
+
+.list-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.list-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.list-header h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.list-header .list-intro {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ---- List Entries ---- */
+
+.list-entry {
+  display: flex;
+  gap: var(--space-base);
+  padding: var(--space-lg) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.list-entry:last-child {
+  border-bottom: none;
+}
+
+.list-entry-rank {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.list-entry-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-entry-narrative {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed);
+  margin-top: var(--space-md);
+}
+
+/* ---- Related Lists ---- */
+
+.list-related {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.list-related h2 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.list-related ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list-related li {
+  padding: var(--space-sm) 0;
+}
+
+.list-related a {
+  color: var(--color-text-accent);
+  text-decoration: none;
+  font-size: var(--font-size-body);
+}
+
+.list-related a:hover {
+  text-decoration: underline;
+}
+
+/* ---- CTA ---- */
+
+.list-cta {
+  text-align: center;
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+}
+
+.list-cta-button {
+  display: inline-block;
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-button);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.list-cta-button:hover {
+  background: var(--color-brand-light);
+  color: var(--color-text-inverse);
+}
+
+/* ================================================================
+   Eval Snippet Component
+   ================================================================ */
+
+.eval-snippet {
+  margin-top: var(--space-sm);
+}
+
+.eval-snippet-label {
+  font-size: var(--type-l5-size);
+  font-weight: var(--type-l5-weight);
+  letter-spacing: var(--type-l5-tracking);
+  text-transform: var(--type-l5-transform);
+  color: var(--type-l5-color);
+  margin-bottom: var(--space-sm);
+}
+
+.eval-snippet-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  padding: var(--space-lg);
+}
+
+.eval-snippet-address {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-base);
+}
+
+/* ---- Proximity Highlights ---- */
+
+.snippet-proximity {
+  margin-bottom: var(--space-base);
+}
+
+.snippet-section-label {
+  font-size: var(--type-l2-size);
+  font-weight: var(--type-l2-weight);
+  letter-spacing: var(--type-l2-tracking);
+  text-transform: var(--type-l2-transform);
+  color: var(--type-l2-color);
+  margin-bottom: var(--space-sm);
+}
+
+.snippet-proximity-item {
+  padding: var(--space-sm) 0;
+}
+
+.snippet-proximity-headline {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.snippet-proximity-icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-small);
+  line-height: 1;
+}
+
+.snippet-proximity-icon--clear {
+  color: var(--color-pass);
+}
+
+.snippet-proximity-icon--issue {
+  color: var(--color-fail);
+}
+
+.snippet-proximity-icon--warning {
+  color: var(--color-warning);
+}
+
+.snippet-proximity-icon--unverified {
+  color: var(--color-text-faint);
+}
+
+.snippet-proximity-detail {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  padding-left: calc(var(--font-size-small) + var(--space-sm));
+}
+
+/* ---- Places Grid ---- */
+
+.snippet-places {
+  margin-bottom: var(--space-base);
+}
+
+.snippet-places-grid {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.snippet-place {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.snippet-place-icon {
+  flex-shrink: 0;
+  font-size: var(--font-size-h3);
+  line-height: 1;
+}
+
+.snippet-place-info {
+  min-width: 0;
+}
+
+.snippet-place-name {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.snippet-place-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.snippet-place-rating {
+  color: var(--color-text-faint);
+}
+
+/* ---- Assessment ---- */
+
+.snippet-assessment {
+  margin-top: var(--space-base);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.snippet-assessment-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ---- Snippet CTA ---- */
+
+.eval-snippet-cta {
+  margin-top: var(--space-md);
+  text-align: center;
+}
+
+.eval-snippet-cta a {
+  font-size: var(--font-size-small);
+  color: var(--color-text-accent);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.eval-snippet-cta a:hover {
+  text-decoration: underline;
+}
+
+/* ================================================================
+   Mobile (max-width: 640px)
+   ================================================================ */
+
+@media (max-width: 640px) {
+  .list-page {
+    padding: var(--space-lg) var(--space-base);
+  }
+
+  .list-entry {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .list-entry-rank {
+    align-self: flex-start;
+  }
+
+  .snippet-places-grid {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .eval-snippet-card {
+    padding: var(--space-base);
+  }
+}
