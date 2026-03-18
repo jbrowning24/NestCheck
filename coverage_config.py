@@ -57,6 +57,8 @@ class SourceStatus(str, Enum):
 # "context" = informational area data (never scored).
 DIMENSION_LABELS = {
     "health": "Health & Safety",
+    "green_space": "Parks & Green Space",
+    "transit": "Getting Around",
     "education": "Education",
     "context": "Area Context",
 }
@@ -80,6 +82,9 @@ SOURCE_DISPLAY_LIST = [
     {"key": "HIFLD", "name": "Power Lines", "dimension": "Health", "source_org": "DHS"},
     {"key": "FRA", "name": "Rail Lines", "dimension": "Health", "source_org": "FRA"},
     {"key": "FEMA_NFHL", "name": "Flood Zones", "dimension": "Health", "source_org": "FEMA"},
+    {"key": "GOOGLE_PLACES_PARKS", "name": "Park & Green Space Venues", "dimension": "Parks", "source_org": "Google"},
+    {"key": "GOOGLE_TRANSIT", "name": "Transit Stations & Routes", "dimension": "Transit", "source_org": "Google"},
+    {"key": "OVERPASS_SIDEWALKS", "name": "Sidewalk & Pedestrian Data", "dimension": "Transit", "source_org": "OSM"},
     {"key": "SCHOOL_DISTRICTS", "name": "School Districts", "dimension": "Education", "source_org": "Census"},
     {"key": "STATE_EDUCATION", "name": "School Performance", "dimension": "Education", "source_org": "State DOE"},
     {"key": "NCES_SCHOOLS", "name": "School Locations", "dimension": "Education", "source_org": "NCES"},
@@ -197,6 +202,30 @@ _SOURCE_METADATA = {
         "state_key_format": "fips",
         "notes": "2022-23 school year from EDGE open data.",
     },
+    "GOOGLE_PLACES_PARKS": {
+        "description": "Park & Green Space Venues (Google Places)",
+        "table": None,  # fetched live via Google Places API
+        "dimension": "green_space",
+        "source_url": "https://developers.google.com/maps/documentation/places",
+        "state_filter": None,
+        "notes": "Fetched live per-evaluation via Google Places API. No spatial.db table.",
+    },
+    "GOOGLE_TRANSIT": {
+        "description": "Transit Stations & Routes (Google Maps)",
+        "table": None,  # fetched live via Google Maps API
+        "dimension": "transit",
+        "source_url": "https://developers.google.com/maps/documentation/directions",
+        "state_filter": None,
+        "notes": "Fetched live per-evaluation via Google Maps API. No spatial.db table.",
+    },
+    "OVERPASS_SIDEWALKS": {
+        "description": "Sidewalk & Pedestrian Infrastructure (OpenStreetMap)",
+        "table": None,  # fetched live via Overpass API
+        "dimension": "transit",
+        "source_url": "https://wiki.openstreetmap.org/wiki/Overpass_API",
+        "state_filter": None,
+        "notes": "Fetched live per-evaluation via Overpass API. No spatial.db table.",
+    },
     "CENSUS_ACS": {
         "description": "Census American Community Survey (5-Year)",
         "table": None,  # fetched live via API, not in spatial.db
@@ -245,6 +274,9 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HIFLD": "active",          # bbox covers NY (2,126 total)
         "FRA": "active",            # bbox covers NY (9,832 total)
         "FEMA_NFHL": "active",      # bbox covers NY (17,907 total)
+        "GOOGLE_PLACES_PARKS": "active",   # live API
+        "GOOGLE_TRANSIT": "active",        # live API
+        "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 665 rows
         "STATE_EDUCATION": "active",   # 691 rows (NYSED)
         "NCES_SCHOOLS": "active",      # 4,835 rows
@@ -260,6 +292,9 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HIFLD": "active",          # bbox covers NJ
         "FRA": "active",            # bbox covers NJ
         "FEMA_NFHL": "active",      # bbox covers NJ
+        "GOOGLE_PLACES_PARKS": "active",   # live API
+        "GOOGLE_TRANSIT": "active",        # live API
+        "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 342 rows
         "STATE_EDUCATION": "active",   # 25 rows (NJDOE)
         "NCES_SCHOOLS": "active",      # 2,566 rows
@@ -275,6 +310,9 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HIFLD": "active",          # bbox covers CT
         "FRA": "active",            # bbox covers CT
         "FEMA_NFHL": "active",      # bbox covers CT
+        "GOOGLE_PLACES_PARKS": "active",   # live API
+        "GOOGLE_TRANSIT": "active",        # live API
+        "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 114 rows
         "STATE_EDUCATION": "active",   # 34 rows (EdSight/CTData)
         "NCES_SCHOOLS": "active",      # 1,022 rows
@@ -290,6 +328,9 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HIFLD": "planned",         # bbox doesn't cover MI
         "FRA": "planned",           # bbox doesn't cover MI
         "FEMA_NFHL": "planned",     # bbox doesn't cover MI
+        "GOOGLE_PLACES_PARKS": "active",   # live API
+        "GOOGLE_TRANSIT": "active",        # live API
+        "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "intended",  # targeted but 0 rows
         "STATE_EDUCATION": "active",     # 514 rows (CEPI)
         "NCES_SCHOOLS": "intended",      # targeted but 0 rows
@@ -442,6 +483,9 @@ _SOURCE_TO_REGISTRY_KEY = {
     "SCHOOL_DISTRICTS": "school_districts",
     "STATE_EDUCATION": "state_education_performance",
     "NCES_SCHOOLS": "nces_schools",
+    "GOOGLE_PLACES_PARKS": None,  # live API, not in registry
+    "GOOGLE_TRANSIT": None,  # live API, not in registry
+    "OVERPASS_SIDEWALKS": None,  # live API, not in registry
     "CENSUS_ACS": None,  # live API, not in registry
 }
 
@@ -466,13 +510,14 @@ def get_source_last_refreshed(source_key: str) -> Optional[str]:
 # bulk data.
 SECTION_DIMENSION_MAP = {
     "health": ["health"],           # Health & Environment section
-    "parks": ["health"],            # Parks use ParkServe (not in spatial.db yet)
-                                    # but park scoring uses Google Places (live).
-                                    # Green space checks use spatial health data.
+    "parks": ["green_space"],       # Park scoring uses Google Places (live).
+                                    # Own dimension so badge reflects parks data,
+                                    # not health bucket. Add ParkServe source here
+                                    # when ingested.
     "road_noise": ["health"],       # Road noise uses HPMS data (health dimension)
-    "getting_around": ["health"],   # Transit/walk quality — sidewalk from Overpass
-                                    # (live), transit from Google (live), but walk
-                                    # quality uses spatial features.
+    "getting_around": ["transit"],  # Transit from Google (live), sidewalks from
+                                    # Overpass (live). Own dimension so badge
+                                    # reflects transit data independently.
     "school_district": ["education"],  # School district + NCES schools
     "ejscreen": ["health"],         # EPA Environmental Profile section
 }

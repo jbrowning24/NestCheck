@@ -137,6 +137,16 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("NY")
         assert dims["education"] == CoverageTier.FULL
 
+    def test_ny_green_space_is_full(self):
+        """NY green_space: single source (Google Places) active → FULL."""
+        dims = get_dimension_coverage("NY")
+        assert dims["green_space"] == CoverageTier.FULL
+
+    def test_ny_transit_is_full(self):
+        """NY transit: both live API sources active → FULL."""
+        dims = get_dimension_coverage("NY")
+        assert dims["transit"] == CoverageTier.FULL
+
     def test_nj_health_is_partial(self):
         """NJ has UST intended → not all active → PARTIAL."""
         dims = get_dimension_coverage("NJ")
@@ -156,6 +166,16 @@ class TestDimensionCoverage:
         """MI has STATE_EDUCATION active but SCHOOL_DISTRICTS and NCES intended → MINIMAL."""
         dims = get_dimension_coverage("MI")
         assert dims["education"] == CoverageTier.MINIMAL
+
+    def test_mi_green_space_is_full(self):
+        """MI green_space: single source (Google Places) active → FULL."""
+        dims = get_dimension_coverage("MI")
+        assert dims["green_space"] == CoverageTier.FULL
+
+    def test_mi_transit_is_full(self):
+        """MI transit: both live API sources active → FULL."""
+        dims = get_dimension_coverage("MI")
+        assert dims["transit"] == CoverageTier.FULL
 
     def test_coming_soon_state_all_none(self):
         """CA (coming soon) has no active sources → all NONE."""
@@ -347,10 +367,20 @@ class TestGetStateName:
 # ---------------------------------------------------------------------------
 
 class TestSectionCoverage:
-    def test_ny_returns_empty(self):
-        """NY has full health coverage → no sections need badges."""
+    def test_ny_health_full(self):
+        """NY has full health coverage → no health badge."""
         result = get_section_coverage("NY")
         assert "health" not in result  # FULL is omitted
+
+    def test_ny_parks_full(self):
+        """NY parks mapped to green_space (FULL: live API) → no badge."""
+        result = get_section_coverage("NY")
+        assert "parks" not in result
+
+    def test_ny_getting_around_full(self):
+        """NY getting_around mapped to transit (FULL: all live APIs) → no badge."""
+        result = get_section_coverage("NY")
+        assert "getting_around" not in result
 
     def test_nj_health_partial(self):
         """NJ health is PARTIAL (UST intended) → badge appears."""
@@ -361,6 +391,16 @@ class TestSectionCoverage:
         """MI health is MINIMAL → badge appears as 'minimal'."""
         result = get_section_coverage("MI")
         assert result.get("health") == "minimal"
+
+    def test_mi_parks_full(self):
+        """MI parks mapped to green_space (FULL: live API) → no badge."""
+        result = get_section_coverage("MI")
+        assert "parks" not in result
+
+    def test_mi_getting_around_full(self):
+        """MI getting_around mapped to transit (FULL) → no badge."""
+        result = get_section_coverage("MI")
+        assert "getting_around" not in result
 
     def test_mi_education_minimal(self):
         result = get_section_coverage("MI")
