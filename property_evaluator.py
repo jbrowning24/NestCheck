@@ -20,6 +20,7 @@ import json
 import math
 import time
 import logging
+from datetime import datetime, timezone
 import argparse
 import re
 import statistics
@@ -51,6 +52,8 @@ from spatial_data import (
     SpatialDataStore,
     VenueCache,
     _PLACE_TYPE_TO_CATEGORY,
+    _VENUE_CACHE_TTL_DAYS,
+    _VENUE_CACHE_TTL_DEFAULT,
     _infer_text_search_category,
 )
 
@@ -615,9 +618,57 @@ def _closest_distance_to_way_ft(
     return min_dist
 
 
+def _log_venue_cache(
+    result: str, category: str, count: int,
+    lat: float, lng: float, radius: int,
+) -> None:
+    """Log venue cache hit/miss to stdout (visible in Railway logs)."""
+    logger.info(
+        "  [venue_cache] %s category=%s count=%d loc=(%.4f,%.4f) r=%dm",
+        result, category, count, lat, lng, radius,
+    )
+
+
 # =============================================================================
 # API CLIENTS
 # =============================================================================
+
+
+class CoverageTracker:
+    """Tracks which categories were served from cache vs API per evaluation.
+
+    Lightweight bookkeeper — passed to GoogleMapsClient and read at the end of
+    evaluate_property() to record evaluation_coverage.
+    """
+
+    def __init__(self):
+        self._from_cache: List[str] = []
+        self._from_api: List[str] = []
+
+    def record_cache_hit(self, category: str) -> None:
+        if category not in self._from_cache:
+            self._from_cache.append(category)
+
+    def record_api_call(self, category: str) -> None:
+        if category not in self._from_api:
+            self._from_api.append(category)
+
+    @property
+    def categories_from_cache(self) -> List[str]:
+        return list(self._from_cache)
+
+    @property
+    def categories_from_api(self) -> List[str]:
+        return list(self._from_api)
+
+    @property
+    def api_calls_saved(self) -> int:
+        return len(self._from_cache)
+
+    @property
+    def api_calls_made(self) -> int:
+        return len(self._from_api)
+
 
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
@@ -631,6 +682,7 @@ class GoogleMapsClient:
         api_key: str,
         venue_cache: Optional["VenueCache"] = None,
         source_address: str = "",
+        coverage_tracker: Optional["CoverageTracker"] = None,
     ):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
@@ -641,9 +693,10 @@ class GoogleMapsClient:
         self._places_cache: Dict[tuple, List[Dict]] = {}
         # Per-evaluation cache for text_search — same pattern.
         self._text_search_cache: Dict[tuple, List[Dict]] = {}
-        # Persistent spatial venue cache (NES-290) — write-only side effect.
+        # Persistent spatial venue cache (NES-290 write, NES-291 read).
         self._venue_cache = venue_cache
         self._source_address = source_address
+        self._coverage_tracker = coverage_tracker or CoverageTracker()
 
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
@@ -726,6 +779,47 @@ class GoogleMapsClient:
         if cached is not None:
             return cached
 
+        # Venue cache read (NES-291) — check spatial.db before Google API
+        if self._venue_cache is not None:
+            try:
+                cat = _PLACE_TYPE_TO_CATEGORY.get(place_type, place_type)
+                ttl = _VENUE_CACHE_TTL_DAYS.get(cat, _VENUE_CACHE_TTL_DEFAULT)
+                t0 = time.time()
+                cached_venues = self._venue_cache.query_venues(
+                    lat, lng, cat, radius_meters, max_age_days=ttl
+                )
+                elapsed_ms = int((time.time() - t0) * 1000)
+                trace = get_trace()
+                if cached_venues is not None:
+                    self._places_cache[cache_key] = cached_venues
+                    _log_venue_cache(
+                        "hit", cat, len(cached_venues), lat, lng, radius_meters
+                    )
+                    if trace:
+                        trace.record_api_call(
+                            service="venue_cache",
+                            endpoint=f"read_{cat}",
+                            elapsed_ms=elapsed_ms,
+                            status_code=200,
+                            provider_status="hit",
+                        )
+                    self._coverage_tracker.record_cache_hit(cat)
+                    return cached_venues
+                else:
+                    _log_venue_cache(
+                        "miss", cat, 0, lat, lng, radius_meters
+                    )
+                    if trace:
+                        trace.record_api_call(
+                            service="venue_cache",
+                            endpoint=f"read_{cat}",
+                            elapsed_ms=elapsed_ms,
+                            status_code=404,
+                            provider_status="miss",
+                        )
+            except Exception:
+                pass
+
         url = f"{self.base_url}/place/nearbysearch/json"
         params = {
             "location": f"{lat},{lng}",
@@ -743,15 +837,19 @@ class GoogleMapsClient:
 
         results = _filter_physical_places(data.get("results", []))
         self._places_cache[cache_key] = results
-        # Persist to spatial venue cache (NES-290) — write-only side effect
+        # Persist to spatial venue cache (NES-290) — write + record search area
         if self._venue_cache is not None:
+            cat = _PLACE_TYPE_TO_CATEGORY.get(place_type, place_type)
             try:
-                cat = _PLACE_TYPE_TO_CATEGORY.get(place_type, place_type)
                 self._venue_cache.upsert_venues(
                     results, cat, self._source_address
                 )
+                self._venue_cache.record_search_area(
+                    lat, lng, cat, radius_meters, len(results)
+                )
             except Exception:
                 pass
+            self._coverage_tracker.record_api_call(cat)
         return results
 
     def place_details(self, place_id: str, fields: Optional[List[str]] = None) -> Dict:
@@ -855,6 +953,51 @@ class GoogleMapsClient:
         if cached is not None:
             return cached
 
+        # Venue cache read (NES-291) — check spatial.db before Google API
+        if self._venue_cache is not None:
+            try:
+                cat = _infer_text_search_category(query)
+                if cat != "other":
+                    ttl = _VENUE_CACHE_TTL_DAYS.get(
+                        cat, _VENUE_CACHE_TTL_DEFAULT
+                    )
+                    t0 = time.time()
+                    cached_venues = self._venue_cache.query_venues(
+                        lat, lng, cat, radius_meters, max_age_days=ttl
+                    )
+                    elapsed_ms = int((time.time() - t0) * 1000)
+                    trace = get_trace()
+                    if cached_venues is not None:
+                        self._text_search_cache[cache_key] = cached_venues
+                        _log_venue_cache(
+                            "hit", cat, len(cached_venues),
+                            lat, lng, radius_meters,
+                        )
+                        if trace:
+                            trace.record_api_call(
+                                service="venue_cache",
+                                endpoint=f"read_{cat}",
+                                elapsed_ms=elapsed_ms,
+                                status_code=200,
+                                provider_status="hit",
+                            )
+                        self._coverage_tracker.record_cache_hit(cat)
+                        return cached_venues
+                    else:
+                        _log_venue_cache(
+                            "miss", cat, 0, lat, lng, radius_meters,
+                        )
+                        if trace:
+                            trace.record_api_call(
+                                service="venue_cache",
+                                endpoint=f"read_{cat}",
+                                elapsed_ms=elapsed_ms,
+                                status_code=404,
+                                provider_status="miss",
+                            )
+            except Exception:
+                pass
+
         url = f"{self.base_url}/place/textsearch/json"
         params = {
             "query": query,
@@ -869,15 +1012,21 @@ class GoogleMapsClient:
 
         results = _filter_physical_places(data.get("results", []))
         self._text_search_cache[cache_key] = results
-        # Persist to spatial venue cache (NES-290) — write-only side effect
+        # Persist to spatial venue cache (NES-290) — write + record search area
         if self._venue_cache is not None:
+            cat = _infer_text_search_category(query)
             try:
-                cat = _infer_text_search_category(query)
                 self._venue_cache.upsert_venues(
                     results, cat, self._source_address
                 )
+                if cat != "other":
+                    self._venue_cache.record_search_area(
+                        lat, lng, cat, radius_meters, len(results)
+                    )
             except Exception:
                 pass
+            if cat != "other":
+                self._coverage_tracker.record_api_call(cat)
         return results
 
     def _distance_matrix_batch(
@@ -5474,8 +5623,12 @@ def evaluate_property(
     eval_start = time.time()
 
     _venue_cache = VenueCache()
+    _coverage_tracker = CoverageTracker()
     maps = GoogleMapsClient(
-        api_key, venue_cache=_venue_cache, source_address=listing.address
+        api_key,
+        venue_cache=_venue_cache,
+        source_address=listing.address,
+        coverage_tracker=_coverage_tracker,
     )
 
     # Geocode is the one stage that MUST succeed — without coords nothing
@@ -5812,6 +5965,27 @@ def evaluate_property(
     elapsed_total = time.time() - eval_start
     logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",
                 listing.address, result.final_score, elapsed_total)
+
+    # Record venue cache coverage analytics (NES-291)
+    try:
+        from models import save_evaluation_coverage
+
+        save_evaluation_coverage({
+            "evaluation_id": getattr(result, "snapshot_id", None),
+            "address": listing.address,
+            "latitude": lat,
+            "longitude": lng,
+            "evaluated_at": datetime.now(timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            ),
+            "categories_from_cache": _coverage_tracker.categories_from_cache,
+            "categories_from_api": _coverage_tracker.categories_from_api,
+            "api_calls_saved": _coverage_tracker.api_calls_saved,
+            "api_calls_made": _coverage_tracker.api_calls_made,
+            "total_duration_seconds": round(elapsed_total, 2),
+        })
+    except Exception:
+        pass
 
     return result
 

@@ -148,6 +148,21 @@ def init_db():
             ON payments(stripe_session_id);
         CREATE INDEX IF NOT EXISTS idx_payments_job_id
             ON payments(job_id);
+
+        CREATE TABLE IF NOT EXISTS evaluation_coverage (
+            evaluation_id          TEXT,
+            address                TEXT,
+            latitude               REAL,
+            longitude              REAL,
+            evaluated_at           TEXT,
+            categories_from_cache  TEXT,
+            categories_from_api    TEXT,
+            api_calls_saved        INTEGER,
+            api_calls_made         INTEGER,
+            total_duration_seconds REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_eval_coverage_addr
+            ON evaluation_coverage(address);
     """)
 
     # Migration for pre-place_id databases.
@@ -1161,6 +1176,48 @@ def set_census_cache(cache_key: str, data_json: str) -> None:
             conn.close()
     except Exception:
         logger.warning("Census cache write failed", exc_info=True)
+
+
+# ---------------------------------------------------------------------------
+# Evaluation coverage (NES-291)
+# ---------------------------------------------------------------------------
+
+
+def save_evaluation_coverage(data: dict) -> None:
+    """Record cache hit/miss analytics for a single evaluation.
+
+    Swallows all errors — never impacts evaluation.
+    """
+    try:
+        conn = _get_db()
+        try:
+            conn.execute(
+                """
+                INSERT INTO evaluation_coverage
+                    (evaluation_id, address, latitude, longitude,
+                     evaluated_at, categories_from_cache,
+                     categories_from_api, api_calls_saved,
+                     api_calls_made, total_duration_seconds)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    data.get("evaluation_id"),
+                    data.get("address"),
+                    data.get("latitude"),
+                    data.get("longitude"),
+                    data.get("evaluated_at"),
+                    json.dumps(data.get("categories_from_cache", [])),
+                    json.dumps(data.get("categories_from_api", [])),
+                    data.get("api_calls_saved", 0),
+                    data.get("api_calls_made", 0),
+                    data.get("total_duration_seconds"),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        logger.warning("Failed to save evaluation coverage: %s", e)
 
 
 # ---------------------------------------------------------------------------
