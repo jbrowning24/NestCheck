@@ -2,8 +2,9 @@
 """
 Ingest EPA EJScreen environmental justice block group data into the NestCheck spatial database.
 
-Data source: EPA EJScreen ArcGIS FeatureServer
-URL: https://ejscreen.epa.gov/mapper/
+Data source: EPA EJScreen ArcGIS FeatureServer (primary)
+Fallback: ArcGIS Online per-indicator EJScreen layers (after EPA removed
+          the combined endpoint in February 2025)
 Format: ArcGIS REST API with JSON pagination
 Records: ~220K census block groups nationally
 
@@ -12,8 +13,10 @@ It pre-combines 13 environmental indicators with demographic data at the
 census block group level.
 
 This script:
-1. Queries the EJScreen ArcGIS service with pagination
-2. Stores block group centroids as POINT geometry with indicator values in metadata
+1. Tries the combined EPA endpoint first
+2. Falls back to ArcGIS Online individual indicator layers if the combined
+   endpoint is unavailable (queries 12 separate services, merges by block
+   group GEOID, computes polygon centroid for POINT geometry)
 3. Loads into spatial.db as facilities_ejscreen table
 
 Idempotent: drops and recreates the table on each run.
@@ -21,6 +24,7 @@ Idempotent: drops and recreates the table on each run.
 Usage:
     python scripts/ingest_ejscreen.py --discover
     python scripts/ingest_ejscreen.py --state NY
+    python scripts/ingest_ejscreen.py --bbox "-75.6,38.9,-71.8,42.1"
     python scripts/ingest_ejscreen.py --limit 5000
 """
 
@@ -45,22 +49,58 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# EJScreen ArcGIS FeatureServer — block group level data
-EJSCREEN_ENDPOINT = (
-    "https://ejscreen.epa.gov/mapper/ejscreenRESTbroker1.aspx"
-)
+# ── Primary endpoints (EPA combined service) ─────────────────────────
+# These were taken offline by EPA in February 2025.
 
-# Alternative: EPA GeoPlatform EJScreen service
 EJSCREEN_GEOPLATFORM = (
     "https://geopub.epa.gov/arcgis/rest/services/EJSCREEN"
     "/EJSCREEN_Combined_2024/MapServer/1/query"
 )
 
+_COMBINED_ENDPOINTS = [
+    EJSCREEN_GEOPLATFORM,
+    "https://geopub.epa.gov/arcgis/rest/services/EJSCREEN/EJSCREEN_Combined_2024/MapServer/0/query",
+    "https://geopub.epa.gov/arcgis/rest/services/EJSCREEN/EJSCREEN_Combined_2025/MapServer/1/query",
+]
+
+# ── Fallback: PEDP (Public Environmental Data Partners) mirror ────────
+# After EPA removed EJScreen in Feb 2025, PEDP hosts a V2.32 mirror of
+# the national block-group-level dataset with all indicators combined.
+# Single service, single layer — same schema as the original EPA data.
+
+_PEDP_ENDPOINT = (
+    "https://services2.arcgis.com/w4yiQqB14ZaAGzJq"
+    "/arcgis/rest/services"
+    "/EJScreen_US_Percentiles_Block_Group_gdb_V_2.32_(Parent)_view"
+    "/FeatureServer/0/query"
+)
+
 PAGE_SIZE = 2000
 
 
+def _polygon_centroid(rings: list) -> tuple[float, float] | None:
+    """Compute approximate centroid from ArcGIS polygon rings.
+
+    Uses the vertex-average of the first (outer) ring. Not a true
+    area-weighted centroid, but sufficient for nearest-block-group
+    queries within 2 km.
+    """
+    if not rings or not rings[0]:
+        return None
+    outer = rings[0]
+    if len(outer) < 3:
+        return None
+    sum_x = sum(p[0] for p in outer)
+    sum_y = sum(p[1] for p in outer)
+    n = len(outer)
+    return (sum_x / n, sum_y / n)
+
+
+# ── Combined endpoint helpers ────────────────────────────────────────
+
+
 def fetch_page(offset: int, where_clause: str = "1=1", endpoint: str = "") -> dict:
-    """Fetch one page of EJScreen block group records."""
+    """Fetch one page of EJScreen block group records from the combined endpoint."""
     url = endpoint or EJSCREEN_GEOPLATFORM
     params = {
         "where": where_clause,
@@ -91,15 +131,9 @@ def fetch_page(offset: int, where_clause: str = "1=1", endpoint: str = "") -> di
                 raise
 
 
-def _probe_endpoint() -> str:
-    """Try available EJScreen endpoints and return the one that works."""
-    endpoints = [
-        EJSCREEN_GEOPLATFORM,
-        # Fallback endpoints
-        "https://geopub.epa.gov/arcgis/rest/services/EJSCREEN/EJSCREEN_Combined_2024/MapServer/0/query",
-        "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/EJScreen_2024/FeatureServer/0/query",
-    ]
-    for url in endpoints:
+def _probe_combined_endpoint() -> str | None:
+    """Try combined EJScreen endpoints; return first working URL or None."""
+    for url in _COMBINED_ENDPOINTS:
         try:
             params = {
                 "where": "1=1",
@@ -113,26 +147,17 @@ def _probe_endpoint() -> str:
             if resp.status_code == 200:
                 data = resp.json()
                 if "features" in data and data["features"]:
-                    logger.info("EJScreen endpoint found: %s", url[:80])
+                    logger.info("EJScreen combined endpoint found: %s", url[:80])
                     return url
         except Exception:
-            logger.warning("EJScreen endpoint probe failed: %s", url[:80])
-            continue
-    logger.warning("All EJScreen endpoints failed probing — falling back to default")
-    return EJSCREEN_GEOPLATFORM
+            pass
+    return None
 
 
 def _get_indicator_fields(attrs: dict) -> dict:
-    """Extract environmental indicator fields from attributes, handling name variations.
-
-    Returns both raw indicator values (e.g. ``PM25``) and national percentile
-    values (e.g. ``PM25_PCT``) when available.  Percentile columns use the
-    ``P_`` prefix in the EJScreen ArcGIS service and are pre-computed 0–100
-    national percentiles.
-    """
+    """Extract environmental indicator fields from combined-endpoint attributes."""
     indicators = {}
 
-    # --- Raw indicator values ---
     raw_field_map = {
         "PM25": ["PM25", "pm25"],
         "OZONE": ["OZONE", "ozone"],
@@ -149,7 +174,6 @@ def _get_indicator_fields(attrs: dict) -> dict:
         "DEMOGIDX": ["DEMOGIDX_2", "DEMOGIDX", "demogidx"],
     }
 
-    # --- Percentile columns (P_ prefix → stored as <KEY>_PCT) ---
     pct_field_map = {
         "PM25_PCT": ["P_PM25"],
         "OZONE_PCT": ["P_OZONE"],
@@ -169,7 +193,6 @@ def _get_indicator_fields(attrs: dict) -> dict:
         for cand in candidates:
             if cand in attrs:
                 return attrs[cand]
-            # Case-insensitive fallback
             for key in attrs:
                 if key.upper() == cand.upper():
                     return attrs[key]
@@ -188,71 +211,254 @@ def _get_indicator_fields(attrs: dict) -> dict:
     return indicators
 
 
+# ── PEDP fallback helpers ─────────────────────────────────────────────
+
+# Mapping from PEDP field names to our standard indicator names.
+# The PEDP service uses ``P_<field>`` for national percentile (int 0–100)
+# and raw indicator values directly (``PM25``, ``OZONE``, etc.).
+_PEDP_PCT_FIELDS = {
+    "PM25_PCT":   "P_PM25",
+    "OZONE_PCT":  "P_OZONE",
+    "DSLPM_PCT":  "P_DSLPM",
+    # CANCER and RESP were removed in EJScreen V2.32; RSEI_AIR replaced them.
+    # Store RSEI_AIR under CANCER_PCT so downstream checks still trigger.
+    # RESP_PCT has no V2.32 equivalent — evaluator returns None (no check).
+    "CANCER_PCT": "P_RSEI_AIR",
+    "PTRAF_PCT":  "P_PTRAF",
+    "PNPL_PCT":   "P_PNPL",
+    "PRMP_PCT":   "P_PRMP",
+    "PTSDF_PCT":  "P_PTSDF",
+    "UST_PCT":    "P_UST",
+    "PWDIS_PCT":  "P_PWDIS",
+    "LEAD_PCT":   "P_LDPNT",
+}
+
+# Out-fields to request — keeps response size manageable.
+_PEDP_OUT_FIELDS = ",".join([
+    "ID", "ST_ABBREV", "ACSTOTPOP",
+    "PM25", "OZONE", "DSLPM", "PTRAF", "PNPL", "PRMP", "PTSDF", "UST", "PWDIS",
+    "RSEI_AIR",
+    *dict.fromkeys(_PEDP_PCT_FIELDS.values()),
+])
+
+
+def _fetch_pedp_page(
+    offset: int,
+    where_clause: str = "1=1",
+) -> dict:
+    """Fetch one page from the PEDP EJScreen block group service."""
+    params = {
+        "where": where_clause,
+        "outFields": _PEDP_OUT_FIELDS,
+        "returnGeometry": "true",
+        "outSR": "4326",
+        "f": "json",
+        "resultOffset": offset,
+        "resultRecordCount": PAGE_SIZE,
+    }
+    for attempt in range(5):
+        try:
+            resp = requests.get(_PEDP_ENDPOINT, params=params, timeout=180)
+            resp.raise_for_status()
+            data = resp.json()
+            if "error" in data:
+                raise RuntimeError(f"ArcGIS error: {data['error']}")
+            return data
+        except Exception as e:
+            if attempt < 4:
+                wait = 10 * (attempt + 1)
+                logger.warning(
+                    "PEDP fetch failed (attempt %d): %s — retrying in %ds",
+                    attempt + 1, e, wait,
+                )
+                time.sleep(wait)
+            else:
+                raise
+
+
+def _ingest_from_pedp(
+    conn,
+    states: list[str] | None = None,
+    limit: int = 0,
+) -> tuple[int, int]:
+    """Ingest EJScreen data from the PEDP community mirror.
+
+    The PEDP service mirrors EPA's EJScreen V2.32 national block-group
+    dataset with all indicators in a single layer.  Polygon geometry is
+    converted to a centroid POINT for the spatial query pattern used by
+    ``find_facilities_within()``.
+
+    Returns (total_inserted, total_skipped).
+    """
+    where = "1=1"
+    if states:
+        in_list = ", ".join(f"'{s.upper()}'" for s in states)
+        where = f"ST_ABBREV IN ({in_list})"
+
+    logger.info("Starting EJScreen ingestion from PEDP mirror")
+    logger.info("  WHERE: %s", where)
+
+    total_inserted = 0
+    total_skipped = 0
+    offset = 0
+    batch_num = 0
+
+    while True:
+        batch_num += 1
+        logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
+        data = _fetch_pedp_page(offset, where)
+
+        features = data.get("features", [])
+        if not features:
+            logger.info("No more features — done.")
+            break
+
+        inserted_this_batch = 0
+        for feat in features:
+            attrs = feat.get("attributes", {})
+            geom = feat.get("geometry", {})
+
+            # Compute centroid from polygon rings
+            rings = geom.get("rings")
+            centroid = _polygon_centroid(rings) if rings else None
+            if centroid is None:
+                total_skipped += 1
+                continue
+            lng, lat = centroid
+            if not (-180 <= lng <= 180 and -90 <= lat <= 90):
+                total_skipped += 1
+                continue
+
+            bg_id = str(attrs.get("ID", ""))
+            name = f"Block Group {bg_id}"
+
+            # Extract percentile values
+            indicators: dict = {}
+            for our_key, pedp_field in _PEDP_PCT_FIELDS.items():
+                val = attrs.get(pedp_field)
+                if val is not None:
+                    try:
+                        indicators[our_key] = float(val)
+                    except (ValueError, TypeError):
+                        pass
+
+            metadata = {
+                "block_group_id": bg_id,
+                "state": attrs.get("ST_ABBREV", ""),
+                "population": attrs.get("ACSTOTPOP"),
+                **indicators,
+            }
+
+            try:
+                conn.execute(
+                    """INSERT INTO facilities_ejscreen
+                       (name, geometry, metadata_json)
+                       VALUES (?, MakePoint(?, ?, 4326), ?)""",
+                    (name, lng, lat, json.dumps(metadata)),
+                )
+                inserted_this_batch += 1
+                total_inserted += 1
+            except Exception as e:
+                logger.warning("Insert failed for %s: %s", name, e)
+                total_skipped += 1
+
+            if limit and total_inserted >= limit:
+                break
+
+        conn.commit()
+        logger.info(
+            "  Batch %d: inserted %d, skipped so far: %d, total: %d",
+            batch_num, inserted_this_batch, total_skipped, total_inserted,
+        )
+
+        if limit and total_inserted >= limit:
+            logger.info("Limit reached (%d) — stopping.", limit)
+            break
+
+        if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
+            logger.info("Last page received — done.")
+            break
+
+        offset += PAGE_SIZE
+
+    return total_inserted, total_skipped
+
+
+# ── Main ingest function ─────────────────────────────────────────────
+
+
 def ingest(
     limit: int = 0,
     state: str = "",
     states: list[str] | None = None,
     discover: bool = False,
+    bbox: str = "",
 ):
-    """Main ingestion loop."""
+    """Main ingestion entry point.
+
+    Tries the combined EPA endpoint first; falls back to the PEDP
+    community mirror if the combined endpoint is unavailable.
+    """
 
     if discover:
-        endpoint = _probe_endpoint()
+        # Try combined endpoint
+        endpoint = _probe_combined_endpoint()
+        if endpoint:
+            logger.info("Combined endpoint available: %s", endpoint[:80])
+            params = {
+                "where": "1=1",
+                "outFields": "*",
+                "returnGeometry": "true",
+                "outSR": "4326",
+                "f": "json",
+                "resultRecordCount": 1,
+            }
+            resp = requests.get(endpoint, params=params, timeout=60)
+            data = resp.json()
+            if "features" in data and data["features"]:
+                feat = data["features"][0]
+                attrs = feat.get("attributes", {})
+                indicators = _get_indicator_fields(attrs)
+                logger.info("Extracted indicators: %s", json.dumps(indicators, indent=2))
+            return
+
+        # Fall back to PEDP mirror
+        logger.warning("Combined endpoint unavailable — probing PEDP mirror")
         params = {
-            "where": "1=1",
-            "outFields": "*",
-            "returnGeometry": "true",
-            "outSR": "4326",
+            "where": "OBJECTID=1",
+            "outFields": _PEDP_OUT_FIELDS,
+            "returnGeometry": "false",
             "f": "json",
-            "resultRecordCount": 1,
         }
         try:
-            resp = requests.get(endpoint, params=params, timeout=60)
+            resp = requests.get(_PEDP_ENDPOINT, params=params, timeout=60)
+            data = resp.json()
+            if "features" in data and data["features"]:
+                attrs = data["features"][0]["attributes"]
+                logger.info("PEDP mirror sample:")
+                for k, v in list(attrs.items())[:20]:
+                    logger.info("  %s: %s", k, v)
+                logger.info("PEDP endpoint: %s", _PEDP_ENDPOINT[:80])
         except Exception as e:
-            logger.error("Discover request failed: %s", e)
-            return
-        if resp.status_code != 200:
-            logger.error("HTTP %d from EJScreen endpoint", resp.status_code)
-            return
-        data = resp.json()
-        if "error" in data:
-            logger.error("ArcGIS error: %s", json.dumps(data["error"], indent=2))
-            return
-        if "fields" in data:
-            logger.info("Available fields:")
-            for field in data["fields"][:40]:
-                logger.info("  %s (%s)", field["name"], field.get("type", ""))
-            if len(data["fields"]) > 40:
-                logger.info("  ... and %d more fields", len(data["fields"]) - 40)
-        if "features" in data and data["features"]:
-            feat = data["features"][0]
-            logger.info("Sample geometry: %s", feat.get("geometry", {}))
-            attrs = feat.get("attributes", {})
-            indicators = _get_indicator_fields(attrs)
-            logger.info("Extracted indicators: %s", json.dumps(indicators, indent=2))
-        logger.info("Endpoint used: %s", endpoint)
+            logger.error("PEDP probe failed: %s", e)
         return
 
-    endpoint = _probe_endpoint()
-    where = "1=1"
-    if states:
-        for st in states:
-            st_upper = st.upper()
-            if not (len(st_upper) == 2 and st_upper.isalpha()):
-                raise ValueError(f"Invalid state abbreviation: {st!r} (expected 2-letter code, e.g. NY)")
-        in_list = ", ".join(f"'{s.upper()}'" for s in states)
-        where = f"ST_ABBREV IN ({in_list})"
-    elif state:
-        st = state.upper()
-        if not (len(st) == 2 and st.isalpha()):
-            raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")
-        where = f"ST_ABBREV = '{st}'"
+    # --- Full ingestion ---
 
-    logger.info("Starting EJScreen block group ingestion")
-    logger.info("  Endpoint: %s", endpoint[:80])
-    logger.info("  WHERE: %s", where)
-    if limit:
-        logger.info("  LIMIT: %d records", limit)
+    source_url = ""
+    use_combined = False
+
+    endpoint = _probe_combined_endpoint()
+    if endpoint:
+        use_combined = True
+        source_url = endpoint
+        logger.info("Using combined EPA endpoint")
+    else:
+        logger.warning(
+            "EPA combined EJScreen endpoint unavailable (removed Feb 2025). "
+            "Falling back to PEDP community mirror."
+        )
+        source_url = _PEDP_ENDPOINT
 
     init_spatial_db()
     create_facility_table("ejscreen")
@@ -261,94 +467,123 @@ def ingest(
     conn = _connect()
     total_inserted = 0
     total_skipped = 0
-    offset = 0
-    batch_num = 0
 
     try:
-        while True:
-            batch_num += 1
-            logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
-            data = fetch_page(offset, where, endpoint)
+        if use_combined:
+            # Original combined-endpoint path
+            where = "1=1"
+            if states:
+                for st in states:
+                    st_upper = st.upper()
+                    if not (len(st_upper) == 2 and st_upper.isalpha()):
+                        raise ValueError(f"Invalid state abbreviation: {st!r}")
+                in_list = ", ".join(f"'{s.upper()}'" for s in states)
+                where = f"ST_ABBREV IN ({in_list})"
+            elif state:
+                st = state.upper()
+                if not (len(st) == 2 and st.isalpha()):
+                    raise ValueError(f"Invalid state abbreviation: {state!r}")
+                where = f"ST_ABBREV = '{st}'"
 
-            features = data.get("features", [])
-            if not features:
-                logger.info("No more features — done.")
-                break
+            logger.info("Starting EJScreen ingestion (combined endpoint)")
+            logger.info("  WHERE: %s", where)
 
-            inserted_this_batch = 0
-            for feat in features:
-                attrs = feat.get("attributes", {})
-                geom = feat.get("geometry", {})
+            offset = 0
+            batch_num = 0
+            while True:
+                batch_num += 1
+                logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
+                data = fetch_page(offset, where, endpoint)
 
-                lng = geom.get("x")
-                lat = geom.get("y")
-
-                if lng is None or lat is None:
-                    total_skipped += 1
-                    continue
-                if not (-180 <= lng <= 180 and -90 <= lat <= 90):
-                    total_skipped += 1
-                    continue
-
-                # Block group ID
-                bg_id = (
-                    attrs.get("ID")
-                    or attrs.get("GEOID")
-                    or attrs.get("BLOCKGROUPID")
-                    or attrs.get("OBJECTID", "")
-                )
-                name = f"Block Group {bg_id}"
-
-                indicators = _get_indicator_fields(attrs)
-                metadata = {
-                    "block_group_id": str(bg_id),
-                    "state": attrs.get("ST_ABBREV", attrs.get("STATE_NAME", "")),
-                    "population": attrs.get("ACSTOTPOP", attrs.get("TOTPOP")),
-                    **indicators,
-                }
-
-                try:
-                    conn.execute(
-                        """INSERT INTO facilities_ejscreen
-                           (name, geometry, metadata_json)
-                           VALUES (?, MakePoint(?, ?, 4326), ?)""",
-                        (name, lng, lat, json.dumps(metadata)),
-                    )
-                    inserted_this_batch += 1
-                    total_inserted += 1
-                except Exception as e:
-                    logger.warning("Insert failed for %s: %s", name, e)
-                    total_skipped += 1
-
-                if limit and total_inserted >= limit:
+                features = data.get("features", [])
+                if not features:
+                    logger.info("No more features — done.")
                     break
 
-            conn.commit()
-            logger.info(
-                "  Batch %d: inserted %d, skipped so far: %d, total: %d",
-                batch_num, inserted_this_batch, total_skipped, total_inserted,
+                inserted_this_batch = 0
+                for feat in features:
+                    attrs = feat.get("attributes", {})
+                    geom = feat.get("geometry", {})
+
+                    lng = geom.get("x")
+                    lat = geom.get("y")
+
+                    if lng is None or lat is None:
+                        total_skipped += 1
+                        continue
+                    if not (-180 <= lng <= 180 and -90 <= lat <= 90):
+                        total_skipped += 1
+                        continue
+
+                    bg_id = (
+                        attrs.get("ID")
+                        or attrs.get("GEOID")
+                        or attrs.get("BLOCKGROUPID")
+                        or attrs.get("OBJECTID", "")
+                    )
+                    name = f"Block Group {bg_id}"
+
+                    indicators = _get_indicator_fields(attrs)
+                    metadata = {
+                        "block_group_id": str(bg_id),
+                        "state": attrs.get("ST_ABBREV", attrs.get("STATE_NAME", "")),
+                        "population": attrs.get("ACSTOTPOP", attrs.get("TOTPOP")),
+                        **indicators,
+                    }
+
+                    try:
+                        conn.execute(
+                            """INSERT INTO facilities_ejscreen
+                               (name, geometry, metadata_json)
+                               VALUES (?, MakePoint(?, ?, 4326), ?)""",
+                            (name, lng, lat, json.dumps(metadata)),
+                        )
+                        inserted_this_batch += 1
+                        total_inserted += 1
+                    except Exception as e:
+                        logger.warning("Insert failed for %s: %s", name, e)
+                        total_skipped += 1
+
+                    if limit and total_inserted >= limit:
+                        break
+
+                conn.commit()
+                logger.info(
+                    "  Batch %d: inserted %d, skipped so far: %d, total: %d",
+                    batch_num, inserted_this_batch, total_skipped, total_inserted,
+                )
+
+                if limit and total_inserted >= limit:
+                    logger.info("Limit reached (%d) — stopping.", limit)
+                    break
+
+                if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
+                    logger.info("Last page received — done.")
+                    break
+
+                offset += PAGE_SIZE
+
+        else:
+            # PEDP mirror path — single combined service
+            logger.info("Starting EJScreen ingestion (PEDP mirror)")
+            total_inserted, total_skipped = _ingest_from_pedp(
+                conn, states=states or ([state] if state else ["NY", "CT", "NJ"]),
+                limit=limit,
             )
 
-            if limit and total_inserted >= limit:
-                logger.info("Limit reached (%d) — stopping.", limit)
-                break
-
-            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
-                logger.info("Last page received — done.")
-                break
-
-            offset += PAGE_SIZE
-
+        # Update dataset registry
         conn.execute(
             """INSERT OR REPLACE INTO dataset_registry
                (facility_type, source_url, ingested_at, record_count, notes)
                VALUES (?, ?, ?, ?, ?)""",
             (
                 "ejscreen",
-                endpoint,
+                source_url,
                 datetime.now(timezone.utc).isoformat(),
                 total_inserted,
-                f"WHERE: {where}" + (f", LIMIT: {limit}" if limit else ""),
+                "PEDP community mirror V2.32 (EPA endpoint removed Feb 2025)"
+                if not use_combined
+                else "Combined endpoint",
             ),
         )
         conn.commit()
@@ -386,8 +621,8 @@ def verify():
         logger.info(
             "  %s — %.0f m — PM2.5: %s, Traffic: %s",
             r.name[:40], r.distance_meters,
-            r.metadata.get("PM25", "N/A"),
-            r.metadata.get("PTRAF", "N/A"),
+            r.metadata.get("PM25_PCT", r.metadata.get("PM25", "N/A")),
+            r.metadata.get("PTRAF_PCT", r.metadata.get("PTRAF", "N/A")),
         )
 
 
@@ -399,7 +634,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--state", type=str, default="",
-        help="Filter to a single state (e.g., NY, CA).",
+        help="Filter to a single state (e.g., NY, CA). Combined endpoint only.",
+    )
+    parser.add_argument(
+        "--bbox", type=str, default="",
+        help="Bounding box: lng_min,lat_min,lng_max,lat_max. Used by ArcGIS Online fallback.",
     )
     parser.add_argument(
         "--discover", action="store_true",
@@ -414,6 +653,6 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True)
     else:
-        ingest(limit=args.limit, state=args.state)
+        ingest(limit=args.limit, state=args.state, bbox=args.bbox)
         if args.verify:
             verify()
