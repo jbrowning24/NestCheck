@@ -613,8 +613,9 @@ def find_green_spaces(
     # Batch fetch walk times when the client supports it (1 request per 25 destinations).
     if to_fetch and hasattr(maps_client, "walking_times_batch"):
         destinations = [(p_lat, p_lng) for _p, p_lat, p_lng in to_fetch]
+        pids = [p.get("place_id") for p, _lat, _lng in to_fetch]
         try:
-            times = maps_client.walking_times_batch(origin, destinations)
+            times = maps_client.walking_times_batch(origin, destinations, place_ids=pids)
             # Guard against malformed API response returning fewer elements.
             if len(times) != len(to_fetch):
                 times = [9999] * len(to_fetch)

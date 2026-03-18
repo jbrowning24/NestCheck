@@ -219,6 +219,23 @@ def init_db():
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_free_tier_email_hash "
         "ON free_tier_usage(email_hash)"
     )
+
+    # Migration: add walk time cache tracking columns to evaluation_coverage (NES-292)
+    eval_cov_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(evaluation_coverage)").fetchall()
+    }
+    if "walk_times_from_cache" not in eval_cov_cols:
+        conn.execute(
+            "ALTER TABLE evaluation_coverage "
+            "ADD COLUMN walk_times_from_cache INTEGER DEFAULT 0"
+        )
+    if "walk_times_from_api" not in eval_cov_cols:
+        conn.execute(
+            "ALTER TABLE evaluation_coverage "
+            "ADD COLUMN walk_times_from_api INTEGER DEFAULT 0"
+        )
+
     conn.commit()
     conn.close()
 
@@ -1197,8 +1214,9 @@ def save_evaluation_coverage(data: dict) -> None:
                     (evaluation_id, address, latitude, longitude,
                      evaluated_at, categories_from_cache,
                      categories_from_api, api_calls_saved,
-                     api_calls_made, total_duration_seconds)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     api_calls_made, total_duration_seconds,
+                     walk_times_from_cache, walk_times_from_api)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     data.get("evaluation_id"),
@@ -1211,6 +1229,8 @@ def save_evaluation_coverage(data: dict) -> None:
                     data.get("api_calls_saved", 0),
                     data.get("api_calls_made", 0),
                     data.get("total_duration_seconds"),
+                    data.get("walk_times_from_cache", 0),
+                    data.get("walk_times_from_api", 0),
                 ),
             )
             conn.commit()

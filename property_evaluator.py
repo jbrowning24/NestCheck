@@ -51,6 +51,7 @@ from census import get_demographics
 from spatial_data import (
     SpatialDataStore,
     VenueCache,
+    WalkTimeCache,
     _PLACE_TYPE_TO_CATEGORY,
     _VENUE_CACHE_TTL_DAYS,
     _VENUE_CACHE_TTL_DEFAULT,
@@ -644,6 +645,8 @@ class CoverageTracker:
     def __init__(self):
         self._from_cache: List[str] = []
         self._from_api: List[str] = []
+        self._walk_times_from_cache: int = 0
+        self._walk_times_from_api: int = 0
 
     def record_cache_hit(self, category: str) -> None:
         if category not in self._from_cache:
@@ -652,6 +655,12 @@ class CoverageTracker:
     def record_api_call(self, category: str) -> None:
         if category not in self._from_api:
             self._from_api.append(category)
+
+    def record_walk_time_cache_hits(self, count: int) -> None:
+        self._walk_times_from_cache += count
+
+    def record_walk_time_api_calls(self, count: int) -> None:
+        self._walk_times_from_api += count
 
     @property
     def categories_from_cache(self) -> List[str]:
@@ -669,6 +678,14 @@ class CoverageTracker:
     def api_calls_made(self) -> int:
         return len(self._from_api)
 
+    @property
+    def walk_times_from_cache(self) -> int:
+        return self._walk_times_from_cache
+
+    @property
+    def walk_times_from_api(self) -> int:
+        return self._walk_times_from_api
+
 
 class GoogleMapsClient:
     """Client for Google Maps APIs"""
@@ -683,6 +700,7 @@ class GoogleMapsClient:
         venue_cache: Optional["VenueCache"] = None,
         source_address: str = "",
         coverage_tracker: Optional["CoverageTracker"] = None,
+        walk_time_cache: Optional["WalkTimeCache"] = None,
     ):
         self.api_key = api_key
         self.base_url = "https://maps.googleapis.com/maps/api"
@@ -697,6 +715,8 @@ class GoogleMapsClient:
         self._venue_cache = venue_cache
         self._source_address = source_address
         self._coverage_tracker = coverage_tracker or CoverageTracker()
+        # Persistent walk/drive time cache (NES-292).
+        self._walk_time_cache = walk_time_cache
 
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
@@ -875,8 +895,21 @@ class GoogleMapsClient:
 
         return data.get("result", {})
 
-    def walking_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
-        """Get walking time in minutes between two points"""
+    def walking_time(
+        self,
+        origin: Tuple[float, float],
+        dest: Tuple[float, float],
+        place_id: Optional[str] = None,
+    ) -> int:
+        """Get walking time in minutes between two points.
+
+        When place_id is provided, uses the walk time cache.
+        """
+        if place_id and self._walk_time_cache:
+            return self.walking_times_batch(
+                origin, [dest], place_ids=[place_id]
+            )[0]
+
         url = f"{self.base_url}/distancematrix/json"
         params = {
             "origins": f"{origin[0]},{origin[1]}",
@@ -895,8 +928,21 @@ class GoogleMapsClient:
 
         return element["duration"]["value"] // 60  # Convert seconds to minutes
 
-    def driving_time(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
-        """Get driving time in minutes between two points"""
+    def driving_time(
+        self,
+        origin: Tuple[float, float],
+        dest: Tuple[float, float],
+        place_id: Optional[str] = None,
+    ) -> int:
+        """Get driving time in minutes between two points.
+
+        When place_id is provided, uses the walk time cache.
+        """
+        if place_id and self._walk_time_cache:
+            return self.driving_times_batch(
+                origin, [dest], place_ids=[place_id]
+            )[0]
+
         url = f"{self.base_url}/distancematrix/json"
         params = {
             "origins": f"{origin[0]},{origin[1]}",
@@ -1029,32 +1075,27 @@ class GoogleMapsClient:
                 self._coverage_tracker.record_api_call(cat)
         return results
 
-    def _distance_matrix_batch(
+    def _distance_matrix_batch_raw(
         self,
         origin: Tuple[float, float],
         destinations: List[Tuple[float, float]],
         mode: str,
         endpoint_name: str,
-    ) -> List[int]:
-        """Batch Distance Matrix request — shared implementation for walk/drive.
+    ) -> List[dict]:
+        """Batch Distance Matrix request returning raw seconds + meters.
 
-        Accepts up to len(destinations) points.  Chunks into groups of 25
-        (the Google Distance Matrix per-request limit) so callers don't need
-        to worry about the cap.
-
-        Returns a list of travel times in **minutes** (int), one per
-        destination in the same order.  Unreachable destinations get 9999.
-
-        Each chunk is a single traced API call, so 50 destinations = 2 calls
-        instead of 50.
+        Returns list of {"minutes": int, "seconds": int, "meters": int}
+        per destination.  Unreachable destinations get minutes=9999,
+        seconds=9999*60, meters=0.
         """
         if not destinations:
             return []
 
         CHUNK_SIZE = 25
-        all_times: List[int] = []
+        all_results: List[dict] = []
         origin_str = f"{origin[0]},{origin[1]}"
         url = f"{self.base_url}/distancematrix/json"
+        _UNREACHABLE = {"minutes": 9999, "seconds": 9999 * 60, "meters": 0}
 
         for i in range(0, len(destinations), CHUNK_SIZE):
             chunk = destinations[i : i + CHUNK_SIZE]
@@ -1068,47 +1109,175 @@ class GoogleMapsClient:
             data = self._traced_get(endpoint_name, url, params)
 
             if data.get("status") != "OK":
-                all_times.extend([9999] * len(chunk))
+                all_results.extend([dict(_UNREACHABLE)] * len(chunk))
                 continue
 
             elements = data.get("rows", [{}])[0].get("elements", [])
             for j, dest_coord in enumerate(chunk):
                 if j < len(elements) and elements[j].get("status") == "OK":
-                    all_times.append(elements[j]["duration"]["value"] // 60)
+                    dur = elements[j]["duration"]["value"]
+                    dist = elements[j].get("distance", {}).get("value", 0)
+                    all_results.append({
+                        "minutes": dur // 60,
+                        "seconds": dur,
+                        "meters": dist,
+                    })
                 else:
-                    all_times.append(9999)
+                    all_results.append(dict(_UNREACHABLE))
 
-        return all_times
+        return all_results
+
+    def _distance_matrix_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+        mode: str,
+        endpoint_name: str,
+    ) -> List[int]:
+        """Batch Distance Matrix request — returns travel times in minutes.
+
+        Wrapper around _distance_matrix_batch_raw for backward compat.
+        """
+        raw = self._distance_matrix_batch_raw(
+            origin, destinations, mode, endpoint_name
+        )
+        return [r["minutes"] for r in raw]
 
     def walking_times_batch(
         self,
         origin: Tuple[float, float],
         destinations: List[Tuple[float, float]],
+        place_ids: Optional[List[str]] = None,
     ) -> List[int]:
         """Batch walking times — 1 API call per 25 destinations instead of 1 each.
 
-        Example: 10 destinations = 1 API call instead of 10.
-        For >25 destinations, automatically chunks into multiple requests of 25.
+        When place_ids is provided and walk_time_cache is available,
+        cached pairs are served from spatial.db and only uncached pairs
+        are sent to the Distance Matrix API (partial hits).
 
         Returns list of walk times in minutes (int), 9999 for unreachable.
         Order matches the input destinations list.
         """
-        return self._distance_matrix_batch(origin, destinations, "walking", "walking_batch")
+        return self._cached_distance_matrix_batch(
+            origin, destinations, "walking", "walking_batch", place_ids
+        )
 
     def driving_times_batch(
         self,
         origin: Tuple[float, float],
         destinations: List[Tuple[float, float]],
+        place_ids: Optional[List[str]] = None,
     ) -> List[int]:
         """Batch driving times — 1 API call per 25 destinations instead of 1 each.
 
-        Example: 10 destinations = 1 API call instead of 10.
-        For >25 destinations, automatically chunks into multiple requests of 25.
+        When place_ids is provided and walk_time_cache is available,
+        cached pairs are served from spatial.db and only uncached pairs
+        are sent to the Distance Matrix API (partial hits).
 
         Returns list of drive times in minutes (int), 9999 for unreachable.
         Order matches the input destinations list.
         """
-        return self._distance_matrix_batch(origin, destinations, "driving", "driving_batch")
+        return self._cached_distance_matrix_batch(
+            origin, destinations, "driving", "driving_batch", place_ids
+        )
+
+    def _cached_distance_matrix_batch(
+        self,
+        origin: Tuple[float, float],
+        destinations: List[Tuple[float, float]],
+        mode: str,
+        endpoint_name: str,
+        place_ids: Optional[List[str]] = None,
+    ) -> List[int]:
+        """Distance Matrix batch with walk_time_cache integration.
+
+        Handles partial cache hits: cached pairs skip the API, uncached
+        pairs are sent to Distance Matrix, results are stored back.
+        """
+        if not destinations:
+            return []
+
+        # No cache or no place_ids — fall through to API
+        if not place_ids or not self._walk_time_cache:
+            return self._distance_matrix_batch(
+                origin, destinations, mode, endpoint_name
+            )
+
+        if len(place_ids) != len(destinations):
+            logger.warning(
+                "place_ids length (%d) != destinations length (%d); "
+                "skipping walk time cache",
+                len(place_ids), len(destinations),
+            )
+            return self._distance_matrix_batch(
+                origin, destinations, mode, endpoint_name
+            )
+
+        # 1. Read path — lookup cached results
+        valid_pids = [pid for pid in place_ids if pid]
+        cached = (
+            self._walk_time_cache.lookup_batch(
+                origin[0], origin[1], valid_pids, mode
+            )
+            if valid_pids
+            else {}
+        )
+
+        # 2. Partition into cached vs uncached
+        results: List[Optional[int]] = [None] * len(destinations)
+        uncached_indices: List[int] = []
+        uncached_dests: List[Tuple[float, float]] = []
+        cache_hits = 0
+
+        for i, (dest, pid) in enumerate(zip(destinations, place_ids)):
+            if pid and pid in cached:
+                results[i] = cached[pid]["seconds"] // 60
+                cache_hits += 1
+            else:
+                uncached_indices.append(i)
+                uncached_dests.append(dest)
+
+        # 3. API call for uncached only
+        if uncached_dests:
+            try:
+                api_raw = self._distance_matrix_batch_raw(
+                    origin, uncached_dests, mode, endpoint_name
+                )
+            except Exception:
+                # API failure: fill uncached entries with unreachable,
+                # still return partial cache hits rather than losing them.
+                for orig_idx in uncached_indices:
+                    results[orig_idx] = 9999
+                self._coverage_tracker.record_walk_time_cache_hits(cache_hits)
+                self._coverage_tracker.record_walk_time_api_calls(
+                    len(uncached_dests)
+                )
+                return results  # type: ignore[return-value]
+
+            # 4. Write path — store API results in cache
+            to_cache: List[dict] = []
+            for idx_pos, orig_idx in enumerate(uncached_indices):
+                raw = api_raw[idx_pos]
+                results[orig_idx] = raw["minutes"]
+                pid = place_ids[orig_idx]
+                if pid:
+                    to_cache.append({
+                        "place_id": pid,
+                        "seconds": raw["seconds"],
+                        "meters": raw["meters"],
+                    })
+
+            if to_cache:
+                self._walk_time_cache.store_batch(
+                    origin[0], origin[1], to_cache, mode
+                )
+
+        # 5. Track coverage
+        api_count = len(uncached_dests)
+        self._coverage_tracker.record_walk_time_cache_hits(cache_hits)
+        self._coverage_tracker.record_walk_time_api_calls(api_count)
+
+        return results  # type: ignore[return-value]
 
     def distance_feet(self, origin: Tuple[float, float], dest: Tuple[float, float]) -> int:
         """Calculate straight-line distance in feet"""
@@ -3228,7 +3397,8 @@ def get_neighborhood_snapshot(
                     (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
                     for p in places
                 ]
-                walk_times = maps.walking_times_batch((lat, lng), destinations)
+                pids = [p.get("place_id") for p in places]
+                walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
                 best = None
                 best_time = 9999
                 for place, walk_time in zip(places, walk_times):
@@ -3404,7 +3574,9 @@ def get_child_and_schooling_snapshot(
         for place in places:
             p_lat = place["geometry"]["location"]["lat"]
             p_lng = place["geometry"]["location"]["lng"]
-            walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+            walk_time = maps.walking_time(
+                (lat, lng), (p_lat, p_lng), place_id=place.get("place_id")
+            )
             if walk_time > SCHOOL_WALK_MAX_MIN:
                 continue
             scored_places.append((walk_time, place))
@@ -3496,7 +3668,9 @@ def get_child_and_schooling_snapshot(
             continue
         p_lat = place["geometry"]["location"]["lat"]
         p_lng = place["geometry"]["location"]["lng"]
-        walk_time = maps.walking_time((lat, lng), (p_lat, p_lng))
+        walk_time = maps.walking_time(
+            (lat, lng), (p_lat, p_lng), place_id=place.get("place_id")
+        )
         if walk_time > SCHOOL_WALK_MAX_MIN:
             continue
         if level == "K-12":
@@ -3581,7 +3755,8 @@ def find_primary_transit(
         (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
         for _, p, _ in raw_candidates
     ]
-    walk_times = maps.walking_times_batch((lat, lng), destinations)
+    pids = [p.get("place_id") for _, p, _ in raw_candidates]
+    walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
 
     candidates: List[Tuple[int, int, Dict, str]] = [
         (priority, wt, place, mode)
@@ -3597,7 +3772,8 @@ def find_primary_transit(
     if walk_time > 20:
         drive_time = maps.driving_time(
             (lat, lng),
-            (place_lat, place_lng)
+            (place_lat, place_lng),
+            place_id=place.get("place_id"),
         )
 
     parking_available = get_parking_availability(maps, place.get("place_id"))
@@ -3950,8 +4126,9 @@ def evaluate_transit_access(
         (node["geometry"]["location"]["lat"], node["geometry"]["location"]["lng"])
         for node in all_nodes
     ]
+    pids = [node.get("place_id") for node in all_nodes]
     try:
-        walk_time_results = maps.walking_times_batch((lat, lng), destinations)
+        walk_time_results = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
     except Exception:
         walk_time_results = [9999] * len(all_nodes)
 
@@ -4133,7 +4310,8 @@ def evaluate_green_spaces(
         (e["place"]["geometry"]["location"]["lat"], e["place"]["geometry"]["location"]["lng"])
         for e in entries_list
     ]
-    walk_times = maps.walking_times_batch((lat, lng), destinations)
+    pids = [e["place"].get("place_id") for e in entries_list]
+    walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
 
     green_spaces: List[GreenSpace] = []
     for entry, walk_time in zip(entries_list, walk_times):
@@ -4692,7 +4870,8 @@ def score_third_place_access(
             (p["geometry"]["location"]["lat"], p["geometry"]["location"]["lng"])
             for p in eligible_places
         ]
-        walk_times = maps.walking_times_batch((lat, lng), destinations)
+        pids = [p.get("place_id") for p in eligible_places]
+        walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
 
         # Find best scoring place and collect all scored places
         best_score = 0
@@ -5161,7 +5340,8 @@ def score_provisioning_access(
             (s["geometry"]["location"]["lat"], s["geometry"]["location"]["lng"])
             for s in eligible_stores
         ]
-        walk_times = maps.walking_times_batch((lat, lng), destinations)
+        pids = [s.get("place_id") for s in eligible_stores]
+        walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
 
         # Find best scoring store and collect all scored stores
         best_score = 0
@@ -5323,7 +5503,8 @@ def score_fitness_access(
             (f["geometry"]["location"]["lat"], f["geometry"]["location"]["lng"])
             for f in fitness_places
         ]
-        walk_times = maps.walking_times_batch((lat, lng), destinations)
+        pids = [f.get("place_id") for f in fitness_places]
+        walk_times = maps.walking_times_batch((lat, lng), destinations, place_ids=pids)
 
         # Build a set of eligible place_ids for fast lookup during scoring
         _eligible_ids = {f.get("place_id") for f in eligible_places}
@@ -5368,6 +5549,7 @@ def score_fitness_access(
                     (lat, lng),
                     (best_facility["geometry"]["location"]["lat"],
                      best_facility["geometry"]["location"]["lng"]),
+                    place_id=best_facility.get("place_id"),
                 )
                 if best_drive_time and best_drive_time != 9999:
                     drive_base = apply_piecewise(
@@ -5623,12 +5805,14 @@ def evaluate_property(
     eval_start = time.time()
 
     _venue_cache = VenueCache()
+    _walk_time_cache = WalkTimeCache()
     _coverage_tracker = CoverageTracker()
     maps = GoogleMapsClient(
         api_key,
         venue_cache=_venue_cache,
         source_address=listing.address,
         coverage_tracker=_coverage_tracker,
+        walk_time_cache=_walk_time_cache,
     )
 
     # Geocode is the one stage that MUST succeed — without coords nothing
@@ -5966,7 +6150,7 @@ def evaluate_property(
     logger.info("Evaluation complete for %r  score=%d  (%.1fs total)",
                 listing.address, result.final_score, elapsed_total)
 
-    # Record venue cache coverage analytics (NES-291)
+    # Record venue + walk time cache coverage analytics (NES-291 + NES-292)
     try:
         from models import save_evaluation_coverage
 
@@ -5983,6 +6167,8 @@ def evaluate_property(
             "api_calls_saved": _coverage_tracker.api_calls_saved,
             "api_calls_made": _coverage_tracker.api_calls_made,
             "total_duration_seconds": round(elapsed_total, 2),
+            "walk_times_from_cache": _coverage_tracker.walk_times_from_cache,
+            "walk_times_from_api": _coverage_tracker.walk_times_from_api,
         })
     except Exception:
         pass

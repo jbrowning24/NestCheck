@@ -1112,3 +1112,253 @@ class VenueCache:
             return False
         except Exception:
             return False
+
+
+# ---------------------------------------------------------------------------
+# Walk Time Cache (NES-292)
+# ---------------------------------------------------------------------------
+
+_WALK_TTL_DAYS = 180   # road networks change infrequently
+_DRIVE_TTL_DAYS = 90   # traffic patterns shift more than pedestrian routes
+_COORD_PRECISION = 5   # ~1.1 meter precision
+
+
+class WalkTimeCache:
+    """Cache for Google Distance Matrix walk/drive time results in spatial.db.
+
+    Stores origin->destination travel times keyed by rounded origin
+    coordinates and destination place_id. Supports partial cache hits:
+    cached pairs skip the API while uncached pairs are sent to
+    Distance Matrix.
+
+    Unreachable sentinel: -1 stored in {mode}_seconds means "queried
+    but unreachable" (maps to 9999 minutes on read). NULL means "not
+    yet queried for this mode".
+    """
+
+    _TABLE = "walk_time_cache"
+
+    def __init__(self):
+        self._table_ready: bool = False
+
+    @staticmethod
+    def _round(val: float) -> float:
+        return round(val, _COORD_PRECISION)
+
+    def _ensure_table(self) -> bool:
+        """Create walk_time_cache table if it doesn't exist.
+
+        Returns True when table is confirmed ready, False on error.
+        """
+        if self._table_ready:
+            return True
+        try:
+            db_path = _spatial_db_path()
+            parent = os.path.dirname(db_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                row = conn.execute(
+                    "SELECT 1 FROM sqlite_master "
+                    "WHERE type='table' AND name=?",
+                    (self._TABLE,),
+                ).fetchone()
+                if row is not None:
+                    self._table_ready = True
+                    return True
+
+                # Ensure SpatiaLite metadata exists (no-op if already init'd)
+                try:
+                    conn.execute("SELECT InitSpatialMetaData(1)")
+                except Exception:
+                    pass
+
+                conn.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {self._TABLE} (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        origin_lat REAL NOT NULL,
+                        origin_lng REAL NOT NULL,
+                        destination_place_id TEXT NOT NULL,
+                        walk_seconds INTEGER,
+                        walk_meters INTEGER,
+                        drive_seconds INTEGER,
+                        drive_meters INTEGER,
+                        walk_calculated_at TEXT,
+                        drive_calculated_at TEXT
+                    )
+                    """
+                )
+
+                conn.execute(
+                    f"CREATE UNIQUE INDEX IF NOT EXISTS "
+                    f"idx_{self._TABLE}_origin_dest ON {self._TABLE} "
+                    f"(origin_lat, origin_lng, destination_place_id)"
+                )
+                conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS "
+                    f"idx_{self._TABLE}_walk_calc ON {self._TABLE} "
+                    f"(walk_calculated_at)"
+                )
+                conn.execute(
+                    f"CREATE INDEX IF NOT EXISTS "
+                    f"idx_{self._TABLE}_drive_calc ON {self._TABLE} "
+                    f"(drive_calculated_at)"
+                )
+
+                conn.commit()
+                self._table_ready = True
+                logger.info("Created walk_time_cache table in spatial.db")
+                return True
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("Failed to ensure walk_time_cache table: %s", e)
+            return False
+
+    def lookup_batch(
+        self,
+        origin_lat: float,
+        origin_lng: float,
+        place_ids: List[str],
+        mode: str,
+    ) -> Dict[str, dict]:
+        """Look up cached travel times for origin->destination pairs.
+
+        Args:
+            origin_lat/lng: Origin coordinates (will be rounded).
+            place_ids: Google Place IDs of destinations.
+            mode: "walking" or "driving".
+
+        Returns:
+            Dict mapping place_id -> {"seconds": int, "meters": int}
+            for cache hits. Missing keys = cache miss.
+            Unreachable destinations return seconds=9999*60.
+        """
+        if not place_ids or not self._ensure_table():
+            return {}
+
+        lat = self._round(origin_lat)
+        lng = self._round(origin_lng)
+        ttl_days = _WALK_TTL_DAYS if mode == "walking" else _DRIVE_TTL_DAYS
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=ttl_days)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        sec_col = "walk_seconds" if mode == "walking" else "drive_seconds"
+        met_col = "walk_meters" if mode == "walking" else "drive_meters"
+        ts_col = (
+            "walk_calculated_at" if mode == "walking"
+            else "drive_calculated_at"
+        )
+
+        try:
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                placeholders = ",".join("?" for _ in place_ids)
+                cursor = conn.execute(
+                    f"""
+                    SELECT destination_place_id, {sec_col}, {met_col}
+                    FROM {self._TABLE}
+                    WHERE origin_lat = ? AND origin_lng = ?
+                      AND destination_place_id IN ({placeholders})
+                      AND {ts_col} >= ?
+                      AND {sec_col} IS NOT NULL
+                    """,
+                    (lat, lng, *place_ids, cutoff),
+                )
+
+                results: Dict[str, dict] = {}
+                for row in cursor:
+                    pid, seconds, meters = row
+                    # Map -1 sentinel back to unreachable
+                    if seconds == -1:
+                        seconds = 9999 * 60
+                    results[pid] = {"seconds": seconds, "meters": meters or 0}
+                return results
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.debug("Walk time cache lookup failed: %s", e)
+            return {}
+
+    def store_batch(
+        self,
+        origin_lat: float,
+        origin_lng: float,
+        results: List[dict],
+        mode: str,
+    ) -> None:
+        """Store travel time results in cache.
+
+        Args:
+            origin_lat/lng: Origin coordinates (will be rounded).
+            results: List of {"place_id": str, "seconds": int, "meters": int}.
+                     seconds=9999*60 is stored as -1 (unreachable sentinel).
+            mode: "walking" or "driving".
+        """
+        if not results or not self._ensure_table():
+            return
+
+        lat = self._round(origin_lat)
+        lng = self._round(origin_lng)
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        sec_col = "walk_seconds" if mode == "walking" else "drive_seconds"
+        met_col = "walk_meters" if mode == "walking" else "drive_meters"
+        ts_col = (
+            "walk_calculated_at" if mode == "walking"
+            else "drive_calculated_at"
+        )
+
+        try:
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                for item in results:
+                    try:
+                        pid = item.get("place_id")
+                        if not pid:
+                            continue
+
+                        seconds = item.get("seconds", 0)
+                        meters = item.get("meters", 0)
+                        # Map unreachable (9999 minutes = 599940 seconds)
+                        if seconds >= 9999 * 60:
+                            seconds = -1
+
+                        conn.execute(
+                            f"""
+                            INSERT INTO {self._TABLE}
+                                (origin_lat, origin_lng,
+                                 destination_place_id,
+                                 {sec_col}, {met_col}, {ts_col})
+                            VALUES (?, ?, ?, ?, ?, ?)
+                            ON CONFLICT(origin_lat, origin_lng,
+                                        destination_place_id)
+                            DO UPDATE SET
+                                {sec_col} = excluded.{sec_col},
+                                {met_col} = excluded.{met_col},
+                                {ts_col} = excluded.{ts_col}
+                            """,
+                            (lat, lng, pid, seconds, meters, now),
+                        )
+                    except Exception as e:
+                        logger.debug(
+                            "Walk time cache upsert skipped for %s: %s",
+                            item.get("place_id", "?"), e,
+                        )
+                        continue
+
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("Walk time cache batch store failed: %s", e)
