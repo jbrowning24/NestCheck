@@ -330,6 +330,19 @@ def start_worker() -> None:
     _worker_thread.start()
 
 
+def ensure_worker_alive() -> bool:
+    """Check if the worker thread is alive; restart it if not.
+
+    Returns True if a restart was needed, False if the thread was healthy.
+    """
+    global _worker_thread
+    if _worker_thread is not None and _worker_thread.is_alive():
+        return False
+    logger.warning("[worker] Worker thread died — restarting")
+    start_worker()
+    return True
+
+
 def stop_worker() -> None:
     """Signal the worker thread to stop (for tests or graceful shutdown)."""
     _stop_event.set()

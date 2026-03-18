@@ -90,6 +90,43 @@ def _addr_key(address: str) -> str:
 # API interaction
 # ---------------------------------------------------------------------------
 
+HEALTH_CHECK_RETRIES = 3
+HEALTH_CHECK_PAUSE = 60.0     # seconds between health check retries
+BATCH_SIZE = 10               # pause every N evaluations
+BATCH_PAUSE = 30.0            # seconds to pause between batches
+
+
+def _check_server_health(base_url: str, session: requests.Session) -> bool:
+    """Return True if the server responds to a GET / with 200."""
+    try:
+        resp = session.get(f"{base_url}/", timeout=10)
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
+def _wait_for_healthy_server(
+    base_url: str, session: requests.Session, state: dict,
+) -> bool:
+    """Wait for the server to become healthy, retrying up to HEALTH_CHECK_RETRIES.
+
+    Returns True if healthy, False if still unhealthy after all retries (state
+    is saved before returning False so progress is not lost).
+    """
+    for attempt in range(1, HEALTH_CHECK_RETRIES + 1):
+        logger.warning(
+            "Server unhealthy — pausing %ds before retry (%d/%d)",
+            int(HEALTH_CHECK_PAUSE), attempt, HEALTH_CHECK_RETRIES,
+        )
+        time.sleep(HEALTH_CHECK_PAUSE)
+        if _check_server_health(base_url, session):
+            logger.info("Server healthy again")
+            return True
+    logger.error("Server unresponsive — stopping sprint")
+    _save_state(state)
+    return False
+
+
 def _create_session(base_url: str, builder_secret: str | None) -> requests.Session:
     """Create a requests session with builder cookie and CSRF token."""
     session = requests.Session()
@@ -429,9 +466,20 @@ def run_sprint(
         state["last_run"] = datetime.now(timezone.utc).isoformat()
         _save_state(state)
 
+        # Health check after failures or timeouts
+        if eval_record["status"] == "failed":
+            if not _check_server_health(base_url, session):
+                if not _wait_for_healthy_server(base_url, session, state):
+                    return  # state already saved
+
         # Delay between evaluations
         if i < len(pending) - 1:
-            time.sleep(INTER_EVAL_DELAY)
+            # Batch pause every BATCH_SIZE evaluations
+            if (i + 1) % BATCH_SIZE == 0:
+                logger.info("Batch pause — sleeping %ds", int(BATCH_PAUSE))
+                time.sleep(BATCH_PAUSE)
+            else:
+                time.sleep(INTER_EVAL_DELAY)
 
     # Final summary
     done_count = sum(1 for v in state["evaluations"].values() if v.get("status") == "done")
