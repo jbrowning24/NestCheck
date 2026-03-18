@@ -34,6 +34,18 @@
   <meta property="og:url" content="{{ request.host_url }}">
 {% endblock %}
 
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "NestCheck",
+  "url": "{{ request.host_url }}",
+  "description": "Neighborhood evaluation tool for walkability, parks, transit, and safety."
+}
+</script>
+{% endblock %}
+
 {% block nav_links %}
   {% if is_builder %}
     <a href="/builder/dashboard" class="nav-link">Dashboard</a>

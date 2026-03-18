@@ -508,6 +508,28 @@ def get_recent_snapshots(limit=20):
     return [dict(row) for row in rows]
 
 
+def get_sitemap_snapshots(limit=2000):
+    """Return lightweight snapshot metadata for sitemap.xml generation.
+
+    Only returns snapshots that passed tier1 (have scores) since those
+    are the meaningful marketing surfaces. Skips the heavy result_json
+    column entirely.
+    """
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT snapshot_id, address_norm, created_at
+               FROM snapshots
+               WHERE passed_tier1 = 1
+               ORDER BY created_at DESC
+               LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
 def get_snapshot_by_place_id(place_id):
     """Load a snapshot by canonical Google place_id."""
     if not place_id:

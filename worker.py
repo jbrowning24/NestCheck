@@ -21,6 +21,7 @@ from models import (
     complete_job,
     fail_job,
     save_snapshot,
+    save_og_image,
     log_event,
     check_return_visit,
     requeue_stale_running_jobs,
@@ -169,6 +170,22 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
             user_id=user_id,
         )
         complete_job(job_id, snapshot_id)
+
+        # Generate and store OG image (never blocks worker)
+        try:
+            from og_image import generate_og_image
+
+            score_band = result.get("score_band", {})
+            og_bytes = generate_og_image(
+                address=address_norm,
+                score=result.get("final_score", 0),
+                verdict=result.get("verdict", ""),
+                band_css_class=score_band.get("css_class", ""),
+            )
+            if og_bytes:
+                save_og_image(snapshot_id, og_bytes)
+        except Exception:
+            logger.exception("OG image generation failed for %s", snapshot_id)
 
         # Send report email if user provided one (never blocks worker)
         if email_raw:

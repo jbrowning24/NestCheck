@@ -39,7 +39,7 @@ from census import serialize_for_result as _serialize_census
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
-    get_recent_events, get_recent_snapshots,
+    get_recent_events, get_recent_snapshots, get_sitemap_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
     get_snapshots_by_ids, update_snapshot_email_sent,
     create_job, get_job,
@@ -364,6 +364,26 @@ def _classify_walk(walk_min):
     if walk_min <= WALK_DRIVE_ONLY_THRESHOLD:
         return "borderline"
     return "drive_needed"
+
+
+def _add_coverage_metadata(output):
+    """Add section-level coverage metadata to a result dict (NES-288).
+
+    Extracts state from the formatted address, computes per-section coverage
+    tiers, and adds 'coverage' and 'state_name' keys.  Wraps in try/except
+    so coverage never breaks an evaluation.
+    """
+    try:
+        from coverage_config import extract_state_from_address, get_section_coverage, get_state_name
+        address = output.get("address", "")
+        state_code = extract_state_from_address(address)
+        output["coverage"] = get_section_coverage(state_code) if state_code else {}
+        output["state_name"] = get_state_name(state_code) if state_code else ""
+        output["state_code"] = state_code or ""
+    except Exception:
+        output["coverage"] = {}
+        output["state_name"] = ""
+        output["state_code"] = ""
 
 
 def _build_walkability_summary(result):
@@ -2331,6 +2351,10 @@ def result_to_dict(result):
         output.get("dimension_summaries", [])
     )
 
+    # NES-288: Section-level coverage badges based on state data availability.
+    # Display-time derivation — no evaluator changes needed.
+    _add_coverage_metadata(output)
+
     return output
 
 
@@ -3261,6 +3285,10 @@ def view_snapshot(snapshot_id):
     # NES-249: Walkability summary for sidebar widget (display-time only)
     result["walkability_summary"] = _build_walkability_summary(result)
 
+    # NES-288: Backfill coverage metadata for old snapshots (display-time only).
+    # Always recompute — coverage tiers may change as data is ingested.
+    _add_coverage_metadata(result)
+
     # NES-257: demographics is not backfilled — old snapshots simply lack the
     # key and the template hides the section when result.demographics is
     # None/absent.  Live re-fetch would be possible but is deliberately
@@ -4093,6 +4121,100 @@ def my_reports():
         authenticated=True,
         email=current_user.email,
         snapshots=snapshots,
+    )
+
+
+# ---------------------------------------------------------------------------
+# SEO: robots.txt and sitemap
+# ---------------------------------------------------------------------------
+
+@app.route("/robots.txt")
+def robots_txt():
+    """Serve robots.txt to guide search engine crawlers."""
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Allow: /s/\n"
+        "Allow: /pricing\n"
+        "Allow: /compare\n"
+        "Disallow: /api/\n"
+        "Disallow: /job/\n"
+        "Disallow: /debug/\n"
+        "Disallow: /builder/\n"
+        "Disallow: /auth/\n"
+        "\n"
+        "Sitemap: " + request.url_root.rstrip("/") + "/sitemap.xml\n"
+    )
+    return app.response_class(body, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    """Dynamic XML sitemap including static pages and recent evaluations."""
+    base = request.url_root.rstrip("/")
+
+    # Static pages with manually assigned priorities
+    static_pages = [
+        {"loc": base + "/", "priority": "1.0", "changefreq": "daily"},
+        {"loc": base + "/pricing", "priority": "0.7", "changefreq": "monthly"},
+        {"loc": base + "/compare", "priority": "0.6", "changefreq": "monthly"},
+        {"loc": base + "/privacy", "priority": "0.2", "changefreq": "yearly"},
+        {"loc": base + "/terms", "priority": "0.2", "changefreq": "yearly"},
+    ]
+
+    # Evaluation snapshots — only those that passed health checks
+    snapshots = get_sitemap_snapshots(limit=2000)
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for page in static_pages:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{_html_escape(page['loc'])}</loc>")
+        lines.append(f"    <changefreq>{page['changefreq']}</changefreq>")
+        lines.append(f"    <priority>{page['priority']}</priority>")
+        lines.append("  </url>")
+
+    for snap in snapshots:
+        loc = f"{base}/s/{_html_escape(snap['snapshot_id'])}"
+        lastmod = snap["created_at"][:10] if snap.get("created_at") else ""
+        lines.append("  <url>")
+        lines.append(f"    <loc>{loc}</loc>")
+        if lastmod:
+            lines.append(f"    <lastmod>{lastmod}</lastmod>")
+        lines.append("    <changefreq>never</changefreq>")
+        lines.append("    <priority>0.5</priority>")
+        lines.append("  </url>")
+
+    lines.append("</urlset>")
+
+    return app.response_class(
+        "\n".join(lines),
+        mimetype="application/xml",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# SEO: OG image serving
+# ---------------------------------------------------------------------------
+
+@app.route("/og/<snapshot_id>.png")
+def serve_og_image(snapshot_id):
+    """Serve the pre-generated OG image for a snapshot.
+
+    Falls back to the static default image for old snapshots that
+    were created before OG image generation was wired in.
+    """
+    from models import get_og_image
+    image_data = get_og_image(snapshot_id)
+    if not image_data:
+        return redirect(url_for("static", filename="images/og-default.png"))
+    return app.response_class(
+        image_data,
+        mimetype="image/png",
+        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 
