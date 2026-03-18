@@ -13,6 +13,10 @@ This script:
 3. Loads into spatial.db as facilities_hifld table
 4. Creates spatial index for distance-to-line queries
 
+National ingest: HIFLD has no state attribute field, so we ingest all ~94K
+records nationally. This is ~30MB of LINESTRING geometry, well within
+Railway's 5GB volume budget. (NES-285)
+
 Idempotent: drops and recreates the table on each run.
 Run time: ~5–15 minutes for full national dataset.
 
@@ -76,7 +80,7 @@ def _paths_to_multilinestring_wkt(paths: list, decimals: int = 6) -> str | None:
         return None
 
 
-def fetch_page(offset: int, where_clause: str = "1=1", bbox: str = "") -> dict:
+def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
     """Fetch one page of HIFLD transmission line records."""
     params = {
         "where": where_clause,
@@ -87,15 +91,6 @@ def fetch_page(offset: int, where_clause: str = "1=1", bbox: str = "") -> dict:
         "resultOffset": offset,
         "resultRecordCount": PAGE_SIZE,
     }
-    if bbox:
-        parts = [float(x) for x in bbox.split(",")]
-        params["geometry"] = json.dumps({
-            "xmin": parts[0], "ymin": parts[1],
-            "xmax": parts[2], "ymax": parts[3],
-            "spatialReference": {"wkid": 4326},
-        })
-        params["geometryType"] = "esriGeometryEnvelope"
-        params["inSR"] = "4326"
     for attempt in range(3):
         try:
             resp = requests.get(HIFLD_ENDPOINT, params=params, timeout=90)
@@ -116,8 +111,8 @@ def fetch_page(offset: int, where_clause: str = "1=1", bbox: str = "") -> dict:
                 raise
 
 
-def ingest(limit_pages: int = 0, discover: bool = False, bbox: str = ""):
-    """Main ingestion loop."""
+def ingest(limit_pages: int = 0, discover: bool = False):
+    """Main ingestion loop. Ingests all ~94K records nationally (no geographic filter)."""
 
     if discover:
         params = {
@@ -142,9 +137,7 @@ def ingest(limit_pages: int = 0, discover: bool = False, bbox: str = ""):
             print("Sample geometry keys:", list(feat.get("geometry", {}).keys()))
         return
 
-    logger.info("Starting HIFLD transmission line ingestion")
-    if bbox:
-        logger.info("  BBOX: %s", bbox)
+    logger.info("Starting HIFLD transmission line ingestion (national)")
     if limit_pages:
         logger.info("  LIMIT: %d pages (%d records)", limit_pages, limit_pages * PAGE_SIZE)
 
@@ -162,7 +155,7 @@ def ingest(limit_pages: int = 0, discover: bool = False, bbox: str = ""):
         while True:
             batch_num += 1
             logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
-            data = fetch_page(offset, bbox=bbox)
+            data = fetch_page(offset)
 
             features = data.get("features", [])
             if not features:
@@ -241,10 +234,7 @@ def ingest(limit_pages: int = 0, discover: bool = False, bbox: str = ""):
                 HIFLD_ENDPOINT,
                 datetime.now(timezone.utc).isoformat(),
                 total_inserted,
-                ", ".join(filter(None, [
-                    f"LIMIT: {limit_pages} pages" if limit_pages else None,
-                    f"BBOX: {bbox}" if bbox else None,
-                ])) or "full",
+                f"LIMIT: {limit_pages} pages" if limit_pages else "national",
             ),
         )
         conn.commit()
@@ -293,10 +283,6 @@ if __name__ == "__main__":
         help="Max pages to ingest (0 = all). Each page = 2000 records.",
     )
     parser.add_argument(
-        "--bbox", type=str, default="",
-        help="Bounding box filter: 'min_lng,min_lat,max_lng,max_lat' (e.g., '-74.15,40.75,-73.35,41.45').",
-    )
-    parser.add_argument(
         "--discover", action="store_true",
         help="Print sample record and exit.",
     )
@@ -309,6 +295,6 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True)
     else:
-        ingest(limit_pages=args.limit, bbox=args.bbox)
+        ingest(limit_pages=args.limit)
         if args.verify:
             verify()
