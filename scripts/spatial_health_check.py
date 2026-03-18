@@ -30,6 +30,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -316,6 +318,64 @@ def check_health(db_path: str, tolerance: float = DEFAULT_TOLERANCE) -> List[Tab
 
 
 # ---------------------------------------------------------------------------
+# Remote endpoint fetch
+# ---------------------------------------------------------------------------
+
+
+def _fetch_from_endpoint(url: str, token: str) -> List[TableStatus]:
+    """Fetch spatial health data from the web service's /api/spatial-health endpoint.
+
+    Accepts both 200 (healthy) and 503 (unhealthy) — unhealthy is valid data.
+    Raises on 401/404/network errors.
+    """
+    endpoint = f"{url.rstrip('/')}/api/spatial-health"
+    req = Request(endpoint, headers={
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    })
+
+    try:
+        resp = urlopen(req, timeout=30)
+        body = resp.read().decode("utf-8")
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError:
+            raise RuntimeError(f"Endpoint returned non-JSON response (HTTP {resp.status})")
+    except HTTPError as exc:
+        if exc.code == 503:
+            # Unhealthy — still valid data
+            body = exc.read().decode("utf-8")
+            try:
+                data = json.loads(body)
+            except json.JSONDecodeError:
+                raise RuntimeError("Endpoint returned non-JSON 503 response") from exc
+        elif exc.code == 401:
+            raise RuntimeError("Authentication failed (401) — check SPATIAL_HEALTH_TOKEN") from exc
+        elif exc.code == 404:
+            raise RuntimeError(
+                "Endpoint returned 404 — SPATIAL_HEALTH_TOKEN may be unset on the web service"
+            ) from exc
+        else:
+            raise RuntimeError(f"Endpoint returned HTTP {exc.code}") from exc
+    except URLError as exc:
+        raise RuntimeError(f"Could not reach endpoint: {exc.reason}") from exc
+
+    results: List[TableStatus] = []
+    for t in data.get("tables", []):
+        results.append(TableStatus(
+            table_name=t["table_name"],
+            exists=t["exists"],
+            row_count=t["row_count"],
+            baseline_count=t.get("baseline_count"),
+            ingested_at=t.get("ingested_at"),
+            staleness_threshold_days=t.get("staleness_threshold_days"),
+            age_days=t.get("age_days"),
+            issues=t.get("issues", []),
+        ))
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Reporting
 # ---------------------------------------------------------------------------
 
@@ -489,6 +549,11 @@ def main():
         action="store_true",
         help="Output results as JSON instead of text",
     )
+    parser.add_argument(
+        "--endpoint-url",
+        help="Fetch health data from the web service endpoint instead of local DB "
+             "(e.g. https://nestcheck.up.railway.app). Requires SPATIAL_HEALTH_TOKEN env var.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -499,19 +564,30 @@ def main():
     db_path = _spatial_db_path()
 
     if args.record_baseline:
+        if args.endpoint_url:
+            print("ERROR: --record-baseline cannot be used with --endpoint-url")
+            sys.exit(1)
         counts = record_baseline(db_path)
         print(f"Baseline recorded to {BASELINE_PATH}")
         for table, count in sorted(counts.items()):
             print(f"  {table}: {count:,}")
         return
 
-    statuses = check_health(db_path, tolerance=args.tolerance)
+    if args.endpoint_url:
+        token = os.environ.get("SPATIAL_HEALTH_TOKEN")
+        if not token:
+            print("ERROR: SPATIAL_HEALTH_TOKEN env var required for --endpoint-url mode")
+            sys.exit(1)
+        logger.info("Fetching spatial health from %s", args.endpoint_url)
+        statuses = _fetch_from_endpoint(args.endpoint_url, token)
+    else:
+        statuses = check_health(db_path, tolerance=args.tolerance)
     unhealthy = [s for s in statuses if not s.healthy]
 
     if args.json:
         output = {
             "checked_at": datetime.now(timezone.utc).isoformat(),
-            "db_path": db_path,
+            "source": args.endpoint_url if args.endpoint_url else db_path,
             "healthy": len(unhealthy) == 0,
             "tables": [
                 {

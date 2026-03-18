@@ -3627,6 +3627,63 @@ def healthz():
     }), 200 if config_ok else 503
 
 
+@app.route("/api/spatial-health")
+def api_spatial_health():
+    """Check spatial.db health on the production volume.
+
+    Authenticated via Bearer token matching SPATIAL_HEALTH_TOKEN env var.
+    Returns 404 when the env var is unset (endpoint disabled).
+    """
+    import hmac
+
+    expected_token = os.environ.get("SPATIAL_HEALTH_TOKEN")
+    if not expected_token:
+        abort(404)
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return jsonify({"error": "missing or malformed Authorization header"}), 401
+    provided = auth[len("Bearer "):]
+    if not hmac.compare_digest(provided, expected_token):
+        return jsonify({"error": "invalid token"}), 401
+
+    try:
+        from scripts.spatial_health_check import check_health
+        from spatial_data import _spatial_db_path
+
+        statuses = check_health(_spatial_db_path())
+        unhealthy = [s for s in statuses if not s.healthy]
+        checked_at = datetime.now(timezone.utc).isoformat()
+
+        payload = {
+            "status": "healthy" if not unhealthy else "unhealthy",
+            "checked_at": checked_at,
+            "summary": {
+                "total": len(statuses),
+                "healthy": len(statuses) - len(unhealthy),
+                "unhealthy": len(unhealthy),
+            },
+            "tables": [
+                {
+                    "table_name": s.table_name,
+                    "exists": s.exists,
+                    "row_count": s.row_count,
+                    "baseline_count": s.baseline_count,
+                    "ingested_at": s.ingested_at,
+                    "age_days": round(s.age_days, 1) if s.age_days is not None else None,
+                    "staleness_threshold_days": s.staleness_threshold_days,
+                    "healthy": s.healthy,
+                    "issues": s.issues,
+                }
+                for s in statuses
+            ],
+        }
+        return jsonify(payload), 200 if not unhealthy else 503
+    except Exception as exc:
+        logger.exception("spatial-health endpoint error")
+        return jsonify({"error": type(exc).__name__}), 500
+
+
 @app.route("/debug/trace/<snapshot_id>")
 def debug_trace(snapshot_id):
     """View trace data for a snapshot (safe, no secrets). Builder-only."""

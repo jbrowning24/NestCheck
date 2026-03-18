@@ -10,6 +10,6 @@
 builder = "RAILPACK"
 
 [deploy]
-startCommand = "python startup_ingest.py && python scripts/spatial_health_check.py --email $SPATIAL_HEALTH_NOTIFY_EMAIL"
+startCommand = "python scripts/spatial_health_check.py --endpoint-url $NESTCHECK_WEB_URL --email $SPATIAL_HEALTH_NOTIFY_EMAIL"
 cronSchedule = "0 14 * * 1"
 restartPolicyType = "NEVER"
