@@ -10,7 +10,7 @@ constraint shapes the setup.
 Railway Project: NestCheck
 ├── web (existing)        — gunicorn, owns volume at /app/data
 ├── smoke-test (cron)     — daily, no volume needed
-├── spatial-health (cron) — weekly, needs its own volume
+├── spatial-health (cron) — weekly, no volume needed (queries web service via HTTP)
 └── regression (cron)     — monthly, no volume needed
 ```
 
@@ -18,13 +18,14 @@ Railway Project: NestCheck
 
 Railway volumes are attached to a single service and cannot be mounted by
 multiple services. The web service owns the volume at `/app/data` containing
-`spatial.db`. Cron services that need spatial data must have their own volume
-and run `startup_ingest.py` on first boot to populate it.
+`spatial.db`. For cron services that need spatial data, the workaround is an
+authenticated HTTP endpoint on the web service — the cron calls the endpoint
+instead of reading the DB directly.
 
 | Service | Needs Volume? | Why |
 |---------|--------------|-----|
 | `smoke-test` | No | Runs evaluation via API calls, no direct DB reads |
-| `spatial-health` | Yes (own volume) | Queries `spatial.db` row counts and staleness |
+| `spatial-health` | No | Queries web service's `/api/spatial-health` endpoint via HTTP |
 | `regression` | No | Evaluations use live APIs; baselines are in git |
 
 ## Prerequisites
@@ -63,32 +64,25 @@ Schedule: `0 12 * * *` — daily at 12:00 UTC (7am EST / 8am EDT)
 
 ### spatial-health (weekly)
 
-Queries `spatial.db` to verify all 11 expected tables are present, have row
-counts within baseline tolerance, and haven't gone stale.
+Queries the production web service's `spatial.db` via an authenticated HTTP
+endpoint to verify all 11 expected tables are present, have row counts within
+baseline tolerance, and haven't gone stale.
 
 1. **+ New** → **GitHub Repo** → select NestCheck repo → name it `spatial-health`
 2. **Settings** → **Build & Deploy**:
    - **Config File Path**: `railway-cron-spatial-health.toml`
-3. **Volumes** → **Add Volume**:
-   - Mount path: `/app/data`
-   - Size: 5 GB
-4. **Variables** (service-specific):
+3. **Variables** (service-specific):
    - `SPATIAL_HEALTH_NOTIFY_EMAIL` = your alert email
-   - `RAILWAY_VOLUME_MOUNT_PATH` = `/app/data`
+   - `NESTCHECK_WEB_URL` = production web service URL (e.g. `https://nestcheck.up.railway.app`)
+4. **Variables** (shared with web service):
+   - `SPATIAL_HEALTH_TOKEN` = shared secret token (set on BOTH web and spatial-health services)
 
 Schedule: `0 14 * * 1` — Mondays at 14:00 UTC (9am EST / 10am EDT)
 
-**First run**: The start command runs `startup_ingest.py` before the health
-check to populate `spatial.db` on this service's volume. The first execution
-takes longer (~5-10 min for ingestion). Subsequent runs are fast (~5s) since
-data persists on the volume between cron executions and `startup_ingest.py`
-skips tables that already have data.
-
-**Data freshness**: This volume is independent of the web service's volume.
-The spatial data will match the web service's data in content (same ingest
-scripts, same sources) but may differ in ingestion timestamps. For health
-checking purposes — verifying tables exist, row counts are stable, data
-isn't stale — this is fine.
+**No volume needed**: The cron service calls the web service's
+`GET /api/spatial-health` endpoint, which checks the production volume's
+`spatial.db` directly. This ensures the health check validates the actual
+production data, not a separate copy. Runs are fast (~5s).
 
 ### regression (monthly)
 
@@ -170,10 +164,10 @@ entries. Railway's minimum interval is 5 minutes. All schedules are UTC.
 timeout parameter), Railway keeps the deployment running and skips subsequent
 executions. All scripts use timeouts on network calls.
 
-**spatial.db not found (spatial-health)**: Verify the volume mount path
-matches `RAILWAY_VOLUME_MOUNT_PATH`. The first run must complete
-`startup_ingest.py` to populate the DB. Check the deployment logs for
-ingestion progress.
+**spatial-health 401/404 errors**: Verify `SPATIAL_HEALTH_TOKEN` is set to
+the same value on both the web service and the spatial-health cron service.
+A 404 means the token is not set on the web service (endpoint disabled).
+A 401 means the tokens don't match.
 
 **Email not sending**: Verify `RESEND_API_KEY` is set on the cron service.
 Each service has its own env var scope unless Shared Variables are used.
@@ -186,7 +180,6 @@ Cron services are billed per execution (not always-on):
 | Service | Runs/month | Time/run | Compute cost |
 |---------|-----------|----------|--------------|
 | `smoke-test` | ~30 | ~60s | ~$0.50 |
-| `spatial-health` | ~4 | ~5s (after first) | ~$0.05 |
+| `spatial-health` | ~4 | ~5s | ~$0.05 |
 | `regression` | 1 | ~15 min | ~$0.50 |
-| Extra volume (spatial-health) | — | — | ~$1.25 |
-| **Total** | | | **~$2.30/month** |
+| **Total** | | | **~$1.05/month** |
