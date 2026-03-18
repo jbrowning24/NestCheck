@@ -10,8 +10,8 @@ Datasets are checked in order and ingested independently — a failure in one
 never blocks the others or crashes the worker.
 
 Geographic scope: controlled by TARGET_STATES config below. State-filtered
-datasets derive their filter lists from this dict; bbox-filtered datasets
-use (-75.6, 38.9, -71.8, 42.1).
+datasets derive their filter lists from this dict. HIFLD ingests nationally
+(no state field available). Only FEMA NFHL still uses bbox filtering.
 """
 
 import fcntl
@@ -30,13 +30,13 @@ import re
 # state is a single dict entry; every ingest call below derives its filter
 # from this config.
 #
-# Keys: 2-letter postal code (used by HPMS, EJScreen, TRI, NCES STABR)
+# Keys: 2-letter postal code (used by HPMS, EJScreen, TRI, NCES STABR, FRA STATEAB)
 # Values:
 #   fips      — 2-digit FIPS code (used by TIGER school districts)
 #   full_name — full state name (used by UST)
 #
-# Bbox-filtered datasets (FEMA, HIFLD, FRA) are NOT driven by this config
-# and need separate refactoring for geographic expansion.
+# HIFLD ingests nationally (no state attribute field). FEMA NFHL still uses
+# bbox and needs separate per-metro strategy (NES-286).
 TARGET_STATES = {
     "NY": {"fips": "36", "full_name": "New York"},
     "NJ": {"fips": "34", "full_name": "New Jersey"},
@@ -219,7 +219,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset ust: missing or empty, starting ingestion...")
         _run_ingest("ust", _ingest_ust)
 
-    # --- HIFLD (electric power transmission lines, tri-state bbox) ---
+    # --- HIFLD (electric power transmission lines, national) ---
     has_data, count = _table_has_data(db_path, "facilities_hifld")
     if has_data:
         logger.info("Dataset hifld: present (%d records), skipping", count)
@@ -227,7 +227,7 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset hifld: missing or empty, starting ingestion...")
         _run_ingest("hifld", _ingest_hifld)
 
-    # --- FRA (rail network lines, tri-state bbox) ---
+    # --- FRA (rail network lines, state-filtered via STATEAB) ---
     has_data, count = _table_has_data(db_path, "facilities_fra")
     if has_data:
         logger.info("Dataset fra: present (%d records), skipping", count)
@@ -323,12 +323,12 @@ def _ingest_ust():
 
 def _ingest_hifld():
     from scripts.ingest_hifld import ingest as do_ingest
-    do_ingest(bbox="-75.6,38.9,-71.8,42.1")
+    do_ingest()  # National ingest — no state field available (NES-285)
 
 
 def _ingest_fra():
     from scripts.ingest_fra import ingest as do_ingest
-    do_ingest(bbox="-75.6,38.9,-71.8,42.1", us_only=True)
+    do_ingest(states=list(TARGET_STATES.keys()))  # State filter via STATEAB (NES-285)
 
 
 def _ingest_school_districts():
