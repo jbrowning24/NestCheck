@@ -41,6 +41,7 @@ TARGET_STATES = {
     "NY": {"fips": "36", "full_name": "New York"},
     "NJ": {"fips": "34", "full_name": "New Jersey"},
     "CT": {"fips": "09", "full_name": "Connecticut"},
+    "MI": {"fips": "26", "full_name": "Michigan"},
 }
 
 
@@ -307,7 +308,7 @@ def _ingest_hpms():
 
 def _ingest_ejscreen():
     from scripts.ingest_ejscreen import ingest as do_ingest
-    do_ingest(states=list(TARGET_STATES.keys()), bbox="-75.6,38.9,-71.8,42.1")
+    do_ingest(states=list(TARGET_STATES.keys()))
 
 
 def _ingest_tri():
@@ -350,16 +351,20 @@ def _ingest_ct_performance():
     do_ingest()
 
 
+def _ingest_mi_performance():
+    from scripts.ingest_mi_performance import ingest as do_ingest
+    do_ingest()
+
+
 def _ingest_nces_schools():
     from scripts.ingest_nces_schools import ingest as do_ingest
-    _BBOX = "-75.6,38.9,-71.8,42.1"
     from spatial_data import init_spatial_db, create_facility_table
     init_spatial_db()
     create_facility_table("nces_schools")
     logger.info("Created facilities_nces_schools table")
     for stabr in TARGET_STATES:
         logger.info("Ingesting NCES schools for STABR=%s...", stabr)
-        do_ingest(bbox=_BBOX, stabr=stabr, _skip_table_create=True)
+        do_ingest(stabr=stabr, _skip_table_create=True)
 
 
 # Per-state education performance ingest functions. Each entry maps a
@@ -369,4 +374,5 @@ _STATE_EDUCATION_INGEST = {
     "NY": _ingest_nysed,
     "NJ": _ingest_nj_performance,
     "CT": _ingest_ct_performance,
+    "MI": _ingest_mi_performance,
 }
