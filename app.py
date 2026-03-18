@@ -5,6 +5,7 @@ import logging
 import shlex
 import subprocess
 import sys
+import time
 import uuid
 import sqlite3
 import traceback
@@ -281,6 +282,28 @@ def _set_request_context():
     # Authenticated user context — available in templates via g.user_email
     g.user_email = current_user.email if current_user.is_authenticated else None
     g.user_name = current_user.name if current_user.is_authenticated else None
+
+
+# --- Worker thread watchdog ---
+# Checks every 30s (on inbound requests) whether the background evaluation
+# worker is alive and restarts it if not.  This catches the failure mode where
+# gunicorn keeps serving HTTP but the daemon worker thread has crashed.
+_worker_watchdog_last_check = 0.0
+_WORKER_WATCHDOG_INTERVAL = 30.0  # seconds
+
+
+@app.before_request
+def _worker_watchdog():
+    global _worker_watchdog_last_check
+    now = time.monotonic()
+    if now - _worker_watchdog_last_check < _WORKER_WATCHDOG_INTERVAL:
+        return
+    _worker_watchdog_last_check = now
+    try:
+        from worker import ensure_worker_alive
+        ensure_worker_alive()
+    except Exception:
+        logger.exception("Worker watchdog check failed")
 
 
 @app.after_request
