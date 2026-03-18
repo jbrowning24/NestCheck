@@ -13,7 +13,7 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -598,8 +598,21 @@ def create_facility_table(
 
 
 # ---------------------------------------------------------------------------
-# Venue Cache — write path (NES-290)
+# Venue Cache (NES-290 write path + NES-291 read path)
 # ---------------------------------------------------------------------------
+
+# TTL by NestCheck category — how many days before cached venues are stale.
+_VENUE_CACHE_TTL_DAYS: Dict[str, int] = {
+    "coffee": 30,
+    "grocery": 30,
+    "fitness": 30,
+    "restaurant": 30,
+    "pharmacy": 30,
+    "park": 90,
+    "library": 90,
+    "gas_station": 90,
+}
+_VENUE_CACHE_TTL_DEFAULT = 30
 
 # Maps Google Places place_type to NestCheck category.
 # Covers every places_nearby() call site in property_evaluator.py.
@@ -762,6 +775,25 @@ class VenueCache:
                     f"ON {self._TABLE} (last_verified)"
                 )
 
+                # Search area tracking for "sufficient coverage" heuristic
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS venue_search_areas (
+                        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                        category        TEXT NOT NULL,
+                        latitude        REAL NOT NULL,
+                        longitude       REAL NOT NULL,
+                        radius_meters   INTEGER NOT NULL,
+                        result_count    INTEGER NOT NULL,
+                        searched_at     TEXT NOT NULL
+                    )
+                    """
+                )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_vsa_category "
+                    "ON venue_search_areas (category)"
+                )
+
                 conn.commit()
                 self._table_ready = True
                 logger.info("Created venue_cache table in spatial.db")
@@ -864,3 +896,219 @@ class VenueCache:
                 conn.close()
         except Exception as e:
             logger.warning("Venue cache batch upsert failed: %s", e)
+
+    # ------------------------------------------------------------------
+    # Read path (NES-291)
+    # ------------------------------------------------------------------
+
+    def query_venues(
+        self,
+        lat: float,
+        lng: float,
+        category: str,
+        radius_meters: int,
+        max_age_days: int = 30,
+    ) -> Optional[List[Dict]]:
+        """Query venue cache for fresh venues in a category near a point.
+
+        Returns a list of dicts matching the Google Places API response shape
+        (reconstructed from ``raw_response``), or ``None`` if the cache cannot
+        serve this request (table missing, no data, error).
+
+        The "sufficient coverage" heuristic uses ``venue_search_areas`` to
+        decide whether sparse cache results represent a genuinely sparse area
+        or simply an un-queried area.
+        """
+        if not self._ensure_table():
+            return None
+
+        try:
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+
+                cutoff_str = (
+                    datetime.now(timezone.utc) - timedelta(days=max_age_days)
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+                radius_deg = radius_meters / 80000.0
+
+                cursor = conn.execute(
+                    f"""
+                    SELECT raw_response,
+                           ST_Distance(
+                               geometry, MakePoint(?, ?, 4326), 1
+                           ) as distance_m
+                    FROM {self._TABLE}
+                    WHERE category = ?
+                      AND last_verified >= ?
+                      AND ROWID IN (
+                          SELECT ROWID FROM SpatialIndex
+                          WHERE f_table_name = '{self._TABLE}'
+                          AND f_geometry_column = 'geometry'
+                          AND search_frame = BuildCircleMbr(?, ?, ?, 4326)
+                      )
+                      AND ST_Distance(
+                          geometry, MakePoint(?, ?, 4326), 1
+                      ) <= ?
+                    ORDER BY distance_m ASC
+                    """,
+                    (
+                        lng, lat,           # MakePoint for SELECT
+                        category,
+                        cutoff_str,
+                        lng, lat, radius_deg,  # BuildCircleMbr
+                        lng, lat,           # MakePoint for WHERE
+                        float(radius_meters),
+                    ),
+                )
+
+                rows = cursor.fetchall()
+                cached_count = len(rows)
+
+                if cached_count == 0:
+                    # Check if a prior search covered this area and found
+                    # nothing — that means the area is genuinely empty.
+                    if self._has_prior_search(
+                        conn, lat, lng, category, cutoff_str
+                    ):
+                        return []
+                    return None
+
+                # Check coverage sufficiency: did a prior search in this area
+                # return roughly this many results?
+                if not self._is_coverage_sufficient(
+                    conn, lat, lng, category, radius_meters,
+                    cached_count, cutoff_str
+                ):
+                    return None
+
+                venues = []
+                for row in rows:
+                    try:
+                        venues.append(json.loads(row[0]))
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+                return venues if venues else None
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.debug("Venue cache query failed for %s: %s", category, e)
+            return None
+
+    def record_search_area(
+        self,
+        lat: float,
+        lng: float,
+        category: str,
+        radius_meters: int,
+        result_count: int,
+    ) -> None:
+        """Record that an API search was performed for this area + category.
+
+        Used by the coverage sufficiency heuristic to distinguish "no venues
+        in cache because area was never queried" from "no venues because the
+        area genuinely has none."  Swallows all errors.
+        """
+        if not self._ensure_table():
+            return
+
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        try:
+            conn = _connect()
+            try:
+                conn.execute("PRAGMA busy_timeout = 30000")
+                conn.execute(
+                    """
+                    INSERT INTO venue_search_areas
+                        (category, latitude, longitude, radius_meters,
+                         result_count, searched_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (category, lat, lng, radius_meters, result_count, now),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.debug("Failed to record search area: %s", e)
+
+    def _has_prior_search(
+        self,
+        conn,
+        lat: float,
+        lng: float,
+        category: str,
+        cutoff_str: str,
+    ) -> bool:
+        """Check if a prior API search covered this point for this category.
+
+        A prior search "covers" the current point if the current point falls
+        within the prior search's circle (prior center + prior radius).
+        """
+        try:
+            # Find prior searches for this category that are still fresh
+            cursor = conn.execute(
+                """
+                SELECT latitude, longitude, radius_meters, result_count
+                FROM venue_search_areas
+                WHERE category = ?
+                  AND searched_at >= ?
+                ORDER BY searched_at DESC
+                LIMIT 50
+                """,
+                (category, cutoff_str),
+            )
+            for row in cursor:
+                s_lat, s_lng, s_radius, _ = row
+                # Haversine approximation: check if current point is within
+                # the prior search radius.  Use rough meters-per-degree.
+                dlat = abs(lat - s_lat) * 111_320.0
+                dlng = abs(lng - s_lng) * 111_320.0 * 0.75  # ~cos(41°)
+                dist = (dlat**2 + dlng**2) ** 0.5
+                if dist <= s_radius:
+                    return True
+            return False
+        except Exception:
+            return False
+
+    def _is_coverage_sufficient(
+        self,
+        conn,
+        lat: float,
+        lng: float,
+        category: str,
+        radius_meters: int,
+        cached_count: int,
+        cutoff_str: str,
+    ) -> bool:
+        """Determine if cached venue count is sufficient for a cache hit.
+
+        A prior search that returned ≤ cached_count results means the cache
+        has at least as many venues as the API returned — sufficient coverage.
+        If no prior search covers this area, we can't confirm coverage.
+        """
+        try:
+            cursor = conn.execute(
+                """
+                SELECT latitude, longitude, radius_meters, result_count
+                FROM venue_search_areas
+                WHERE category = ?
+                  AND searched_at >= ?
+                ORDER BY searched_at DESC
+                LIMIT 50
+                """,
+                (category, cutoff_str),
+            )
+            for row in cursor:
+                s_lat, s_lng, s_radius, s_count = row
+                dlat = abs(lat - s_lat) * 111_320.0
+                dlng = abs(lng - s_lng) * 111_320.0 * 0.75
+                dist = (dlat**2 + dlng**2) ** 0.5
+                if dist <= s_radius and cached_count >= s_count:
+                    return True
+            return False
+        except Exception:
+            return False
