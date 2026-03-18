@@ -290,7 +290,7 @@ def _ingest_hpms():
 
 def _ingest_ejscreen():
     from scripts.ingest_ejscreen import ingest as do_ingest
-    do_ingest(states=["NY", "CT", "NJ"])
+    do_ingest(states=["NY", "CT", "NJ"], bbox="-75.6,38.9,-71.8,42.1")
 
 
 def _ingest_tri():
