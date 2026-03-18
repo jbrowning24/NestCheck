@@ -9,8 +9,9 @@ file-based lock (fcntl) to prevent concurrent ingestion from multiple workers.
 Datasets are checked in order and ingested independently — a failure in one
 never blocks the others or crashes the worker.
 
-Geographic scope: NY + CT + NJ (tri-state). State-filtered datasets use
-multi-state IN clauses; bbox-filtered datasets use (-75.6, 38.9, -71.8, 42.1).
+Geographic scope: controlled by TARGET_STATES config below. State-filtered
+datasets derive their filter lists from this dict; bbox-filtered datasets
+use (-75.6, 38.9, -71.8, 42.1).
 """
 
 import fcntl
@@ -23,6 +24,28 @@ import time
 from spatial_data import _spatial_db_path
 
 import re
+
+# ── Geographic scope ────────────────────────────────────────────────────
+# Single source of truth for all state-filtered ingestion. Adding a new
+# state is a single dict entry; every ingest call below derives its filter
+# from this config.
+#
+# Keys: 2-letter postal code (used by HPMS, EJScreen, TRI, NCES STABR)
+# Values:
+#   fips      — 2-digit FIPS code (used by TIGER school districts)
+#   full_name — full state name (used by UST)
+#
+# Bbox-filtered datasets (FEMA, HIFLD, FRA) are NOT driven by this config
+# and need separate refactoring for geographic expansion.
+TARGET_STATES = {
+    "NY": {"fips": "36", "full_name": "New York"},
+    "NJ": {"fips": "34", "full_name": "New Jersey"},
+    "CT": {"fips": "09", "full_name": "Connecticut"},
+}
+
+
+# Per-state education performance ingest functions are registered at the
+# bottom of the file (after function definitions) in _STATE_EDUCATION_INGEST.
 
 logger = logging.getLogger("nestcheck.startup_ingest")
 
@@ -220,29 +243,23 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("school_districts", _ingest_school_districts)
 
     # --- State Education Performance (school district performance metrics, multi-state) ---
-    # NY (NYSED) — creates the table and loads NY data
-    has_ny, ny_count = _table_has_state_data(db_path, "state_education_performance", "NY")
-    if has_ny:
-        logger.info("Dataset state_education_performance NY: present (%d records), skipping", ny_count)
-    else:
-        logger.info("Dataset state_education_performance NY: missing, starting ingestion...")
-        _run_ingest("state_education_performance_ny", _ingest_nysed)
-
-    # NJ — appends NJ data (table must exist from NYSED step or NJ creates it)
-    has_nj, nj_count = _table_has_state_data(db_path, "state_education_performance", "NJ")
-    if has_nj:
-        logger.info("Dataset state_education_performance NJ: present (%d records), skipping", nj_count)
-    else:
-        logger.info("Dataset state_education_performance NJ: missing, starting ingestion...")
-        _run_ingest("state_education_performance_nj", _ingest_nj_performance)
-
-    # CT — appends CT data
-    has_ct, ct_count = _table_has_state_data(db_path, "state_education_performance", "CT")
-    if has_ct:
-        logger.info("Dataset state_education_performance CT: present (%d records), skipping", ct_count)
-    else:
-        logger.info("Dataset state_education_performance CT: missing, starting ingestion...")
-        _run_ingest("state_education_performance_ct", _ingest_ct_performance)
+    # Each state's education data is checked and ingested independently.
+    # Ingest order follows TARGET_STATES; first state creates the table.
+    for state_code, ingest_fn in _STATE_EDUCATION_INGEST.items():
+        has_data, count = _table_has_state_data(
+            db_path, "state_education_performance", state_code,
+        )
+        if has_data:
+            logger.info(
+                "Dataset state_education_performance %s: present (%d records), skipping",
+                state_code, count,
+            )
+        else:
+            logger.info(
+                "Dataset state_education_performance %s: missing, starting ingestion...",
+                state_code,
+            )
+            _run_ingest(f"state_education_performance_{state_code.lower()}", ingest_fn)
 
     # --- NCES Public Schools (2022-23, tri-state) ---
     has_data, count = _table_has_data(db_path, "facilities_nces_schools")
@@ -285,22 +302,22 @@ def _ingest_fema():
 
 def _ingest_hpms():
     from scripts.ingest_hpms import ingest as do_ingest
-    do_ingest(states_filter=["NY", "NJ", "CT"])
+    do_ingest(states_filter=list(TARGET_STATES.keys()))
 
 
 def _ingest_ejscreen():
     from scripts.ingest_ejscreen import ingest as do_ingest
-    do_ingest(states=["NY", "CT", "NJ"], bbox="-75.6,38.9,-71.8,42.1")
+    do_ingest(states=list(TARGET_STATES.keys()), bbox="-75.6,38.9,-71.8,42.1")
 
 
 def _ingest_tri():
     from scripts.ingest_tri import ingest as do_ingest
-    do_ingest(states=["NY", "CT", "NJ"])
+    do_ingest(states=list(TARGET_STATES.keys()))
 
 
 def _ingest_ust():
     from scripts.ingest_ust import ingest as do_ingest
-    do_ingest(states=["New York", "Connecticut", "New Jersey"])
+    do_ingest(states=[v["full_name"] for v in TARGET_STATES.values()])
 
 
 def _ingest_hifld():
@@ -315,7 +332,7 @@ def _ingest_fra():
 
 def _ingest_school_districts():
     from scripts.ingest_school_districts import ingest as do_ingest
-    do_ingest(states=["36", "09", "34"])
+    do_ingest(states=[v["fips"] for v in TARGET_STATES.values()])
 
 
 def _ingest_nysed():
@@ -335,12 +352,21 @@ def _ingest_ct_performance():
 
 def _ingest_nces_schools():
     from scripts.ingest_nces_schools import ingest as do_ingest
-    _TRI_STATE_BBOX = "-75.6,38.9,-71.8,42.1"
-    _STABR_CODES = ["NY", "CT", "NJ"]
+    _BBOX = "-75.6,38.9,-71.8,42.1"
     from spatial_data import init_spatial_db, create_facility_table
     init_spatial_db()
     create_facility_table("nces_schools")
     logger.info("Created facilities_nces_schools table")
-    for stabr in _STABR_CODES:
+    for stabr in TARGET_STATES:
         logger.info("Ingesting NCES schools for STABR=%s...", stabr)
-        do_ingest(bbox=_TRI_STATE_BBOX, stabr=stabr, _skip_table_create=True)
+        do_ingest(bbox=_BBOX, stabr=stabr, _skip_table_create=True)
+
+
+# Per-state education performance ingest functions. Each entry maps a
+# 2-letter state code to its lazy-import wrapper. When adding a new state's
+# education data, add an entry here and the corresponding _ingest_* wrapper.
+_STATE_EDUCATION_INGEST = {
+    "NY": _ingest_nysed,
+    "NJ": _ingest_nj_performance,
+    "CT": _ingest_ct_performance,
+}
