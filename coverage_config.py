@@ -31,6 +31,15 @@ class CoverageTier(str, Enum):
     NONE = "none"           # No sources active
 
 
+# Tier severity ordering for weakest-link comparisons (higher = worse).
+_TIER_ORDER = {
+    CoverageTier.FULL: 0,
+    CoverageTier.PARTIAL: 1,
+    CoverageTier.MINIMAL: 2,
+    CoverageTier.NONE: 3,
+}
+
+
 class SourceStatus(str, Enum):
     """Status of a single data source for a given state."""
     ACTIVE = "active"           # Table exists, has rows for this state
@@ -51,6 +60,31 @@ DIMENSION_LABELS = {
     "education": "Education",
     "context": "Area Context",
 }
+
+
+# =============================================================================
+# Source display list (ordered for the /coverage page table)
+# =============================================================================
+
+# Ordered: Health first (grouped), then Education, then Context.
+# Matches the report's visual hierarchy.
+# INVARIANT: entries must be sorted by dimension group. The /coverage
+# template generates colspan headers by detecting dimension transitions,
+# which breaks silently if sources are interleaved across dimensions.
+SOURCE_DISPLAY_LIST = [
+    {"key": "SEMS", "name": "Superfund Sites", "dimension": "Health", "source_org": "EPA"},
+    {"key": "EJSCREEN", "name": "Environmental Justice", "dimension": "Health", "source_org": "EPA"},
+    {"key": "TRI", "name": "Toxic Releases", "dimension": "Health", "source_org": "EPA"},
+    {"key": "UST", "name": "Storage Tanks", "dimension": "Health", "source_org": "EPA"},
+    {"key": "HPMS", "name": "Traffic Counts", "dimension": "Health", "source_org": "FHWA"},
+    {"key": "HIFLD", "name": "Power Lines", "dimension": "Health", "source_org": "DHS"},
+    {"key": "FRA", "name": "Rail Lines", "dimension": "Health", "source_org": "FRA"},
+    {"key": "FEMA_NFHL", "name": "Flood Zones", "dimension": "Health", "source_org": "FEMA"},
+    {"key": "SCHOOL_DISTRICTS", "name": "School Districts", "dimension": "Education", "source_org": "Census"},
+    {"key": "STATE_EDUCATION", "name": "School Performance", "dimension": "Education", "source_org": "State DOE"},
+    {"key": "NCES_SCHOOLS", "name": "School Locations", "dimension": "Education", "source_org": "NCES"},
+    {"key": "CENSUS_ACS", "name": "Demographics", "dimension": "Context", "source_org": "Census"},
+]
 
 
 # =============================================================================
@@ -502,14 +536,7 @@ def get_section_coverage(state_code: str) -> Dict[str, str]:
         for section, dimensions in SECTION_DIMENSION_MAP.items():
             # Take the weakest tier across all dimensions the section depends on
             tiers = [dim_coverage.get(d, CoverageTier.NONE) for d in dimensions]
-            # Weakest = highest ordinal (FULL < PARTIAL < MINIMAL < NONE)
-            _tier_order = {
-                CoverageTier.FULL: 0,
-                CoverageTier.PARTIAL: 1,
-                CoverageTier.MINIMAL: 2,
-                CoverageTier.NONE: 3,
-            }
-            weakest = max(tiers, key=lambda t: _tier_order.get(t, 3))
+            weakest = max(tiers, key=lambda t: _TIER_ORDER.get(t, 3))
             # Only include in result if NOT full (full = no badge)
             if weakest != CoverageTier.FULL:
                 result[section] = weakest.value
@@ -595,7 +622,8 @@ def verify_coverage(state_code: str) -> Dict[str, dict]:
                 state_value = state_code
 
             if state_filter_col:
-                # Use json_extract or direct column
+                # table and state_filter_col are from _SOURCE_METADATA (hardcoded),
+                # not user input — safe for f-string interpolation.
                 query = f"SELECT count(*) FROM {table} WHERE {state_filter_col} = ?"
                 actual_rows = conn.execute(query, (state_value,)).fetchone()[0]
                 note = None

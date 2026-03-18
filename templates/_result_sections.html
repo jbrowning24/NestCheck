@@ -1153,6 +1153,12 @@
             Road noise, estimated from nearby road proximity, does contribute to your score &mdash; quieter locations score higher.
           </p>
 
+          {% if result.state_code is defined and result.state_code %}
+          <p class="scoring-note">
+            <a href="/coverage#state-{{ result.state_code | lower }}">Data sources for {{ result.state_name | default(result.state_code) }}</a>
+          </p>
+          {% endif %}
+
         </div>{# #how-we-score #}
         {% endif %}
 
