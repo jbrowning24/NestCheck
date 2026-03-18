@@ -1,7 +1,9 @@
+import json
 import os
 import io
 import csv
 import logging
+import re
 import shlex
 import subprocess
 import sys
@@ -3019,6 +3021,81 @@ def _snapshot_ttl_days():
         pass
     logger.warning("Invalid SNAPSHOT_TTL_DAYS=%r. Falling back to 90.", raw)
     return 90
+
+
+# ---------------------------------------------------------------------------
+# Curated list pages (NES-293)
+# ---------------------------------------------------------------------------
+
+_LISTS_DIR = os.path.join(os.path.dirname(__file__), "data", "lists")
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _load_list_config(slug, config_dir=None):
+    """Load a curated list config by slug. Returns dict or None."""
+    if not slug or not _SLUG_RE.fullmatch(slug):
+        return None
+    config_dir = config_dir or _LISTS_DIR
+    path = os.path.join(config_dir, f"{slug}.json")
+    try:
+        with open(path) as f:
+            return json.loads(f.read())
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+
+def _get_all_list_slugs(config_dir=None):
+    """Return list of slugs from all published config files (excludes _-prefixed)."""
+    config_dir = config_dir or _LISTS_DIR
+    slugs = []
+    try:
+        for fname in os.listdir(config_dir):
+            if fname.endswith(".json") and not fname.startswith("_"):
+                slugs.append(fname[:-5])  # strip .json
+    except OSError:
+        pass
+    return slugs
+
+
+@app.route("/lists/<slug>")
+def view_list(slug):
+    """Serve a curated list page from JSON config."""
+    config = _load_list_config(slug)
+    if not config:
+        abort(404)
+
+    # Hydrate each entry with its snapshot data
+    hydrated_entries = []
+    for entry in config.get("entries", []):
+        snapshot = get_snapshot(entry.get("snapshot_id"))
+        if not snapshot:
+            logger.warning("List %s: snapshot %s not found, skipping",
+                           slug, entry.get("snapshot_id"))
+            continue
+        result = {**snapshot["result"]}
+        _prepare_snapshot_for_display(result)
+        hydrated_entries.append({
+            "snapshot_id": entry["snapshot_id"],
+            "narrative": entry.get("narrative", ""),
+            "result": result,
+        })
+
+    # Resolve related list titles for cross-linking
+    related_lists = []
+    for related_slug in config.get("related_lists", []):
+        related_config = _load_list_config(related_slug)
+        if related_config:
+            related_lists.append({
+                "slug": related_slug,
+                "title": related_config["title"],
+            })
+
+    return render_template(
+        "list.html",
+        config=config,
+        entries=hydrated_entries,
+        related_lists=related_lists,
+    )
 
 
 @app.route("/", methods=["GET", "POST"])
