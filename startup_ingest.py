@@ -116,6 +116,36 @@ def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
         return (False, 0)
 
 
+def _ust_missing_states(db_path: str) -> list[str]:
+    """Return target state codes that have 0 UST rows in spatial.db.
+
+    UST stores state as full name in json_extract(metadata_json, '$.state').
+    Returns e.g. ['NJ', 'CT', 'MI'] for states without data.
+    On any error (table missing, DB missing), returns all target states.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='facilities_ust'"
+            )
+            if not cursor.fetchone():
+                return list(TARGET_STATES.keys())
+
+            cursor = conn.execute(
+                "SELECT DISTINCT json_extract(metadata_json, '$.state') FROM facilities_ust"
+            )
+            present_names = {row[0] for row in cursor.fetchall()}
+            return [
+                code for code, info in TARGET_STATES.items()
+                if info["full_name"] not in present_names
+            ]
+        finally:
+            conn.close()
+    except Exception:
+        return list(TARGET_STATES.keys())
+
+
 def ensure_spatial_data() -> None:
     """
     Check each spatial dataset and run ingestion for any that are missing.
@@ -215,13 +245,22 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset tri: missing or empty, starting ingestion...")
         _run_ingest("tri", _ingest_tri)
 
-    # --- UST (EPA Underground Storage Tanks, NY+CT+NJ) ---
-    has_data, count = _table_has_data(db_path, "facilities_ust")
-    if has_data:
-        logger.info("Dataset ust: present (%d records), skipping", count)
-    else:
-        logger.info("Dataset ust: missing or empty, starting ingestion...")
+    # --- UST (EPA Underground Storage Tanks, all TARGET_STATES) ---
+    # UST uses json_extract(metadata_json, '$.state') with full state names.
+    # Must check per-state since existing NY-only data causes _table_has_data
+    # to skip ingestion for the other 7 states (NES-304).
+    ust_missing = _ust_missing_states(db_path)
+    if ust_missing:
+        has_data, count = _table_has_data(db_path, "facilities_ust")
+        logger.info(
+            "Dataset ust: missing states %s (%d existing records), starting full ingestion...",
+            ust_missing, count,
+        )
         _run_ingest("ust", _ingest_ust)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_ust")
+        logger.info("Dataset ust: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
     # --- HIFLD (electric power transmission lines, national) ---
     has_data, count = _table_has_data(db_path, "facilities_hifld")
