@@ -1,0 +1,1473 @@
+{
+  "_schema_version": "0.2.0",
+  "_generated_at": "2026-03-19T02:40:04.573445+00:00",
+  "_generator": "generate_ground_truth_parks.py",
+  "_scoring_model_version": "1.6.0",
+  "_test_count": 89,
+  "_seed": 42,
+  "_subscore_model": {
+    "walk_time": {
+      "max": 3.0,
+      "thresholds": {
+        "excellent": 10,
+        "good": 20,
+        "marginal": 30
+      }
+    },
+    "size_loop": {
+      "max": 3.0,
+      "thresholds_sqm": {
+        "large": 40000,
+        "medium": 12000,
+        "small": 4000
+      }
+    },
+    "quality": {
+      "max": 2.0
+    },
+    "nature_feel": {
+      "max": 2.0
+    },
+    "total_cap": 10.0
+  },
+  "_quality_ceiling": false,
+  "test_cases": [
+    {
+      "id": "gt-parks-wt-01",
+      "test_type": "walk_time",
+      "description": "walk_time=0 \u2192 max score 3.0",
+      "inputs": {
+        "walk_time_min": 0
+      },
+      "expected": {
+        "walk_time_score": 3.0
+      }
+    },
+    {
+      "id": "gt-parks-wt-02",
+      "test_type": "walk_time",
+      "description": "walk_time=10 \u2192 excellent boundary 3.0",
+      "inputs": {
+        "walk_time_min": 10
+      },
+      "expected": {
+        "walk_time_score": 3.0
+      }
+    },
+    {
+      "id": "gt-parks-wt-03",
+      "test_type": "walk_time",
+      "description": "walk_time=20 \u2192 good boundary 2.0",
+      "inputs": {
+        "walk_time_min": 20
+      },
+      "expected": {
+        "walk_time_score": 2.0
+      }
+    },
+    {
+      "id": "gt-parks-wt-04",
+      "test_type": "walk_time",
+      "description": "walk_time=30 \u2192 marginal boundary 1.0",
+      "inputs": {
+        "walk_time_min": 30
+      },
+      "expected": {
+        "walk_time_score": 1.0
+      }
+    },
+    {
+      "id": "gt-parks-wt-05",
+      "test_type": "walk_time",
+      "description": "walk_time=31 \u2192 beyond marginal 0.5",
+      "inputs": {
+        "walk_time_min": 31
+      },
+      "expected": {
+        "walk_time_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-wt-06",
+      "test_type": "walk_time",
+      "description": "walk_time=60 \u2192 far 0.5",
+      "inputs": {
+        "walk_time_min": 60
+      },
+      "expected": {
+        "walk_time_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-wt-07",
+      "test_type": "walk_time",
+      "description": "walk_time=12 \u2192 interpolated in 10-20 segment",
+      "inputs": {
+        "walk_time_min": 12
+      },
+      "expected": {
+        "walk_time_score": 2.8
+      }
+    },
+    {
+      "id": "gt-parks-wt-08",
+      "test_type": "walk_time",
+      "description": "walk_time=15 \u2192 interpolated in 10-20 segment",
+      "inputs": {
+        "walk_time_min": 15
+      },
+      "expected": {
+        "walk_time_score": 2.5
+      }
+    },
+    {
+      "id": "gt-parks-wt-09",
+      "test_type": "walk_time",
+      "description": "walk_time=18 \u2192 interpolated in 10-20 segment",
+      "inputs": {
+        "walk_time_min": 18
+      },
+      "expected": {
+        "walk_time_score": 2.2
+      }
+    },
+    {
+      "id": "gt-parks-wt-10",
+      "test_type": "walk_time",
+      "description": "walk_time=22 \u2192 interpolated in 20-30 segment",
+      "inputs": {
+        "walk_time_min": 22
+      },
+      "expected": {
+        "walk_time_score": 1.8
+      }
+    },
+    {
+      "id": "gt-parks-wt-11",
+      "test_type": "walk_time",
+      "description": "walk_time=25 \u2192 interpolated in 20-30 segment",
+      "inputs": {
+        "walk_time_min": 25
+      },
+      "expected": {
+        "walk_time_score": 1.5
+      }
+    },
+    {
+      "id": "gt-parks-wt-12",
+      "test_type": "walk_time",
+      "description": "walk_time=28 \u2192 interpolated in 20-30 segment",
+      "inputs": {
+        "walk_time_min": 28
+      },
+      "expected": {
+        "walk_time_score": 1.2
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-01",
+      "test_type": "size_enriched",
+      "description": "large park (ParkServe), no paths",
+      "inputs": {
+        "park_acres": 15.0,
+        "osm_path_count": 0,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 1.5,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-02",
+      "test_type": "size_enriched",
+      "description": "large park + dense paths",
+      "inputs": {
+        "park_acres": 15.0,
+        "osm_path_count": 5,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 3.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-03",
+      "test_type": "size_enriched",
+      "description": "large park + trail",
+      "inputs": {
+        "park_acres": 15.0,
+        "osm_path_count": 0,
+        "osm_has_trail": true,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 3.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-04",
+      "test_type": "size_enriched",
+      "description": "medium park + moderate paths",
+      "inputs": {
+        "park_acres": 5.0,
+        "osm_path_count": 2,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 2.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-05",
+      "test_type": "size_enriched",
+      "description": "small park + minimal paths",
+      "inputs": {
+        "park_acres": 2.0,
+        "osm_path_count": 1,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 1.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-enr-06",
+      "test_type": "size_enriched",
+      "description": "pocket park, no paths",
+      "inputs": {
+        "park_acres": 0.5,
+        "osm_path_count": 0,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 0.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-osm-01",
+      "test_type": "size_enriched",
+      "description": "OSM: large OSM area, no paths",
+      "inputs": {
+        "osm_area_sqm": 50000,
+        "osm_path_count": 0,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 1.5,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-osm-02",
+      "test_type": "size_enriched",
+      "description": "OSM: large OSM area + dense paths",
+      "inputs": {
+        "osm_area_sqm": 50000,
+        "osm_path_count": 5,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 3.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-osm-03",
+      "test_type": "size_enriched",
+      "description": "OSM: medium OSM area + moderate paths",
+      "inputs": {
+        "osm_area_sqm": 20000,
+        "osm_path_count": 2,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 2.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-osm-04",
+      "test_type": "size_enriched",
+      "description": "OSM: small OSM area + minimal paths",
+      "inputs": {
+        "osm_area_sqm": 5000,
+        "osm_path_count": 1,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 1.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-osm-05",
+      "test_type": "size_enriched",
+      "description": "OSM: tiny OSM area, no paths",
+      "inputs": {
+        "osm_area_sqm": 2000,
+        "osm_path_count": 0,
+        "osm_has_trail": false,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Test Park"
+      },
+      "expected": {
+        "size_loop_score": 0.0,
+        "is_estimate": false
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-01",
+      "test_type": "size_fallback",
+      "description": "Fallback: high reviews + generic park name",
+      "inputs": {
+        "reviews": 600,
+        "name": "Central Park",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 2.0,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-02",
+      "test_type": "size_fallback",
+      "description": "Fallback: high reviews + trail name",
+      "inputs": {
+        "reviews": 600,
+        "name": "Forest Trail Preserve",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 2.5,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-03",
+      "test_type": "size_fallback",
+      "description": "Fallback: moderate reviews + park name",
+      "inputs": {
+        "reviews": 250,
+        "name": "Riverside Park",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 1.5,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-04",
+      "test_type": "size_fallback",
+      "description": "Fallback: moderate reviews + trail name",
+      "inputs": {
+        "reviews": 250,
+        "name": "Nature Trail",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 2.0,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-05",
+      "test_type": "size_fallback",
+      "description": "Fallback: some reviews + generic name",
+      "inputs": {
+        "reviews": 80,
+        "name": "Town Green",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 0.5,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-06",
+      "test_type": "size_fallback",
+      "description": "Fallback: some reviews + trail name",
+      "inputs": {
+        "reviews": 80,
+        "name": "Greenway Path",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 1.5,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-07",
+      "test_type": "size_fallback",
+      "description": "Fallback: few reviews + park name",
+      "inputs": {
+        "reviews": 10,
+        "name": "Pocket Park",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 0.5,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-sz-fb-08",
+      "test_type": "size_fallback",
+      "description": "Fallback: few reviews + no keywords",
+      "inputs": {
+        "reviews": 10,
+        "name": "Empty Lot",
+        "rating": 4.0
+      },
+      "expected": {
+        "size_loop_score": 0.0,
+        "is_estimate": true
+      }
+    },
+    {
+      "id": "gt-parks-qual-01",
+      "test_type": "quality",
+      "description": "no rating data",
+      "inputs": {
+        "rating": null,
+        "reviews": 0
+      },
+      "expected": {
+        "quality_score": 0.0
+      }
+    },
+    {
+      "id": "gt-parks-qual-02",
+      "test_type": "quality",
+      "description": "high rating + high reviews",
+      "inputs": {
+        "rating": 4.5,
+        "reviews": 300
+      },
+      "expected": {
+        "quality_score": 2.0
+      }
+    },
+    {
+      "id": "gt-parks-qual-03",
+      "test_type": "quality",
+      "description": "high rating + few reviews (cap applies)",
+      "inputs": {
+        "rating": 4.5,
+        "reviews": 10
+      },
+      "expected": {
+        "quality_score": 0.8
+      }
+    },
+    {
+      "id": "gt-parks-qual-04",
+      "test_type": "quality",
+      "description": "mid rating + moderate reviews",
+      "inputs": {
+        "rating": 4.0,
+        "reviews": 100
+      },
+      "expected": {
+        "quality_score": 1.3
+      }
+    },
+    {
+      "id": "gt-parks-qual-05",
+      "test_type": "quality",
+      "description": "mid-boundary rating + high reviews",
+      "inputs": {
+        "rating": 3.8,
+        "reviews": 200
+      },
+      "expected": {
+        "quality_score": 1.6
+      }
+    },
+    {
+      "id": "gt-parks-qual-06",
+      "test_type": "quality",
+      "description": "low-boundary rating + moderate reviews",
+      "inputs": {
+        "rating": 3.5,
+        "reviews": 50
+      },
+      "expected": {
+        "quality_score": 0.9
+      }
+    },
+    {
+      "id": "gt-parks-qual-07",
+      "test_type": "quality",
+      "description": "below-average rating + some reviews",
+      "inputs": {
+        "rating": 3.2,
+        "reviews": 30
+      },
+      "expected": {
+        "quality_score": 0.2
+      }
+    },
+    {
+      "id": "gt-parks-qual-08",
+      "test_type": "quality",
+      "description": "high rating but unreliable (<20 reviews)",
+      "inputs": {
+        "rating": 4.3,
+        "reviews": 5
+      },
+      "expected": {
+        "quality_score": 0.6
+      }
+    },
+    {
+      "id": "gt-parks-qual-09",
+      "test_type": "quality",
+      "description": "high rating + zero reviews",
+      "inputs": {
+        "rating": 4.5,
+        "reviews": 0
+      },
+      "expected": {
+        "quality_score": 0.6
+      }
+    },
+    {
+      "id": "gt-parks-qual-10",
+      "test_type": "quality",
+      "description": "very low rating + many reviews",
+      "inputs": {
+        "rating": 2.0,
+        "reviews": 500
+      },
+      "expected": {
+        "quality_score": 0.8
+      }
+    },
+    {
+      "id": "gt-parks-nf-01",
+      "test_type": "nature_feel",
+      "description": "no nature indicators",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "City Park",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 0.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-02",
+      "test_type": "nature_feel",
+      "description": "single forest tag + nature name",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest"
+        ],
+        "name": "Woodland Park",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 1.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-03",
+      "test_type": "nature_feel",
+      "description": "two forest/water tags",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest",
+          "water"
+        ],
+        "name": "Lake Forest",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 1.8
+      }
+    },
+    {
+      "id": "gt-parks-nf-04",
+      "test_type": "nature_feel",
+      "description": "multiple nature tags + preserve name",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "wetland"
+        ],
+        "name": "Wetland Preserve",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 1.8
+      }
+    },
+    {
+      "id": "gt-parks-nf-05",
+      "test_type": "nature_feel",
+      "description": "non-forest green tag",
+      "inputs": {
+        "osm_nature_tags": [
+          "grassland"
+        ],
+        "name": "Green Meadow",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-nf-06",
+      "test_type": "nature_feel",
+      "description": "nature name, no OSM tags",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Forest Hills Nature Preserve",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 1.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-07",
+      "test_type": "nature_feel",
+      "description": "trail name, no OSM tags",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Greenway Trail Path",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-nf-08",
+      "test_type": "nature_feel",
+      "description": "national_park type bonus",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Regular Park",
+        "types": [
+          "national_park"
+        ]
+      },
+      "expected": {
+        "nature_feel_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-nf-09",
+      "test_type": "nature_feel",
+      "description": "campground type bonus",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Camp Area",
+        "types": [
+          "campground"
+        ]
+      },
+      "expected": {
+        "nature_feel_score": 0.3
+      }
+    },
+    {
+      "id": "gt-parks-nf-10",
+      "test_type": "nature_feel",
+      "description": "forest tag + national_park type",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest"
+        ],
+        "name": "Forest Park",
+        "types": [
+          "national_park"
+        ]
+      },
+      "expected": {
+        "nature_feel_score": 1.8
+      }
+    },
+    {
+      "id": "gt-parks-nf-11",
+      "test_type": "nature_feel",
+      "description": "no nature indicators at all",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Generic Playground",
+        "types": []
+      },
+      "expected": {
+        "nature_feel_score": 0.0
+      }
+    },
+    {
+      "id": "gt-parks-comp-01",
+      "test_type": "composite",
+      "description": "excellent park: close, large, well-reviewed, natural",
+      "inputs": {
+        "walk_time_min": 5,
+        "rating": 4.5,
+        "reviews": 300,
+        "name": "Forest Park",
+        "park_acres": 20.0,
+        "osm_path_count": 6,
+        "osm_nature_tags": [
+          "forest",
+          "water"
+        ]
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 3.0,
+        "quality_score": 2.0,
+        "nature_feel_score": 1.8,
+        "raw_total": 9.8,
+        "final_score": 9.8
+      }
+    },
+    {
+      "id": "gt-parks-comp-02",
+      "test_type": "composite",
+      "description": "good park: moderate walk, medium size, decent quality",
+      "inputs": {
+        "walk_time_min": 15,
+        "rating": 4.0,
+        "reviews": 100,
+        "name": "Town Park",
+        "park_acres": 5.0,
+        "osm_path_count": 3
+      },
+      "expected": {
+        "walk_time_score": 2.5,
+        "size_loop_score": 2.0,
+        "quality_score": 1.3,
+        "nature_feel_score": 0.0,
+        "raw_total": 5.8,
+        "final_score": 5.8
+      }
+    },
+    {
+      "id": "gt-parks-comp-03",
+      "test_type": "composite",
+      "description": "marginal park: far walk, small, average quality",
+      "inputs": {
+        "walk_time_min": 25,
+        "rating": 3.5,
+        "reviews": 30,
+        "name": "Small Green",
+        "osm_area_sqm": 3000
+      },
+      "expected": {
+        "walk_time_score": 1.5,
+        "size_loop_score": 0.0,
+        "quality_score": 0.6,
+        "nature_feel_score": 0.0,
+        "raw_total": 2.1,
+        "final_score": 2.1
+      }
+    },
+    {
+      "id": "gt-parks-comp-04",
+      "test_type": "composite",
+      "description": "poor park: very far, no size data, low quality",
+      "inputs": {
+        "walk_time_min": 35,
+        "rating": 3.0,
+        "reviews": 5,
+        "name": "Empty Lot"
+      },
+      "expected": {
+        "walk_time_score": 0.5,
+        "size_loop_score": 0.0,
+        "quality_score": 0.0,
+        "nature_feel_score": 0.0,
+        "raw_total": 0.5,
+        "final_score": 0.5
+      }
+    },
+    {
+      "id": "gt-parks-comp-05",
+      "test_type": "composite",
+      "description": "close but no quality data",
+      "inputs": {
+        "walk_time_min": 8,
+        "rating": null,
+        "reviews": 0,
+        "name": "Unknown Park"
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 0.5,
+        "quality_score": 0.0,
+        "nature_feel_score": 0.0,
+        "raw_total": 3.5,
+        "final_score": 3.5
+      }
+    },
+    {
+      "id": "gt-parks-comp-06",
+      "test_type": "composite",
+      "description": "maximum everything \u2014 tests cap at 10",
+      "inputs": {
+        "walk_time_min": 5,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 3.0,
+        "quality_score": 2.0,
+        "nature_feel_score": 2.0,
+        "raw_total": 10.0,
+        "final_score": 10.0
+      }
+    },
+    {
+      "id": "gt-parks-comp-07",
+      "test_type": "composite",
+      "description": "zero walk time + good park",
+      "inputs": {
+        "walk_time_min": 0,
+        "rating": 4.5,
+        "reviews": 300,
+        "name": "Park",
+        "park_acres": 15.0,
+        "osm_path_count": 5
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 3.0,
+        "quality_score": 2.0,
+        "nature_feel_score": 0.0,
+        "raw_total": 8.0,
+        "final_score": 8.0
+      }
+    },
+    {
+      "id": "gt-parks-comp-08",
+      "test_type": "composite",
+      "description": "excellent walk + trail park with water",
+      "inputs": {
+        "walk_time_min": 10,
+        "rating": 4.3,
+        "reviews": 200,
+        "name": "Riverside Trail",
+        "park_acres": 8.0,
+        "osm_path_count": 4,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "water"
+        ]
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 2.5,
+        "quality_score": 2.0,
+        "nature_feel_score": 1.3,
+        "raw_total": 8.8,
+        "final_score": 8.8
+      }
+    },
+    {
+      "id": "gt-parks-cap-01",
+      "test_type": "composite_cap",
+      "description": "all subscores maxed \u2014 cap at 10",
+      "inputs": {
+        "walk_time_min": 5,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "final_score_max": 10.0,
+        "final_score": 10.0
+      }
+    },
+    {
+      "id": "gt-parks-mono-01",
+      "test_type": "monotonicity",
+      "description": "walk_time=0 (score=6.8) >= walk_time=1 (score=6.8)",
+      "inputs": {
+        "walk_time_a": 0,
+        "walk_time_b": 1,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.8,
+        "score_b": 6.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-02",
+      "test_type": "monotonicity",
+      "description": "walk_time=1 (score=6.8) >= walk_time=5 (score=6.8)",
+      "inputs": {
+        "walk_time_a": 1,
+        "walk_time_b": 5,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.8,
+        "score_b": 6.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-03",
+      "test_type": "monotonicity",
+      "description": "walk_time=5 (score=6.8) >= walk_time=7 (score=6.8)",
+      "inputs": {
+        "walk_time_a": 5,
+        "walk_time_b": 7,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.8,
+        "score_b": 6.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-04",
+      "test_type": "monotonicity",
+      "description": "walk_time=7 (score=6.8) >= walk_time=10 (score=6.8)",
+      "inputs": {
+        "walk_time_a": 7,
+        "walk_time_b": 10,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.8,
+        "score_b": 6.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-05",
+      "test_type": "monotonicity",
+      "description": "walk_time=10 (score=6.8) >= walk_time=12 (score=6.6)",
+      "inputs": {
+        "walk_time_a": 10,
+        "walk_time_b": 12,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.8,
+        "score_b": 6.6
+      }
+    },
+    {
+      "id": "gt-parks-mono-06",
+      "test_type": "monotonicity",
+      "description": "walk_time=12 (score=6.6) >= walk_time=15 (score=6.3)",
+      "inputs": {
+        "walk_time_a": 12,
+        "walk_time_b": 15,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.6,
+        "score_b": 6.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-07",
+      "test_type": "monotonicity",
+      "description": "walk_time=15 (score=6.3) >= walk_time=17 (score=6.1)",
+      "inputs": {
+        "walk_time_a": 15,
+        "walk_time_b": 17,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.3,
+        "score_b": 6.1
+      }
+    },
+    {
+      "id": "gt-parks-mono-08",
+      "test_type": "monotonicity",
+      "description": "walk_time=17 (score=6.1) >= walk_time=18 (score=6.0)",
+      "inputs": {
+        "walk_time_a": 17,
+        "walk_time_b": 18,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.1,
+        "score_b": 6.0
+      }
+    },
+    {
+      "id": "gt-parks-mono-09",
+      "test_type": "monotonicity",
+      "description": "walk_time=18 (score=6.0) >= walk_time=20 (score=5.8)",
+      "inputs": {
+        "walk_time_a": 18,
+        "walk_time_b": 20,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 6.0,
+        "score_b": 5.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-10",
+      "test_type": "monotonicity",
+      "description": "walk_time=20 (score=5.8) >= walk_time=22 (score=5.6)",
+      "inputs": {
+        "walk_time_a": 20,
+        "walk_time_b": 22,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.8,
+        "score_b": 5.6
+      }
+    },
+    {
+      "id": "gt-parks-mono-11",
+      "test_type": "monotonicity",
+      "description": "walk_time=22 (score=5.6) >= walk_time=25 (score=5.3)",
+      "inputs": {
+        "walk_time_a": 22,
+        "walk_time_b": 25,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.6,
+        "score_b": 5.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-12",
+      "test_type": "monotonicity",
+      "description": "walk_time=25 (score=5.3) >= walk_time=28 (score=5.0)",
+      "inputs": {
+        "walk_time_a": 25,
+        "walk_time_b": 28,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.3,
+        "score_b": 5.0
+      }
+    },
+    {
+      "id": "gt-parks-mono-13",
+      "test_type": "monotonicity",
+      "description": "walk_time=28 (score=5.0) >= walk_time=30 (score=4.8)",
+      "inputs": {
+        "walk_time_a": 28,
+        "walk_time_b": 30,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 5.0,
+        "score_b": 4.8
+      }
+    },
+    {
+      "id": "gt-parks-mono-14",
+      "test_type": "monotonicity",
+      "description": "walk_time=30 (score=4.8) >= walk_time=35 (score=4.3)",
+      "inputs": {
+        "walk_time_a": 30,
+        "walk_time_b": 35,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.8,
+        "score_b": 4.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-15",
+      "test_type": "monotonicity",
+      "description": "walk_time=35 (score=4.3) >= walk_time=40 (score=4.3)",
+      "inputs": {
+        "walk_time_a": 35,
+        "walk_time_b": 40,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.3,
+        "score_b": 4.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-16",
+      "test_type": "monotonicity",
+      "description": "walk_time=40 (score=4.3) >= walk_time=45 (score=4.3)",
+      "inputs": {
+        "walk_time_a": 40,
+        "walk_time_b": 45,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.3,
+        "score_b": 4.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-17",
+      "test_type": "monotonicity",
+      "description": "walk_time=45 (score=4.3) >= walk_time=47 (score=4.3)",
+      "inputs": {
+        "walk_time_a": 45,
+        "walk_time_b": 47,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.3,
+        "score_b": 4.3
+      }
+    },
+    {
+      "id": "gt-parks-mono-18",
+      "test_type": "monotonicity",
+      "description": "walk_time=47 (score=4.3) >= walk_time=60 (score=4.3)",
+      "inputs": {
+        "walk_time_a": 47,
+        "walk_time_b": 60,
+        "base_kwargs": {
+          "rating": 4.0,
+          "reviews": 100,
+          "name": "Test Park",
+          "park_acres": 10.0,
+          "osm_path_count": 3
+        }
+      },
+      "expected": {
+        "score_a_gte_score_b": true,
+        "score_a": 4.3,
+        "score_b": 4.3
+      }
+    },
+    {
+      "id": "gt-parks-crit-01",
+      "test_type": "criteria",
+      "description": "PASS: good total, good walk + size",
+      "inputs": {
+        "walk_time_min": 5,
+        "walk_time_score": 3.0,
+        "size_loop_score": 2.0,
+        "total": 7.0
+      },
+      "expected": {
+        "criteria_status": "PASS"
+      }
+    },
+    {
+      "id": "gt-parks-crit-02",
+      "test_type": "criteria",
+      "description": "PASS: meets all criteria",
+      "inputs": {
+        "walk_time_min": 8,
+        "walk_time_score": 3.0,
+        "size_loop_score": 1.5,
+        "total": 6.0
+      },
+      "expected": {
+        "criteria_status": "PASS"
+      }
+    },
+    {
+      "id": "gt-parks-crit-03",
+      "test_type": "criteria",
+      "description": "PASS: exact threshold",
+      "inputs": {
+        "walk_time_min": 10,
+        "walk_time_score": 3.0,
+        "size_loop_score": 1.0,
+        "total": 5.0
+      },
+      "expected": {
+        "criteria_status": "PASS"
+      }
+    },
+    {
+      "id": "gt-parks-crit-04",
+      "test_type": "criteria",
+      "description": "PASS: moderate walk, meets criteria",
+      "inputs": {
+        "walk_time_min": 15,
+        "walk_time_score": 2.5,
+        "size_loop_score": 1.5,
+        "total": 5.5
+      },
+      "expected": {
+        "criteria_status": "PASS"
+      }
+    },
+    {
+      "id": "gt-parks-crit-05",
+      "test_type": "criteria",
+      "description": "FAIL: walk > 30 min (automatic)",
+      "inputs": {
+        "walk_time_min": 35,
+        "walk_time_score": 0.5,
+        "size_loop_score": 2.0,
+        "total": 4.0
+      },
+      "expected": {
+        "criteria_status": "FAIL"
+      }
+    },
+    {
+      "id": "gt-parks-crit-06",
+      "test_type": "criteria",
+      "description": "BORDERLINE: low size score",
+      "inputs": {
+        "walk_time_min": 25,
+        "walk_time_score": 1.5,
+        "size_loop_score": 0.5,
+        "total": 3.5
+      },
+      "expected": {
+        "criteria_status": "BORDERLINE"
+      }
+    },
+    {
+      "id": "gt-parks-crit-07",
+      "test_type": "criteria",
+      "description": "BORDERLINE: score near threshold",
+      "inputs": {
+        "walk_time_min": 28,
+        "walk_time_score": 1.2,
+        "size_loop_score": 1.0,
+        "total": 4.0
+      },
+      "expected": {
+        "criteria_status": "BORDERLINE"
+      }
+    },
+    {
+      "id": "gt-parks-crit-08",
+      "test_type": "criteria",
+      "description": "BORDERLINE: good walk but low size",
+      "inputs": {
+        "walk_time_min": 5,
+        "walk_time_score": 3.0,
+        "size_loop_score": 0.5,
+        "total": 4.5
+      },
+      "expected": {
+        "criteria_status": "BORDERLINE"
+      }
+    },
+    {
+      "id": "gt-parks-crit-09",
+      "test_type": "criteria",
+      "description": "FAIL: low total + low size",
+      "inputs": {
+        "walk_time_min": 20,
+        "walk_time_score": 2.0,
+        "size_loop_score": 0.5,
+        "total": 3.0
+      },
+      "expected": {
+        "criteria_status": "FAIL"
+      }
+    },
+    {
+      "id": "gt-parks-crit-10",
+      "test_type": "criteria",
+      "description": "BORDERLINE: no size evidence",
+      "inputs": {
+        "walk_time_min": 10,
+        "walk_time_score": 3.0,
+        "size_loop_score": 0.0,
+        "total": 4.0
+      },
+      "expected": {
+        "criteria_status": "BORDERLINE"
+      }
+    }
+  ]
+}

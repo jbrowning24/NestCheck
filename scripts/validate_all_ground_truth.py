@@ -29,7 +29,10 @@ _DIMENSION_LABELS = {
     "ust": "UST proximity",
     "hpms": "HPMS high-traffic",
     "coffee": "Coffee scoring (Tier 2)",
+    "grocery": "Provisioning scoring (Tier 2)",
+    "parks": "Parks & Green Space (Tier 2)",
     "transit": "Transit access",
+    "schools": "Schools (spatial)",
 }
 
 
