@@ -175,8 +175,8 @@ def _missing_states_abbr(db_path: str, table_name: str) -> list[str]:
 
 def _missing_states_fips(db_path: str, table_name: str, json_field: str) -> list[str]:
     """Missing states for tables where a metadata field has FIPS prefix."""
-    if not json_field.isalpha():
-        raise ValueError(f"json_field must be alphabetic, got {json_field!r}")
+    if not _SAFE_TABLE_NAME.match(json_field):
+        raise ValueError(f"json_field must match [a-z][a-z0-9_]*, got {json_field!r}")
     return _missing_states(
         db_path, table_name,
         f"SUBSTR(json_extract(metadata_json, '$.{json_field}'), 1, 2)",
