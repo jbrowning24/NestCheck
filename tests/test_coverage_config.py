@@ -5,6 +5,8 @@ import sqlite3
 
 import pytest
 
+from unittest.mock import patch
+
 from coverage_config import (
     COVERAGE_MANIFEST,
     CoverageTier,
@@ -19,6 +21,7 @@ from coverage_config import (
     get_section_coverage,
     get_source_coverage,
     get_state_name,
+    sync_manifest_from_db,
     verify_coverage,
 )
 
@@ -428,3 +431,91 @@ class TestSectionCoverage:
                 assert d in DIMENSION_LABELS, (
                     f"Section '{section}' references unknown dimension '{d}'"
                 )
+
+
+# ---------------------------------------------------------------------------
+# sync_manifest_from_db (NES-309)
+# ---------------------------------------------------------------------------
+
+class TestSyncManifestFromDb:
+    @requires_spatial_db
+    def test_returns_no_changes_when_in_sync(self):
+        """When manifest matches spatial.db, sync reports no changes."""
+        changes = sync_manifest_from_db()
+        assert isinstance(changes, dict)
+        assert "promoted" in changes
+        assert "demoted" in changes
+
+    @requires_spatial_db
+    def test_promotes_intended_to_active(self):
+        """If a source marked 'intended' actually has rows, sync promotes it."""
+        original = COVERAGE_MANIFEST["NY"].get("SEMS")
+        if original != "active":
+            pytest.skip("NY/SEMS not active, can't test promotion")
+
+        COVERAGE_MANIFEST["NY"]["SEMS"] = "intended"
+        try:
+            changes = sync_manifest_from_db()
+            assert COVERAGE_MANIFEST["NY"]["SEMS"] == "active"
+            assert any("NY/SEMS" in desc for desc in changes["promoted"])
+        finally:
+            COVERAGE_MANIFEST["NY"]["SEMS"] = original
+
+    @requires_spatial_db
+    def test_demotes_active_when_zero_rows(self):
+        """If a source marked 'active' has 0 rows for a state, sync demotes it."""
+        COVERAGE_MANIFEST["_TEST"] = {
+            "name": "Test State",
+            "SEMS": "active",  # SEMS state_filter won't match "_TEST"
+        }
+        try:
+            changes = sync_manifest_from_db()
+            assert COVERAGE_MANIFEST["_TEST"]["SEMS"] == "intended"
+            assert any("_TEST/SEMS" in desc for desc in changes["demoted"])
+        finally:
+            del COVERAGE_MANIFEST["_TEST"]
+
+    @requires_spatial_db
+    def test_no_demotion_when_table_missing(self):
+        """If a table is missing entirely (failed re-ingest), don't demote.
+
+        A missing table signals a failed DROP+recreate ingestion, not a genuine
+        data gap. Demoting would cause the /coverage page to flicker.
+        """
+        COVERAGE_MANIFEST["_TEST2"] = {
+            "name": "Test State 2",
+            "SEMS": "active",
+        }
+        original_table = _SOURCE_METADATA["SEMS"]["table"]
+        _SOURCE_METADATA["SEMS"]["table"] = "nonexistent_table_xyz"
+        try:
+            changes = sync_manifest_from_db()
+            assert COVERAGE_MANIFEST["_TEST2"]["SEMS"] == "active"
+            assert not any("_TEST2/SEMS" in desc for desc in changes["demoted"])
+        finally:
+            _SOURCE_METADATA["SEMS"]["table"] = original_table
+            del COVERAGE_MANIFEST["_TEST2"]
+
+    @requires_spatial_db
+    def test_preserves_planned_status(self):
+        """Sources marked 'planned' are not changed by sync."""
+        original = COVERAGE_MANIFEST["NY"]["SEMS"]
+        COVERAGE_MANIFEST["NY"]["SEMS"] = "planned"
+        try:
+            sync_manifest_from_db()
+            assert COVERAGE_MANIFEST["NY"]["SEMS"] == "planned"
+        finally:
+            COVERAGE_MANIFEST["NY"]["SEMS"] = original
+
+    def test_handles_missing_spatial_db(self):
+        """Sync returns empty changes when spatial.db doesn't exist."""
+        with patch("spatial_data._spatial_db_path", return_value="/nonexistent/spatial.db"):
+            changes = sync_manifest_from_db()
+        assert changes == {"promoted": [], "demoted": []}
+
+    @requires_spatial_db
+    def test_skips_live_api_sources(self):
+        """Sources with no table (live APIs) are never changed."""
+        original_google = COVERAGE_MANIFEST["NY"].get("GOOGLE_PLACES_PARKS")
+        sync_manifest_from_db()
+        assert COVERAGE_MANIFEST["NY"]["GOOGLE_PLACES_PARKS"] == original_google
