@@ -148,17 +148,16 @@ _SOURCE_METADATA = {
         "dimension": "health",
         "source_url": "https://hifld-geoplatform.opendata.arcgis.com/",
         "state_filter": None,  # national ingest, no state column
-        "spatial_filter_required": True,
-        "notes": "National ingest (~94K segments). No state attribute field (NES-285).",
+        "notes": "National ingest — all ~94K transmission line records (NES-285).",
     },
     "FRA": {
         "description": "Freight Rail Network Lines",
         "table": "facilities_fra",
         "dimension": "health",
         "source_url": "https://geodata.bts.gov/datasets/north-american-rail-network-lines",
-        "state_filter": None,
-        "spatial_filter_required": True,
-        "notes": "State-filtered via STATEAB WHERE clause (NES-285).",
+        "state_filter": "json_extract(metadata_json, '$.stateab')",
+        "state_key_format": "abbr",
+        "notes": "State-filtered via STATEAB field (NES-285). stateab added to metadata_json (NES-297).",
     },
     "FEMA_NFHL": {
         "description": "FEMA Flood Zones (NFHL)",
@@ -269,7 +268,7 @@ _STATE_FIPS = {
 # Per-state manifest
 # =============================================================================
 
-# Status reflects actual spatial.db contents as of 2026-03-18.
+# Status reflects actual spatial.db contents as of 2026-03-19.
 # "active" = verified rows exist for this state
 # "intended" = table exists, ingestion targets this state, but 0 rows currently
 # "planned" = state on roadmap, no ingestion attempted yet
@@ -333,92 +332,92 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "MI": {
         "name": "Michigan",
         "SEMS": "active",           # 90 rows (nationwide dataset)
-        "EJSCREEN": "active",       # NES-302
+        "EJSCREEN": "active",       # per-state detection re-ingests (NES-297)
         "TRI": "active",            # 769 rows (NES-303)
         "UST": "active",            # 27,780 rows (NES-304)
-        "HPMS": "active",           # NES-305
-        "HIFLD": "active",          # national ingest (NES-306)
-        "FRA": "active",            # state-filtered STATEAB (NES-306)
+        "HPMS": "active",           # per-state incremental ingest (NES-297)
+        "HIFLD": "active",          # national ingest covers MI (NES-285)
+        "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # Detroit metro bbox (NES-286)
         "GOOGLE_PLACES_PARKS": "active",   # live API
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
-        "SCHOOL_DISTRICTS": "intended",  # targeted but 0 rows
+        "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
         "STATE_EDUCATION": "active",     # 514 rows (CEPI)
-        "NCES_SCHOOLS": "intended",      # targeted but 0 rows
+        "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",          # live API, works anywhere
     },
     # --- Expansion states (federal data + education onboarding) ---
     "CA": {
         "name": "California",
         "SEMS": "active",
-        "EJSCREEN": "active",       # NES-302
+        "EJSCREEN": "active",       # per-state detection re-ingests (NES-297)
         "TRI": "active",            # 1,160 rows (NES-303)
         "UST": "active",            # 13,496 rows (NES-304)
-        "HPMS": "active",           # NES-305
-        "HIFLD": "active",          # national ingest (NES-306)
-        "FRA": "active",            # state-filtered STATEAB (NES-306)
+        "HPMS": "active",           # per-state incremental ingest (NES-297)
+        "HIFLD": "active",          # national ingest covers all states (NES-285)
+        "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
-        "SCHOOL_DISTRICTS": "intended",
+        "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
         "STATE_EDUCATION": "intended",
-        "NCES_SCHOOLS": "intended",
+        "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",
     },
     "TX": {
         "name": "Texas",
         "SEMS": "active",
-        "EJSCREEN": "active",       # NES-302
+        "EJSCREEN": "active",       # per-state detection re-ingests (NES-297)
         "TRI": "active",            # 1,734 rows (NES-303)
         "UST": "active",            # 61,236 rows (NES-304)
-        "HPMS": "active",           # NES-305
-        "HIFLD": "active",          # national ingest (NES-306)
-        "FRA": "active",            # state-filtered STATEAB (NES-306)
+        "HPMS": "active",           # per-state incremental ingest (NES-297)
+        "HIFLD": "active",          # national ingest covers all states (NES-285)
+        "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
-        "SCHOOL_DISTRICTS": "intended",
+        "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
         "STATE_EDUCATION": "intended",
-        "NCES_SCHOOLS": "intended",
+        "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",
     },
     "FL": {
         "name": "Florida",
         "SEMS": "active",
-        "EJSCREEN": "active",       # NES-302
+        "EJSCREEN": "active",       # per-state detection re-ingests (NES-297)
         "TRI": "active",            # 670 rows (NES-303)
         "UST": "active",            # 38,402 rows (NES-304)
-        "HPMS": "active",           # NES-305
-        "HIFLD": "active",          # national ingest (NES-306)
-        "FRA": "active",            # state-filtered STATEAB (NES-306)
+        "HPMS": "active",           # per-state incremental ingest (NES-297)
+        "HIFLD": "active",          # national ingest covers all states (NES-285)
+        "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
-        "SCHOOL_DISTRICTS": "intended",
+        "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
         "STATE_EDUCATION": "intended",
-        "NCES_SCHOOLS": "intended",
+        "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",
     },
     "IL": {
         "name": "Illinois",
         "SEMS": "active",
-        "EJSCREEN": "active",       # NES-302
+        "EJSCREEN": "active",       # per-state detection re-ingests (NES-297)
         "TRI": "active",            # 948 rows (NES-303)
         "UST": "active",            # 28,233 rows (NES-304)
-        "HPMS": "active",           # NES-305
-        "HIFLD": "active",          # national ingest (NES-306)
-        "FRA": "active",            # state-filtered STATEAB (NES-306)
+        "HPMS": "active",           # per-state incremental ingest (NES-297)
+        "HIFLD": "active",          # national ingest covers all states (NES-285)
+        "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
-        "SCHOOL_DISTRICTS": "intended",
+        "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
         "STATE_EDUCATION": "intended",
-        "NCES_SCHOOLS": "intended",
+        "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",
     },
 }
