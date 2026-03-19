@@ -1,0 +1,2597 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T02:44:20.351409+00:00",
+  "_generator": "generate_ground_truth_schools.py",
+  "_district_count": 30,
+  "_school_count": 30,
+  "_test_count": 120,
+  "_thresholds": {
+    "nearby_radius_m": 3219,
+    "nearby_max": 10,
+    "close_ft": 500,
+    "far_ft": 15000,
+    "source": "property_evaluator.py get_school_district() + get_nearby_schools()"
+  },
+  "test_cases": [
+    {
+      "id": "gt-schools-dist-0001",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.0468075,
+        "lng": -74.4851936
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3413230",
+        "district_name": "Plumsted Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Plumsted Township School District",
+        "geoid": "3413230",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0002",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.6991691,
+        "lng": -74.8567176
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3418060",
+        "district_name": "Winslow Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Plumsted Township School District",
+        "geoid": "3413230",
+        "offset": "50km offset at bearing 219.3deg (landed in 3418060)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0003",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.878813,
+        "lng": -75.1207514
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3402370",
+        "district_name": "Brooklawn Borough School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Brooklawn Borough School District",
+        "geoid": "3402370",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0004",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.0923739,
+        "lng": -74.6058507
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Brooklawn Borough School District",
+        "geoid": "3402370",
+        "offset": "50km offset at bearing 61.6deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0005",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.2904915,
+        "lng": -73.9222266
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3622650",
+        "district_name": "Peekskill City School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Peekskill City School District",
+        "geoid": "3622650",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0006",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.2317534,
+        "lng": -74.5148722
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3416710",
+        "district_name": "Vernon Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Peekskill City School District",
+        "geoid": "3622650",
+        "offset": "50km offset at bearing 262.5deg (landed in 3416710)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0007",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.7284442,
+        "lng": -74.7376376
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3615330",
+        "district_name": "Inlet Common School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Inlet Common School District",
+        "geoid": "3615330",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0008",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.960952,
+        "lng": -74.2058359
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3620730",
+        "district_name": "Newcomb Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Inlet Common School District",
+        "geoid": "3615330",
+        "offset": "50km offset at bearing 58.8deg (landed in 3620730)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0009",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.7631934,
+        "lng": -73.5252299
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3614340",
+        "district_name": "Hicksville Union Free School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Hicksville Union Free School District",
+        "geoid": "3614340",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0010",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.436827,
+        "lng": -73.1178089
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Hicksville Union Free School District",
+        "geoid": "3614340",
+        "offset": "50km offset at bearing 136.6deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0011",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.8782084,
+        "lng": -74.5999505
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3410350",
+        "district_name": "Mine Hill Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Mine Hill Township School District",
+        "geoid": "3410350",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0012",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.3263913,
+        "lng": -74.639026
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Mine Hill Township School District",
+        "geoid": "3410350",
+        "offset": "50km offset at bearing 356.2deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0013",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.2477474,
+        "lng": -76.3488308
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3606420",
+        "district_name": "Candor Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Candor Central School District",
+        "geoid": "3606420",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0014",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.9614444,
+        "lng": -76.8163519
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Candor Central School District",
+        "geoid": "3606420",
+        "offset": "50km offset at bearing 230.4deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0015",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.7960043,
+        "lng": -73.6908138
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3618270",
+        "district_name": "Manhasset Union Free School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Manhasset Union Free School District",
+        "geoid": "3618270",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0016",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.375298,
+        "lng": -73.8986119
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3499997",
+        "district_name": "School District Not Defined",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Manhasset Union Free School District",
+        "geoid": "3618270",
+        "offset": "50km offset at bearing 200.5deg (landed in 3499997)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0017",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.5325201,
+        "lng": -76.1895682
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3608460",
+        "district_name": "Cortland City School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Cortland City School District",
+        "geoid": "3608460",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0018",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.3531403,
+        "lng": -76.7483748
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3621630",
+        "district_name": "Odessa-Montour Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Cortland City School District",
+        "geoid": "3608460",
+        "offset": "50km offset at bearing 246.5deg (landed in 3621630)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0019",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.8904702,
+        "lng": -72.3916981
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3627540",
+        "district_name": "Southampton Union Free School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Southampton Union Free School District",
+        "geoid": "3627540",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0020",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.1378964,
+        "lng": -72.8875711
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "0999997",
+        "district_name": "School District Not Defined",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Southampton Union Free School District",
+        "geoid": "3627540",
+        "offset": "50km offset at bearing 303.4deg (landed in 0999997)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0021",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.019757,
+        "lng": -78.9618785
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3607020",
+        "district_name": "Grand Island Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Grand Island Central School District",
+        "geoid": "3607020",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0022",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.0928062,
+        "lng": -79.5680396
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Grand Island Central School District",
+        "geoid": "3607020",
+        "offset": "50km offset at bearing 279.4deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0023",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.8647414,
+        "lng": -73.7866448
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3626670",
+        "district_name": "Shenendehowa Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Shenendehowa Central School District",
+        "geoid": "3626670",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0024",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.9236997,
+        "lng": -73.1791516
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Shenendehowa Central School District",
+        "geoid": "3626670",
+        "offset": "50km offset at bearing 82.5deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0025",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 44.3190525,
+        "lng": -75.8726447
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3602670",
+        "district_name": "Alexandria Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Alexandria Central School District",
+        "geoid": "3602670",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0026",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 44.7591033,
+        "lng": -75.7468823
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Alexandria Central School District",
+        "geoid": "3602670",
+        "offset": "50km offset at bearing 11.6deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0027",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.2611847,
+        "lng": -74.5291153
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3404320",
+        "district_name": "East Windsor Regional School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "East Windsor Regional School District",
+        "geoid": "3404320",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0028",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.0816308,
+        "lng": -73.9896031
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3499997",
+        "district_name": "School District Not Defined",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "East Windsor Regional School District",
+        "geoid": "3404320",
+        "offset": "50km offset at bearing 113.6deg (landed in 3499997)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0029",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.3479197,
+        "lng": -77.0887538
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3605220",
+        "district_name": "Bradford Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Bradford Central School District",
+        "geoid": "3605220",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0030",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.2979563,
+        "lng": -76.484793
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3615570",
+        "district_name": "Ithaca City School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Bradford Central School District",
+        "geoid": "3605220",
+        "offset": "50km offset at bearing 96.4deg (landed in 3615570)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0031",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.9988119,
+        "lng": -75.9718965
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3618330",
+        "district_name": "Fayetteville-Manlius Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Fayetteville-Manlius Central School District",
+        "geoid": "3618330",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0032",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.1078237,
+        "lng": -75.3761279
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3631050",
+        "district_name": "Westmoreland Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Fayetteville-Manlius Central School District",
+        "geoid": "3618330",
+        "offset": "50km offset at bearing 76.0deg (landed in 3631050)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0033",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.2745776,
+        "lng": -75.0414176
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3403480",
+        "district_name": "Commercial Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Commercial Township School District",
+        "geoid": "3403480",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0034",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.6951449,
+        "lng": -75.2451106
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Commercial Township School District",
+        "geoid": "3403480",
+        "offset": "50km offset at bearing 339.4deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0035",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.9821355,
+        "lng": -74.1127198
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3413830",
+        "district_name": "Ridgewood Village School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Ridgewood Village School District",
+        "geoid": "3413830",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0036",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.3024538,
+        "lng": -74.5298006
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3619560",
+        "district_name": "Minisink Valley Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Ridgewood Village School District",
+        "geoid": "3413830",
+        "offset": "50km offset at bearing 315.5deg (landed in 3619560)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0037",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.6194983,
+        "lng": -73.5076678
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3629850",
+        "district_name": "Wantagh Union Free School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Wantagh Union Free School District",
+        "geoid": "3629850",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0038",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.4419517,
+        "lng": -72.9641266
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Wantagh Union Free School District",
+        "geoid": "3629850",
+        "offset": "50km offset at bearing 113.3deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0039",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.2602442,
+        "lng": -73.208364
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "0904620",
+        "district_name": "Trumbull School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Trumbull School District",
+        "geoid": "0904620",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0040",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.0088062,
+        "lng": -73.7034703
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3613740",
+        "district_name": "Harrison Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Trumbull School District",
+        "geoid": "0904620",
+        "offset": "50km offset at bearing 236.0deg (landed in 3613740)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0041",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.9740761,
+        "lng": -74.7978665
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3406090",
+        "district_name": "Green Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Green Township School District",
+        "geoid": "3406090",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0042",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.6180833,
+        "lng": -74.4351154
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3411640",
+        "district_name": "North Plainfield Borough School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Green Township School District",
+        "geoid": "3406090",
+        "offset": "50km offset at bearing 142.4deg (landed in 3411640)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0043",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.2130969,
+        "lng": -77.4446611
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3630360",
+        "district_name": "Webster Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Webster Central School District",
+        "geoid": "3630360",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0044",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.5990526,
+        "lng": -77.759882
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3699997",
+        "district_name": "School District Not Defined",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Webster Central School District",
+        "geoid": "3630360",
+        "offset": "50km offset at bearing 329.2deg (landed in 3699997)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0045",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.9976345,
+        "lng": -75.6087504
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3606630",
+        "district_name": "Carthage Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Carthage Central School District",
+        "geoid": "3606630",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0046",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 43.563407,
+        "lng": -75.449116
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3627360",
+        "district_name": "South Lewis Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Carthage Central School District",
+        "geoid": "3606630",
+        "offset": "50km offset at bearing 165.2deg (landed in 3627360)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0047",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.399341,
+        "lng": -75.2410569
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3629240",
+        "district_name": "Otego-Unadilla Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Otego-Unadilla Central School District",
+        "geoid": "3629240",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0048",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 42.3574084,
+        "lng": -74.635483
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3627330",
+        "district_name": "South Kortright Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Otego-Unadilla Central School District",
+        "geoid": "3629240",
+        "offset": "50km offset at bearing 95.4deg (landed in 3627330)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0049",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 44.6658382,
+        "lng": -74.9907807
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3623670",
+        "district_name": "Potsdam Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Potsdam Central School District",
+        "geoid": "3623670",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0050",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 44.6753551,
+        "lng": -74.359393
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3627990",
+        "district_name": "St. Regis Falls Central School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Potsdam Central School District",
+        "geoid": "3623670",
+        "offset": "50km offset at bearing 88.8deg (landed in 3627990)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0051",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.8471365,
+        "lng": -73.9966302
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3412360",
+        "district_name": "Palisades Park Borough School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Palisades Park Borough School District",
+        "geoid": "3412360",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0052",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.4309589,
+        "lng": -74.2199461
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3409750",
+        "district_name": "Matawan-Aberdeen Regional School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Palisades Park Borough School District",
+        "geoid": "3412360",
+        "offset": "50km offset at bearing 202.1deg (landed in 3409750)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0053",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.3493486,
+        "lng": -74.439968
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3407770",
+        "district_name": "Jamesburg Borough School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Jamesburg Borough School District",
+        "geoid": "3407770",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0054",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.3134286,
+        "lng": -73.8524985
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Jamesburg Borough School District",
+        "geoid": "3407770",
+        "offset": "50km offset at bearing 94.6deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0055",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.6312816,
+        "lng": -72.2401751
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "0902130",
+        "district_name": "Lebanon School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Lebanon School District",
+        "geoid": "0902130",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0056",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 41.244081,
+        "lng": -72.5447263
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "0999997",
+        "district_name": "School District Not Defined",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Lebanon School District",
+        "geoid": "0902130",
+        "offset": "50km offset at bearing 210.5deg (landed in 0999997)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0057",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.3309777,
+        "lng": -74.5070306
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3409690",
+        "district_name": "Margate City School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Margate City School District",
+        "geoid": "3409690",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0058",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 39.6907069,
+        "lng": -74.8547406
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3418060",
+        "district_name": "Winslow Township School District",
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Margate City School District",
+        "geoid": "3409690",
+        "offset": "50km offset at bearing 323.2deg (landed in 3418060)"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0059",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.7221505,
+        "lng": -73.4375806
+      },
+      "expected": {
+        "district_found": true,
+        "geoid": "3610980",
+        "district_name": "Farmingdale Union Free School District",
+        "has_performance_data": true
+      },
+      "source": {
+        "district_name": "Farmingdale Union Free School District",
+        "geoid": "3610980",
+        "offset": "centroid"
+      }
+    },
+    {
+      "id": "gt-schools-dist-0060",
+      "test_type": "district_containment",
+      "coordinates": {
+        "lat": 40.359773,
+        "lng": -73.0874287
+      },
+      "expected": {
+        "district_found": false,
+        "geoid": null,
+        "district_name": null,
+        "has_performance_data": false
+      },
+      "source": {
+        "district_name": "Farmingdale Union Free School District",
+        "geoid": "3610980",
+        "offset": "50km offset at bearing 143.8deg (no district)"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0061",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 39.8942703,
+        "lng": -74.8020503
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340249000998"
+      },
+      "source": {
+        "name": "Burlington County Institute of Technology - Medford",
+        "ncessch": "340249000998",
+        "level": "High",
+        "coordinates": {
+          "lat": 39.8940081,
+          "lng": -74.8038017
+        },
+        "distance_ft": 500,
+        "bearing_deg": 78.96,
+        "notes": "Generated 500ft (close) from Burlington County Institute of Technology - Medford"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0062",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 39.9350739,
+        "lng": -74.8046298
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340249000998"
+      },
+      "source": {
+        "name": "Burlington County Institute of Technology - Medford",
+        "ncessch": "340249000998",
+        "level": "High",
+        "coordinates": {
+          "lat": 39.8940081,
+          "lng": -74.8038017
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 359.11,
+        "notes": "Generated 15000ft (far) from Burlington County Institute of Technology - Medford"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0063",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7419417,
+        "lng": -73.7874095
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360013504354"
+      },
+      "source": {
+        "name": "PS 177",
+        "ncessch": "360013504354",
+        "level": "Other",
+        "coordinates": {
+          "lat": 40.7433083,
+          "lng": -73.7873014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 183.43,
+        "notes": "Generated 500ft (close) from PS 177"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0064",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7778592,
+        "lng": -73.7579938
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360013504354"
+      },
+      "source": {
+        "name": "PS 177",
+        "ncessch": "360013504354",
+        "level": "Other",
+        "coordinates": {
+          "lat": 40.7433083,
+          "lng": -73.7873014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 32.73,
+        "notes": "Generated 15000ft (far) from PS 177"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0065",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7373867,
+        "lng": -74.1889244
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340002300287"
+      },
+      "source": {
+        "name": "New Horizons Community Charter School",
+        "ncessch": "340002300287",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7360773,
+          "lng": -74.1894515
+        },
+        "distance_ft": 500,
+        "bearing_deg": 16.96,
+        "notes": "Generated 500ft (close) from New Horizons Community Charter School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0066",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7677805,
+        "lng": -74.1549935
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340002300287"
+      },
+      "source": {
+        "name": "New Horizons Community Charter School",
+        "ncessch": "340002300287",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7360773,
+          "lng": -74.1894515
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 39.47,
+        "notes": "Generated 15000ft (far) from New Horizons Community Charter School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0067",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.9653185,
+        "lng": -72.3074038
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "090429000061"
+      },
+      "source": {
+        "name": "Stafford Middle School",
+        "ncessch": "090429000061",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 41.9662716,
+          "lng": -72.306082
+        },
+        "distance_ft": 500,
+        "bearing_deg": 225.88,
+        "notes": "Generated 500ft (close) from Stafford Middle School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0068",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.9770043,
+        "lng": -72.3593995
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "090429000061"
+      },
+      "source": {
+        "name": "Stafford Middle School",
+        "ncessch": "090429000061",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 41.9662716,
+          "lng": -72.306082
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 285.15,
+        "notes": "Generated 15000ft (far) from Stafford Middle School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0069",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 43.201406,
+        "lng": -77.7938875
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "362778003765"
+      },
+      "source": {
+        "name": "TERRY TAYLOR ELEMENTARY SCHOOL",
+        "ncessch": "362778003765",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 43.2026146,
+          "lng": -77.7947698
+        },
+        "distance_ft": 500,
+        "bearing_deg": 151.98,
+        "notes": "Generated 500ft (close) from TERRY TAYLOR ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0070",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 43.2404568,
+        "lng": -77.7728725
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "362778003765"
+      },
+      "source": {
+        "name": "TERRY TAYLOR ELEMENTARY SCHOOL",
+        "ncessch": "362778003765",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 43.2026146,
+          "lng": -77.7947698
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 22.87,
+        "notes": "Generated 15000ft (far) from TERRY TAYLOR ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0071",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.8430008,
+        "lng": -73.8832761
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360009002279"
+      },
+      "source": {
+        "name": "PS 67 MOHEGAN SCHOOL",
+        "ncessch": "360009002279",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8440083,
+          "lng": -73.8845014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 137.38,
+        "notes": "Generated 500ft (close) from PS 67 MOHEGAN SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0072",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.8850669,
+        "lng": -73.8858244
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360009002279"
+      },
+      "source": {
+        "name": "PS 67 MOHEGAN SCHOOL",
+        "ncessch": "360009002279",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8440083,
+          "lng": -73.8845014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 358.6,
+        "notes": "Generated 15000ft (far) from PS 67 MOHEGAN SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0073",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.9429621,
+        "lng": -74.0370312
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "341226000786"
+      },
+      "source": {
+        "name": "River Dell Regional High School",
+        "ncessch": "341226000786",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.9443083,
+          "lng": -74.0367015
+        },
+        "distance_ft": 500,
+        "bearing_deg": 190.48,
+        "notes": "Generated 500ft (close) from River Dell Regional High School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0074",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.9847028,
+        "lng": -74.0465279
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "341226000786"
+      },
+      "source": {
+        "name": "River Dell Regional High School",
+        "ncessch": "341226000786",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.9443083,
+          "lng": -74.0367015
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 349.59,
+        "notes": "Generated 15000ft (far) from River Dell Regional High School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0075",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 42.6424864,
+        "lng": -73.7914297
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360246000026"
+      },
+      "source": {
+        "name": "ALBANY SCHOOL OF HUMANITIES",
+        "ncessch": "360246000026",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 42.6416086,
+          "lng": -73.7900015
+        },
+        "distance_ft": 500,
+        "bearing_deg": 309.88,
+        "notes": "Generated 500ft (close) from ALBANY SCHOOL OF HUMANITIES"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0076",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 42.6825726,
+        "lng": -73.7859774
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360246000026"
+      },
+      "source": {
+        "name": "ALBANY SCHOOL OF HUMANITIES",
+        "ncessch": "360246000026",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 42.6416086,
+          "lng": -73.7900015
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 4.13,
+        "notes": "Generated 15000ft (far) from ALBANY SCHOOL OF HUMANITIES"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0077",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6017728,
+        "lng": -74.6539114
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340228005186"
+      },
+      "source": {
+        "name": "Van Holten Primary School",
+        "ncessch": "340228005186",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.6020232,
+          "lng": -74.6521386
+        },
+        "distance_ft": 500,
+        "bearing_deg": 259.46,
+        "notes": "Generated 500ft (close) from Van Holten Primary School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0078",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.5849365,
+        "lng": -74.7013291
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340228005186"
+      },
+      "source": {
+        "name": "Van Holten Primary School",
+        "ncessch": "340228005186",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.6020232,
+          "lng": -74.6521386
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 245.42,
+        "notes": "Generated 15000ft (far) from Van Holten Primary School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0079",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.702229,
+        "lng": -73.9362932
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360011505705"
+      },
+      "source": {
+        "name": "WILLIAMSBURG CHARTER HIGH SCHOOL",
+        "ncessch": "360011505705",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.7035613,
+          "lng": -73.9358774
+        },
+        "distance_ft": 500,
+        "bearing_deg": 193.31,
+        "notes": "Generated 500ft (close) from WILLIAMSBURG CHARTER HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0080",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6992275,
+        "lng": -73.8820035
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360011505705"
+      },
+      "source": {
+        "name": "WILLIAMSBURG CHARTER HIGH SCHOOL",
+        "ncessch": "360011505705",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.7035613,
+          "lng": -73.9358774
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 96.06,
+        "notes": "Generated 15000ft (far) from WILLIAMSBURG CHARTER HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0081",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 43.1011424,
+        "lng": -76.0966542
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "368058004645"
+      },
+      "source": {
+        "name": "ONONDAGA-CORTLAND-MADISON BOCES",
+        "ncessch": "368058004645",
+        "level": "Other",
+        "coordinates": {
+          "lat": 43.1020086,
+          "lng": -76.0952023
+        },
+        "distance_ft": 500,
+        "bearing_deg": 230.75,
+        "notes": "Generated 500ft (close) from ONONDAGA-CORTLAND-MADISON BOCES"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0082",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 43.1333974,
+        "lng": -76.0589258
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "368058004645"
+      },
+      "source": {
+        "name": "ONONDAGA-CORTLAND-MADISON BOCES",
+        "ncessch": "368058004645",
+        "level": "Other",
+        "coordinates": {
+          "lat": 43.1020086,
+          "lng": -76.0952023
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 40.16,
+        "notes": "Generated 15000ft (far) from ONONDAGA-CORTLAND-MADISON BOCES"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0083",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.2647725,
+        "lng": -74.0743005
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340008500763"
+      },
+      "source": {
+        "name": "Monmouth Regional School",
+        "ncessch": "340008500763",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.2660282,
+          "lng": -74.0750154
+        },
+        "distance_ft": 500,
+        "bearing_deg": 156.52,
+        "notes": "Generated 500ft (close) from Monmouth Regional School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0084",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.2266813,
+        "lng": -74.0595849
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340008500763"
+      },
+      "source": {
+        "name": "Monmouth Regional School",
+        "ncessch": "340008500763",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.2660282,
+          "lng": -74.0750154
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 163.34,
+        "notes": "Generated 15000ft (far) from Monmouth Regional School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0085",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 42.4672203,
+        "lng": -76.4893334
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "361557004687"
+      },
+      "source": {
+        "name": "CAYUGA HEIGHTS ELEMENTARY SCHOOL",
+        "ncessch": "361557004687",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 42.4659085,
+          "lng": -76.4888024
+        },
+        "distance_ft": 500,
+        "bearing_deg": 343.37,
+        "notes": "Generated 500ft (close) from CAYUGA HEIGHTS ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0086",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 42.4951051,
+        "lng": -76.5279595
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "361557004687"
+      },
+      "source": {
+        "name": "CAYUGA HEIGHTS ELEMENTARY SCHOOL",
+        "ncessch": "361557004687",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 42.4659085,
+          "lng": -76.4888024
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 315.31,
+        "notes": "Generated 15000ft (far) from CAYUGA HEIGHTS ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0087",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7074932,
+        "lng": -73.7834018
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360010105545"
+      },
+      "source": {
+        "name": "PS/IS 268",
+        "ncessch": "360010105545",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7076083,
+          "lng": -73.7852014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 94.82,
+        "notes": "Generated 500ft (close) from PS/IS 268"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0088",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6665378,
+        "lng": -73.7854009
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360010105545"
+      },
+      "source": {
+        "name": "PS/IS 268",
+        "ncessch": "360010105545",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7076083,
+          "lng": -73.7852014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 180.21,
+        "notes": "Generated 15000ft (far) from PS/IS 268"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0089",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6958086,
+        "lng": -73.9839632
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360009101955"
+      },
+      "source": {
+        "name": "GEORGE WESTINGHOUSE CAREER AND TECHNICAL ED HIGH SCHOOL",
+        "ncessch": "360009101955",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.6952153,
+          "lng": -73.9855904
+        },
+        "distance_ft": 500,
+        "bearing_deg": 64.31,
+        "notes": "Generated 500ft (close) from GEORGE WESTINGHOUSE CAREER AND TECHNICAL ED HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0090",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7302511,
+        "lng": -74.0138569
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360009101955"
+      },
+      "source": {
+        "name": "GEORGE WESTINGHOUSE CAREER AND TECHNICAL ED HIGH SCHOOL",
+        "ncessch": "360009101955",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.6952153,
+          "lng": -73.9855904
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 328.55,
+        "notes": "Generated 15000ft (far) from GEORGE WESTINGHOUSE CAREER AND TECHNICAL ED HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0091",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 44.7759494,
+        "lng": -74.9898036
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "362136003045"
+      },
+      "source": {
+        "name": "NORWOOD-NORFOLK SCHOOL",
+        "ncessch": "362136003045",
+        "level": "High",
+        "coordinates": {
+          "lat": 44.775009,
+          "lng": -74.9884021
+        },
+        "distance_ft": 500,
+        "bearing_deg": 313.39,
+        "notes": "Generated 500ft (close) from NORWOOD-NORFOLK SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0092",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 44.7626997,
+        "lng": -74.9332055
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "362136003045"
+      },
+      "source": {
+        "name": "NORWOOD-NORFOLK SCHOOL",
+        "ncessch": "362136003045",
+        "level": "High",
+        "coordinates": {
+          "lat": 44.775009,
+          "lng": -74.9884021
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 107.44,
+        "notes": "Generated 15000ft (far) from NORWOOD-NORFOLK SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0093",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.9491287,
+        "lng": -73.8902904
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "363192004243"
+      },
+      "source": {
+        "name": "GORTON HIGH SCHOOL",
+        "ncessch": "363192004243",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.9500083,
+          "lng": -73.8889014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 230.02,
+        "notes": "Generated 500ft (close) from GORTON HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0094",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.918194,
+        "lng": -73.9232915
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "363192004243"
+      },
+      "source": {
+        "name": "GORTON HIGH SCHOOL",
+        "ncessch": "363192004243",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.9500083,
+          "lng": -73.8889014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 219.23,
+        "notes": "Generated 15000ft (far) from GORTON HIGH SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0095",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7013931,
+        "lng": -73.9363218
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360011902445"
+      },
+      "source": {
+        "name": "PS 120 CARLOS TAPIA",
+        "ncessch": "360011902445",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7006083,
+          "lng": -73.9378014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 55.02,
+        "notes": "Generated 500ft (close) from PS 120 CARLOS TAPIA"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0096",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7038334,
+        "lng": -73.9918081
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360011902445"
+      },
+      "source": {
+        "name": "PS 120 CARLOS TAPIA",
+        "ncessch": "360011902445",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7006083,
+          "lng": -73.9378014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 274.5,
+        "notes": "Generated 15000ft (far) from PS 120 CARLOS TAPIA"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0097",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.848581,
+        "lng": -73.5382446
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "362229003149"
+      },
+      "source": {
+        "name": "VERNON SCHOOL",
+        "ncessch": "362229003149",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8499083,
+          "lng": -73.5378013
+        },
+        "distance_ft": 500,
+        "bearing_deg": 194.18,
+        "notes": "Generated 500ft (close) from VERNON SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0098",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.8572557,
+        "lng": -73.5912213
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "362229003149"
+      },
+      "source": {
+        "name": "VERNON SCHOOL",
+        "ncessch": "362229003149",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8499083,
+          "lng": -73.5378013
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 280.31,
+        "notes": "Generated 15000ft (far) from VERNON SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0099",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.620464,
+        "lng": -73.9958433
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360015102735"
+      },
+      "source": {
+        "name": "JHS 227 EDWARD B SHALLOW",
+        "ncessch": "360015102735",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 40.6218082,
+          "lng": -73.9955014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 190.93,
+        "notes": "Generated 500ft (close) from JHS 227 EDWARD B SHALLOW"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0100",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6628788,
+        "lng": -73.995307
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360015102735"
+      },
+      "source": {
+        "name": "JHS 227 EDWARD B SHALLOW",
+        "ncessch": "360015102735",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 40.6218082,
+          "lng": -73.9955014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 0.21,
+        "notes": "Generated 15000ft (far) from JHS 227 EDWARD B SHALLOW"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0101",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.9953933,
+        "lng": -74.3365811
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340252004170"
+      },
+      "source": {
+        "name": "Richard Butler School",
+        "ncessch": "340252004170",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 40.9960083,
+          "lng": -74.3382016
+        },
+        "distance_ft": 500,
+        "bearing_deg": 116.7,
+        "notes": "Generated 500ft (close) from Richard Butler School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0102",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.0367719,
+        "lng": -74.331559
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340252004170"
+      },
+      "source": {
+        "name": "Richard Butler School",
+        "ncessch": "340252004170",
+        "level": "Middle",
+        "coordinates": {
+          "lat": 40.9960083,
+          "lng": -74.3382016
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 7.01,
+        "notes": "Generated 15000ft (far) from Richard Butler School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0103",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.5976948,
+        "lng": -73.8810673
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "362988004020"
+      },
+      "source": {
+        "name": "MYERS CORNERS SCHOOL",
+        "ncessch": "362988004020",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 41.5964594,
+          "lng": -73.8802785
+        },
+        "distance_ft": 500,
+        "bearing_deg": 334.48,
+        "notes": "Generated 500ft (close) from MYERS CORNERS SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0104",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.626172,
+        "lng": -73.9181936
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "362988004020"
+      },
+      "source": {
+        "name": "MYERS CORNERS SCHOOL",
+        "ncessch": "362988004020",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 41.5964594,
+          "lng": -73.8802785
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 316.34,
+        "notes": "Generated 15000ft (far) from MYERS CORNERS SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0105",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7617843,
+        "lng": -74.1778142
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "341134003327"
+      },
+      "source": {
+        "name": "Early Childhood School - North",
+        "ncessch": "341134003327",
+        "level": "Prekindergarten",
+        "coordinates": {
+          "lat": 40.7611123,
+          "lng": -74.1762395
+        },
+        "distance_ft": 500,
+        "bearing_deg": 299.4,
+        "notes": "Generated 500ft (close) from Early Childhood School - North"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0106",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7465914,
+        "lng": -74.1255184
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "341134003327"
+      },
+      "source": {
+        "name": "Early Childhood School - North",
+        "ncessch": "341134003327",
+        "level": "Prekindergarten",
+        "coordinates": {
+          "lat": 40.7611123,
+          "lng": -74.1762395
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 110.71,
+        "notes": "Generated 15000ft (far) from Early Childhood School - North"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0107",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.5223366,
+        "lng": -74.2751104
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340074103050"
+      },
+      "source": {
+        "name": "Academy for Urban Leadership Charter School",
+        "ncessch": "340074103050",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.5210572,
+          "lng": -74.2757515
+        },
+        "distance_ft": 500,
+        "bearing_deg": 20.85,
+        "notes": "Generated 500ft (close) from Academy for Urban Leadership Charter School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0108",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.5506426,
+        "lng": -74.3132263
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340074103050"
+      },
+      "source": {
+        "name": "Academy for Urban Leadership Charter School",
+        "ncessch": "340074103050",
+        "level": "High",
+        "coordinates": {
+          "lat": 40.5210572,
+          "lng": -74.2757515
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 316.08,
+        "notes": "Generated 15000ft (far) from Academy for Urban Leadership Charter School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0109",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.759902,
+        "lng": -73.6309927
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "361005000780"
+      },
+      "source": {
+        "name": "NORTH SIDE SCHOOL",
+        "ncessch": "361005000780",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7586083,
+          "lng": -73.6304013
+        },
+        "distance_ft": 500,
+        "bearing_deg": 340.9,
+        "notes": "Generated 500ft (close) from NORTH SIDE SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0110",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7938735,
+        "lng": -73.6026091
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "361005000780"
+      },
+      "source": {
+        "name": "NORTH SIDE SCHOOL",
+        "ncessch": "361005000780",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7586083,
+          "lng": -73.6304013
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 30.84,
+        "notes": "Generated 15000ft (far) from NORTH SIDE SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0111",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6493445,
+        "lng": -74.1308429
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "340126002714"
+      },
+      "source": {
+        "name": "Henry E. Harris Community School",
+        "ncessch": "340126002714",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.6507082,
+          "lng": -74.1310015
+        },
+        "distance_ft": 500,
+        "bearing_deg": 174.96,
+        "notes": "Generated 500ft (close) from Henry E. Harris Community School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0112",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.6879563,
+        "lng": -74.1081952
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "340126002714"
+      },
+      "source": {
+        "name": "Henry E. Harris Community School",
+        "ncessch": "340126002714",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.6507082,
+          "lng": -74.1310015
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 24.92,
+        "notes": "Generated 15000ft (far) from Henry E. Harris Community School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0113",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.9260997,
+        "lng": -73.0694372
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "090516001080"
+      },
+      "source": {
+        "name": "Pearson School",
+        "ncessch": "090516001080",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 41.9260085,
+          "lng": -73.0676012
+        },
+        "distance_ft": 500,
+        "bearing_deg": 273.82,
+        "notes": "Generated 500ft (close) from Pearson School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0114",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 41.9300879,
+        "lng": -73.1225303
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "090516001080"
+      },
+      "source": {
+        "name": "Pearson School",
+        "ncessch": "090516001080",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 41.9260085,
+          "lng": -73.0676012
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 275.7,
+        "notes": "Generated 15000ft (far) from Pearson School"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0115",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7828555,
+        "lng": -72.8528957
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "361869005743"
+      },
+      "source": {
+        "name": "NATHANIEL WOODHULL ELEMENTARY SCHOOL",
+        "ncessch": "361869005743",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7819083,
+          "lng": -72.8542011
+        },
+        "distance_ft": 500,
+        "bearing_deg": 46.22,
+        "notes": "Generated 500ft (close) from NATHANIEL WOODHULL ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0116",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7413318,
+        "lng": -72.8458111
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "361869005743"
+      },
+      "source": {
+        "name": "NATHANIEL WOODHULL ELEMENTARY SCHOOL",
+        "ncessch": "361869005743",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7819083,
+          "lng": -72.8542011
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 171.1,
+        "notes": "Generated 15000ft (far) from NATHANIEL WOODHULL ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0117",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.8927058,
+        "lng": -73.1369587
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "362820003810"
+      },
+      "source": {
+        "name": "WILLIAM SIDNEY MOUNT ELEMENTARY SCHOOL",
+        "ncessch": "362820003810",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8940083,
+          "lng": -73.1364012
+        },
+        "distance_ft": 500,
+        "bearing_deg": 197.93,
+        "notes": "Generated 500ft (close) from WILLIAM SIDNEY MOUNT ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0118",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.8901287,
+        "lng": -73.0823121
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "362820003810"
+      },
+      "source": {
+        "name": "WILLIAM SIDNEY MOUNT ELEMENTARY SCHOOL",
+        "ncessch": "362820003810",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.8940083,
+          "lng": -73.1364012
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 95.42,
+        "notes": "Generated 15000ft (far) from WILLIAM SIDNEY MOUNT ELEMENTARY SCHOOL"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0119",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7812606,
+        "lng": -73.9174003
+      },
+      "expected": {
+        "source_school_in_results": true,
+        "source_ncessch": "360010202451"
+      },
+      "source": {
+        "name": "PS 122 MAMIE FAY",
+        "ncessch": "360010202451",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7803083,
+          "lng": -73.9161014
+        },
+        "distance_ft": 500,
+        "bearing_deg": 314.08,
+        "notes": "Generated 500ft (close) from PS 122 MAMIE FAY"
+      }
+    },
+    {
+      "id": "gt-schools-nearby-0120",
+      "test_type": "nearby_schools",
+      "coordinates": {
+        "lat": 40.7439346,
+        "lng": -73.8909137
+      },
+      "expected": {
+        "source_school_in_results": false,
+        "source_ncessch": "360010202451"
+      },
+      "source": {
+        "name": "PS 122 MAMIE FAY",
+        "ncessch": "360010202451",
+        "level": "Elementary",
+        "coordinates": {
+          "lat": 40.7803083,
+          "lng": -73.9161014
+        },
+        "distance_ft": 15000,
+        "bearing_deg": 152.33,
+        "notes": "Generated 15000ft (far) from PS 122 MAMIE FAY"
+      }
+    }
+  ]
+}
