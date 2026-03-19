@@ -216,6 +216,7 @@ def ingest(
                     "stracnet": attrs.get("STRACNET", ""),
                     "miles": attrs.get("MILES"),
                     "km": attrs.get("KM"),
+                    "stateab": attrs.get("STATEAB", ""),
                 }
 
                 try:
