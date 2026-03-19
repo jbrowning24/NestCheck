@@ -191,6 +191,10 @@ _SOURCE_METADATA = {
             "NJ": "https://www.nj.gov/education/spr/download/",
             "CT": "https://edsight.ct.gov/",
             "MI": "https://www.mischooldata.org/",
+            "CA": "https://www.cde.ca.gov/ds/ad/fileslsafl.asp",
+            "TX": "https://tea.texas.gov/reports-and-data",
+            "FL": "https://edudata.fldoe.org",
+            "IL": "https://www.isbe.net/ilreportcarddata",
         },
     },
     "NCES_SCHOOLS": {
@@ -242,6 +246,10 @@ _STATE_NAME_NO_SPACE = {
     "NJ": "NewJersey",
     "CT": "Connecticut",
     "MI": "Michigan",
+    "CA": "California",
+    "TX": "Texas",
+    "FL": "Florida",
+    "IL": "Illinois",
 }
 
 # FIPS codes for states (for tables keyed by FIPS prefix)
@@ -250,6 +258,10 @@ _STATE_FIPS = {
     "NJ": "34",
     "CT": "09",
     "MI": "26",
+    "CA": "06",
+    "TX": "48",
+    "FL": "12",
+    "IL": "17",
 }
 
 
@@ -327,7 +339,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "intended",         # targeted but 0 rows
         "HIFLD": "planned",         # bbox doesn't cover MI
         "FRA": "planned",           # bbox doesn't cover MI
-        "FEMA_NFHL": "planned",     # bbox doesn't cover MI
+        "FEMA_NFHL": "active",      # Detroit metro bbox (NES-286)
         "GOOGLE_PLACES_PARKS": "active",   # live API
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
@@ -336,11 +348,79 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "NCES_SCHOOLS": "intended",      # targeted but 0 rows
         "CENSUS_ACS": "active",          # live API, works anywhere
     },
-    # --- Coming soon states (all planned) ---
-    "CA": {"name": "California"},
-    "TX": {"name": "Texas"},
-    "FL": {"name": "Florida"},
-    "IL": {"name": "Illinois"},
+    # --- Expansion states (federal data + education onboarding) ---
+    "CA": {
+        "name": "California",
+        "SEMS": "active",
+        "EJSCREEN": "intended",
+        "TRI": "intended",
+        "UST": "intended",
+        "HPMS": "intended",
+        "HIFLD": "planned",
+        "FRA": "planned",
+        "FEMA_NFHL": "planned",
+        "GOOGLE_PLACES_PARKS": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "intended",
+        "STATE_EDUCATION": "intended",
+        "NCES_SCHOOLS": "intended",
+        "CENSUS_ACS": "active",
+    },
+    "TX": {
+        "name": "Texas",
+        "SEMS": "active",
+        "EJSCREEN": "intended",
+        "TRI": "intended",
+        "UST": "intended",
+        "HPMS": "intended",
+        "HIFLD": "planned",
+        "FRA": "planned",
+        "FEMA_NFHL": "planned",
+        "GOOGLE_PLACES_PARKS": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "intended",
+        "STATE_EDUCATION": "intended",
+        "NCES_SCHOOLS": "intended",
+        "CENSUS_ACS": "active",
+    },
+    "FL": {
+        "name": "Florida",
+        "SEMS": "active",
+        "EJSCREEN": "intended",
+        "TRI": "intended",
+        "UST": "intended",
+        "HPMS": "intended",
+        "HIFLD": "planned",
+        "FRA": "planned",
+        "FEMA_NFHL": "planned",
+        "GOOGLE_PLACES_PARKS": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "intended",
+        "STATE_EDUCATION": "intended",
+        "NCES_SCHOOLS": "intended",
+        "CENSUS_ACS": "active",
+    },
+    "IL": {
+        "name": "Illinois",
+        "SEMS": "active",
+        "EJSCREEN": "intended",
+        "TRI": "intended",
+        "UST": "intended",
+        "HPMS": "intended",
+        "HIFLD": "planned",
+        "FRA": "planned",
+        "FEMA_NFHL": "planned",
+        "GOOGLE_PLACES_PARKS": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "intended",
+        "STATE_EDUCATION": "intended",
+        "NCES_SCHOOLS": "intended",
+        "CENSUS_ACS": "active",
+    },
 }
 
 # Sources that every state gets an entry for (used to fill "planned" for
