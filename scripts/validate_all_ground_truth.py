@@ -37,6 +37,7 @@ _DIMENSION_LABELS = {
     "hifld": "HIFLD power lines",
     "tri": "TRI toxic release proximity",
     "fema": "FEMA flood zone containment",
+    "sems": "SEMS Superfund NPL containment",
 }
 
 
