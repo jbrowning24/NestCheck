@@ -147,15 +147,15 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("NY")
         assert dims["transit"] == CoverageTier.FULL
 
-    def test_nj_health_is_partial(self):
-        """NJ has UST intended → not all active → PARTIAL."""
+    def test_nj_health_is_full(self):
+        """NJ has all health sources active (including UST, NES-304) → FULL."""
         dims = get_dimension_coverage("NJ")
-        assert dims["health"] == CoverageTier.PARTIAL
+        assert dims["health"] == CoverageTier.FULL
 
-    def test_ct_health_is_partial(self):
-        """CT has UST intended → PARTIAL."""
+    def test_ct_health_is_full(self):
+        """CT has all health sources active (including UST, NES-304) → FULL."""
         dims = get_dimension_coverage("CT")
-        assert dims["health"] == CoverageTier.PARTIAL
+        assert dims["health"] == CoverageTier.FULL
 
     def test_mi_health_is_minimal(self):
         """MI has only SEMS active for health → MINIMAL."""
@@ -177,13 +177,10 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("MI")
         assert dims["transit"] == CoverageTier.FULL
 
-    def test_coming_soon_state_all_none(self):
-        """CA (coming soon) has no active sources → all NONE."""
+    def test_expansion_state_health_minimal(self):
+        """CA has SEMS + TRI + UST active but others intended/planned → MINIMAL."""
         dims = get_dimension_coverage("CA")
-        for dim, tier in dims.items():
-            assert tier == CoverageTier.NONE, (
-                f"CA dimension '{dim}' should be NONE, got {tier}"
-            )
+        assert dims["health"] == CoverageTier.MINIMAL
 
     def test_unknown_state_returns_empty(self):
         dims = get_dimension_coverage("ZZ")
@@ -213,13 +210,11 @@ class TestSourceCoverage:
     def test_unknown_state_returns_empty(self):
         assert get_source_coverage("ZZ") == {}
 
-    def test_coming_soon_state_all_planned(self):
-        """CA only has a name, so all sources default to 'planned'."""
+    def test_expansion_state_has_mixed_statuses(self):
+        """CA has active, intended, and planned sources."""
         sources = get_source_coverage("CA")
-        for src_key, info in sources.items():
-            assert info["status"] == "planned", (
-                f"CA.{src_key} should be 'planned', got '{info['status']}'"
-            )
+        statuses = {info["status"] for info in sources.values()}
+        assert "active" in statuses, "CA should have some active sources (SEMS, TRI, UST, live APIs)"
 
     def test_education_url_varies_by_state(self):
         """STATE_EDUCATION source_url should be state-specific."""
@@ -240,10 +235,11 @@ class TestGetAllStates:
         supported = {s["code"] for s in states if s["status"] == "supported"}
         assert {"NY", "NJ", "CT", "MI"} <= supported
 
-    def test_coming_soon_states(self):
+    def test_expansion_states_are_supported(self):
+        """CA/TX/FL/IL have active sources (SEMS, TRI, UST, live APIs) → supported."""
         states = get_all_states()
-        coming = {s["code"] for s in states if s["status"] == "coming_soon"}
-        assert {"CA", "TX", "FL", "IL"} <= coming
+        supported = {s["code"] for s in states if s["status"] == "supported"}
+        assert {"CA", "TX", "FL", "IL"} <= supported
 
     def test_each_state_has_name(self):
         for state in get_all_states():
@@ -269,10 +265,10 @@ class TestVerifyCoverage:
         assert not mismatches, f"NY mismatches: {mismatches}"
 
     @requires_spatial_db
-    def test_nj_ust_intended(self):
-        """NJ UST is intended (0 rows) — should not be a mismatch."""
+    def test_nj_ust_active(self):
+        """NJ UST is active with rows (NES-304)."""
         results = verify_coverage("NJ")
-        assert results["UST"]["actual_rows"] == 0
+        assert results["UST"]["actual_rows"] > 0
         assert not results["UST"]["mismatch"]
 
     @requires_spatial_db
@@ -382,10 +378,10 @@ class TestSectionCoverage:
         result = get_section_coverage("NY")
         assert "getting_around" not in result
 
-    def test_nj_health_partial(self):
-        """NJ health is PARTIAL (UST intended) → badge appears."""
+    def test_nj_health_full(self):
+        """NJ health is FULL (all sources active including UST, NES-304) → no badge."""
         result = get_section_coverage("NJ")
-        assert result.get("health") == "partial"
+        assert "health" not in result  # FULL is omitted
 
     def test_mi_health_minimal(self):
         """MI health is MINIMAL → badge appears as 'minimal'."""

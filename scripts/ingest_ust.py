@@ -171,18 +171,32 @@ def ingest(
         discover_fields()
         return
 
-    # Build WHERE clause (State field uses full names, e.g. "New York")
+    # Build WHERE clause.
+    # The ArcGIS UST endpoint is inconsistent: some states are stored with
+    # spaces ("New Jersey") and some without ("NewYork"). Include both
+    # formats in the IN clause to catch all records.
     where = "1=1"
     if states:
         for s in states:
             if not s.replace(" ", "").isalpha():
                 raise ValueError(f"Invalid state name: {s!r} (expected full name, e.g. 'New York')")
-        in_list = ", ".join(f"'{s}'" for s in states)
+        # Include both "New York" and "NewYork" variants for multi-word names
+        all_variants = set()
+        for s in states:
+            all_variants.add(s)
+            no_space = s.replace(" ", "")
+            if no_space != s:
+                all_variants.add(no_space)
+        in_list = ", ".join(f"'{s}'" for s in sorted(all_variants))
         where = f"State IN ({in_list})"
     elif state:
         if not state.replace(" ", "").isalpha():
             raise ValueError(f"Invalid state name: {state!r} (expected full name, e.g. 'New York')")
-        where = f"State = '{state}'"
+        no_space = state.replace(" ", "")
+        if no_space != state:
+            where = f"State IN ('{state}', '{no_space}')"
+        else:
+            where = f"State = '{state}'"
 
     # ArcGIS returns state names with spaces stripped ("NewYork").
     # Build a normalizer to restore proper names at insert time.

@@ -281,7 +281,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "SEMS": "active",           # 126 rows (nationwide, not state-filtered)
         "EJSCREEN": "active",       # 16,070 rows
         "TRI": "active",            # 581 rows
-        "UST": "active",            # 200 rows
+        "UST": "active",            # 33,640 rows
         "HPMS": "active",           # 277,751 rows
         "HIFLD": "active",          # bbox covers NY (2,126 total)
         "FRA": "active",            # bbox covers NY (9,832 total)
@@ -299,7 +299,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "SEMS": "active",           # 155 rows
         "EJSCREEN": "active",       # 6,599 rows
         "TRI": "active",            # 325 rows
-        "UST": "intended",          # 0 rows — ingest targets NJ but no data loaded
+        "UST": "active",            # 23,153 rows (NES-304)
         "HPMS": "active",           # 103,361 rows
         "HIFLD": "active",          # bbox covers NJ
         "FRA": "active",            # bbox covers NJ
@@ -317,7 +317,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "SEMS": "active",           # 17 rows
         "EJSCREEN": "active",       # 2,717 rows
         "TRI": "active",            # 257 rows
-        "UST": "intended",          # 0 rows
+        "UST": "active",            # 9,355 rows (NES-304)
         "HPMS": "active",           # 42,590 rows
         "HIFLD": "active",          # bbox covers CT
         "FRA": "active",            # bbox covers CT
@@ -334,8 +334,8 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "name": "Michigan",
         "SEMS": "active",           # 90 rows (nationwide dataset)
         "EJSCREEN": "intended",     # targeted but 0 rows
-        "TRI": "intended",          # targeted but 0 rows
-        "UST": "intended",          # targeted but 0 rows
+        "TRI": "active",            # 769 rows (NES-303)
+        "UST": "active",            # 27,780 rows (NES-304)
         "HPMS": "intended",         # targeted but 0 rows
         "HIFLD": "planned",         # bbox doesn't cover MI
         "FRA": "planned",           # bbox doesn't cover MI
@@ -353,8 +353,8 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "name": "California",
         "SEMS": "active",
         "EJSCREEN": "intended",
-        "TRI": "intended",
-        "UST": "intended",
+        "TRI": "active",            # 1,160 rows (NES-303)
+        "UST": "active",            # 13,496 rows (NES-304)
         "HPMS": "intended",
         "HIFLD": "planned",
         "FRA": "planned",
@@ -371,8 +371,8 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "name": "Texas",
         "SEMS": "active",
         "EJSCREEN": "intended",
-        "TRI": "intended",
-        "UST": "intended",
+        "TRI": "active",            # 1,734 rows (NES-303)
+        "UST": "active",            # 61,236 rows (NES-304)
         "HPMS": "intended",
         "HIFLD": "planned",
         "FRA": "planned",
@@ -389,8 +389,8 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "name": "Florida",
         "SEMS": "active",
         "EJSCREEN": "intended",
-        "TRI": "intended",
-        "UST": "intended",
+        "TRI": "active",            # 670 rows (NES-303)
+        "UST": "active",            # 38,402 rows (NES-304)
         "HPMS": "intended",
         "HIFLD": "planned",
         "FRA": "planned",
@@ -407,8 +407,8 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "name": "Illinois",
         "SEMS": "active",
         "EJSCREEN": "intended",
-        "TRI": "intended",
-        "UST": "intended",
+        "TRI": "active",            # 948 rows (NES-303)
+        "UST": "active",            # 28,233 rows (NES-304)
         "HPMS": "intended",
         "HIFLD": "planned",
         "FRA": "planned",
