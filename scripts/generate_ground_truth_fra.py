@@ -31,10 +31,10 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ---------------------------------------------------------------------------
-# Thresholds — canonical values live in property_evaluator.py check_rail_proximity().
-# WARN_RADIUS_M = 300   (WARNING if rail within 300m)
-# SEARCH_RADIUS_M = 800 (search radius for nearest-neighbor)
-# These must stay in sync with property_evaluator.py.
+# Thresholds — canonical source: scoring_config.py Tier1Thresholds
+#   rail_warn_m = 300  (~1,000ft)
+# Search radius (800m) is intentionally wider for PASS nearest-distance.
+# These hardcoded fallbacks must stay in sync with Tier1Thresholds.
 # ---------------------------------------------------------------------------
 WARN_RADIUS_M = 300
 SEARCH_RADIUS_M = 800
