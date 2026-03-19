@@ -13,6 +13,7 @@ No API calls — everything comes from spatial.db.
 Usage:
     python scripts/generate_ground_truth_schools.py
     python scripts/generate_ground_truth_schools.py --count 30 --seed 42
+    python scripts/generate_ground_truth_schools.py --state NY
     python scripts/generate_ground_truth_schools.py --output data/ground_truth/schools.json
 """
 
@@ -45,6 +46,14 @@ FEET_TO_METERS = 0.3048
 # Coordinate bounding box — covers NY, CT, NJ, MI
 LAT_MIN, LAT_MAX = 38.0, 47.0
 LNG_MIN, LNG_MAX = -90.0, -71.0
+
+# State abbreviation → FIPS prefix for filtering by GEOID/NCESSCH
+_STATE_TO_FIPS = {
+    "NY": "36",
+    "NJ": "34",
+    "CT": "09",
+    "MI": "26",
+}
 
 
 def _offset_point(lat: float, lng: float, distance_ft: float, bearing_deg: float):
@@ -85,14 +94,26 @@ def _load_spatialite(conn):
         pass
 
 
-def _query_districts(db_path: str, count: int) -> list:
+def _query_districts(db_path: str, state_filter: str = None) -> list:
     """Query school district polygons from spatial.db.
 
     Returns list of dicts: {name, geoid, centroid_lat, centroid_lng, lograde, higrade}
+    state_filter: 2-letter state code (e.g. "NY") to filter by GEOID FIPS prefix.
     """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     _load_spatialite(conn)
+
+    fips_prefix = None
+    if state_filter:
+        fips_prefix = _STATE_TO_FIPS.get(state_filter.upper())
+        if not fips_prefix:
+            print(
+                f"Warning: unknown state '{state_filter}', "
+                f"valid: {', '.join(sorted(_STATE_TO_FIPS))}",
+                file=sys.stderr,
+            )
+
     try:
         rows = conn.execute(
             """SELECT name,
@@ -119,6 +140,8 @@ def _query_districts(db_path: str, count: int) -> list:
             geoid = meta.get("geoid", "")
             if not geoid:
                 continue
+            if fips_prefix and not geoid.startswith(fips_prefix):
+                continue
             districts.append({
                 "name": r["name"] or "Unknown District",
                 "geoid": geoid,
@@ -132,11 +155,16 @@ def _query_districts(db_path: str, count: int) -> list:
         conn.close()
 
 
-def _query_schools(db_path: str, count: int) -> list:
+def _query_schools(db_path: str, state_filter: str = None) -> list:
     """Query NCES school points from spatial.db.
 
     Returns list of dicts: {name, ncessch, lat, lng, level, metadata}
+    state_filter: 2-letter state code (e.g. "NY") to filter by NCESSCH FIPS prefix.
     """
+    fips_prefix = None
+    if state_filter:
+        fips_prefix = _STATE_TO_FIPS.get(state_filter.upper())
+
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     _load_spatialite(conn)
@@ -165,6 +193,8 @@ def _query_schools(db_path: str, count: int) -> list:
             ncessch = str(meta.get("ncessch", ""))
             if not ncessch:
                 continue
+            if fips_prefix and not ncessch.startswith(fips_prefix):
+                continue
             schools.append({
                 "name": r["name"] or "Unknown School",
                 "ncessch": ncessch,
@@ -178,13 +208,13 @@ def _query_schools(db_path: str, count: int) -> list:
         conn.close()
 
 
-def _check_performance_data(db_path: str, geoid: str) -> bool:
+def _check_performance_data(conn, geoid: str) -> bool:
     """Check if state_education_performance has non-NULL data for this GEOID.
 
     Matches the validator's logic: at least one of graduation_rate_pct,
     ela_proficiency_pct, or math_proficiency_pct must be non-NULL.
+    Uses an existing connection to avoid per-call open/close overhead.
     """
-    conn = sqlite3.connect(db_path)
     try:
         row = conn.execute(
             """SELECT graduation_rate_pct, ela_proficiency_pct,
@@ -197,8 +227,6 @@ def _check_performance_data(db_path: str, geoid: str) -> bool:
         return any(v is not None for v in row)
     except Exception:
         return False
-    finally:
-        conn.close()
 
 
 def _actual_containing_district(conn, lat: float, lng: float):
@@ -277,6 +305,10 @@ def main():
         help="Output file path (default: data/ground_truth/schools.json)",
     )
     parser.add_argument(
+        "--state", type=str, default=None,
+        help="Filter by state abbreviation (NY, NJ, CT, MI)",
+    )
+    parser.add_argument(
         "--seed", type=int, default=None,
         help="Random seed for reproducibility",
     )
@@ -295,7 +327,7 @@ def main():
     # ------------------------------------------------------------------
     # Category A: School District Containment
     # ------------------------------------------------------------------
-    districts = _query_districts(db_path, args.count)
+    districts = _query_districts(db_path, state_filter=args.state)
     if not districts:
         print("Error: No school districts found in spatial.db.", file=sys.stderr)
         sys.exit(1)
@@ -314,7 +346,7 @@ def main():
     # ------------------------------------------------------------------
     # Category B: Nearby Schools Proximity
     # ------------------------------------------------------------------
-    schools = _query_schools(db_path, args.count)
+    schools = _query_schools(db_path, state_filter=args.state)
     if not schools:
         print("Error: No NCES schools found in spatial.db.", file=sys.stderr)
         sys.exit(1)
@@ -356,7 +388,7 @@ def main():
         actual_geoid, actual_name = _actual_containing_district(
             nn_conn, inside_lat, inside_lng
         )
-        has_perf = _check_performance_data(db_path, district["geoid"])
+        has_perf = _check_performance_data(nn_conn, district["geoid"])
 
         if actual_geoid is not None:
             # Centroid is inside some district
@@ -365,7 +397,7 @@ def main():
             expected_geoid = actual_geoid
             expected_name = actual_name
             expected_found = True
-            has_perf = _check_performance_data(db_path, actual_geoid)
+            has_perf = _check_performance_data(nn_conn, actual_geoid)
             notes = "centroid"
             if actual_geoid != district["geoid"]:
                 notes += (
@@ -416,7 +448,7 @@ def main():
         )
         if outside_geoid is not None:
             # Landed in another district
-            outside_has_perf = _check_performance_data(db_path, outside_geoid)
+            outside_has_perf = _check_performance_data(nn_conn, outside_geoid)
             test_cases.append({
                 "id": f"gt-schools-dist-{idx:04d}",
                 "test_type": "district_containment",
