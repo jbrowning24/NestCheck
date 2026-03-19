@@ -116,81 +116,34 @@ def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
         return (False, 0)
 
 
-def _missing_states(
-    db_path: str,
-    table_name: str,
-    state_json_path: str = "$.state",
-    *,
-    value_to_code: dict[str, str] | None = None,
-) -> list[str]:
-    """Return TARGET_STATES codes that have no rows in a spatial table.
+def _ust_missing_states(db_path: str) -> list[str]:
+    """Return target state codes that have 0 UST rows in spatial.db.
 
-    Queries DISTINCT json_extract(metadata_json, state_json_path) to find
-    which states are already loaded, then returns the set difference against
-    TARGET_STATES.
-
-    Args:
-        db_path: Path to spatial.db.
-        table_name: e.g. 'facilities_ejscreen'.
-        state_json_path: JSON path to the state field in metadata_json.
-            Default '$.state' works for EJScreen, TRI, HPMS (2-letter codes).
-            FRA uses '$.state_code'.
-        value_to_code: Optional mapping from stored values to TARGET_STATES
-            keys. Used by UST where stored values are full names
-            ('Michigan' → 'MI'). When None, stored values are assumed to
-            already be 2-letter codes matching TARGET_STATES keys.
-
-    Returns e.g. ['MI', 'CA', 'TX', 'FL', 'IL'] for states without data.
-    On any error (table/DB missing), returns all target states.
+    UST stores state as full name in json_extract(metadata_json, '$.state').
+    Returns e.g. ['NJ', 'CT', 'MI'] for states without data.
+    On any error (table missing, DB missing), returns all target states.
     """
     try:
-        _validate_table_name(table_name)
         conn = sqlite3.connect(db_path)
         try:
             cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-                (table_name,),
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='facilities_ust'"
             )
             if not cursor.fetchone():
                 return list(TARGET_STATES.keys())
 
             cursor = conn.execute(
-                f"SELECT DISTINCT json_extract(metadata_json, ?) FROM {table_name}",
-                (state_json_path,),
+                "SELECT DISTINCT json_extract(metadata_json, '$.state') FROM facilities_ust"
             )
-            present_values = {row[0] for row in cursor.fetchall()}
-
-            if value_to_code is not None:
-                # Map stored values (e.g. full names) back to 2-letter codes
-                present_codes = {
-                    value_to_code.get(v)
-                    for v in present_values
-                    if v is not None
-                }
-            else:
-                # Stored values are already 2-letter codes
-                present_codes = {v for v in present_values if v is not None}
-
+            present_names = {row[0] for row in cursor.fetchall()}
             return [
-                code for code in TARGET_STATES
-                if code not in present_codes
+                code for code, info in TARGET_STATES.items()
+                if info["full_name"] not in present_names
             ]
         finally:
             conn.close()
     except Exception:
         return list(TARGET_STATES.keys())
-
-
-def _ust_missing_states(db_path: str) -> list[str]:
-    """Return target state codes that have 0 UST rows in spatial.db.
-
-    UST stores state as full name in json_extract(metadata_json, '$.state').
-    Delegates to _missing_states() with a full_name → code reverse mapping.
-    """
-    reverse_map = {info["full_name"]: code for code, info in TARGET_STATES.items()}
-    return _missing_states(
-        db_path, "facilities_ust", "$.state", value_to_code=reverse_map,
-    )
 
 
 def ensure_spatial_data() -> None:
@@ -268,54 +221,29 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
         _run_ingest("fema_nfhl", _ingest_fema)
 
-    # --- HPMS (high-traffic roads, per-state services) ---
-    # HPMS stores 2-letter state code in metadata_json.state.
-    # Must check per-state since existing tri-state data causes
-    # _table_has_data to skip ingestion for expansion states (NES-301).
-    hpms_missing = _missing_states(db_path, "facilities_hpms")
-    if hpms_missing:
-        _, count = _table_has_data(db_path, "facilities_hpms")
-        logger.info(
-            "Dataset hpms: missing states %s (%d existing records), starting full ingestion...",
-            hpms_missing, count,
-        )
+    # --- HPMS (high-traffic roads, tri-state) ---
+    has_data, count = _table_has_data(db_path, "facilities_hpms")
+    if has_data:
+        logger.info("Dataset hpms: present (%d records), skipping", count)
+    else:
+        logger.info("Dataset hpms: missing or empty, starting ingestion...")
         _run_ingest("hpms", _ingest_hpms)
-    else:
-        _, count = _table_has_data(db_path, "facilities_hpms")
-        logger.info("Dataset hpms: present for all %d states (%d records), skipping",
-                     len(TARGET_STATES), count)
 
-    # --- EJScreen (EPA environmental justice block groups, all TARGET_STATES) ---
-    # EJScreen stores 2-letter state code in metadata_json.state.
-    # Must check per-state (NES-301).
-    ejscreen_missing = _missing_states(db_path, "facilities_ejscreen")
-    if ejscreen_missing:
-        _, count = _table_has_data(db_path, "facilities_ejscreen")
-        logger.info(
-            "Dataset ejscreen: missing states %s (%d existing records), starting full ingestion...",
-            ejscreen_missing, count,
-        )
+    # --- EJScreen (EPA environmental justice block groups, NY+CT+NJ) ---
+    has_data, count = _table_has_data(db_path, "facilities_ejscreen")
+    if has_data:
+        logger.info("Dataset ejscreen: present (%d records), skipping", count)
+    else:
+        logger.info("Dataset ejscreen: missing or empty, starting ingestion...")
         _run_ingest("ejscreen", _ingest_ejscreen)
-    else:
-        _, count = _table_has_data(db_path, "facilities_ejscreen")
-        logger.info("Dataset ejscreen: present for all %d states (%d records), skipping",
-                     len(TARGET_STATES), count)
 
-    # --- TRI (EPA Toxic Release Inventory, all TARGET_STATES) ---
-    # TRI stores 2-letter state code in metadata_json.state.
-    # Must check per-state (NES-301).
-    tri_missing = _missing_states(db_path, "facilities_tri")
-    if tri_missing:
-        _, count = _table_has_data(db_path, "facilities_tri")
-        logger.info(
-            "Dataset tri: missing states %s (%d existing records), starting full ingestion...",
-            tri_missing, count,
-        )
-        _run_ingest("tri", _ingest_tri)
+    # --- TRI (EPA Toxic Release Inventory, NY+CT+NJ) ---
+    has_data, count = _table_has_data(db_path, "facilities_tri")
+    if has_data:
+        logger.info("Dataset tri: present (%d records), skipping", count)
     else:
-        _, count = _table_has_data(db_path, "facilities_tri")
-        logger.info("Dataset tri: present for all %d states (%d records), skipping",
-                     len(TARGET_STATES), count)
+        logger.info("Dataset tri: missing or empty, starting ingestion...")
+        _run_ingest("tri", _ingest_tri)
 
     # --- UST (EPA Underground Storage Tanks, all TARGET_STATES) ---
     # UST uses json_extract(metadata_json, '$.state') with full state names.
@@ -343,21 +271,12 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("hifld", _ingest_hifld)
 
     # --- FRA (rail network lines, state-filtered via STATEAB) ---
-    # FRA stores 2-letter state code in metadata_json.state_code (NES-301).
-    # Old data without state_code will show all states as missing → triggers
-    # full re-ingest which populates the field going forward.
-    fra_missing = _missing_states(db_path, "facilities_fra", "$.state_code")
-    if fra_missing:
-        _, count = _table_has_data(db_path, "facilities_fra")
-        logger.info(
-            "Dataset fra: missing states %s (%d existing records), starting full ingestion...",
-            fra_missing, count,
-        )
-        _run_ingest("fra", _ingest_fra)
+    has_data, count = _table_has_data(db_path, "facilities_fra")
+    if has_data:
+        logger.info("Dataset fra: present (%d records), skipping", count)
     else:
-        _, count = _table_has_data(db_path, "facilities_fra")
-        logger.info("Dataset fra: present for all %d states (%d records), skipping",
-                     len(TARGET_STATES), count)
+        logger.info("Dataset fra: missing or empty, starting ingestion...")
+        _run_ingest("fra", _ingest_fra)
 
     # --- School Districts (TIGER unified school district boundaries, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_school_districts")
