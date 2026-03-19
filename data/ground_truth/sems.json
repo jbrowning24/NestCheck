@@ -1,0 +1,829 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T03:27:58.199364+00:00",
+  "_generator": "generate_ground_truth_sems.py",
+  "_facility_count": 16,
+  "_test_count": 29,
+  "_thresholds": {
+    "containment": "polygon point-in-polygon",
+    "npl_status_codes": [
+      "F",
+      "P"
+    ],
+    "source": "property_evaluator.py check_superfund_npl()"
+  },
+  "addresses": [
+    {
+      "id": "gt-sems-0001",
+      "coordinates": {
+        "lat": 45.601904,
+        "lng": -121.1515431
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site UNION PACIFIC RAILROAD CO. TIE-TREATING PLANT",
+      "source_facility": {
+        "name": "UNION PACIFIC RAILROAD CO. TIE-TREATING PLANT",
+        "epa_id": "ORD009049412",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 45.6016459,
+          "lng": -121.1555304
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0002",
+      "coordinates": {
+        "lat": 42.1037355,
+        "lng": -75.9929195
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site ROBINTECH, INC./NATIONAL PIPE CO.",
+      "source_facility": {
+        "name": "ROBINTECH, INC./NATIONAL PIPE CO.",
+        "epa_id": "NYD002232957",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 42.1038226,
+          "lng": -75.9926976
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0003",
+      "coordinates": {
+        "lat": 41.4317515,
+        "lng": -73.0356577
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site BEACON HEIGHTS LANDFILL",
+      "source_facility": {
+        "name": "BEACON HEIGHTS LANDFILL",
+        "epa_id": "CTD072122062",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 41.4321866,
+          "lng": -73.0349468
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0004",
+      "coordinates": {
+        "lat": 47.556331,
+        "lng": -122.3392141
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site LOWER DUWAMISH WATERWAY",
+      "source_facility": {
+        "name": "LOWER DUWAMISH WATERWAY",
+        "epa_id": "WA0002329803",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 47.556284,
+          "lng": -122.33917
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0005",
+      "coordinates": {
+        "lat": 30.2465885,
+        "lng": -81.9072092
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site USN AIR STATION CECIL FIELD",
+      "source_facility": {
+        "name": "USN AIR STATION CECIL FIELD",
+        "epa_id": "FL5170022474",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 30.2392322,
+          "lng": -81.8908114
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0006",
+      "coordinates": {
+        "lat": 35.9018535,
+        "lng": -78.7735026
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site WARD TRANSFORMER",
+      "source_facility": {
+        "name": "WARD TRANSFORMER",
+        "epa_id": "NCD003202603",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 35.9019001,
+          "lng": -78.7735485
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0007",
+      "coordinates": {
+        "lat": 36.808035,
+        "lng": -76.3091459
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site PECK IRON AND METAL",
+      "source_facility": {
+        "name": "PECK IRON AND METAL",
+        "epa_id": "VAN000306115",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 36.8078024,
+          "lng": -76.3077875
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0008",
+      "coordinates": {
+        "lat": 39.7219455,
+        "lng": -74.9066007
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site LIGHTMAN DRUM COMPANY",
+      "source_facility": {
+        "name": "LIGHTMAN DRUM COMPANY",
+        "epa_id": "NJD014743678",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 40.0948549,
+          "lng": -75.0330484
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0009",
+      "coordinates": {
+        "lat": 47.5204765,
+        "lng": -122.3026015
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site LOWER DUWAMISH WATERWAY",
+      "source_facility": {
+        "name": "LOWER DUWAMISH WATERWAY",
+        "epa_id": "WA0002329803",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 47.5203633,
+          "lng": -122.302988
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0010",
+      "coordinates": {
+        "lat": 39.453955,
+        "lng": -75.0546363
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site ICELAND COIN LAUNDRY AREA GW PLUME",
+      "source_facility": {
+        "name": "ICELAND COIN LAUNDRY AREA GW PLUME",
+        "epa_id": "NJ0001360882",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 39.4554866,
+          "lng": -75.0532022
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0011",
+      "coordinates": {
+        "lat": 45.6086225,
+        "lng": -122.7730395
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site PORTLAND HARBOR",
+      "source_facility": {
+        "name": "PORTLAND HARBOR",
+        "epa_id": "ORSFN1002155",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 45.6086444,
+          "lng": -122.7731494
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0012",
+      "coordinates": {
+        "lat": 47.532642,
+        "lng": -122.3218275
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside NPL Superfund site LOWER DUWAMISH WATERWAY",
+      "source_facility": {
+        "name": "LOWER DUWAMISH WATERWAY",
+        "epa_id": "WA0002329803",
+        "npl_status_code": "F",
+        "containment_type": "inside_npl",
+        "coordinates": {
+          "lat": 47.5324322,
+          "lng": -122.3218597
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "Point inside NPL site polygon (F)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0013",
+      "coordinates": {
+        "lat": 45.6048634,
+        "lng": -121.1134846
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from UNION PACIFIC RAILROAD CO. TIE-TREATING PLANT",
+      "source_facility": {
+        "name": "UNION PACIFIC RAILROAD CO. TIE-TREATING PLANT",
+        "epa_id": "ORD009049412",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 45.6016459,
+          "lng": -121.1555304
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 3294m from UNION PACIFIC RAILROAD CO. TIE-TREATING PLANT at bearing 84\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0014",
+      "coordinates": {
+        "lat": 42.0997387,
+        "lng": -75.9968045
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from ROBINTECH, INC./NATIONAL PIPE CO.",
+      "source_facility": {
+        "name": "ROBINTECH, INC./NATIONAL PIPE CO.",
+        "epa_id": "NYD002232957",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 42.1038226,
+          "lng": -75.9926976
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 567m from ROBINTECH, INC./NATIONAL PIPE CO. at bearing 217\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0015",
+      "coordinates": {
+        "lat": 41.409032,
+        "lng": -73.0474548
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from BEACON HEIGHTS LANDFILL",
+      "source_facility": {
+        "name": "BEACON HEIGHTS LANDFILL",
+        "epa_id": "CTD072122062",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 41.4321866,
+          "lng": -73.0349468
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 2781m from BEACON HEIGHTS LANDFILL at bearing 202\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0016",
+      "coordinates": {
+        "lat": 47.5554925,
+        "lng": -122.3326187
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from LOWER DUWAMISH WATERWAY",
+      "source_facility": {
+        "name": "LOWER DUWAMISH WATERWAY",
+        "epa_id": "WA0002329803",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 47.556284,
+          "lng": -122.33917
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 500m from LOWER DUWAMISH WATERWAY at bearing 100\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0017",
+      "coordinates": {
+        "lat": 30.4300889,
+        "lng": -82.1281462
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from USN AIR STATION CECIL FIELD",
+      "source_facility": {
+        "name": "USN AIR STATION CECIL FIELD",
+        "epa_id": "FL5170022474",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 30.2392322,
+          "lng": -81.8908114
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 31183m from USN AIR STATION CECIL FIELD at bearing 313\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0018",
+      "coordinates": {
+        "lat": 35.9022775,
+        "lng": -78.7819598
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from WARD TRANSFORMER",
+      "source_facility": {
+        "name": "WARD TRANSFORMER",
+        "epa_id": "NCD003202603",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 35.9019001,
+          "lng": -78.7735485
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 760m from WARD TRANSFORMER at bearing 273\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0019",
+      "coordinates": {
+        "lat": 36.8160706,
+        "lng": -76.2915917
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from PECK IRON AND METAL",
+      "source_facility": {
+        "name": "PECK IRON AND METAL",
+        "epa_id": "VAN000306115",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 36.8078024,
+          "lng": -76.3077875
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 1712m from PECK IRON AND METAL at bearing 57\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0020",
+      "coordinates": {
+        "lat": 40.0847663,
+        "lng": -75.0260778
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from LIGHTMAN DRUM COMPANY",
+      "source_facility": {
+        "name": "LIGHTMAN DRUM COMPANY",
+        "epa_id": "NJD014743678",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 40.0948549,
+          "lng": -75.0330484
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 1270m from LIGHTMAN DRUM COMPANY at bearing 152\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0021",
+      "coordinates": {
+        "lat": 47.518534,
+        "lng": -122.2876789
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from LOWER DUWAMISH WATERWAY",
+      "source_facility": {
+        "name": "LOWER DUWAMISH WATERWAY",
+        "epa_id": "WA0002329803",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 47.5203633,
+          "lng": -122.302988
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 1169m from LOWER DUWAMISH WATERWAY at bearing 100\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0022",
+      "coordinates": {
+        "lat": 39.4639588,
+        "lng": -75.0036548
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from ICELAND COIN LAUNDRY AREA GW PLUME",
+      "source_facility": {
+        "name": "ICELAND COIN LAUNDRY AREA GW PLUME",
+        "epa_id": "NJ0001360882",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 39.4554866,
+          "lng": -75.0532022
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 4362m from ICELAND COIN LAUNDRY AREA GW PLUME at bearing 78\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0023",
+      "coordinates": {
+        "lat": 45.6172752,
+        "lng": -122.7639212
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 outside all SEMS polygons, offset from PORTLAND HARBOR",
+      "source_facility": {
+        "name": "PORTLAND HARBOR",
+        "epa_id": "ORSFN1002155",
+        "npl_status_code": "F",
+        "containment_type": "outside",
+        "coordinates": {
+          "lat": 45.6086444,
+          "lng": -122.7731494
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point outside all SEMS polygons (offset 1200m from PORTLAND HARBOR at bearing 37\u00b0)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0024",
+      "coordinates": {
+        "lat": 43.3324845,
+        "lng": -76.4163065
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site FULTON TERMINALS",
+      "source_facility": {
+        "name": "FULTON TERMINALS",
+        "epa_id": "NYD980593099",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 43.3324842,
+          "lng": -76.4163064
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0025",
+      "coordinates": {
+        "lat": 36.346187,
+        "lng": -95.8476022
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site TULSA FUEL AND MANUFACTURING",
+      "source_facility": {
+        "name": "TULSA FUEL AND MANUFACTURING",
+        "epa_id": "OKD987096195",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 36.3464091,
+          "lng": -95.8477259
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0026",
+      "coordinates": {
+        "lat": 41.4140835,
+        "lng": -73.949775
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site MARATHON BATTERY CORP.",
+      "source_facility": {
+        "name": "MARATHON BATTERY CORP.",
+        "epa_id": "NYD010959757",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 41.4134619,
+          "lng": -73.9511054
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0027",
+      "coordinates": {
+        "lat": 42.945175,
+        "lng": -78.7034647
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site PFOHL BROTHERS LANDFILL",
+      "source_facility": {
+        "name": "PFOHL BROTHERS LANDFILL",
+        "epa_id": "NYD980507495",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 42.9492772,
+          "lng": -78.7074566
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0028",
+      "coordinates": {
+        "lat": 40.912221,
+        "lng": -74.4113245
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site PEPE FIELD",
+      "source_facility": {
+        "name": "PEPE FIELD",
+        "epa_id": "NJD980529598",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 40.9122209,
+          "lng": -74.4113244
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-sems-0029",
+      "coordinates": {
+        "lat": 37.4442735,
+        "lng": -87.1548547
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 inside non-NPL SEMS site BRANTLEY LANDFILL",
+      "source_facility": {
+        "name": "BRANTLEY LANDFILL",
+        "epa_id": "KYD980501019",
+        "npl_status_code": "D",
+        "containment_type": "inside_non_npl",
+        "coordinates": {
+          "lat": 37.4443418,
+          "lng": -87.1549839
+        }
+      },
+      "tier1_health_checks": {
+        "superfund_npl": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Point inside non-NPL site polygon (status: D)",
+          "source": "synthetic from spatial.db facilities_sems"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
