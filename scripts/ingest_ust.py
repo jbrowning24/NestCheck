@@ -138,6 +138,27 @@ def discover_fields():
     return data
 
 
+def _build_state_normalizer(states: list[str] | None, state: str) -> dict[str, str]:
+    """Build a lookup from space-stripped state names to proper names.
+
+    The ArcGIS UST endpoint returns state names with spaces removed
+    (e.g., "NewYork" instead of "New York"). This builds a normalizer
+    from the requested state names so we can store the correct format.
+
+    Note: if neither ``states`` nor ``state`` is provided (national
+    ingest), the normalizer is empty and stripped names pass through
+    unchanged. This is acceptable because startup_ingest.py always
+    passes an explicit state list via TARGET_STATES.
+    """
+    normalizer: dict[str, str] = {}
+    names = states or ([state] if state else [])
+    for name in names:
+        stripped = name.replace(" ", "")
+        if stripped != name:
+            normalizer[stripped] = name
+    return normalizer
+
+
 def ingest(
     limit: int = 0,
     state: str = "",
@@ -162,6 +183,10 @@ def ingest(
         if not state.replace(" ", "").isalpha():
             raise ValueError(f"Invalid state name: {state!r} (expected full name, e.g. 'New York')")
         where = f"State = '{state}'"
+
+    # ArcGIS returns state names with spaces stripped ("NewYork").
+    # Build a normalizer to restore proper names at insert time.
+    state_normalizer = _build_state_normalizer(states, state)
 
     logger.info("Starting UST Finder ingestion")
     logger.info("  WHERE: %s", where)
@@ -214,10 +239,13 @@ def ingest(
 
                 name = (attrs.get("Name") or "Unknown").strip()
 
+                raw_state = attrs.get("State", "")
+                normalized_state = state_normalizer.get(raw_state, raw_state)
+
                 metadata = {
                     "address": attrs.get("Address", ""),
                     "city": attrs.get("City", ""),
-                    "state": attrs.get("State", ""),
+                    "state": normalized_state,
                     "zip": attrs.get("Zip_Code", ""),
                     "status": attrs.get("Facility_Status", ""),
                     "object_id": attrs.get("OBJECTID"),

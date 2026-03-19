@@ -130,8 +130,8 @@ _SOURCE_METADATA = {
         "dimension": "health",
         "source_url": "https://www.epa.gov/ust",
         "state_filter": "json_extract(metadata_json, '$.state')",
-        "state_key_format": "full_name_no_space",  # "NewYork"
-        "notes": "UST state field uses no-space format (e.g. 'NewYork').",
+        "state_key_format": "full_name",  # "New York"
+        "notes": "UST state field uses full state names (e.g. 'New York'). Normalized at ingest time from ArcGIS no-space format.",
     },
     "HPMS": {
         "description": "Highway Performance Monitoring System (Traffic Counts)",
@@ -240,10 +240,10 @@ _SOURCE_METADATA = {
     },
 }
 
-# State-name-no-space mapping for UST
-_STATE_NAME_NO_SPACE = {
-    "NY": "NewYork",
-    "NJ": "NewJersey",
+# Full state name mapping for UST (normalized at ingest time)
+_STATE_FULL_NAME = {
+    "NY": "New York",
+    "NJ": "New Jersey",
     "CT": "Connecticut",
     "MI": "Michigan",
     "CA": "California",
@@ -741,8 +741,8 @@ def verify_coverage(state_code: str) -> Dict[str, dict]:
 
             if key_format == "fips":
                 state_value = _STATE_FIPS.get(state_code, state_code)
-            elif key_format == "full_name_no_space":
-                state_value = _STATE_NAME_NO_SPACE.get(state_code, state_code)
+            elif key_format == "full_name":
+                state_value = _STATE_FULL_NAME.get(state_code, state_code)
             else:
                 state_value = state_code
 
