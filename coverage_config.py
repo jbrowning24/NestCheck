@@ -166,7 +166,7 @@ _SOURCE_METADATA = {
         "source_url": "https://www.fema.gov/flood-maps/national-flood-hazard-layer",
         "state_filter": None,
         "spatial_filter_required": True,
-        "notes": "Bbox-filtered to tri-state area, chunked 0.5° tiles.",
+        "notes": "Bbox-filtered to 10 metro areas, chunked 0.5° tiles.",
     },
     "SCHOOL_DISTRICTS": {
         "description": "Census TIGER School District Boundaries",
@@ -357,7 +357,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # SF + LA metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -375,7 +375,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Houston + Dallas metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -393,7 +393,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Miami + Tampa metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -411,7 +411,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Chicago metro bbox (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",

@@ -50,16 +50,30 @@ FEMA_ENDPOINT = (
 
 PAGE_SIZE = 2000
 
+# Bump this to force re-ingestion when metro bboxes change.
+# startup_ingest.py compares this against the version stored in dataset_registry.
+FEMA_INGEST_VERSION = 2
+
 # PRD launch metro bounding boxes (lng_min, lat_min, lng_max, lat_max)
 METRO_BBOXES = {
     # NYC metro: five boroughs, northern NJ (incl. Morristown), Long Island (incl. Huntington), Westchester up to Putnam
     "nyc": (-74.55, 40.45, -73.35, 41.40),
     # Detroit-Ann Arbor corridor
     "detroit": (-83.8, 42.0, -82.9, 42.8),
-    "sf": (-122.55, 37.65, -122.30, 37.85),
+    # SF Bay Area: Oakland, Berkeley, San Jose, Marin
+    "sf": (-122.55, 37.20, -121.75, 38.05),
     "chicago": (-87.95, 41.60, -87.50, 42.10),
     "la": (-118.70, 33.65, -117.65, 34.35),
-    "seattle": (-122.50, 47.40, -122.15, 47.80),
+    # Seattle metro: Tacoma, Everett, Bellevue/Eastside
+    "seattle": (-122.50, 47.15, -122.00, 47.85),
+    # Houston: city center + Sugar Land, Pasadena, Katy corridor
+    "houston": (-95.80, 29.50, -95.05, 30.10),
+    # Dallas: core + Arlington + Fort Worth east
+    "dallas": (-97.05, 32.55, -96.45, 33.05),
+    # Miami-Dade + Fort Lauderdale corridor
+    "miami": (-80.50, 25.60, -80.05, 26.25),
+    # Tampa + St. Petersburg + Clearwater
+    "tampa": (-82.80, 27.70, -82.35, 28.15),
 }
 
 METRO_TO_STATES = {
@@ -69,9 +83,40 @@ METRO_TO_STATES = {
     "chicago": ["IL"],
     "la": ["CA"],
     "seattle": ["WA"],
+    "houston": ["TX"],
+    "dallas": ["TX"],
+    "miami": ["FL"],
+    "tampa": ["FL"],
 }
 
 _GRID_CELL_SIZE = 0.5
+
+
+def get_stored_fema_version() -> int:
+    """Read the FEMA ingest version from dataset_registry.notes.
+
+    The notes field is written as "v=N, metros: ..." by ingest_metros().
+    Returns 0 if no version is found (triggers re-ingest).
+    """
+    try:
+        conn = _connect()
+        try:
+            cursor = conn.execute(
+                "SELECT notes FROM dataset_registry WHERE facility_type = 'fema_nfhl'"
+            )
+            row = cursor.fetchone()
+            if not row or not row[0]:
+                return 0
+            notes = row[0]
+            # Parse "v=N" prefix from notes
+            if notes.startswith("v="):
+                parts = notes.split(",", 1)
+                return int(parts[0].split("=")[1].strip())
+            return 0
+        finally:
+            conn.close()
+    except Exception:
+        return 0
 
 def _generate_grid_cells(bbox, cell_size=_GRID_CELL_SIZE):
     lng_min, lat_min, lng_max, lat_max = bbox
@@ -369,8 +414,8 @@ def ingest_metros(target_states=None):
                     chunks_failed += 1
                     logger.warning("  [%s] chunk %d FAILED", metro_key, i, exc_info=True)
 
-        # Write dataset_registry with metro summary
-        metro_note = f"metros: {','.join(metros)}, chunks: {chunks_success} ok / {chunks_failed} failed"
+        # Write dataset_registry with metro summary and version
+        metro_note = f"v={FEMA_INGEST_VERSION}, metros: {','.join(metros)}, chunks: {chunks_success} ok / {chunks_failed} failed"
         conn.execute(
             """INSERT OR REPLACE INTO dataset_registry
                (facility_type, source_url, ingested_at, record_count, notes)
@@ -436,7 +481,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--metro", type=str, default="",
-        help="Use predefined metro bbox (nyc, sf, chicago, la, seattle, detroit).",
+        help="Use predefined metro bbox (nyc, sf, chicago, la, seattle, detroit, houston, dallas, miami, tampa).",
     )
     parser.add_argument(
         "--metros", action="store_true",
