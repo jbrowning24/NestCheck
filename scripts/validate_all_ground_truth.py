@@ -35,6 +35,7 @@ _DIMENSION_LABELS = {
     "schools": "Schools (spatial)",
     "fra": "FRA rail proximity",
     "hifld": "HIFLD power lines",
+    "tri": "TRI toxic release proximity",
 }
 
 

@@ -1,0 +1,4664 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T03:04:00.747810+00:00",
+  "_generator": "generate_ground_truth_tri.py",
+  "_facility_count": 50,
+  "_test_count": 150,
+  "_thresholds": {
+    "warn_meters": 1600,
+    "search_meters": 4800,
+    "source": "property_evaluator.py check_tri_proximity()"
+  },
+  "addresses": [
+    {
+      "id": "gt-tri-0001",
+      "coordinates": {
+        "lat": 41.6571825,
+        "lng": -73.0786995
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility STEWART EFI CT LLC",
+      "source_facility": {
+        "name": "STEWART EFI CT LLC",
+        "coordinates": {
+          "lat": 41.65173,
+          "lng": -73.07802
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 354.68,
+        "actual_nearest_ft": 1995.5,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from STEWART EFI CT LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0002",
+      "coordinates": {
+        "lat": 41.6593012,
+        "lng": -73.0910294
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility STEWART EFI CT LLC",
+      "source_facility": {
+        "name": "STEWART EFI CT LLC",
+        "coordinates": {
+          "lat": 41.65173,
+          "lng": -73.07802
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 307.91,
+        "actual_nearest_ft": 4500.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from STEWART EFI CT LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0003",
+      "coordinates": {
+        "lat": 41.6645384,
+        "lng": -73.0971021
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility STEWART EFI CT LLC",
+      "source_facility": {
+        "name": "STEWART EFI CT LLC",
+        "coordinates": {
+          "lat": 41.65173,
+          "lng": -73.07802
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 311.93,
+        "actual_nearest_ft": 5573.3,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from STEWART EFI CT LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0004",
+      "coordinates": {
+        "lat": 41.9182101,
+        "lng": -72.6825401
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility HAMILTON SUNDSTRAND",
+      "source_facility": {
+        "name": "HAMILTON SUNDSTRAND",
+        "coordinates": {
+          "lat": 41.922205,
+          "lng": -72.687574
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 136.85,
+        "actual_nearest_ft": 1999.1,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from HAMILTON SUNDSTRAND \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0005",
+      "coordinates": {
+        "lat": 41.9104079,
+        "lng": -72.6827954
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility HAMILTON SUNDSTRAND",
+      "source_facility": {
+        "name": "HAMILTON SUNDSTRAND",
+        "coordinates": {
+          "lat": 41.922205,
+          "lng": -72.687574
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 163.23,
+        "actual_nearest_ft": 4491.4,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from HAMILTON SUNDSTRAND \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0006",
+      "coordinates": {
+        "lat": 41.9318691,
+        "lng": -72.7098192
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility HAMILTON SUNDSTRAND",
+      "source_facility": {
+        "name": "HAMILTON SUNDSTRAND",
+        "coordinates": {
+          "lat": 41.922205,
+          "lng": -72.687574
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 300.28,
+        "actual_nearest_ft": 451.1,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from HAMILTON SUNDSTRAND \u2014 inside warning buffer (adjusted: nearest facility is 451ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0007",
+      "coordinates": {
+        "lat": 40.4821187,
+        "lng": -74.3150649
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility CMC STEEL NEW JERSEY",
+      "source_facility": {
+        "name": "CMC STEEL NEW JERSEY",
+        "coordinates": {
+          "lat": 40.479262,
+          "lng": -74.321207
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 58.56,
+        "actual_nearest_ft": 2000.7,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 27002
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from CMC STEEL NEW JERSEY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0008",
+      "coordinates": {
+        "lat": 40.4716937,
+        "lng": -74.3084246
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility CMC STEEL NEW JERSEY",
+      "source_facility": {
+        "name": "CMC STEEL NEW JERSEY",
+        "coordinates": {
+          "lat": 40.479262,
+          "lng": -74.321207
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 127.9,
+        "actual_nearest_ft": 3017.3,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 27002
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from CMC STEEL NEW JERSEY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0009",
+      "coordinates": {
+        "lat": 40.470047,
+        "lng": -74.3433012
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility CMC STEEL NEW JERSEY",
+      "source_facility": {
+        "name": "CMC STEEL NEW JERSEY",
+        "coordinates": {
+          "lat": 40.479262,
+          "lng": -74.321207
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 241.26,
+        "actual_nearest_ft": 4468.1,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 27002
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from CMC STEEL NEW JERSEY \u2014 inside warning buffer (adjusted: nearest facility is 4468ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0010",
+      "coordinates": {
+        "lat": 40.1693715,
+        "lng": -74.5476047
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility ALLENTOWN LLC",
+      "source_facility": {
+        "name": "ALLENTOWN LLC",
+        "coordinates": {
+          "lat": 40.171004,
+          "lng": -74.540764
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 252.66,
+        "actual_nearest_ft": 2002.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 33
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from ALLENTOWN LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0011",
+      "coordinates": {
+        "lat": 40.1660077,
+        "lng": -74.5555035
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility ALLENTOWN LLC",
+      "source_facility": {
+        "name": "ALLENTOWN LLC",
+        "coordinates": {
+          "lat": 40.171004,
+          "lng": -74.540764
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 246.08,
+        "actual_nearest_ft": 4503.5,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 33
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from ALLENTOWN LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0012",
+      "coordinates": {
+        "lat": 40.1882737,
+        "lng": -74.5298847
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility ALLENTOWN LLC",
+      "source_facility": {
+        "name": "ALLENTOWN LLC",
+        "coordinates": {
+          "lat": 40.171004,
+          "lng": -74.540764
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 25.7,
+        "actual_nearest_ft": 6697.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 33
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from ALLENTOWN LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0013",
+      "coordinates": {
+        "lat": 39.836478,
+        "lng": -75.2627491
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility PAULSBORO REFINING CO LLC",
+      "source_facility": {
+        "name": "PAULSBORO REFINING CO LLC",
+        "coordinates": {
+          "lat": 39.8401,
+          "lng": -75.2574
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 228.59,
+        "actual_nearest_ft": 1999.3,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 729685
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from PAULSBORO REFINING CO LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0014",
+      "coordinates": {
+        "lat": 39.8280611,
+        "lng": -75.2608158
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility PAULSBORO REFINING CO LLC",
+      "source_facility": {
+        "name": "PAULSBORO REFINING CO LLC",
+        "coordinates": {
+          "lat": 39.8401,
+          "lng": -75.2574
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 192.29,
+        "actual_nearest_ft": 1987.1,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 729685
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from PAULSBORO REFINING CO LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0015",
+      "coordinates": {
+        "lat": 39.8407248,
+        "lng": -75.2324517
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility PAULSBORO REFINING CO LLC",
+      "source_facility": {
+        "name": "PAULSBORO REFINING CO LLC",
+        "coordinates": {
+          "lat": 39.8401,
+          "lng": -75.2574
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 88.13,
+        "actual_nearest_ft": 1755.8,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 729685
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from PAULSBORO REFINING CO LLC \u2014 inside warning buffer (adjusted: nearest facility is 1756ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0016",
+      "coordinates": {
+        "lat": 40.6157771,
+        "lng": -74.2324252
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+      "source_facility": {
+        "name": "PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+        "coordinates": {
+          "lat": 40.6211,
+          "lng": -74.23412
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 166.41,
+        "actual_nearest_ft": 1995.5,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 4141
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from PHILLIPS 66 CO TREMLEY POINT TERMINAL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0017",
+      "coordinates": {
+        "lat": 40.6195597,
+        "lng": -74.2180145
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+      "source_facility": {
+        "name": "PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+        "coordinates": {
+          "lat": 40.6211,
+          "lng": -74.23412
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 97.18,
+        "actual_nearest_ft": 2544.6,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 4141
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from PHILLIPS 66 CO TREMLEY POINT TERMINAL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0018",
+      "coordinates": {
+        "lat": 40.6381987,
+        "lng": -74.2455284
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+      "source_facility": {
+        "name": "PHILLIPS 66 CO TREMLEY POINT TERMINAL",
+        "coordinates": {
+          "lat": 40.6211,
+          "lng": -74.23412
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 333.14,
+        "actual_nearest_ft": 4730.0,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 4141
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from PHILLIPS 66 CO TREMLEY POINT TERMINAL \u2014 inside warning buffer (adjusted: nearest facility is 4730ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0019",
+      "coordinates": {
+        "lat": 41.5914954,
+        "lng": -73.0628265
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility LUVATA WATERBURY INC",
+      "source_facility": {
+        "name": "LUVATA WATERBURY INC",
+        "coordinates": {
+          "lat": 41.59357,
+          "lng": -73.05605
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 247.74,
+        "actual_nearest_ft": 2001.9,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 28881
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from LUVATA WATERBURY INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0020",
+      "coordinates": {
+        "lat": 41.595908,
+        "lng": -73.0398743
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility LUVATA WATERBURY INC",
+      "source_facility": {
+        "name": "LUVATA WATERBURY INC",
+        "coordinates": {
+          "lat": 41.59357,
+          "lng": -73.05605
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 79.06,
+        "actual_nearest_ft": 4505.9,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 28881
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from LUVATA WATERBURY INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0021",
+      "coordinates": {
+        "lat": 41.5849457,
+        "lng": -73.0331632
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility LUVATA WATERBURY INC",
+      "source_facility": {
+        "name": "LUVATA WATERBURY INC",
+        "coordinates": {
+          "lat": 41.59357,
+          "lng": -73.05605
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 116.74,
+        "actual_nearest_ft": 3922.6,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 28881
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from LUVATA WATERBURY INC \u2014 inside warning buffer (adjusted: nearest facility is 3923ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0022",
+      "coordinates": {
+        "lat": 42.1098787,
+        "lng": -79.2215827
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+      "source_facility": {
+        "name": "BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+        "coordinates": {
+          "lat": 42.10925,
+          "lng": -79.21425
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 276.59,
+        "actual_nearest_ft": 1939.5,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from BLACKSTONE ADVANCED TECHNOLOGIES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0023",
+      "coordinates": {
+        "lat": 42.120818,
+        "lng": -79.2085321
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+      "source_facility": {
+        "name": "BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+        "coordinates": {
+          "lat": 42.10925,
+          "lng": -79.21425
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 20.14,
+        "actual_nearest_ft": 4031.2,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from BLACKSTONE ADVANCED TECHNOLOGIES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0024",
+      "coordinates": {
+        "lat": 42.1176065,
+        "lng": -79.2375004
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+      "source_facility": {
+        "name": "BLACKSTONE ADVANCED TECHNOLOGIES LLC",
+        "coordinates": {
+          "lat": 42.10925,
+          "lng": -79.21425
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 295.85,
+        "actual_nearest_ft": 6411.9,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from BLACKSTONE ADVANCED TECHNOLOGIES LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0025",
+      "coordinates": {
+        "lat": 41.4746264,
+        "lng": -72.7442458
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.47277,
+          "lng": -72.73737
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 289.82,
+        "actual_nearest_ft": 2002.0,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from TILCON CONNECTICUT INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0026",
+      "coordinates": {
+        "lat": 41.4627492,
+        "lng": -72.7278019
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.47277,
+          "lng": -72.73737
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 144.42,
+        "actual_nearest_ft": 4495.5,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from TILCON CONNECTICUT INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0027",
+      "coordinates": {
+        "lat": 41.4903027,
+        "lng": -72.7270359
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.47277,
+          "lng": -72.73737
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 23.83,
+        "actual_nearest_ft": 5049.1,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from TILCON CONNECTICUT INC \u2014 inside warning buffer (adjusted: nearest facility is 5049ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0028",
+      "coordinates": {
+        "lat": 43.0799805,
+        "lng": -75.3456815
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility SPECIAL METALS CORP",
+      "source_facility": {
+        "name": "SPECIAL METALS CORP",
+        "coordinates": {
+          "lat": 43.0753,
+          "lng": -75.34179
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 328.73,
+        "actual_nearest_ft": 1997.9,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 1707
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from SPECIAL METALS CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0029",
+      "coordinates": {
+        "lat": 43.0640602,
+        "lng": -75.3487004
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility SPECIAL METALS CORP",
+      "source_facility": {
+        "name": "SPECIAL METALS CORP",
+        "coordinates": {
+          "lat": 43.0753,
+          "lng": -75.34179
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 204.18,
+        "actual_nearest_ft": 4493.7,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 1707
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from SPECIAL METALS CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0030",
+      "coordinates": {
+        "lat": 43.0714622,
+        "lng": -75.3674975
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility SPECIAL METALS CORP",
+      "source_facility": {
+        "name": "SPECIAL METALS CORP",
+        "coordinates": {
+          "lat": 43.0753,
+          "lng": -75.34179
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 258.45,
+        "actual_nearest_ft": 2378.8,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 1707
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from SPECIAL METALS CORP \u2014 inside warning buffer (adjusted: nearest facility is 2379ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0031",
+      "coordinates": {
+        "lat": 41.7441041,
+        "lng": -72.7195622
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+      "source_facility": {
+        "name": "TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+        "coordinates": {
+          "lat": 41.74283,
+          "lng": -72.7267
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 76.55,
+        "actual_nearest_ft": 2002.5,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 19
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from TRIUMPH ENGINE CONTROL SYSTEMS LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0032",
+      "coordinates": {
+        "lat": 41.7305089,
+        "lng": -72.7266202
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+      "source_facility": {
+        "name": "TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+        "coordinates": {
+          "lat": 41.74283,
+          "lng": -72.7267
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 179.72,
+        "actual_nearest_ft": 583.7,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 19
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from TRIUMPH ENGINE CONTROL SYSTEMS LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0033",
+      "coordinates": {
+        "lat": 41.7571816,
+        "lng": -72.7437257
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+      "source_facility": {
+        "name": "TRIUMPH ENGINE CONTROL SYSTEMS LLC",
+        "coordinates": {
+          "lat": 41.74283,
+          "lng": -72.7267
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 318.49,
+        "actual_nearest_ft": 1878.9,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 19
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from TRIUMPH ENGINE CONTROL SYSTEMS LLC \u2014 inside warning buffer (adjusted: nearest facility is 1879ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0034",
+      "coordinates": {
+        "lat": 41.7415976,
+        "lng": -72.7606771
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility MOTT CORP",
+      "source_facility": {
+        "name": "MOTT CORP",
+        "coordinates": {
+          "lat": 41.745012,
+          "lng": -72.754939
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 231.43,
+        "actual_nearest_ft": 2000.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 655
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from MOTT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0035",
+      "coordinates": {
+        "lat": 41.7526933,
+        "lng": -72.742027
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility MOTT CORP",
+      "source_facility": {
+        "name": "MOTT CORP",
+        "coordinates": {
+          "lat": 41.745012,
+          "lng": -72.754939
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 51.43,
+        "actual_nearest_ft": 1172.2,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 655
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from MOTT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0036",
+      "coordinates": {
+        "lat": 41.7572634,
+        "lng": -72.735184
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility MOTT CORP",
+      "source_facility": {
+        "name": "MOTT CORP",
+        "coordinates": {
+          "lat": 41.745012,
+          "lng": -72.754939
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 50.27,
+        "actual_nearest_ft": 1405.8,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 655
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from MOTT CORP \u2014 inside warning buffer (adjusted: nearest facility is 1406ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0037",
+      "coordinates": {
+        "lat": 41.3456676,
+        "lng": -72.9315907
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility PORCELEN LTD CT LLC",
+      "source_facility": {
+        "name": "PORCELEN LTD CT LLC",
+        "coordinates": {
+          "lat": 41.34584,
+          "lng": -72.9243
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 268.2,
+        "actual_nearest_ft": 2002.9,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 1373
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from PORCELEN LTD CT LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0038",
+      "coordinates": {
+        "lat": 41.3338864,
+        "lng": -72.9282793
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility PORCELEN LTD CT LLC",
+      "source_facility": {
+        "name": "PORCELEN LTD CT LLC",
+        "coordinates": {
+          "lat": 41.34584,
+          "lng": -72.9243
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 194.03,
+        "actual_nearest_ft": 4490.5,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 1373
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from PORCELEN LTD CT LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0039",
+      "coordinates": {
+        "lat": 41.3454804,
+        "lng": -72.9498256
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility PORCELEN LTD CT LLC",
+      "source_facility": {
+        "name": "PORCELEN LTD CT LLC",
+        "coordinates": {
+          "lat": 41.34584,
+          "lng": -72.9243
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 268.92,
+        "actual_nearest_ft": 2605.6,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 1373
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from PORCELEN LTD CT LLC \u2014 inside warning buffer (adjusted: nearest facility is 2606ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0040",
+      "coordinates": {
+        "lat": 39.9760753,
+        "lng": -74.9064317
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility LOCKHEED MARTIN",
+      "source_facility": {
+        "name": "LOCKHEED MARTIN",
+        "coordinates": {
+          "lat": 39.981007,
+          "lng": -74.909538
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 154.24,
+        "actual_nearest_ft": 1996.4,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from LOCKHEED MARTIN \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0041",
+      "coordinates": {
+        "lat": 39.9703442,
+        "lng": -74.9175953
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility LOCKHEED MARTIN",
+      "source_facility": {
+        "name": "LOCKHEED MARTIN",
+        "coordinates": {
+          "lat": 39.981007,
+          "lng": -74.909538
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 210.07,
+        "actual_nearest_ft": 4493.0,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from LOCKHEED MARTIN \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0042",
+      "coordinates": {
+        "lat": 39.9686056,
+        "lng": -74.8904667
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility LOCKHEED MARTIN",
+      "source_facility": {
+        "name": "LOCKHEED MARTIN",
+        "coordinates": {
+          "lat": 39.981007,
+          "lng": -74.909538
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 130.32,
+        "actual_nearest_ft": 6998.5,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from LOCKHEED MARTIN \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0043",
+      "coordinates": {
+        "lat": 39.6759453,
+        "lng": -74.8435125
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility AMERICAN FLUX & METAL LLC",
+      "source_facility": {
+        "name": "AMERICAN FLUX & METAL LLC",
+        "coordinates": {
+          "lat": 39.67047,
+          "lng": -74.843393
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 359.04,
+        "actual_nearest_ft": 1994.8,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from AMERICAN FLUX & METAL LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0044",
+      "coordinates": {
+        "lat": 39.6784229,
+        "lng": -74.8311668
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility AMERICAN FLUX & METAL LLC",
+      "source_facility": {
+        "name": "AMERICAN FLUX & METAL LLC",
+        "coordinates": {
+          "lat": 39.67047,
+          "lng": -74.843393
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 49.8,
+        "actual_nearest_ft": 4498.5,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from AMERICAN FLUX & METAL LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0045",
+      "coordinates": {
+        "lat": 39.6513195,
+        "lng": -74.8423788
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility AMERICAN FLUX & METAL LLC",
+      "source_facility": {
+        "name": "AMERICAN FLUX & METAL LLC",
+        "coordinates": {
+          "lat": 39.67047,
+          "lng": -74.843393
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 177.67,
+        "actual_nearest_ft": 6981.7,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from AMERICAN FLUX & METAL LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0046",
+      "coordinates": {
+        "lat": 42.8665589,
+        "lng": -78.8794065
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility ADM MILLING CO",
+      "source_facility": {
+        "name": "ADM MILLING CO",
+        "coordinates": {
+          "lat": 42.86636,
+          "lng": -78.87194
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 272.08,
+        "actual_nearest_ft": 2003.1,
+        "industry_sector": "311 Food",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from ADM MILLING CO \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0047",
+      "coordinates": {
+        "lat": 42.8742795,
+        "lng": -78.8848183
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility ADM MILLING CO",
+      "source_facility": {
+        "name": "ADM MILLING CO",
+        "coordinates": {
+          "lat": 42.86636,
+          "lng": -78.87194
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 310.0,
+        "actual_nearest_ft": 4500.1,
+        "industry_sector": "311 Food",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from ADM MILLING CO \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0048",
+      "coordinates": {
+        "lat": 42.8773471,
+        "lng": -78.8505133
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility ADM MILLING CO",
+      "source_facility": {
+        "name": "ADM MILLING CO",
+        "coordinates": {
+          "lat": 42.86636,
+          "lng": -78.87194
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 55.02,
+        "actual_nearest_ft": 4093.4,
+        "industry_sector": "311 Food",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from ADM MILLING CO \u2014 inside warning buffer (adjusted: nearest facility is 4093ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0049",
+      "coordinates": {
+        "lat": 41.9256948,
+        "lng": -73.0731563
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility STERLING SINTERED TECHNOLOGIES INC",
+      "source_facility": {
+        "name": "STERLING SINTERED TECHNOLOGIES INC",
+        "coordinates": {
+          "lat": 41.92276,
+          "lng": -73.07937
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 57.59,
+        "actual_nearest_ft": 2000.8,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from STERLING SINTERED TECHNOLOGIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0050",
+      "coordinates": {
+        "lat": 41.9175476,
+        "lng": -73.094375
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility STERLING SINTERED TECHNOLOGIES INC",
+      "source_facility": {
+        "name": "STERLING SINTERED TECHNOLOGIES INC",
+        "coordinates": {
+          "lat": 41.92276,
+          "lng": -73.07937
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 244.97,
+        "actual_nearest_ft": 4503.9,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from STERLING SINTERED TECHNOLOGIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0051",
+      "coordinates": {
+        "lat": 41.9070039,
+        "lng": -73.0940371
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility STERLING SINTERED TECHNOLOGIES INC",
+      "source_facility": {
+        "name": "STERLING SINTERED TECHNOLOGIES INC",
+        "coordinates": {
+          "lat": 41.92276,
+          "lng": -73.07937
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 214.71,
+        "actual_nearest_ft": 6993.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from STERLING SINTERED TECHNOLOGIES INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0052",
+      "coordinates": {
+        "lat": 42.1115996,
+        "lng": -77.1409929
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility CORNING INC - INTEGRATED DIE MANUFACTURING",
+      "source_facility": {
+        "name": "CORNING INC - INTEGRATED DIE MANUFACTURING",
+        "coordinates": {
+          "lat": 42.115702,
+          "lng": -77.145883
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 138.52,
+        "actual_nearest_ft": 1998.9,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 6090
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from CORNING INC - INTEGRATED DIE MANUFACTURING \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0053",
+      "coordinates": {
+        "lat": 42.1055502,
+        "lng": -77.1552958
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility CORNING INC - INTEGRATED DIE MANUFACTURING",
+      "source_facility": {
+        "name": "CORNING INC - INTEGRATED DIE MANUFACTURING",
+        "coordinates": {
+          "lat": 42.115702,
+          "lng": -77.145883
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 214.52,
+        "actual_nearest_ft": 2084.9,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 6090
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from CORNING INC - INTEGRATED DIE MANUFACTURING \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0054",
+      "coordinates": {
+        "lat": 42.0969205,
+        "lng": -77.1407308
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility CORNING INC - INTEGRATED DIE MANUFACTURING",
+      "source_facility": {
+        "name": "CORNING INC - INTEGRATED DIE MANUFACTURING",
+        "coordinates": {
+          "lat": 42.115702,
+          "lng": -77.145883
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 168.5,
+        "actual_nearest_ft": 6985.7,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 6090
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from CORNING INC - INTEGRATED DIE MANUFACTURING \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0055",
+      "coordinates": {
+        "lat": 40.2252363,
+        "lng": -74.083434
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility TDK-LAMBDA AMERICAS INC",
+      "source_facility": {
+        "name": "TDK-LAMBDA AMERICAS INC",
+        "coordinates": {
+          "lat": 40.225285,
+          "lng": -74.090606
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 90.51,
+        "actual_nearest_ft": 2002.8,
+        "industry_sector": "Other",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from TDK-LAMBDA AMERICAS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0056",
+      "coordinates": {
+        "lat": 40.2136464,
+        "lng": -74.0959028
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility TDK-LAMBDA AMERICAS INC",
+      "source_facility": {
+        "name": "TDK-LAMBDA AMERICAS INC",
+        "coordinates": {
+          "lat": 40.225285,
+          "lng": -74.090606
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 199.16,
+        "actual_nearest_ft": 4490.6,
+        "industry_sector": "Other",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from TDK-LAMBDA AMERICAS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0057",
+      "coordinates": {
+        "lat": 40.2432111,
+        "lng": -74.0994895
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility TDK-LAMBDA AMERICAS INC",
+      "source_facility": {
+        "name": "TDK-LAMBDA AMERICAS INC",
+        "coordinates": {
+          "lat": 40.225285,
+          "lng": -74.090606
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 339.28,
+        "actual_nearest_ft": 6985.7,
+        "industry_sector": "Other",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from TDK-LAMBDA AMERICAS INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0058",
+      "coordinates": {
+        "lat": 43.7917332,
+        "lng": -75.4944581
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility NEENAH NORTHEAST LLC",
+      "source_facility": {
+        "name": "NEENAH NORTHEAST LLC",
+        "coordinates": {
+          "lat": 43.794056,
+          "lng": -75.487588
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 244.9,
+        "actual_nearest_ft": 2002.0,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from NEENAH NORTHEAST LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0059",
+      "coordinates": {
+        "lat": 43.8033212,
+        "lng": -75.4763359
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility NEENAH NORTHEAST LLC",
+      "source_facility": {
+        "name": "NEENAH NORTHEAST LLC",
+        "coordinates": {
+          "lat": 43.794056,
+          "lng": -75.487588
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 41.24,
+        "actual_nearest_ft": 4498.1,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from NEENAH NORTHEAST LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0060",
+      "coordinates": {
+        "lat": 43.808416,
+        "lng": -75.5051739
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility NEENAH NORTHEAST LLC",
+      "source_facility": {
+        "name": "NEENAH NORTHEAST LLC",
+        "coordinates": {
+          "lat": 43.794056,
+          "lng": -75.487588
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 318.52,
+        "actual_nearest_ft": 6997.1,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from NEENAH NORTHEAST LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0061",
+      "coordinates": {
+        "lat": 39.9968022,
+        "lng": -75.0374681
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility ARMOTEK INDUSTRIES INC",
+      "source_facility": {
+        "name": "ARMOTEK INDUSTRIES INC",
+        "coordinates": {
+          "lat": 39.996772,
+          "lng": -75.03032
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 270.32,
+        "actual_nearest_ft": 1648.6,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 479
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from ARMOTEK INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0062",
+      "coordinates": {
+        "lat": 39.9982086,
+        "lng": -75.0462938
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility ARMOTEK INDUSTRIES INC",
+      "source_facility": {
+        "name": "ARMOTEK INDUSTRIES INC",
+        "coordinates": {
+          "lat": 39.996772,
+          "lng": -75.03032
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 276.7,
+        "actual_nearest_ft": 4072.6,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 479
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from ARMOTEK INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0063",
+      "coordinates": {
+        "lat": 39.9864843,
+        "lng": -75.0092108
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility ARMOTEK INDUSTRIES INC",
+      "source_facility": {
+        "name": "ARMOTEK INDUSTRIES INC",
+        "coordinates": {
+          "lat": 39.996772,
+          "lng": -75.03032
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 122.46,
+        "actual_nearest_ft": 7002.1,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 479
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from ARMOTEK INDUSTRIES INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0064",
+      "coordinates": {
+        "lat": 42.1055818,
+        "lng": -76.0428827
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility BAE SYSTEMS CONTROLS INC",
+      "source_facility": {
+        "name": "BAE SYSTEMS CONTROLS INC",
+        "coordinates": {
+          "lat": 42.10706,
+          "lng": -76.04999
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 105.66,
+        "actual_nearest_ft": 1178.6,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 56
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from BAE SYSTEMS CONTROLS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0065",
+      "coordinates": {
+        "lat": 42.113782,
+        "lng": -76.0360715
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility BAE SYSTEMS CONTROLS INC",
+      "source_facility": {
+        "name": "BAE SYSTEMS CONTROLS INC",
+        "coordinates": {
+          "lat": 42.10706,
+          "lng": -76.04999
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 56.94,
+        "actual_nearest_ft": 4396.2,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 56
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from BAE SYSTEMS CONTROLS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0066",
+      "coordinates": {
+        "lat": 42.1262224,
+        "lng": -76.0494632
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility BAE SYSTEMS CONTROLS INC",
+      "source_facility": {
+        "name": "BAE SYSTEMS CONTROLS INC",
+        "coordinates": {
+          "lat": 42.10706,
+          "lng": -76.04999
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 1.17,
+        "actual_nearest_ft": 6984.6,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 56
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from BAE SYSTEMS CONTROLS INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0067",
+      "coordinates": {
+        "lat": 40.5707477,
+        "lng": -74.6719137
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility FISHER SCIENTIFIC CO LLC",
+      "source_facility": {
+        "name": "FISHER SCIENTIFIC CO LLC",
+        "coordinates": {
+          "lat": 40.571703,
+          "lng": -74.664815
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 259.95,
+        "actual_nearest_ft": 2002.6,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 533
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from FISHER SCIENTIFIC CO LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0068",
+      "coordinates": {
+        "lat": 40.56937,
+        "lng": -74.6807424
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility FISHER SCIENTIFIC CO LLC",
+      "source_facility": {
+        "name": "FISHER SCIENTIFIC CO LLC",
+        "coordinates": {
+          "lat": 40.571703,
+          "lng": -74.664815
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 259.09,
+        "actual_nearest_ft": 4505.8,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 533
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from FISHER SCIENTIFIC CO LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0069",
+      "coordinates": {
+        "lat": 40.5905712,
+        "lng": -74.6692487
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility FISHER SCIENTIFIC CO LLC",
+      "source_facility": {
+        "name": "FISHER SCIENTIFIC CO LLC",
+        "coordinates": {
+          "lat": 40.571703,
+          "lng": -74.664815
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 349.88,
+        "actual_nearest_ft": 4444.8,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 533
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from FISHER SCIENTIFIC CO LLC \u2014 inside warning buffer (adjusted: nearest facility is 4445ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0070",
+      "coordinates": {
+        "lat": 41.9357012,
+        "lng": -72.7378886
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.93529,
+          "lng": -72.730548
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 274.31,
+        "actual_nearest_ft": 2002.9,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from TILCON CONNECTICUT INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0071",
+      "coordinates": {
+        "lat": 41.9229831,
+        "lng": -72.7313471
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.93529,
+          "lng": -72.730548
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 182.77,
+        "actual_nearest_ft": 4490.0,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from TILCON CONNECTICUT INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0072",
+      "coordinates": {
+        "lat": 41.9503297,
+        "lng": -72.7145768
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility TILCON CONNECTICUT INC",
+      "source_facility": {
+        "name": "TILCON CONNECTICUT INC",
+        "coordinates": {
+          "lat": 41.93529,
+          "lng": -72.730548
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 38.31,
+        "actual_nearest_ft": 6994.1,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from TILCON CONNECTICUT INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0073",
+      "coordinates": {
+        "lat": 40.6857521,
+        "lng": -74.2941184
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility FOREMOST MANUFACTURING CO INC",
+      "source_facility": {
+        "name": "FOREMOST MANUFACTURING CO INC",
+        "coordinates": {
+          "lat": 40.689617,
+          "lng": -74.289002
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 225.11,
+        "actual_nearest_ft": 1999.0,
+        "industry_sector": "335 Electrical Equipment",
+        "total_releases_lb": 1712
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from FOREMOST MANUFACTURING CO INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0074",
+      "coordinates": {
+        "lat": 40.6963278,
+        "lng": -74.3026298
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility FOREMOST MANUFACTURING CO INC",
+      "source_facility": {
+        "name": "FOREMOST MANUFACTURING CO INC",
+        "coordinates": {
+          "lat": 40.689617,
+          "lng": -74.289002
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 303.0,
+        "actual_nearest_ft": 911.0,
+        "industry_sector": "335 Electrical Equipment",
+        "total_releases_lb": 1712
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from FOREMOST MANUFACTURING CO INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0075",
+      "coordinates": {
+        "lat": 40.6704728,
+        "lng": -74.2902186
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility FOREMOST MANUFACTURING CO INC",
+      "source_facility": {
+        "name": "FOREMOST MANUFACTURING CO INC",
+        "coordinates": {
+          "lat": 40.689617,
+          "lng": -74.289002
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 182.76,
+        "actual_nearest_ft": 3837.6,
+        "industry_sector": "335 Electrical Equipment",
+        "total_releases_lb": 1712
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from FOREMOST MANUFACTURING CO INC \u2014 inside warning buffer (adjusted: nearest facility is 3838ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0076",
+      "coordinates": {
+        "lat": 43.0801978,
+        "lng": -75.3304557
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility SAES SMART MATERIALS INC",
+      "source_facility": {
+        "name": "SAES SMART MATERIALS INC",
+        "coordinates": {
+          "lat": 43.07847,
+          "lng": -75.33757
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 71.61,
+        "actual_nearest_ft": 2002.4,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 114254
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from SAES SMART MATERIALS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0077",
+      "coordinates": {
+        "lat": 43.0698172,
+        "lng": -75.3255609
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility SAES SMART MATERIALS INC",
+      "source_facility": {
+        "name": "SAES SMART MATERIALS INC",
+        "coordinates": {
+          "lat": 43.07847,
+          "lng": -75.33757
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 134.61,
+        "actual_nearest_ft": 4499.2,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 114254
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from SAES SMART MATERIALS INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0078",
+      "coordinates": {
+        "lat": 43.0885819,
+        "lng": -75.3152788
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility SAES SMART MATERIALS INC",
+      "source_facility": {
+        "name": "SAES SMART MATERIALS INC",
+        "coordinates": {
+          "lat": 43.07847,
+          "lng": -75.33757
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 58.16,
+        "actual_nearest_ft": 7003.5,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 114254
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from SAES SMART MATERIALS INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0079",
+      "coordinates": {
+        "lat": 40.931341,
+        "lng": -72.7119086
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility BERRY SPECIALTY TAPES LLC",
+      "source_facility": {
+        "name": "BERRY SPECIALTY TAPES LLC",
+        "coordinates": {
+          "lat": 40.926097,
+          "lng": -72.709821
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 343.26,
+        "actual_nearest_ft": 1995.8,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 3515
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from BERRY SPECIALTY TAPES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0080",
+      "coordinates": {
+        "lat": 40.9369837,
+        "lng": -72.7174577
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility BERRY SPECIALTY TAPES LLC",
+      "source_facility": {
+        "name": "BERRY SPECIALTY TAPES LLC",
+        "coordinates": {
+          "lat": 40.926097,
+          "lng": -72.709821
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 332.08,
+        "actual_nearest_ft": 4492.9,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 3515
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from BERRY SPECIALTY TAPES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0081",
+      "coordinates": {
+        "lat": 40.9428045,
+        "lng": -72.7222516
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility BERRY SPECIALTY TAPES LLC",
+      "source_facility": {
+        "name": "BERRY SPECIALTY TAPES LLC",
+        "coordinates": {
+          "lat": 40.926097,
+          "lng": -72.709821
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 330.66,
+        "actual_nearest_ft": 6989.4,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 3515
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from BERRY SPECIALTY TAPES LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0082",
+      "coordinates": {
+        "lat": 40.5542545,
+        "lng": -74.2522839
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility SEWAREN GENERATING STATION",
+      "source_facility": {
+        "name": "SEWAREN GENERATING STATION",
+        "coordinates": {
+          "lat": 40.558706,
+          "lng": -74.248086
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 215.62,
+        "actual_nearest_ft": 1997.7,
+        "industry_sector": "2211 Electric Utilities",
+        "total_releases_lb": 23274
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from SEWAREN GENERATING STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0083",
+      "coordinates": {
+        "lat": 40.5464163,
+        "lng": -74.2469259
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility SEWAREN GENERATING STATION",
+      "source_facility": {
+        "name": "SEWAREN GENERATING STATION",
+        "coordinates": {
+          "lat": 40.558706,
+          "lng": -74.248086
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 175.9,
+        "actual_nearest_ft": 2711.0,
+        "industry_sector": "2211 Electric Utilities",
+        "total_releases_lb": 23274
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from SEWAREN GENERATING STATION \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0084",
+      "coordinates": {
+        "lat": 40.5733296,
+        "lng": -74.2317784
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility SEWAREN GENERATING STATION",
+      "source_facility": {
+        "name": "SEWAREN GENERATING STATION",
+        "coordinates": {
+          "lat": 40.558706,
+          "lng": -74.248086
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 40.27,
+        "actual_nearest_ft": 5160.9,
+        "industry_sector": "2211 Electric Utilities",
+        "total_releases_lb": 23274
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from SEWAREN GENERATING STATION \u2014 inside warning buffer (adjusted: nearest facility is 5161ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0085",
+      "coordinates": {
+        "lat": 39.584642,
+        "lng": -74.8532826
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility OLDCASTLE PRECAST INC",
+      "source_facility": {
+        "name": "OLDCASTLE PRECAST INC",
+        "coordinates": {
+          "lat": 39.588211,
+          "lng": -74.858672
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 130.67,
+        "actual_nearest_ft": 1999.4,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from OLDCASTLE PRECAST INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0086",
+      "coordinates": {
+        "lat": 39.6004799,
+        "lng": -74.8601445
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility OLDCASTLE PRECAST INC",
+      "source_facility": {
+        "name": "OLDCASTLE PRECAST INC",
+        "coordinates": {
+          "lat": 39.588211,
+          "lng": -74.858672
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 354.72,
+        "actual_nearest_ft": 4488.3,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from OLDCASTLE PRECAST INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0087",
+      "coordinates": {
+        "lat": 39.5949041,
+        "lng": -74.8819768
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility OLDCASTLE PRECAST INC",
+      "source_facility": {
+        "name": "OLDCASTLE PRECAST INC",
+        "coordinates": {
+          "lat": 39.588211,
+          "lng": -74.858672
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 290.44,
+        "actual_nearest_ft": 7005.8,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from OLDCASTLE PRECAST INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0088",
+      "coordinates": {
+        "lat": 40.7923227,
+        "lng": -73.1311328
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility LAB CRAFTERS",
+      "source_facility": {
+        "name": "LAB CRAFTERS",
+        "coordinates": {
+          "lat": 40.79196,
+          "lng": -73.13835
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 86.2,
+        "actual_nearest_ft": 2002.8,
+        "industry_sector": "337 Furniture",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from LAB CRAFTERS \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0089",
+      "coordinates": {
+        "lat": 40.7926663,
+        "lng": -73.1221022
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility LAB CRAFTERS",
+      "source_facility": {
+        "name": "LAB CRAFTERS",
+        "coordinates": {
+          "lat": 40.79196,
+          "lng": -73.13835
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 86.71,
+        "actual_nearest_ft": 4506.3,
+        "industry_sector": "337 Furniture",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from LAB CRAFTERS \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0090",
+      "coordinates": {
+        "lat": 40.7744846,
+        "lng": -73.1487471
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility LAB CRAFTERS",
+      "source_facility": {
+        "name": "LAB CRAFTERS",
+        "coordinates": {
+          "lat": 40.79196,
+          "lng": -73.13835
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 204.25,
+        "actual_nearest_ft": 6987.7,
+        "industry_sector": "337 Furniture",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from LAB CRAFTERS \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0091",
+      "coordinates": {
+        "lat": 41.3053692,
+        "lng": -72.8851984
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility TRELLEBORG COATED SYSTEMS US INC",
+      "source_facility": {
+        "name": "TRELLEBORG COATED SYSTEMS US INC",
+        "coordinates": {
+          "lat": 41.30055,
+          "lng": -72.88866
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 28.35,
+        "actual_nearest_ft": 1997.0,
+        "industry_sector": "313 Textiles",
+        "total_releases_lb": 4982
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from TRELLEBORG COATED SYSTEMS US INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0092",
+      "coordinates": {
+        "lat": 41.2991524,
+        "lng": -72.904955
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility TRELLEBORG COATED SYSTEMS US INC",
+      "source_facility": {
+        "name": "TRELLEBORG COATED SYSTEMS US INC",
+        "coordinates": {
+          "lat": 41.30055,
+          "lng": -72.88866
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 263.49,
+        "actual_nearest_ft": 2189.0,
+        "industry_sector": "313 Textiles",
+        "total_releases_lb": 4982
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from TRELLEBORG COATED SYSTEMS US INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0093",
+      "coordinates": {
+        "lat": 41.3082748,
+        "lng": -72.9120085
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility TRELLEBORG COATED SYSTEMS US INC",
+      "source_facility": {
+        "name": "TRELLEBORG COATED SYSTEMS US INC",
+        "coordinates": {
+          "lat": 41.30055,
+          "lng": -72.88866
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 293.77,
+        "actual_nearest_ft": 6014.7,
+        "industry_sector": "313 Textiles",
+        "total_releases_lb": 4982
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from TRELLEBORG COATED SYSTEMS US INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0094",
+      "coordinates": {
+        "lat": 43.0654238,
+        "lng": -73.8240335
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility BALL METAL BEVERAGE CONTAINER CORP",
+      "source_facility": {
+        "name": "BALL METAL BEVERAGE CONTAINER CORP",
+        "coordinates": {
+          "lat": 43.06,
+          "lng": -73.823
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 352.07,
+        "actual_nearest_ft": 808.0,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 146004
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from BALL METAL BEVERAGE CONTAINER CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0095",
+      "coordinates": {
+        "lat": 43.047938,
+        "lng": -73.8264411
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility BALL METAL BEVERAGE CONTAINER CORP",
+      "source_facility": {
+        "name": "BALL METAL BEVERAGE CONTAINER CORP",
+        "coordinates": {
+          "lat": 43.06,
+          "lng": -73.823
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 191.77,
+        "actual_nearest_ft": 4491.5,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 146004
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from BALL METAL BEVERAGE CONTAINER CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0096",
+      "coordinates": {
+        "lat": 43.0734878,
+        "lng": -73.8043625
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility BALL METAL BEVERAGE CONTAINER CORP",
+      "source_facility": {
+        "name": "BALL METAL BEVERAGE CONTAINER CORP",
+        "coordinates": {
+          "lat": 43.06,
+          "lng": -73.823
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 45.27,
+        "actual_nearest_ft": 5299.3,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 146004
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from BALL METAL BEVERAGE CONTAINER CORP \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0097",
+      "coordinates": {
+        "lat": 41.3240385,
+        "lng": -72.9022009
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility KUEHNE NEW HAVEN LLC",
+      "source_facility": {
+        "name": "KUEHNE NEW HAVEN LLC",
+        "coordinates": {
+          "lat": 41.32698,
+          "lng": -72.89605
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 237.51,
+        "actual_nearest_ft": 2000.8,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 17
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from KUEHNE NEW HAVEN LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0098",
+      "coordinates": {
+        "lat": 41.3386205,
+        "lng": -72.9014281
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility KUEHNE NEW HAVEN LLC",
+      "source_facility": {
+        "name": "KUEHNE NEW HAVEN LLC",
+        "coordinates": {
+          "lat": 41.32698,
+          "lng": -72.89605
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 340.87,
+        "actual_nearest_ft": 4491.3,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 17
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from KUEHNE NEW HAVEN LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0099",
+      "coordinates": {
+        "lat": 41.3367233,
+        "lng": -72.8740712
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility KUEHNE NEW HAVEN LLC",
+      "source_facility": {
+        "name": "KUEHNE NEW HAVEN LLC",
+        "coordinates": {
+          "lat": 41.32698,
+          "lng": -72.89605
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 59.45,
+        "actual_nearest_ft": 1232.6,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 17
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from KUEHNE NEW HAVEN LLC \u2014 inside warning buffer (adjusted: nearest facility is 1233ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0100",
+      "coordinates": {
+        "lat": 42.8104395,
+        "lng": -73.6679585
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility MPM SILICONES LLC",
+      "source_facility": {
+        "name": "MPM SILICONES LLC",
+        "coordinates": {
+          "lat": 42.815833,
+          "lng": -73.666667
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 189.96,
+        "actual_nearest_ft": 1996.1,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 298124
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from MPM SILICONES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0101",
+      "coordinates": {
+        "lat": 42.8061734,
+        "lng": -73.6770943
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility MPM SILICONES LLC",
+      "source_facility": {
+        "name": "MPM SILICONES LLC",
+        "coordinates": {
+          "lat": 42.815833,
+          "lng": -73.666667
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 218.37,
+        "actual_nearest_ft": 4497.1,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 298124
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from MPM SILICONES LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0102",
+      "coordinates": {
+        "lat": 42.8345209,
+        "lng": -73.6724688
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility MPM SILICONES LLC",
+      "source_facility": {
+        "name": "MPM SILICONES LLC",
+        "coordinates": {
+          "lat": 42.815833,
+          "lng": -73.666667
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 347.17,
+        "actual_nearest_ft": 5728.3,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 298124
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from MPM SILICONES LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0103",
+      "coordinates": {
+        "lat": 42.2914589,
+        "lng": -73.8428904
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility NORTHEAST TREATERS OF NY LLC",
+      "source_facility": {
+        "name": "NORTHEAST TREATERS OF NY LLC",
+        "coordinates": {
+          "lat": 42.28652,
+          "lng": -73.839693
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 334.41,
+        "actual_nearest_ft": 1997.0,
+        "industry_sector": "321 Wood Products",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from NORTHEAST TREATERS OF NY LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0104",
+      "coordinates": {
+        "lat": 42.2869275,
+        "lng": -73.8563389
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility NORTHEAST TREATERS OF NY LLC",
+      "source_facility": {
+        "name": "NORTHEAST TREATERS OF NY LLC",
+        "coordinates": {
+          "lat": 42.28652,
+          "lng": -73.839693
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 271.9,
+        "actual_nearest_ft": 4506.8,
+        "industry_sector": "321 Wood Products",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from NORTHEAST TREATERS OF NY LLC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0105",
+      "coordinates": {
+        "lat": 42.2794496,
+        "lng": -73.8637736
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility NORTHEAST TREATERS OF NY LLC",
+      "source_facility": {
+        "name": "NORTHEAST TREATERS OF NY LLC",
+        "coordinates": {
+          "lat": 42.28652,
+          "lng": -73.839693
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 248.35,
+        "actual_nearest_ft": 7007.4,
+        "industry_sector": "321 Wood Products",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from NORTHEAST TREATERS OF NY LLC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0106",
+      "coordinates": {
+        "lat": 40.5609867,
+        "lng": -74.5288838
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility COVALENCE ADHESIVES",
+      "source_facility": {
+        "name": "COVALENCE ADHESIVES",
+        "coordinates": {
+          "lat": 40.56225,
+          "lng": -74.52187
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 256.66,
+        "actual_nearest_ft": 2002.4,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 1925
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from COVALENCE ADHESIVES \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0107",
+      "coordinates": {
+        "lat": 40.552328,
+        "lng": -74.5122541
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility COVALENCE ADHESIVES",
+      "source_facility": {
+        "name": "COVALENCE ADHESIVES",
+        "coordinates": {
+          "lat": 40.56225,
+          "lng": -74.52187
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 143.64,
+        "actual_nearest_ft": 3791.5,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 1925
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from COVALENCE ADHESIVES \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0108",
+      "coordinates": {
+        "lat": 40.5531951,
+        "lng": -74.5441058
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility COVALENCE ADHESIVES",
+      "source_facility": {
+        "name": "COVALENCE ADHESIVES",
+        "coordinates": {
+          "lat": 40.56225,
+          "lng": -74.52187
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 241.81,
+        "actual_nearest_ft": 3366.8,
+        "industry_sector": "322 Paper",
+        "total_releases_lb": 1925
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from COVALENCE ADHESIVES \u2014 inside warning buffer (adjusted: nearest facility is 3367ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0109",
+      "coordinates": {
+        "lat": 41.3667564,
+        "lng": -72.0983472
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility US COAST GUARD ACADEMY",
+      "source_facility": {
+        "name": "US COAST GUARD ACADEMY",
+        "coordinates": {
+          "lat": 41.37059,
+          "lng": -72.103558
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 134.43,
+        "actual_nearest_ft": 1999.2,
+        "industry_sector": "Other",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from US COAST GUARD ACADEMY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0110",
+      "coordinates": {
+        "lat": 41.3805405,
+        "lng": -72.1132407
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility US COAST GUARD ACADEMY",
+      "source_facility": {
+        "name": "US COAST GUARD ACADEMY",
+        "coordinates": {
+          "lat": 41.37059,
+          "lng": -72.103558
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 323.86,
+        "actual_nearest_ft": 4495.4,
+        "industry_sector": "Other",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from US COAST GUARD ACADEMY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0111",
+      "coordinates": {
+        "lat": 41.3523072,
+        "lng": -72.0958929
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility US COAST GUARD ACADEMY",
+      "source_facility": {
+        "name": "US COAST GUARD ACADEMY",
+        "coordinates": {
+          "lat": 41.37059,
+          "lng": -72.103558
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 162.54,
+        "actual_nearest_ft": 3520.1,
+        "industry_sector": "Other",
+        "total_releases_lb": 11
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from US COAST GUARD ACADEMY \u2014 inside warning buffer (adjusted: nearest facility is 3520ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0112",
+      "coordinates": {
+        "lat": 42.6525701,
+        "lng": -79.002723
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility FLEXOVIT USA INC",
+      "source_facility": {
+        "name": "FLEXOVIT USA INC",
+        "coordinates": {
+          "lat": 42.652498,
+          "lng": -79.010168
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 89.25,
+        "actual_nearest_ft": 2003.1,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 429
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from FLEXOVIT USA INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0113",
+      "coordinates": {
+        "lat": 42.6638356,
+        "lng": -79.0036089
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility FLEXOVIT USA INC",
+      "source_facility": {
+        "name": "FLEXOVIT USA INC",
+        "coordinates": {
+          "lat": 42.652498,
+          "lng": -79.010168
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 23.05,
+        "actual_nearest_ft": 4493.0,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 429
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from FLEXOVIT USA INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0114",
+      "coordinates": {
+        "lat": 42.6714972,
+        "lng": -79.0067339
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility FLEXOVIT USA INC",
+      "source_facility": {
+        "name": "FLEXOVIT USA INC",
+        "coordinates": {
+          "lat": 42.652498,
+          "lng": -79.010168
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 7.57,
+        "actual_nearest_ft": 6985.7,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 429
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from FLEXOVIT USA INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0115",
+      "coordinates": {
+        "lat": 43.1938052,
+        "lng": -77.6339666
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility CARESTREAM HEALTH INC-ISC B-14",
+      "source_facility": {
+        "name": "CARESTREAM HEALTH INC-ISC B-14",
+        "coordinates": {
+          "lat": 43.19897,
+          "lng": -77.63147
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 199.41,
+        "actual_nearest_ft": 1822.3,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 19913
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from CARESTREAM HEALTH INC-ISC B-14 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0116",
+      "coordinates": {
+        "lat": 43.1885026,
+        "lng": -77.6403862
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility CARESTREAM HEALTH INC-ISC B-14",
+      "source_facility": {
+        "name": "CARESTREAM HEALTH INC-ISC B-14",
+        "coordinates": {
+          "lat": 43.19897,
+          "lng": -77.63147
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 211.84,
+        "actual_nearest_ft": 4401.2,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 19913
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from CARESTREAM HEALTH INC-ISC B-14 \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0117",
+      "coordinates": {
+        "lat": 43.2181168,
+        "lng": -77.6302825
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility CARESTREAM HEALTH INC-ISC B-14",
+      "source_facility": {
+        "name": "CARESTREAM HEALTH INC-ISC B-14",
+        "coordinates": {
+          "lat": 43.19897,
+          "lng": -77.63147
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 2.59,
+        "actual_nearest_ft": 2121.3,
+        "industry_sector": "334 Computers and Electronic Products",
+        "total_releases_lb": 19913
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from CARESTREAM HEALTH INC-ISC B-14 \u2014 inside warning buffer (adjusted: nearest facility is 2121ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0118",
+      "coordinates": {
+        "lat": 41.0392863,
+        "lng": -73.5536872
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.04072,
+          "lng": -73.54668
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 254.82,
+        "actual_nearest_ft": 1766.0,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from O&G INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0119",
+      "coordinates": {
+        "lat": 41.0522078,
+        "lng": -73.540774
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.04072,
+          "lng": -73.54668
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 21.19,
+        "actual_nearest_ft": 4491.5,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from O&G INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0120",
+      "coordinates": {
+        "lat": 41.0581932,
+        "lng": -73.5362374
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.04072,
+          "lng": -73.54668
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 24.26,
+        "actual_nearest_ft": 6987.7,
+        "industry_sector": "327 Nonmetallic Mineral Product",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from O&G INDUSTRIES INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0121",
+      "coordinates": {
+        "lat": 43.3015798,
+        "lng": -73.6255646
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility AMES GOLDSMITH CORP",
+      "source_facility": {
+        "name": "AMES GOLDSMITH CORP",
+        "coordinates": {
+          "lat": 43.29621,
+          "lng": -73.62704
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 11.31,
+        "actual_nearest_ft": 1996.3,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from AMES GOLDSMITH CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0122",
+      "coordinates": {
+        "lat": 43.2902452,
+        "lng": -73.612227
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility AMES GOLDSMITH CORP",
+      "source_facility": {
+        "name": "AMES GOLDSMITH CORP",
+        "coordinates": {
+          "lat": 43.29621,
+          "lng": -73.62704
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 118.95,
+        "actual_nearest_ft": 3482.8,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from AMES GOLDSMITH CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0123",
+      "coordinates": {
+        "lat": 43.2771194,
+        "lng": -73.6293792
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility AMES GOLDSMITH CORP",
+      "source_facility": {
+        "name": "AMES GOLDSMITH CORP",
+        "coordinates": {
+          "lat": 43.29621,
+          "lng": -73.62704
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 185.1,
+        "actual_nearest_ft": 6986.3,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 6
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from AMES GOLDSMITH CORP \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0124",
+      "coordinates": {
+        "lat": 41.5004254,
+        "lng": -73.2144949
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.5014,
+          "lng": -73.22169
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 100.25,
+        "actual_nearest_ft": 2002.7,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from O&G INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0125",
+      "coordinates": {
+        "lat": 41.4891305,
+        "lng": -73.2201844
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.5014,
+          "lng": -73.22169
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 174.75,
+        "actual_nearest_ft": 4489.8,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from O&G INDUSTRIES INC \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0126",
+      "coordinates": {
+        "lat": 41.4828131,
+        "lng": -73.2279349
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility O&G INDUSTRIES INC",
+      "source_facility": {
+        "name": "O&G INDUSTRIES INC",
+        "coordinates": {
+          "lat": 41.5014,
+          "lng": -73.22169
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 194.12,
+        "actual_nearest_ft": 6985.5,
+        "industry_sector": "324 Petroleum",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from O&G INDUSTRIES INC \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0127",
+      "coordinates": {
+        "lat": 42.0909974,
+        "lng": -79.3586963
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility ULRICH PLANFILING EQUIPMENT CORP",
+      "source_facility": {
+        "name": "ULRICH PLANFILING EQUIPMENT CORP",
+        "coordinates": {
+          "lat": 42.09191,
+          "lng": -79.35142
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 260.41,
+        "actual_nearest_ft": 1090.0,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 15
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from ULRICH PLANFILING EQUIPMENT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0128",
+      "coordinates": {
+        "lat": 42.1010171,
+        "lng": -79.3626036
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility ULRICH PLANFILING EQUIPMENT CORP",
+      "source_facility": {
+        "name": "ULRICH PLANFILING EQUIPMENT CORP",
+        "coordinates": {
+          "lat": 42.09191,
+          "lng": -79.35142
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 317.66,
+        "actual_nearest_ft": 4497.5,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 15
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from ULRICH PLANFILING EQUIPMENT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0129",
+      "coordinates": {
+        "lat": 42.0748994,
+        "lng": -79.3633206
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility ULRICH PLANFILING EQUIPMENT CORP",
+      "source_facility": {
+        "name": "ULRICH PLANFILING EQUIPMENT CORP",
+        "coordinates": {
+          "lat": 42.09191,
+          "lng": -79.35142
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 207.44,
+        "actual_nearest_ft": 2616.6,
+        "industry_sector": "332 Fabricated Metals",
+        "total_releases_lb": 15
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from ULRICH PLANFILING EQUIPMENT CORP \u2014 inside warning buffer (adjusted: nearest facility is 2617ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0130",
+      "coordinates": {
+        "lat": 41.2731009,
+        "lng": -73.9276109
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+      "source_facility": {
+        "name": "BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+        "coordinates": {
+          "lat": 41.27286,
+          "lng": -73.93489
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 87.48,
+        "actual_nearest_ft": 2002.9,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 26050
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from BASF COLORS & EFFECTS PEEKSKILL FACILITY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0131",
+      "coordinates": {
+        "lat": 41.260716,
+        "lng": -73.9321194
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+      "source_facility": {
+        "name": "BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+        "coordinates": {
+          "lat": 41.27286,
+          "lng": -73.93489
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 170.27,
+        "actual_nearest_ft": 934.1,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 26050
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from BASF COLORS & EFFECTS PEEKSKILL FACILITY \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0132",
+      "coordinates": {
+        "lat": 41.2568698,
+        "lng": -73.9208302
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+      "source_facility": {
+        "name": "BASF COLORS & EFFECTS PEEKSKILL FACILITY",
+        "coordinates": {
+          "lat": 41.27286,
+          "lng": -73.93489
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 146.54,
+        "actual_nearest_ft": 4249.5,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 26050
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from BASF COLORS & EFFECTS PEEKSKILL FACILITY \u2014 inside warning buffer (adjusted: nearest facility is 4250ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0133",
+      "coordinates": {
+        "lat": 42.6360422,
+        "lng": -73.7511754
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility GLOBAL COS LLC ALBANY TERMINAL",
+      "source_facility": {
+        "name": "GLOBAL COS LLC ALBANY TERMINAL",
+        "coordinates": {
+          "lat": 42.6315,
+          "lng": -73.755333
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 33.96,
+        "actual_nearest_ft": 1687.6,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 5739
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from GLOBAL COS LLC ALBANY TERMINAL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0134",
+      "coordinates": {
+        "lat": 42.6248316,
+        "lng": -73.7694154
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility GLOBAL COS LLC ALBANY TERMINAL",
+      "source_facility": {
+        "name": "GLOBAL COS LLC ALBANY TERMINAL",
+        "coordinates": {
+          "lat": 42.6315,
+          "lng": -73.755333
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 237.23,
+        "actual_nearest_ft": 350.9,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 5739
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from GLOBAL COS LLC ALBANY TERMINAL \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0135",
+      "coordinates": {
+        "lat": 42.6198198,
+        "lng": -73.7346784
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility GLOBAL COS LLC ALBANY TERMINAL",
+      "source_facility": {
+        "name": "GLOBAL COS LLC ALBANY TERMINAL",
+        "coordinates": {
+          "lat": 42.6315,
+          "lng": -73.755333
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 127.55,
+        "actual_nearest_ft": 4583.6,
+        "industry_sector": "4247 Petroleum Bulk Terminals",
+        "total_releases_lb": 5739
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from GLOBAL COS LLC ALBANY TERMINAL \u2014 inside warning buffer (adjusted: nearest facility is 4584ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0136",
+      "coordinates": {
+        "lat": 40.8225762,
+        "lng": -74.0121046
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility SANOFI",
+      "source_facility": {
+        "name": "SANOFI",
+        "coordinates": {
+          "lat": 40.82722,
+          "lng": -74.01594
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 148.0,
+        "actual_nearest_ft": 1049.1,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from SANOFI \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0137",
+      "coordinates": {
+        "lat": 40.8353004,
+        "lng": -74.0282326
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility SANOFI",
+      "source_facility": {
+        "name": "SANOFI",
+        "coordinates": {
+          "lat": 40.82722,
+          "lng": -74.01594
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 310.98,
+        "actual_nearest_ft": 542.4,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from SANOFI \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0138",
+      "coordinates": {
+        "lat": 40.8452868,
+        "lng": -74.0074842
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility SANOFI",
+      "source_facility": {
+        "name": "SANOFI",
+        "coordinates": {
+          "lat": 40.82722,
+          "lng": -74.01594
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 19.5,
+        "actual_nearest_ft": 4055.9,
+        "industry_sector": "325 Chemicals",
+        "total_releases_lb": 4
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from SANOFI \u2014 inside warning buffer (adjusted: nearest facility is 4056ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0139",
+      "coordinates": {
+        "lat": 41.3351782,
+        "lng": -72.8760922
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility COVIDIEN LP",
+      "source_facility": {
+        "name": "COVIDIEN LP",
+        "coordinates": {
+          "lat": 41.3383,
+          "lng": -72.8701
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 235.24,
+        "actual_nearest_ft": 2000.5,
+        "industry_sector": "339 Miscellaneous Manufacturing",
+        "total_releases_lb": 10036
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from COVIDIEN LP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0140",
+      "coordinates": {
+        "lat": 41.3308206,
+        "lng": -72.8831409
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility COVIDIEN LP",
+      "source_facility": {
+        "name": "COVIDIEN LP",
+        "coordinates": {
+          "lat": 41.3383,
+          "lng": -72.8701
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 232.62,
+        "actual_nearest_ft": 3772.9,
+        "industry_sector": "339 Miscellaneous Manufacturing",
+        "total_releases_lb": 10036
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from COVIDIEN LP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0141",
+      "coordinates": {
+        "lat": 41.3560931,
+        "lng": -72.8606115
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility COVIDIEN LP",
+      "source_facility": {
+        "name": "COVIDIEN LP",
+        "coordinates": {
+          "lat": 41.3383,
+          "lng": -72.8701
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 21.82,
+        "actual_nearest_ft": 3157.5,
+        "industry_sector": "339 Miscellaneous Manufacturing",
+        "total_releases_lb": 10036
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 7000ft from COVIDIEN LP \u2014 inside warning buffer (adjusted: nearest facility is 3158ft away, not 7000ft as generated)",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0142",
+      "coordinates": {
+        "lat": 41.3500047,
+        "lng": -72.0893246
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility ELECTRIC BOAT CORP",
+      "source_facility": {
+        "name": "ELECTRIC BOAT CORP",
+        "coordinates": {
+          "lat": 41.350752,
+          "lng": -72.082098
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 262.16,
+        "actual_nearest_ft": 2002.8,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 50618
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from ELECTRIC BOAT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0143",
+      "coordinates": {
+        "lat": 41.3546031,
+        "lng": -72.0976891
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility ELECTRIC BOAT CORP",
+      "source_facility": {
+        "name": "ELECTRIC BOAT CORP",
+        "coordinates": {
+          "lat": 41.350752,
+          "lng": -72.082098
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 288.21,
+        "actual_nearest_ft": 2602.2,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 50618
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from ELECTRIC BOAT CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0144",
+      "coordinates": {
+        "lat": 41.3655759,
+        "lng": -72.0659138
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility ELECTRIC BOAT CORP",
+      "source_facility": {
+        "name": "ELECTRIC BOAT CORP",
+        "coordinates": {
+          "lat": 41.350752,
+          "lng": -72.082098
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 39.34,
+        "actual_nearest_ft": 6994.0,
+        "industry_sector": "336 Transportation Equipment",
+        "total_releases_lb": 50618
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from ELECTRIC BOAT CORP \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0145",
+      "coordinates": {
+        "lat": 40.0122859,
+        "lng": -74.8405655
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility INDUCTOTHERM CORP",
+      "source_facility": {
+        "name": "INDUCTOTHERM CORP",
+        "coordinates": {
+          "lat": 40.010321,
+          "lng": -74.847239
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 68.97,
+        "actual_nearest_ft": 2001.7,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from INDUCTOTHERM CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0146",
+      "coordinates": {
+        "lat": 39.9983186,
+        "lng": -74.8508749
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility INDUCTOTHERM CORP",
+      "source_facility": {
+        "name": "INDUCTOTHERM CORP",
+        "coordinates": {
+          "lat": 40.010321,
+          "lng": -74.847239
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 193.06,
+        "actual_nearest_ft": 4489.4,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from INDUCTOTHERM CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0147",
+      "coordinates": {
+        "lat": 40.0225212,
+        "lng": -74.8279397
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility INDUCTOTHERM CORP",
+      "source_facility": {
+        "name": "INDUCTOTHERM CORP",
+        "coordinates": {
+          "lat": 40.010321,
+          "lng": -74.847239
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 50.47,
+        "actual_nearest_ft": 6998.1,
+        "industry_sector": "333 Machinery",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from INDUCTOTHERM CORP \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0148",
+      "coordinates": {
+        "lat": 41.4351225,
+        "lng": -73.6125245
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 2000ft (close) from TRI facility LAMOTHERMIC CORP",
+      "source_facility": {
+        "name": "LAMOTHERMIC CORP",
+        "coordinates": {
+          "lat": 41.4329,
+          "lng": -73.6192
+        },
+        "distance_ft": 2000,
+        "distance_meters": 609.6,
+        "bearing_deg": 66.06,
+        "actual_nearest_ft": 2001.7,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 2000ft from LAMOTHERMIC CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0149",
+      "coordinates": {
+        "lat": 41.4209169,
+        "lng": -73.6153764
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 4500ft (middle) from TRI facility LAMOTHERMIC CORP",
+      "source_facility": {
+        "name": "LAMOTHERMIC CORP",
+        "coordinates": {
+          "lat": 41.4329,
+          "lng": -73.6192
+        },
+        "distance_ft": 4500,
+        "distance_meters": 1371.6,
+        "bearing_deg": 166.55,
+        "actual_nearest_ft": 4490.5,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "Generated 4500ft from LAMOTHERMIC CORP \u2014 inside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-tri-0150",
+      "coordinates": {
+        "lat": 41.4464088,
+        "lng": -73.637335
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 generated at 7000ft (far) from TRI facility LAMOTHERMIC CORP",
+      "source_facility": {
+        "name": "LAMOTHERMIC CORP",
+        "coordinates": {
+          "lat": 41.4329,
+          "lng": -73.6192
+        },
+        "distance_ft": 7000,
+        "distance_meters": 2133.6,
+        "bearing_deg": 314.81,
+        "actual_nearest_ft": 6996.8,
+        "industry_sector": "331 Primary Metals",
+        "total_releases_lb": 0
+      },
+      "tier1_health_checks": {
+        "tri_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "Generated 7000ft from LAMOTHERMIC CORP \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_tri"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
