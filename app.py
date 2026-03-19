@@ -1,7 +1,9 @@
+import json
 import os
 import io
 import csv
 import logging
+import re
 import shlex
 import subprocess
 import sys
@@ -2084,6 +2086,83 @@ def _dim_band(score, max_score):
     return {"key": "limited", "css": "dim-band--limited", "label": "Limited"}
 
 
+def _prepare_snapshot_for_display(result):
+    """Run the full migration/backfill pipeline on a snapshot result dict.
+
+    Mutates *result* in-place.  Callers should pass a shallow copy
+    (``{**snapshot["result"]}``) to avoid corrupting stored snapshot dicts.
+
+    This is the single source of truth for display-time preparation —
+    used by view_snapshot(), export_snapshot_json(), export_snapshot_csv(),
+    and the curated-list route.
+    """
+    # Backfill presented_checks for old snapshots.
+    if "presented_checks" not in result:
+        result["presented_checks"] = present_checks(
+            result.get("tier1_checks", [])
+        )
+
+    # Backfill structured_summary for old snapshots.
+    if "structured_summary" not in result:
+        result["structured_summary"] = generate_structured_summary(
+            result.get("presented_checks", [])
+        )
+
+    # NES-196: Suppress UNKNOWN spatial checks at presentation layer.
+    filtered_checks, _ = (
+        suppress_unknown_safety_checks(result.get("presented_checks", []))
+    )
+    result["presented_checks"] = filtered_checks
+
+    # NES-241: Backfill hazard_tier.  Rebuild each dict to avoid mutating
+    # shared references from the stored snapshot.
+    result["presented_checks"] = [
+        {**pc, "hazard_tier": 2 if pc.get("name") in _TIER_2_CHECKS else 1}
+        if "hazard_tier" not in pc else pc
+        for pc in result.get("presented_checks", [])
+    ]
+
+    # NES-210: Migrate legacy dimension names (on the shallow copy).
+    _migrate_dimension_names(result)
+    _migrate_confidence_tiers(result)
+    _backfill_dimension_bands(result)
+
+    # Backfill total green space count for old snapshots.
+    _ge = result.get("green_escape") or {}
+    if _ge and "total_green_space_count" not in _ge:
+        _ge = dict(_ge)
+        _ge["total_green_space_count"] = len(
+            _ge.get("nearby_green_spaces", [])
+        )
+        result["green_escape"] = _ge
+
+    # Backfill neighborhood summary for old snapshots.
+    if "neighborhood_summary" not in result:
+        _np = result.get("neighborhood_places") or {}
+        result["neighborhood_summary"] = {
+            "coffee_count": len(_np.get("coffee", [])),
+            "grocery_count": len(_np.get("grocery", [])),
+            "fitness_count": len(_np.get("fitness", [])),
+            "parks_count": len(_np.get("parks", [])),
+        }
+
+    # Phase B2: Backfill show_numeric_score for old snapshots.
+    if "show_numeric_score" not in result:
+        result["show_numeric_score"] = _compute_show_numeric_score(
+            result.get("dimension_summaries", [])
+        )
+
+    # NES-239: Backfill summary_narrative for old snapshots.
+    if "summary_narrative" not in result:
+        result["summary_narrative"] = generate_report_narrative(result)
+
+    # NES-249: Walkability summary for sidebar widget (display-time only).
+    result["walkability_summary"] = _build_walkability_summary(result)
+
+    # NES-288: Backfill coverage metadata (display-time only).
+    _add_coverage_metadata(result)
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -2944,6 +3023,81 @@ def _snapshot_ttl_days():
     return 90
 
 
+# ---------------------------------------------------------------------------
+# Curated list pages (NES-293)
+# ---------------------------------------------------------------------------
+
+_LISTS_DIR = os.path.join(os.path.dirname(__file__), "data", "lists")
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def _load_list_config(slug, config_dir=None):
+    """Load a curated list config by slug. Returns dict or None."""
+    if not slug or not _SLUG_RE.fullmatch(slug):
+        return None
+    config_dir = config_dir or _LISTS_DIR
+    path = os.path.join(config_dir, f"{slug}.json")
+    try:
+        with open(path) as f:
+            return json.loads(f.read())
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+
+
+def _get_all_list_slugs(config_dir=None):
+    """Return list of slugs from all published config files (excludes _-prefixed)."""
+    config_dir = config_dir or _LISTS_DIR
+    slugs = []
+    try:
+        for fname in os.listdir(config_dir):
+            if fname.endswith(".json") and not fname.startswith("_"):
+                slugs.append(fname[:-5])  # strip .json
+    except OSError:
+        pass
+    return slugs
+
+
+@app.route("/lists/<slug>")
+def view_list(slug):
+    """Serve a curated list page from JSON config."""
+    config = _load_list_config(slug)
+    if not config:
+        abort(404)
+
+    # Hydrate each entry with its snapshot data
+    hydrated_entries = []
+    for entry in config.get("entries", []):
+        snapshot = get_snapshot(entry.get("snapshot_id"))
+        if not snapshot:
+            logger.warning("List %s: snapshot %s not found, skipping",
+                           slug, entry.get("snapshot_id"))
+            continue
+        result = {**snapshot["result"]}
+        _prepare_snapshot_for_display(result)
+        hydrated_entries.append({
+            "snapshot_id": entry["snapshot_id"],
+            "narrative": entry.get("narrative", ""),
+            "result": result,
+        })
+
+    # Resolve related list titles for cross-linking
+    related_lists = []
+    for related_slug in config.get("related_lists", []):
+        related_config = _load_list_config(related_slug)
+        if related_config:
+            related_lists.append({
+                "slug": related_slug,
+                "title": related_config["title"],
+            })
+
+    return render_template(
+        "list.html",
+        config=config,
+        entries=hydrated_entries,
+        related_lists=related_lists,
+    )
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -3236,81 +3390,8 @@ def view_snapshot(snapshot_id):
     log_event("snapshot_viewed", snapshot_id=snapshot_id,
               visitor_id=g.visitor_id)
 
-    # Backfill presented_checks for old snapshots
-    result = snapshot["result"]
-    if "presented_checks" not in result:
-        result["presented_checks"] = present_checks(
-            result.get("tier1_checks", [])
-        )
-
-    # Backfill structured_summary for old snapshots
-    if "structured_summary" not in result:
-        result["structured_summary"] = generate_structured_summary(
-            result.get("presented_checks", [])
-        )
-
-    # NES-196: Suppress UNKNOWN spatial checks at presentation layer.
-    # Build a shallow copy so the stored snapshot dict is never mutated.
-    filtered_checks, _ = (
-        suppress_unknown_safety_checks(result.get("presented_checks", []))
-    )
-    result = {
-        **result,
-        "presented_checks": filtered_checks,
-    }
-
-    # NES-241: Backfill hazard_tier on the shallow copy's presented_checks.
-    # Items in filtered_checks are still shared refs to stored dicts, so
-    # rebuild each dict to avoid mutating the stored snapshot.
-    result["presented_checks"] = [
-        {**pc, "hazard_tier": 2 if pc.get("name") in _TIER_2_CHECKS else 1}
-        if "hazard_tier" not in pc else pc
-        for pc in result.get("presented_checks", [])
-    ]
-
-    # NES-210: Migrate legacy dimension names on the shallow copy (not the
-    # stored snapshot dict) to avoid corrupting a future caching layer.
-    _migrate_dimension_names(result)
-    _migrate_confidence_tiers(result)
-    _backfill_dimension_bands(result)
-
-    # Backfill total green space count for old snapshots.
-    # Shallow-copy the nested dict to avoid mutating the stored snapshot.
-    _ge = result.get("green_escape") or {}
-    if _ge and "total_green_space_count" not in _ge:
-        _ge = dict(_ge)
-        _ge["total_green_space_count"] = len(
-            _ge.get("nearby_green_spaces", [])
-        )
-        result["green_escape"] = _ge
-
-    # Backfill neighborhood summary for old snapshots.
-    if "neighborhood_summary" not in result:
-        _np = result.get("neighborhood_places") or {}
-        result["neighborhood_summary"] = {
-            "coffee_count": len(_np.get("coffee", [])),
-            "grocery_count": len(_np.get("grocery", [])),
-            "fitness_count": len(_np.get("fitness", [])),
-            "parks_count": len(_np.get("parks", [])),
-        }
-
-    # Phase B2: Backfill show_numeric_score for old snapshots that don't
-    # have it stored. Uses the same logic as result_to_dict().
-    if "show_numeric_score" not in result:
-        result["show_numeric_score"] = _compute_show_numeric_score(
-            result.get("dimension_summaries", [])
-        )
-
-    # NES-239: Backfill summary_narrative for old snapshots
-    if "summary_narrative" not in result:
-        result["summary_narrative"] = generate_report_narrative(result)
-
-    # NES-249: Walkability summary for sidebar widget (display-time only)
-    result["walkability_summary"] = _build_walkability_summary(result)
-
-    # NES-288: Backfill coverage metadata for old snapshots (display-time only).
-    # Always recompute — coverage tiers may change as data is ingested.
-    _add_coverage_metadata(result)
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
 
     # NES-257: demographics is not backfilled — old snapshots simply lack the
     # key and the template hides the section when result.demographics is
@@ -3334,15 +3415,7 @@ def export_snapshot_json(snapshot_id):
         return jsonify({"error": "Snapshot not found"}), 404
 
     result = {**snapshot["result"]}
-    _migrate_dimension_names(result)  # NES-210
-    _migrate_confidence_tiers(result)
-    _backfill_dimension_bands(result)
-    if "show_numeric_score" not in result:
-        result["show_numeric_score"] = _compute_show_numeric_score(
-            result.get("dimension_summaries", [])
-        )
-    if "summary_narrative" not in result:
-        result["summary_narrative"] = generate_report_narrative(result)
+    _prepare_snapshot_for_display(result)
     if not g.is_builder:
         result = {k: v for k, v in result.items() if k != "_trace"}
 
@@ -3367,15 +3440,7 @@ def export_snapshot_csv(snapshot_id):
         return jsonify({"error": "Snapshot not found"}), 404
 
     result = {**snapshot["result"]}
-    _migrate_dimension_names(result)  # NES-210
-    _migrate_confidence_tiers(result)
-    _backfill_dimension_bands(result)
-    if "show_numeric_score" not in result:
-        result["show_numeric_score"] = _compute_show_numeric_score(
-            result.get("dimension_summaries", [])
-        )
-    if "summary_narrative" not in result:
-        result["summary_narrative"] = generate_report_narrative(result)
+    _prepare_snapshot_for_display(result)
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -4229,6 +4294,15 @@ def sitemap_xml():
         lines.append(f"    <loc>{_html_escape(page['loc'])}</loc>")
         lines.append(f"    <changefreq>{page['changefreq']}</changefreq>")
         lines.append(f"    <priority>{page['priority']}</priority>")
+        lines.append("  </url>")
+
+    # Curated list pages (NES-293)
+    for list_slug in _get_all_list_slugs():
+        loc = f"{base}/lists/{_html_escape(list_slug)}"
+        lines.append("  <url>")
+        lines.append(f"    <loc>{loc}</loc>")
+        lines.append("    <changefreq>monthly</changefreq>")
+        lines.append("    <priority>0.7</priority>")
         lines.append("  </url>")
 
     for snap in snapshots:

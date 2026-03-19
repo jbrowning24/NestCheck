@@ -1,0 +1,79 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ config.title }} — NestCheck{% endblock %}
+
+{% block meta_description %}<meta name="description" content="{{ config.meta_description }}">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ config.title }}">
+<meta property="og:description" content="{{ config.meta_description }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url.split('?')[0] }}">
+{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "{{ config.title | e }}",
+  "description": "{{ config.meta_description | e }}",
+  "numberOfItems": {{ entries | length }},
+  "itemListElement": [
+    {% for entry in entries %}
+    {
+      "@type": "ListItem",
+      "position": {{ loop.index }},
+      "url": "{{ url_for('view_snapshot', snapshot_id=entry.snapshot_id, _external=True) }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/list.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="list-page">
+
+  <header class="list-header">
+    <h1>{{ config.title }}</h1>
+    <p class="list-intro">{{ config.intro }}</p>
+  </header>
+
+  <div class="list-entries">
+    {% for entry in entries %}
+    <div class="list-entry">
+      <div class="list-entry-rank">{{ loop.index }}</div>
+      <div class="list-entry-content">
+        {% set preview_result = entry.result %}
+        {% set snippet_link = "/s/" ~ entry.snapshot_id %}
+        {% include '_eval_snippet.html' %}
+        {% if entry.narrative %}
+        <p class="list-entry-narrative">{{ entry.narrative }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if related_lists %}
+  <div class="list-related">
+    <h2>Related Lists</h2>
+    <ul>
+      {% for related in related_lists %}
+      <li><a href="/lists/{{ related.slug }}">{{ related.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="list-cta">
+    <a href="/" class="list-cta-button">{{ config.cta_text | default("Evaluate your own address →") }}</a>
+  </div>
+
+</div>
+{% endblock %}

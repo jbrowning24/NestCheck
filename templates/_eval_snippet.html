@@ -90,6 +90,8 @@
   </div>{# /.eval-snippet-card #}
 
   <div class="eval-snippet-cta">
-    <a href="#evaluate">Run your own evaluation &rarr;</a>
+    <a href="{{ snippet_link | default('#evaluate') }}">
+      {% if snippet_link %}View full evaluation &rarr;{% else %}Run your own evaluation &rarr;{% endif %}
+    </a>
   </div>
 </div>
