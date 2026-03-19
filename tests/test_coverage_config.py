@@ -178,7 +178,7 @@ class TestDimensionCoverage:
         assert dims["transit"] == CoverageTier.FULL
 
     def test_expansion_state_health_partial(self):
-        """CA has SEMS + EJSCREEN + TRI + UST + HIFLD + FRA active, HPMS/FEMA planned → PARTIAL."""
+        """CA has 7/8 health sources active (NES-305), FEMA_NFHL still planned → PARTIAL."""
         dims = get_dimension_coverage("CA")
         assert dims["health"] == CoverageTier.PARTIAL
 
