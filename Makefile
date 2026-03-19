@@ -24,7 +24,7 @@ smoke-tristate-local:
 
 # Scoring regression tests (fast, no external deps)
 test-scoring:
-	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py -v --tb=short
+	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py -v --tb=short
 
 # Ground truth validation (requires spatial.db + SpatiaLite)
 validate:
