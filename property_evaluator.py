@@ -46,6 +46,8 @@ from scoring_config import (
     _FITNESS_DRIVE_KNOTS,
     WALK_DRIVE_BOTH_THRESHOLD,
 )
+
+_T1 = SCORING_MODEL.tier1  # shorthand for Tier 1 thresholds
 from road_noise import assess_road_noise, RoadNoiseAssessment
 from census import get_demographics
 from spatial_data import (
@@ -98,18 +100,18 @@ def compute_composite_score(
 # CONFIGURATION
 # =============================================================================
 
-# Health & Safety Thresholds (in feet)
-GAS_STATION_FAIL_DISTANCE_FT = SCORING_MODEL.tier1.gas_station_fail_ft   # 300
-GAS_STATION_WARN_DISTANCE_FT = SCORING_MODEL.tier1.gas_station_warn_ft   # 500
-HIGHWAY_MIN_DISTANCE_FT = 500
-HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = 500
+# Health & Safety Thresholds — imported from scoring_config.Tier1Thresholds
+GAS_STATION_FAIL_DISTANCE_FT = _T1.gas_station_fail_ft              # 300
+GAS_STATION_WARN_DISTANCE_FT = _T1.gas_station_warn_ft              # 500
+HIGHWAY_MIN_DISTANCE_FT = _T1.highway_min_distance_ft               # 500
+HIGH_VOLUME_ROAD_MIN_DISTANCE_FT = _T1.high_volume_road_min_distance_ft  # 500
 
-# Environmental Health Warning Thresholds (in feet)
-POWER_LINE_WARNING_DISTANCE_FT = 200
-SUBSTATION_WARNING_DISTANCE_FT = 300
-CELL_TOWER_WARNING_DISTANCE_FT = 500
-INDUSTRIAL_ZONE_WARNING_DISTANCE_FT = 500
-TRI_FACILITY_WARNING_DISTANCE_FT = 5280  # 1 mile — EPA TRI toxic release facilities
+# Environmental Health Warning Thresholds
+POWER_LINE_WARNING_DISTANCE_FT = _T1.power_line_warning_ft          # 200
+SUBSTATION_WARNING_DISTANCE_FT = _T1.substation_warning_ft          # 300
+CELL_TOWER_WARNING_DISTANCE_FT = _T1.cell_tower_warning_ft          # 500
+INDUSTRIAL_ZONE_WARNING_DISTANCE_FT = _T1.industrial_zone_warning_ft  # 500
+TRI_FACILITY_WARNING_DISTANCE_FT = _T1.tri_facility_warning_ft      # 5280 (1 mile)
 TRI_FACILITY_WARNING_RADIUS_M = round(TRI_FACILITY_WARNING_DISTANCE_FT / 3.28084)  # ≈ 1609m
 
 # Walking time thresholds (in minutes)
@@ -1661,9 +1663,9 @@ def check_gas_stations(
 # to background levels at 150-300m.
 # ---------------------------------------------------------------------------
 
-HIGH_TRAFFIC_AADT_THRESHOLD = 50_000   # vehicles/day
-HIGH_TRAFFIC_FAIL_RADIUS_M = 150       # meters — elevated-risk zone
-HIGH_TRAFFIC_WARN_RADIUS_M = 300       # meters — diminishing-risk zone
+HIGH_TRAFFIC_AADT_THRESHOLD = _T1.high_traffic_aadt_threshold  # 50,000 vehicles/day
+HIGH_TRAFFIC_FAIL_RADIUS_M = _T1.high_traffic_fail_m           # 150m — elevated-risk zone
+HIGH_TRAFFIC_WARN_RADIUS_M = _T1.high_traffic_warn_m           # 300m — diminishing-risk zone
 
 
 def check_high_traffic_road(lat: float, lng: float, spatial_store) -> Tier1Check:
@@ -2706,7 +2708,7 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
             detail_parts.append(f"status: {status}")
         details = " — ".join(detail_parts)
 
-        if nearest.distance_meters <= 90:
+        if nearest.distance_meters <= _T1.ust_fail_m:
             return Tier1Check(
                 name="ust_proximity",
                 result=CheckResult.FAIL,
@@ -2715,7 +2717,7 @@ def check_ust_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
                 required=True,
             )
 
-        if nearest.distance_meters <= 150:
+        if nearest.distance_meters <= _T1.ust_warn_m:
             return Tier1Check(
                 name="ust_proximity",
                 result=CheckResult.WARNING,
@@ -2806,7 +2808,7 @@ def check_tri_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
             except (ValueError, TypeError):
                 pass
 
-        if nearest.distance_meters <= 1600:
+        if nearest.distance_meters <= _T1.tri_proximity_warn_m:
             return Tier1Check(
                 name="tri_proximity",
                 result=CheckResult.WARNING,
@@ -2884,7 +2886,7 @@ def check_hifld_power_lines(lat: float, lng: float, spatial_store) -> Tier1Check
         volt_class = meta.get("volt_class", "")
         voltage_label = f"{voltage}kV" if voltage else volt_class or "unknown voltage"
 
-        if nearest.distance_meters <= 60:
+        if nearest.distance_meters <= _T1.hifld_power_line_warn_m:
             return Tier1Check(
                 name="hifld_power_lines",
                 result=CheckResult.WARNING,
@@ -2972,7 +2974,7 @@ def check_rail_proximity(lat: float, lng: float, spatial_store) -> Tier1Check:
         else:
             rail_type = "freight rail"
 
-        if nearest.distance_meters <= 300:
+        if nearest.distance_meters <= _T1.rail_warn_m:
             return Tier1Check(
                 name="rail_proximity",
                 result=CheckResult.WARNING,

@@ -90,9 +90,45 @@ class DimensionConfig:
 
 @dataclass(frozen=True)
 class Tier1Thresholds:
-    """Minimum safe distances for Tier 1 health/safety checks (feet)."""
-    gas_station_fail_ft: int = 300   # hard fail — within CA 300 ft setback
-    gas_station_warn_ft: int = 500   # warning  — within MD 500 ft setback
+    """Thresholds for Tier 1 health/safety checks.
+
+    Distance units are feet (suffix _ft) or meters (suffix _m).
+    All proximity checks in property_evaluator.py should import from here.
+    """
+    # ── Gas station (Overpass) ───────────────────────────────────
+    gas_station_fail_ft: int = 300   # hard fail — CA 300 ft setback
+    gas_station_warn_ft: int = 500   # warning  — MD 500 ft setback
+
+    # ── Highway / high-volume road (Overpass) ────────────────────
+    highway_min_distance_ft: int = 500
+    high_volume_road_min_distance_ft: int = 500
+
+    # ── Environmental infrastructure (Overpass) ──────────────────
+    power_line_warning_ft: int = 200
+    substation_warning_ft: int = 300
+    cell_tower_warning_ft: int = 500
+    industrial_zone_warning_ft: int = 500
+
+    # ── TRI facility (Overpass legacy check) ─────────────────────
+    tri_facility_warning_ft: int = 5280  # 1 mile
+
+    # ── UST proximity (Phase 1B — SpatiaLite) ────────────────────
+    ust_fail_m: int = 90               # ~300 ft — CA setback
+    ust_warn_m: int = 150              # ~500 ft — MD setback
+
+    # ── TRI proximity (Phase 1B — SpatiaLite) ────────────────────
+    tri_proximity_warn_m: int = 1600   # ~1 mile
+
+    # ── HIFLD power lines (Phase 1B — SpatiaLite) ────────────────
+    hifld_power_line_warn_m: int = 60  # ~200 ft
+
+    # ── Rail corridor (Phase 1B — SpatiaLite / FRA) ──────────────
+    rail_warn_m: int = 300             # ~1,000 ft
+
+    # ── High-traffic road / HPMS (Phase 1B — SpatiaLite) ─────────
+    high_traffic_aadt_threshold: int = 50_000   # vehicles/day
+    high_traffic_fail_m: int = 150              # elevated-risk zone
+    high_traffic_warn_m: int = 300              # diminishing-risk zone
 
 
 @dataclass(frozen=True)
@@ -346,10 +382,7 @@ SCORING_MODEL = ScoringModel(
         floor=0.0,
     ),
 
-    tier1=Tier1Thresholds(
-        gas_station_fail_ft=300,
-        gas_station_warn_ft=500,
-    ),
+    tier1=Tier1Thresholds(),
 
     tier3=Tier3Bonuses(
         parking=5,

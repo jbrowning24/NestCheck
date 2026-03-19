@@ -28,10 +28,11 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ---------------------------------------------------------------------------
-# Thresholds — canonical values live in property_evaluator.py check_ust_proximity()
-# at approximately lines 2319 (FAIL <= 90m) and 2328 (WARNING <= 150m).
-# scoring_config.py has Tier1Thresholds(gas_station_fail_ft=300, gas_station_warn_ft=500)
-# but the evaluator uses meters directly. These must stay in sync.
+# Thresholds — canonical source: scoring_config.py Tier1Thresholds
+#   ust_fail_m = 90   (FAIL <= 90m)
+#   ust_warn_m = 150  (WARNING <= 150m)
+# property_evaluator.py imports via _T1 = SCORING_MODEL.tier1.
+# These hardcoded fallbacks must stay in sync with Tier1Thresholds.
 # ---------------------------------------------------------------------------
 UST_FAIL_METERS = 90      # <= 90m → FAIL
 UST_WARN_METERS = 150     # <= 150m → WARNING
