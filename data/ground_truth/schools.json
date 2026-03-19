@@ -1,6 +1,6 @@
 {
   "_schema_version": "0.1.0",
-  "_generated_at": "2026-03-19T02:44:20.351409+00:00",
+  "_generated_at": "2026-03-19T02:56:34.947971+00:00",
   "_generator": "generate_ground_truth_schools.py",
   "_district_count": 30,
   "_school_count": 30,
