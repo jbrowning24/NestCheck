@@ -24,6 +24,7 @@ Usage:
 import argparse
 import json
 import logging
+import math
 import os
 import sys
 import time
@@ -51,13 +52,39 @@ PAGE_SIZE = 2000
 
 # PRD launch metro bounding boxes (lng_min, lat_min, lng_max, lat_max)
 METRO_BBOXES = {
-    # NYC metro: five boroughs, northern NJ, and Westchester County up to Putnam border
-    "nyc": (-74.3, 40.45, -73.45, 41.40),
+    # NYC metro: five boroughs, northern NJ (incl. Morristown), Long Island (incl. Huntington), Westchester up to Putnam
+    "nyc": (-74.55, 40.45, -73.35, 41.40),
+    # Detroit-Ann Arbor corridor
+    "detroit": (-83.8, 42.0, -82.9, 42.8),
     "sf": (-122.55, 37.65, -122.30, 37.85),
     "chicago": (-87.95, 41.60, -87.50, 42.10),
     "la": (-118.70, 33.65, -117.65, 34.35),
     "seattle": (-122.50, 47.40, -122.15, 47.80),
 }
+
+METRO_TO_STATES = {
+    "nyc": ["NY", "NJ", "CT"],
+    "detroit": ["MI"],
+    "sf": ["CA"],
+    "chicago": ["IL"],
+    "la": ["CA"],
+    "seattle": ["WA"],
+}
+
+_GRID_CELL_SIZE = 0.5
+
+def _generate_grid_cells(bbox, cell_size=_GRID_CELL_SIZE):
+    lng_min, lat_min, lng_max, lat_max = bbox
+    cols = math.ceil((lng_max - lng_min) / cell_size)
+    rows = math.ceil((lat_max - lat_min) / cell_size)
+    for col in range(cols):
+        for row in range(rows):
+            yield (
+                lng_min + col * cell_size,
+                lat_min + row * cell_size,
+                min(lng_min + (col + 1) * cell_size, lng_max),
+                min(lat_min + (row + 1) * cell_size, lat_max),
+            )
 
 
 def _rings_to_multipolygon_wkt(rings: list, decimals: int = 6) -> str | None:
@@ -117,6 +144,95 @@ def fetch_page(offset: int, where_clause: str = "1=1", bbox: tuple | None = None
                 time.sleep(wait)
             else:
                 raise
+
+
+def _ingest_bbox(conn, bbox, limit_pages=0):
+    """Fetch+insert loop for a single bbox. Returns (total_inserted, total_skipped)."""
+    total_inserted = 0
+    total_skipped = 0
+    offset = 0
+    batch_num = 0
+
+    while True:
+        batch_num += 1
+        logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
+        data = fetch_page(offset, bbox=bbox)
+
+        features = data.get("features", [])
+        if not features:
+            logger.info("No more features — done.")
+            break
+
+        inserted_this_batch = 0
+        for feat in features:
+            attrs = feat.get("attributes", {})
+            geom = feat.get("geometry") or {}
+
+            rings = geom.get("rings")
+            if not rings:
+                total_skipped += 1
+                continue
+
+            wkt = _rings_to_multipolygon_wkt(rings)
+            if not wkt:
+                total_skipped += 1
+                continue
+
+            fld_zone = attrs.get("FLD_ZONE") or "Unknown"
+            zone_subty = attrs.get("ZONE_SUBTY") or ""
+            name = f"Flood Zone {fld_zone}"
+            if zone_subty:
+                name = f"{name} - {zone_subty}"
+
+            metadata = {
+                "fld_zone": fld_zone,
+                "zone_subtype": zone_subty,
+                "sfha_tf": attrs.get("SFHA_TF", ""),
+                "static_bfe": attrs.get("STATIC_BFE"),
+                "depth": attrs.get("DEPTH"),
+                "dfirm_id": attrs.get("DFIRM_ID", ""),
+                "object_id": attrs.get("OBJECTID"),
+            }
+
+            try:
+                conn.execute(
+                    """INSERT INTO facilities_fema_nfhl (name, geometry, metadata_json)
+                       VALUES (?, GeomFromText(?, 4326), ?)""",
+                    (name, wkt, json.dumps(metadata)),
+                )
+                inserted_this_batch += 1
+                total_inserted += 1
+            except Exception as e:
+                logger.warning("Insert failed for %s: %s", name, e)
+                total_skipped += 1
+
+        conn.commit()
+        logger.info(
+            "  Batch %d: inserted %d, skipped so far: %d, total: %d",
+            batch_num, inserted_this_batch, total_skipped, total_inserted,
+        )
+
+        if limit_pages and batch_num >= limit_pages:
+            logger.info("Page limit reached (%d) — stopping.", limit_pages)
+            break
+
+        if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
+            logger.info("Last page received — done.")
+            break
+
+        offset += PAGE_SIZE
+
+    return total_inserted, total_skipped
+
+
+def _log_db_size():
+    db_path = (
+        os.path.join(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""), "spatial.db")
+        if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+        else os.environ.get("NESTCHECK_SPATIAL_DB_PATH", "data/spatial.db")
+    )
+    db_size_mb = os.path.getsize(db_path) / (1024 * 1024) if os.path.exists(db_path) else 0
+    logger.info("  DB size:       %.1f MB", db_size_mb)
 
 
 def ingest(
@@ -184,80 +300,8 @@ def ingest(
     logger.info("Created facilities_fema_nfhl table")
 
     conn = _connect()
-    total_inserted = 0
-    total_skipped = 0
-    offset = 0
-    batch_num = 0
-
     try:
-        while True:
-            batch_num += 1
-            logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
-            data = fetch_page(offset, bbox=bbox)
-
-            features = data.get("features", [])
-            if not features:
-                logger.info("No more features — done.")
-                break
-
-            inserted_this_batch = 0
-            for feat in features:
-                attrs = feat.get("attributes", {})
-                geom = feat.get("geometry") or {}
-
-                rings = geom.get("rings")
-                if not rings:
-                    total_skipped += 1
-                    continue
-
-                wkt = _rings_to_multipolygon_wkt(rings)
-                if not wkt:
-                    total_skipped += 1
-                    continue
-
-                fld_zone = attrs.get("FLD_ZONE") or "Unknown"
-                zone_subty = attrs.get("ZONE_SUBTY") or ""
-                name = f"Flood Zone {fld_zone}"
-                if zone_subty:
-                    name = f"{name} - {zone_subty}"
-
-                metadata = {
-                    "fld_zone": fld_zone,
-                    "zone_subtype": zone_subty,
-                    "sfha_tf": attrs.get("SFHA_TF", ""),
-                    "static_bfe": attrs.get("STATIC_BFE"),
-                    "depth": attrs.get("DEPTH"),
-                    "dfirm_id": attrs.get("DFIRM_ID", ""),
-                    "object_id": attrs.get("OBJECTID"),
-                }
-
-                try:
-                    conn.execute(
-                        """INSERT INTO facilities_fema_nfhl (name, geometry, metadata_json)
-                           VALUES (?, GeomFromText(?, 4326), ?)""",
-                        (name, wkt, json.dumps(metadata)),
-                    )
-                    inserted_this_batch += 1
-                    total_inserted += 1
-                except Exception as e:
-                    logger.warning("Insert failed for %s: %s", name, e)
-                    total_skipped += 1
-
-            conn.commit()
-            logger.info(
-                "  Batch %d: inserted %d, skipped so far: %d, total: %d",
-                batch_num, inserted_this_batch, total_skipped, total_inserted,
-            )
-
-            if limit_pages and batch_num >= limit_pages:
-                logger.info("Page limit reached (%d) — stopping.", limit_pages)
-                break
-
-            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
-                logger.info("Last page received — done.")
-                break
-
-            offset += PAGE_SIZE
+        total_inserted, total_skipped = _ingest_bbox(conn, bbox, limit_pages)
 
         bbox_note = f"BBOX: {bbox}" if bbox else "no bbox filter"
         conn.execute(
@@ -277,19 +321,88 @@ def ingest(
     finally:
         conn.close()
 
-    db_path = (
-        os.path.join(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""), "spatial.db")
-        if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
-        else os.environ.get("NESTCHECK_SPATIAL_DB_PATH", "data/spatial.db")
-    )
-    db_size_mb = os.path.getsize(db_path) / (1024 * 1024) if os.path.exists(db_path) else 0
-
     logger.info("=" * 50)
     logger.info("FEMA NFHL INGESTION COMPLETE")
     logger.info("  Total inserted: %d", total_inserted)
     logger.info("  Total skipped:  %d", total_skipped)
-    logger.info("  DB size:       %.1f MB", db_size_mb)
+    _log_db_size()
     logger.info("=" * 50)
+
+
+def ingest_metros(target_states=None):
+    """Ingest FEMA NFHL for all metros matching target_states.
+
+    Filters METRO_BBOXES by METRO_TO_STATES overlap with target_states,
+    then subdivides each metro bbox into grid cells for chunked ingestion.
+    """
+    if target_states:
+        state_set = set(target_states)
+        metros = [m for m in METRO_BBOXES if state_set & set(METRO_TO_STATES.get(m, []))]
+    else:
+        metros = list(METRO_BBOXES.keys())
+
+    logger.info("ingest_metros: target_states=%s, metros=%s", target_states, metros)
+
+    init_spatial_db()
+    create_facility_table("fema_nfhl", geometry_type="MULTIPOLYGON")
+    logger.info("Created facilities_fema_nfhl table")
+
+    conn = _connect()
+    total_features = 0
+    chunks_success = 0
+    chunks_failed = 0
+
+    try:
+        for metro_key in metros:
+            metro_bbox = METRO_BBOXES[metro_key]
+            cells = list(_generate_grid_cells(metro_bbox))
+            logger.info("Metro %s: %d grid cells from bbox %s", metro_key, len(cells), metro_bbox)
+
+            for i, cell in enumerate(cells, 1):
+                try:
+                    logger.info("  [%s] chunk %d/%d: %s", metro_key, i, len(cells), cell)
+                    inserted, skipped = _ingest_bbox(conn, cell)
+                    total_features += inserted
+                    chunks_success += 1
+                    logger.info("  [%s] chunk %d: inserted %d, skipped %d", metro_key, i, inserted, skipped)
+                except Exception:
+                    chunks_failed += 1
+                    logger.warning("  [%s] chunk %d FAILED", metro_key, i, exc_info=True)
+
+        # Write dataset_registry with metro summary
+        metro_note = f"metros: {','.join(metros)}, chunks: {chunks_success} ok / {chunks_failed} failed"
+        conn.execute(
+            """INSERT OR REPLACE INTO dataset_registry
+               (facility_type, source_url, ingested_at, record_count, notes)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                "fema_nfhl",
+                FEMA_ENDPOINT,
+                datetime.now(timezone.utc).isoformat(),
+                total_features,
+                metro_note,
+            ),
+        )
+        conn.commit()
+
+    finally:
+        conn.close()
+
+    logger.info("=" * 50)
+    logger.info("FEMA NFHL METRO INGESTION COMPLETE")
+    logger.info("  Metros processed: %s", metros)
+    logger.info("  Total features:   %d", total_features)
+    logger.info("  Chunks success:   %d", chunks_success)
+    logger.info("  Chunks failed:    %d", chunks_failed)
+    _log_db_size()
+    logger.info("=" * 50)
+
+    return {
+        "metros_processed": metros,
+        "total_features": total_features,
+        "chunks_success": chunks_success,
+        "chunks_failed": chunks_failed,
+    }
 
 
 def verify():
@@ -323,7 +436,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--metro", type=str, default="",
-        help="Use predefined metro bbox (nyc, sf, chicago, la, seattle).",
+        help="Use predefined metro bbox (nyc, sf, chicago, la, seattle, detroit).",
+    )
+    parser.add_argument(
+        "--metros", action="store_true",
+        help="Ingest all metros matching --states (or all defined metros).",
+    )
+    parser.add_argument(
+        "--states", type=str, default="",
+        help="Comma-separated state codes to filter metros (e.g., NY,NJ,CT,MI).",
     )
     parser.add_argument(
         "--limit", type=int, default=0,
@@ -349,6 +470,11 @@ if __name__ == "__main__":
 
     if args.discover:
         ingest(discover=True)
+    elif args.metros:
+        target = [s.strip() for s in args.states.split(",") if s.strip()] if args.states else None
+        ingest_metros(target_states=target)
+        if args.verify:
+            verify()
     else:
         ingest(bbox=bbox, metro=args.metro, limit_pages=args.limit)
         if args.verify:
