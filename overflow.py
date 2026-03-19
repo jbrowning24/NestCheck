@@ -78,8 +78,20 @@ def overflow(
             dump_path=None,
         )
 
-    # Truncation path — implemented in Task 2
-    raise NotImplementedError
+    resolved_label = label_fn(items) if label_fn is not None else label
+    summary = f"Showing {limit} of {total} {resolved_label}."
+
+    written_path = None
+    if dump_path is not None:
+        written_path = _dump_json(items, dump_path, dump_fn)
+
+    return OverflowResult(
+        items=items[:limit],
+        total=total,
+        truncated=True,
+        summary=summary,
+        dump_path=written_path,
+    )
 
 
 def _dump_json(
