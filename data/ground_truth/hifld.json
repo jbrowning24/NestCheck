@@ -1,0 +1,4364 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T03:07:02.384086+00:00",
+  "_generator": "generate_ground_truth_hifld.py",
+  "_segment_count": 50,
+  "_test_count": 150,
+  "_thresholds": {
+    "warning_radius_m": 60,
+    "search_radius_m": 300,
+    "source": "property_evaluator.py check_hifld_power_lines() \u2014 WARNING \u2264 60m"
+  },
+  "addresses": [
+    {
+      "id": "gt-hifld-0001",
+      "coordinates": {
+        "lat": 40.7397653,
+        "lng": -74.1069698
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7398846,
+          "lng": -74.1070525
+        },
+        "distance_m": 15,
+        "bearing_deg": 152.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is 220-287 - PUBLIC SERVICE ELEC & GAS CO at 76m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0002",
+      "coordinates": {
+        "lat": 40.7395267,
+        "lng": -74.1068044
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7398846,
+          "lng": -74.1070525
+        },
+        "distance_m": 45,
+        "bearing_deg": 152.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0003",
+      "coordinates": {
+        "lat": 40.7386917,
+        "lng": -74.1062255
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7398846,
+          "lng": -74.1070525
+        },
+        "distance_m": 150,
+        "bearing_deg": 152.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius (adjusted: nearest line is 220-287 - PUBLIC SERVICE ELEC & GAS CO at 30m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0004",
+      "coordinates": {
+        "lat": 41.0128797,
+        "lng": -75.2769209
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0129702,
+          "lng": -75.2767886
+        },
+        "distance_m": 15,
+        "bearing_deg": 227.79
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 270m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0005",
+      "coordinates": {
+        "lat": 41.0126986,
+        "lng": -75.2771854
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0129702,
+          "lng": -75.2767886
+        },
+        "distance_m": 45,
+        "bearing_deg": 227.79
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0006",
+      "coordinates": {
+        "lat": 41.0120649,
+        "lng": -75.2781114
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0129702,
+          "lng": -75.2767886
+        },
+        "distance_m": 150,
+        "bearing_deg": 227.79
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0007",
+      "coordinates": {
+        "lat": 39.568698,
+        "lng": -75.5350522
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV)",
+      "source_segment": {
+        "name": "500 - PUBLIC SERVICE ELEC & GAS CO",
+        "voltage": 500,
+        "volt_class": "500",
+        "midpoint": {
+          "lat": 39.5687588,
+          "lng": -75.5348963
+        },
+        "distance_m": 15,
+        "bearing_deg": 243.16
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0008",
+      "coordinates": {
+        "lat": 39.5685763,
+        "lng": -75.5353642
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV)",
+      "source_segment": {
+        "name": "500 - PUBLIC SERVICE ELEC & GAS CO",
+        "voltage": 500,
+        "volt_class": "500",
+        "midpoint": {
+          "lat": 39.5687588,
+          "lng": -75.5348963
+        },
+        "distance_m": 45,
+        "bearing_deg": 243.16
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0009",
+      "coordinates": {
+        "lat": 39.5681504,
+        "lng": -75.536456
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV)",
+      "source_segment": {
+        "name": "500 - PUBLIC SERVICE ELEC & GAS CO",
+        "voltage": 500,
+        "volt_class": "500",
+        "midpoint": {
+          "lat": 39.5687588,
+          "lng": -75.5348963
+        },
+        "distance_m": 150,
+        "bearing_deg": 243.16
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 500 - PUBLIC SERVICE ELEC & GAS CO (500kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0010",
+      "coordinates": {
+        "lat": 40.767507,
+        "lng": -75.3018014
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.7676315,
+          "lng": -75.3018695
+        },
+        "distance_m": 15,
+        "bearing_deg": 157.5
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0011",
+      "coordinates": {
+        "lat": 40.767258,
+        "lng": -75.3016652
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.7676315,
+          "lng": -75.3018695
+        },
+        "distance_m": 45,
+        "bearing_deg": 157.5
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0012",
+      "coordinates": {
+        "lat": 40.7663866,
+        "lng": -75.3011885
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.7676315,
+          "lng": -75.3018695
+        },
+        "distance_m": 150,
+        "bearing_deg": 157.5
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0013",
+      "coordinates": {
+        "lat": 41.2707995,
+        "lng": -72.9643644
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.2706845,
+          "lng": -72.964271
+        },
+        "distance_m": 15,
+        "bearing_deg": 328.59
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0014",
+      "coordinates": {
+        "lat": 41.2710295,
+        "lng": -72.9645512
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.2706845,
+          "lng": -72.964271
+        },
+        "distance_m": 45,
+        "bearing_deg": 328.59
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0015",
+      "coordinates": {
+        "lat": 41.2718346,
+        "lng": -72.9652052
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.2706845,
+          "lng": -72.964271
+        },
+        "distance_m": 150,
+        "bearing_deg": 328.59
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0016",
+      "coordinates": {
+        "lat": 41.1640979,
+        "lng": -73.2256056
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.1639821,
+          "lng": -73.225514
+        },
+        "distance_m": 15,
+        "bearing_deg": 329.2
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 193m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0017",
+      "coordinates": {
+        "lat": 41.1643293,
+        "lng": -73.2257889
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.1639821,
+          "lng": -73.225514
+        },
+        "distance_m": 45,
+        "bearing_deg": 329.2
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 164m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0018",
+      "coordinates": {
+        "lat": 41.1651395,
+        "lng": -73.2264305
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.1639821,
+          "lng": -73.225514
+        },
+        "distance_m": 150,
+        "bearing_deg": 329.2
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 60m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0019",
+      "coordinates": {
+        "lat": 40.9606662,
+        "lng": -72.8646194
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.9606748,
+          "lng": -72.8647975
+        },
+        "distance_m": 15,
+        "bearing_deg": 93.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0020",
+      "coordinates": {
+        "lat": 40.960649,
+        "lng": -72.8642633
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.9606748,
+          "lng": -72.8647975
+        },
+        "distance_m": 45,
+        "bearing_deg": 93.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0021",
+      "coordinates": {
+        "lat": 40.9605887,
+        "lng": -72.8630168
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.9606748,
+          "lng": -72.8647975
+        },
+        "distance_m": 150,
+        "bearing_deg": 93.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0022",
+      "coordinates": {
+        "lat": 39.841077,
+        "lng": -75.3669828
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8409591,
+          "lng": -75.3668977
+        },
+        "distance_m": 15,
+        "bearing_deg": 331.01
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - PECO ENERGY CO (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0023",
+      "coordinates": {
+        "lat": 39.8413127,
+        "lng": -75.3671529
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8409591,
+          "lng": -75.3668977
+        },
+        "distance_m": 45,
+        "bearing_deg": 331.01
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - PECO ENERGY CO (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0024",
+      "coordinates": {
+        "lat": 39.8421378,
+        "lng": -75.3677482
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8409591,
+          "lng": -75.3668977
+        },
+        "distance_m": 150,
+        "bearing_deg": 331.01
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - PECO ENERGY CO (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0025",
+      "coordinates": {
+        "lat": 40.8365283,
+        "lng": -74.8759594
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8366615,
+          "lng": -74.8759869
+        },
+        "distance_m": 15,
+        "bearing_deg": 171.13
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0026",
+      "coordinates": {
+        "lat": 40.8362621,
+        "lng": -74.8759045
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8366615,
+          "lng": -74.8759869
+        },
+        "distance_m": 45,
+        "bearing_deg": 171.13
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0027",
+      "coordinates": {
+        "lat": 40.8353301,
+        "lng": -74.8757123
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8366615,
+          "lng": -74.8759869
+        },
+        "distance_m": 150,
+        "bearing_deg": 171.13
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0028",
+      "coordinates": {
+        "lat": 40.7070307,
+        "lng": -75.1625842
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7068963,
+          "lng": -75.1625723
+        },
+        "distance_m": 15,
+        "bearing_deg": 356.14
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0029",
+      "coordinates": {
+        "lat": 40.7072996,
+        "lng": -75.1626082
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7068963,
+          "lng": -75.1625723
+        },
+        "distance_m": 45,
+        "bearing_deg": 356.14
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0030",
+      "coordinates": {
+        "lat": 40.7082407,
+        "lng": -75.1626919
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7068963,
+          "lng": -75.1625723
+        },
+        "distance_m": 150,
+        "bearing_deg": 356.14
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0031",
+      "coordinates": {
+        "lat": 41.6262599,
+        "lng": -72.1826715
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6263231,
+          "lng": -72.1825123
+        },
+        "distance_m": 15,
+        "bearing_deg": 242.0
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 277m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0032",
+      "coordinates": {
+        "lat": 41.6261334,
+        "lng": -72.1829898
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6263231,
+          "lng": -72.1825123
+        },
+        "distance_m": 45,
+        "bearing_deg": 242.0
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0033",
+      "coordinates": {
+        "lat": 41.6256906,
+        "lng": -72.184104
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6263231,
+          "lng": -72.1825123
+        },
+        "distance_m": 150,
+        "bearing_deg": 242.0
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0034",
+      "coordinates": {
+        "lat": 40.3980163,
+        "lng": -74.3421991
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3980943,
+          "lng": -74.3420548
+        },
+        "distance_m": 15,
+        "bearing_deg": 234.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0035",
+      "coordinates": {
+        "lat": 40.3978604,
+        "lng": -74.3424877
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3980943,
+          "lng": -74.3420548
+        },
+        "distance_m": 45,
+        "bearing_deg": 234.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0036",
+      "coordinates": {
+        "lat": 40.3973146,
+        "lng": -74.3434978
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3980943,
+          "lng": -74.3420548
+        },
+        "distance_m": 150,
+        "bearing_deg": 234.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0037",
+      "coordinates": {
+        "lat": 40.5916121,
+        "lng": -75.5659222
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.5916252,
+          "lng": -75.5657456
+        },
+        "distance_m": 15,
+        "bearing_deg": 264.44
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (138kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 98m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0038",
+      "coordinates": {
+        "lat": 40.591586,
+        "lng": -75.5662754
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.5916252,
+          "lng": -75.5657456
+        },
+        "distance_m": 45,
+        "bearing_deg": 264.44
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (138kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 73m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0039",
+      "coordinates": {
+        "lat": 40.5914946,
+        "lng": -75.5675117
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.5916252,
+          "lng": -75.5657456
+        },
+        "distance_m": 150,
+        "bearing_deg": 264.44
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from 100-161 - NOT AVAILABLE (138kV) \u2014 inside 60m warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 9m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0040",
+      "coordinates": {
+        "lat": 41.0723682,
+        "lng": -73.4862979
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0724974,
+          "lng": -73.4863487
+        },
+        "distance_m": 15,
+        "bearing_deg": 163.51
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 66m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0041",
+      "coordinates": {
+        "lat": 41.0721098,
+        "lng": -73.4861964
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0724974,
+          "lng": -73.4863487
+        },
+        "distance_m": 45,
+        "bearing_deg": 163.51
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0042",
+      "coordinates": {
+        "lat": 41.0712054,
+        "lng": -73.4858412
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 41.0724974,
+          "lng": -73.4863487
+        },
+        "distance_m": 150,
+        "bearing_deg": 163.51
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 26m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0043",
+      "coordinates": {
+        "lat": 40.6732247,
+        "lng": -74.2095523
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.6732569,
+          "lng": -74.2093797
+        },
+        "distance_m": 15,
+        "bearing_deg": 256.19
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (138kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0044",
+      "coordinates": {
+        "lat": 40.6731604,
+        "lng": -74.2098973
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.6732569,
+          "lng": -74.2093797
+        },
+        "distance_m": 45,
+        "bearing_deg": 256.19
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (138kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0045",
+      "coordinates": {
+        "lat": 40.6729352,
+        "lng": -74.211105
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.6732569,
+          "lng": -74.2093797
+        },
+        "distance_m": 150,
+        "bearing_deg": 256.19
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (138kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0046",
+      "coordinates": {
+        "lat": 41.5758491,
+        "lng": -73.0196057
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.5758943,
+          "lng": -73.0197754
+        },
+        "distance_m": 15,
+        "bearing_deg": 109.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 82m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0047",
+      "coordinates": {
+        "lat": 41.5757587,
+        "lng": -73.0192664
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.5758943,
+          "lng": -73.0197754
+        },
+        "distance_m": 45,
+        "bearing_deg": 109.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 108m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0048",
+      "coordinates": {
+        "lat": 41.5754423,
+        "lng": -73.0180786
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.5758943,
+          "lng": -73.0197754
+        },
+        "distance_m": 150,
+        "bearing_deg": 109.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0049",
+      "coordinates": {
+        "lat": 41.384953,
+        "lng": -73.1945726
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3848183,
+          "lng": -73.1945764
+        },
+        "distance_m": 15,
+        "bearing_deg": 1.22
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 244m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0050",
+      "coordinates": {
+        "lat": 41.3852224,
+        "lng": -73.1945649
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3848183,
+          "lng": -73.1945764
+        },
+        "distance_m": 45,
+        "bearing_deg": 1.22
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 216m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0051",
+      "coordinates": {
+        "lat": 41.3861654,
+        "lng": -73.1945381
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3848183,
+          "lng": -73.1945764
+        },
+        "distance_m": 150,
+        "bearing_deg": 1.22
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0052",
+      "coordinates": {
+        "lat": 40.1830257,
+        "lng": -74.76256
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.1828955,
+          "lng": -74.7625147
+        },
+        "distance_m": 15,
+        "bearing_deg": 345.09
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0053",
+      "coordinates": {
+        "lat": 40.1832862,
+        "lng": -74.7626508
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.1828955,
+          "lng": -74.7625147
+        },
+        "distance_m": 45,
+        "bearing_deg": 345.09
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0054",
+      "coordinates": {
+        "lat": 40.1841976,
+        "lng": -74.7629683
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.1828955,
+          "lng": -74.7625147
+        },
+        "distance_m": 150,
+        "bearing_deg": 345.09
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0055",
+      "coordinates": {
+        "lat": 40.6221193,
+        "lng": -75.3532835
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6222477,
+          "lng": -75.3533373
+        },
+        "distance_m": 15,
+        "bearing_deg": 162.33
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0056",
+      "coordinates": {
+        "lat": 40.6218625,
+        "lng": -75.3531757
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6222477,
+          "lng": -75.3533373
+        },
+        "distance_m": 45,
+        "bearing_deg": 162.33
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0057",
+      "coordinates": {
+        "lat": 40.6209638,
+        "lng": -75.3527986
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6222477,
+          "lng": -75.3533373
+        },
+        "distance_m": 150,
+        "bearing_deg": 162.33
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0058",
+      "coordinates": {
+        "lat": 41.6394965,
+        "lng": -74.6872892
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6393703,
+          "lng": -74.6873524
+        },
+        "distance_m": 15,
+        "bearing_deg": 20.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 211m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0059",
+      "coordinates": {
+        "lat": 41.6397489,
+        "lng": -74.6871627
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6393703,
+          "lng": -74.6873524
+        },
+        "distance_m": 45,
+        "bearing_deg": 20.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 238m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0060",
+      "coordinates": {
+        "lat": 41.6406322,
+        "lng": -74.6867201
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6393703,
+          "lng": -74.6873524
+        },
+        "distance_m": 150,
+        "bearing_deg": 20.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0061",
+      "coordinates": {
+        "lat": 40.0834222,
+        "lng": -74.8835774
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0835472,
+          "lng": -74.8835114
+        },
+        "distance_m": 15,
+        "bearing_deg": 202.02
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius (adjusted: nearest line is 220-287 - NOT AVAILABLE at 278m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0062",
+      "coordinates": {
+        "lat": 40.0831724,
+        "lng": -74.8837094
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0835472,
+          "lng": -74.8835114
+        },
+        "distance_m": 45,
+        "bearing_deg": 202.02
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius (adjusted: nearest line is 220-287 - NOT AVAILABLE at 299m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0063",
+      "coordinates": {
+        "lat": 40.082298,
+        "lng": -74.8841716
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0835472,
+          "lng": -74.8835114
+        },
+        "distance_m": 150,
+        "bearing_deg": 202.02
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0064",
+      "coordinates": {
+        "lat": 40.2349265,
+        "lng": -74.0831619
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2350422,
+          "lng": -74.0830713
+        },
+        "distance_m": 15,
+        "bearing_deg": 210.89
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius (adjusted: nearest line is 220-287 - NOT AVAILABLE at 73m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0065",
+      "coordinates": {
+        "lat": 40.2346952,
+        "lng": -74.0833431
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2350422,
+          "lng": -74.0830713
+        },
+        "distance_m": 45,
+        "bearing_deg": 210.89
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0066",
+      "coordinates": {
+        "lat": 40.2338858,
+        "lng": -74.0839774
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2350422,
+          "lng": -74.0830713
+        },
+        "distance_m": 150,
+        "bearing_deg": 210.89
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius (adjusted: nearest line is 220-287 - NOT AVAILABLE at 58m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0067",
+      "coordinates": {
+        "lat": 42.1455299,
+        "lng": -73.756447
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 42.1454933,
+          "lng": -73.7562721
+        },
+        "distance_m": 15,
+        "bearing_deg": 285.78
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 158m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0068",
+      "coordinates": {
+        "lat": 42.1456032,
+        "lng": -73.7567967
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 42.1454933,
+          "lng": -73.7562721
+        },
+        "distance_m": 45,
+        "bearing_deg": 285.78
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 188m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0069",
+      "coordinates": {
+        "lat": 42.1458597,
+        "lng": -73.7580209
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 42.1454933,
+          "lng": -73.7562721
+        },
+        "distance_m": 150,
+        "bearing_deg": 285.78
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0070",
+      "coordinates": {
+        "lat": 39.8322364,
+        "lng": -75.3845841
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8321429,
+          "lng": -75.3844577
+        },
+        "distance_m": 15,
+        "bearing_deg": 313.96
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - PECO ENERGY CO (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0071",
+      "coordinates": {
+        "lat": 39.8324235,
+        "lng": -75.3848367
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8321429,
+          "lng": -75.3844577
+        },
+        "distance_m": 45,
+        "bearing_deg": 313.96
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - PECO ENERGY CO (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0072",
+      "coordinates": {
+        "lat": 39.8330782,
+        "lng": -75.3857209
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.8321429,
+          "lng": -75.3844577
+        },
+        "distance_m": 150,
+        "bearing_deg": 313.96
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - PECO ENERGY CO (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0073",
+      "coordinates": {
+        "lat": 40.7819561,
+        "lng": -74.3534286
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7819555,
+          "lng": -74.3532506
+        },
+        "distance_m": 15,
+        "bearing_deg": 270.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0074",
+      "coordinates": {
+        "lat": 40.7819575,
+        "lng": -74.3537845
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7819555,
+          "lng": -74.3532506
+        },
+        "distance_m": 45,
+        "bearing_deg": 270.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0075",
+      "coordinates": {
+        "lat": 40.7819622,
+        "lng": -74.3550301
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.7819555,
+          "lng": -74.3532506
+        },
+        "distance_m": 150,
+        "bearing_deg": 270.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0076",
+      "coordinates": {
+        "lat": 39.9425623,
+        "lng": -75.2542777
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.9426928,
+          "lng": -75.2542341
+        },
+        "distance_m": 15,
+        "bearing_deg": 194.37
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from Under 100 - PECO ENERGY CO (69kV) \u2014 outside warning radius (adjusted: nearest line is Under 100 - PECO ENERGY CO at 290m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0077",
+      "coordinates": {
+        "lat": 39.9423012,
+        "lng": -75.2543649
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.9426928,
+          "lng": -75.2542341
+        },
+        "distance_m": 45,
+        "bearing_deg": 194.37
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from Under 100 - PECO ENERGY CO (69kV) \u2014 outside warning radius (adjusted: nearest line is Under 100 - PECO ENERGY CO at 263m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0078",
+      "coordinates": {
+        "lat": 39.9413875,
+        "lng": -75.2546701
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - PECO ENERGY CO (69kV)",
+      "source_segment": {
+        "name": "Under 100 - PECO ENERGY CO",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 39.9426928,
+          "lng": -75.2542341
+        },
+        "distance_m": 150,
+        "bearing_deg": 194.37
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - PECO ENERGY CO (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0079",
+      "coordinates": {
+        "lat": 40.5650183,
+        "lng": -75.4135294
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.565027,
+          "lng": -75.4137064
+        },
+        "distance_m": 15,
+        "bearing_deg": 93.7
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0080",
+      "coordinates": {
+        "lat": 40.5650009,
+        "lng": -75.4131754
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.565027,
+          "lng": -75.4137064
+        },
+        "distance_m": 45,
+        "bearing_deg": 93.7
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0081",
+      "coordinates": {
+        "lat": 40.5649401,
+        "lng": -75.4119363
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.565027,
+          "lng": -75.4137064
+        },
+        "distance_m": 150,
+        "bearing_deg": 93.7
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0082",
+      "coordinates": {
+        "lat": 40.5980973,
+        "lng": -75.3581424
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.5982017,
+          "lng": -75.3580302
+        },
+        "distance_m": 15,
+        "bearing_deg": 219.18
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0083",
+      "coordinates": {
+        "lat": 40.5978884,
+        "lng": -75.3583666
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.5982017,
+          "lng": -75.3580302
+        },
+        "distance_m": 45,
+        "bearing_deg": 219.18
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0084",
+      "coordinates": {
+        "lat": 40.5971572,
+        "lng": -75.3591514
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.5982017,
+          "lng": -75.3580302
+        },
+        "distance_m": 150,
+        "bearing_deg": 219.18
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0085",
+      "coordinates": {
+        "lat": 39.9418695,
+        "lng": -75.1878137
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 39.9417954,
+          "lng": -75.187667
+        },
+        "distance_m": 15,
+        "bearing_deg": 303.39
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 220-287 - PECO ENERGY CO (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0086",
+      "coordinates": {
+        "lat": 39.9420178,
+        "lng": -75.1881072
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 39.9417954,
+          "lng": -75.187667
+        },
+        "distance_m": 45,
+        "bearing_deg": 303.39
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - PECO ENERGY CO (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0087",
+      "coordinates": {
+        "lat": 39.9425369,
+        "lng": -75.1891344
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 39.9417954,
+          "lng": -75.187667
+        },
+        "distance_m": 150,
+        "bearing_deg": 303.39
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from 220-287 - PECO ENERGY CO (230kV) \u2014 inside 60m warning radius (adjusted: nearest line is NOT AVAILABLE - PECO ENERGY CO at 7m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0088",
+      "coordinates": {
+        "lat": 40.346601,
+        "lng": -75.322048
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3467171,
+          "lng": -75.3219584
+        },
+        "distance_m": 15,
+        "bearing_deg": 210.45
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0089",
+      "coordinates": {
+        "lat": 40.3463686,
+        "lng": -75.3222272
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3467171,
+          "lng": -75.3219584
+        },
+        "distance_m": 45,
+        "bearing_deg": 210.45
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0090",
+      "coordinates": {
+        "lat": 40.3455555,
+        "lng": -75.3228545
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.3467171,
+          "lng": -75.3219584
+        },
+        "distance_m": 150,
+        "bearing_deg": 210.45
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0091",
+      "coordinates": {
+        "lat": 41.0188847,
+        "lng": -73.8333087
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 345 - NOT AVAILABLE (345kV)",
+      "source_segment": {
+        "name": "345 - NOT AVAILABLE",
+        "voltage": 345,
+        "volt_class": "345",
+        "midpoint": {
+          "lat": 41.018905,
+          "lng": -73.8334853
+        },
+        "distance_m": 15,
+        "bearing_deg": 98.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 345 - NOT AVAILABLE (345kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0092",
+      "coordinates": {
+        "lat": 41.0188441,
+        "lng": -73.8329556
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 345 - NOT AVAILABLE (345kV)",
+      "source_segment": {
+        "name": "345 - NOT AVAILABLE",
+        "voltage": 345,
+        "volt_class": "345",
+        "midpoint": {
+          "lat": 41.018905,
+          "lng": -73.8334853
+        },
+        "distance_m": 45,
+        "bearing_deg": 98.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 345 - NOT AVAILABLE (345kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0093",
+      "coordinates": {
+        "lat": 41.018702,
+        "lng": -73.8317197
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 345 - NOT AVAILABLE (345kV)",
+      "source_segment": {
+        "name": "345 - NOT AVAILABLE",
+        "voltage": 345,
+        "volt_class": "345",
+        "midpoint": {
+          "lat": 41.018905,
+          "lng": -73.8334853
+        },
+        "distance_m": 150,
+        "bearing_deg": 98.66
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 345 - NOT AVAILABLE (345kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0094",
+      "coordinates": {
+        "lat": 40.0135192,
+        "lng": -75.1304173
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0135901,
+          "lng": -75.1302677
+        },
+        "distance_m": 15,
+        "bearing_deg": 238.24
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 220-287 - PECO ENERGY CO (230kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0095",
+      "coordinates": {
+        "lat": 40.0133773,
+        "lng": -75.1307164
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0135901,
+          "lng": -75.1302677
+        },
+        "distance_m": 45,
+        "bearing_deg": 238.24
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 220-287 - PECO ENERGY CO (230kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0096",
+      "coordinates": {
+        "lat": 40.0128808,
+        "lng": -75.1317635
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - PECO ENERGY CO (230kV)",
+      "source_segment": {
+        "name": "220-287 - PECO ENERGY CO",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.0135901,
+          "lng": -75.1302677
+        },
+        "distance_m": 150,
+        "bearing_deg": 238.24
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - PECO ENERGY CO (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0097",
+      "coordinates": {
+        "lat": 40.718495,
+        "lng": -73.6866064
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7185031,
+          "lng": -73.6864289
+        },
+        "distance_m": 15,
+        "bearing_deg": 266.55
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 189m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0098",
+      "coordinates": {
+        "lat": 40.7184788,
+        "lng": -73.6869613
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7185031,
+          "lng": -73.6864289
+        },
+        "distance_m": 45,
+        "bearing_deg": 266.55
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 168m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0099",
+      "coordinates": {
+        "lat": 40.7184221,
+        "lng": -73.6882036
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7185031,
+          "lng": -73.6864289
+        },
+        "distance_m": 150,
+        "bearing_deg": 266.55
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0100",
+      "coordinates": {
+        "lat": 41.4083755,
+        "lng": -72.0470684
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.4083682,
+          "lng": -72.0472478
+        },
+        "distance_m": 15,
+        "bearing_deg": 86.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 151m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0101",
+      "coordinates": {
+        "lat": 41.4083903,
+        "lng": -72.0467096
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.4083682,
+          "lng": -72.0472478
+        },
+        "distance_m": 45,
+        "bearing_deg": 86.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 181m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0102",
+      "coordinates": {
+        "lat": 41.4084418,
+        "lng": -72.0454539
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.4083682,
+          "lng": -72.0472478
+        },
+        "distance_m": 150,
+        "bearing_deg": 86.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0103",
+      "coordinates": {
+        "lat": 41.1160875,
+        "lng": -75.519353
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 41.1160565,
+          "lng": -75.519527
+        },
+        "distance_m": 15,
+        "bearing_deg": 76.68
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0104",
+      "coordinates": {
+        "lat": 41.1161496,
+        "lng": -75.5190049
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 41.1160565,
+          "lng": -75.519527
+        },
+        "distance_m": 45,
+        "bearing_deg": 76.68
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0105",
+      "coordinates": {
+        "lat": 41.1163669,
+        "lng": -75.5177865
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 41.1160565,
+          "lng": -75.519527
+        },
+        "distance_m": 150,
+        "bearing_deg": 76.68
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0106",
+      "coordinates": {
+        "lat": 41.3508154,
+        "lng": -73.1505546
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3508817,
+          "lng": -73.1503984
+        },
+        "distance_m": 15,
+        "bearing_deg": 240.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0107",
+      "coordinates": {
+        "lat": 41.3506828,
+        "lng": -73.1508672
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3508817,
+          "lng": -73.1503984
+        },
+        "distance_m": 45,
+        "bearing_deg": 240.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0108",
+      "coordinates": {
+        "lat": 41.3502188,
+        "lng": -73.1519611
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3508817,
+          "lng": -73.1503984
+        },
+        "distance_m": 150,
+        "bearing_deg": 240.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0109",
+      "coordinates": {
+        "lat": 40.8083554,
+        "lng": -75.4783507
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.8083204,
+          "lng": -75.4781788
+        },
+        "distance_m": 15,
+        "bearing_deg": 285.04
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (138kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0110",
+      "coordinates": {
+        "lat": 40.8084253,
+        "lng": -75.4786946
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.8083204,
+          "lng": -75.4781788
+        },
+        "distance_m": 45,
+        "bearing_deg": 285.04
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (138kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0111",
+      "coordinates": {
+        "lat": 40.8086701,
+        "lng": -75.4798981
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (138kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 138,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 40.8083204,
+          "lng": -75.4781788
+        },
+        "distance_m": 150,
+        "bearing_deg": 285.04
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (138kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0112",
+      "coordinates": {
+        "lat": 41.5785677,
+        "lng": -73.0798453
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.578509,
+          "lng": -73.0796831
+        },
+        "distance_m": 15,
+        "bearing_deg": 295.83
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 79m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0113",
+      "coordinates": {
+        "lat": 41.5786851,
+        "lng": -73.0801695
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.578509,
+          "lng": -73.0796831
+        },
+        "distance_m": 45,
+        "bearing_deg": 295.83
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0114",
+      "coordinates": {
+        "lat": 41.5790961,
+        "lng": -73.0813045
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.578509,
+          "lng": -73.0796831
+        },
+        "distance_m": 150,
+        "bearing_deg": 295.83
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 33m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0115",
+      "coordinates": {
+        "lat": 40.8599436,
+        "lng": -73.3878614
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8600712,
+          "lng": -73.3878041
+        },
+        "distance_m": 15,
+        "bearing_deg": 198.75
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0116",
+      "coordinates": {
+        "lat": 40.8596884,
+        "lng": -73.3879759
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8600712,
+          "lng": -73.3878041
+        },
+        "distance_m": 45,
+        "bearing_deg": 198.75
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0117",
+      "coordinates": {
+        "lat": 40.8587952,
+        "lng": -73.3883768
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.8600712,
+          "lng": -73.3878041
+        },
+        "distance_m": 150,
+        "bearing_deg": 198.75
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 inside 60m warning radius (adjusted: nearest line is NOT AVAILABLE - LONG ISLAND POWER AUTHORITY at 56m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0118",
+      "coordinates": {
+        "lat": 41.6636899,
+        "lng": -74.5752347
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6636269,
+          "lng": -74.5750752
+        },
+        "distance_m": 15,
+        "bearing_deg": 297.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0119",
+      "coordinates": {
+        "lat": 41.6638158,
+        "lng": -74.5755536
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6636269,
+          "lng": -74.5750752
+        },
+        "distance_m": 45,
+        "bearing_deg": 297.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0120",
+      "coordinates": {
+        "lat": 41.6642567,
+        "lng": -74.5766697
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6636269,
+          "lng": -74.5750752
+        },
+        "distance_m": 150,
+        "bearing_deg": 297.87
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0121",
+      "coordinates": {
+        "lat": 39.8512295,
+        "lng": -74.9291146
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.851206,
+          "lng": -74.9289418
+        },
+        "distance_m": 15,
+        "bearing_deg": 280.06
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0122",
+      "coordinates": {
+        "lat": 39.8512766,
+        "lng": -74.9294602
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.851206,
+          "lng": -74.9289418
+        },
+        "distance_m": 45,
+        "bearing_deg": 280.06
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0123",
+      "coordinates": {
+        "lat": 39.8514415,
+        "lng": -74.9306699
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.851206,
+          "lng": -74.9289418
+        },
+        "distance_m": 150,
+        "bearing_deg": 280.06
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0124",
+      "coordinates": {
+        "lat": 41.6639441,
+        "lng": -73.0933917
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV)",
+      "source_segment": {
+        "name": "100-161 - CONNECTICUT LIGHT & POWER CO",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6639644,
+          "lng": -73.0932134
+        },
+        "distance_m": 15,
+        "bearing_deg": 261.3
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0125",
+      "coordinates": {
+        "lat": 41.6639033,
+        "lng": -73.0937483
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV)",
+      "source_segment": {
+        "name": "100-161 - CONNECTICUT LIGHT & POWER CO",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6639644,
+          "lng": -73.0932134
+        },
+        "distance_m": 45,
+        "bearing_deg": 261.3
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0126",
+      "coordinates": {
+        "lat": 41.6637606,
+        "lng": -73.0949963
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV)",
+      "source_segment": {
+        "name": "100-161 - CONNECTICUT LIGHT & POWER CO",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.6639644,
+          "lng": -73.0932134
+        },
+        "distance_m": 150,
+        "bearing_deg": 261.3
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - CONNECTICUT LIGHT & POWER CO (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0127",
+      "coordinates": {
+        "lat": 41.3918186,
+        "lng": -73.4187387
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3916843,
+          "lng": -73.4187527
+        },
+        "distance_m": 15,
+        "bearing_deg": 4.49
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 130m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0128",
+      "coordinates": {
+        "lat": 41.3920873,
+        "lng": -73.4187105
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3916843,
+          "lng": -73.4187527
+        },
+        "distance_m": 45,
+        "bearing_deg": 4.49
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius (adjusted: nearest line is 100-161 - NOT AVAILABLE at 160m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0129",
+      "coordinates": {
+        "lat": 41.3930276,
+        "lng": -73.4186121
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 100-161 - NOT AVAILABLE (115kV)",
+      "source_segment": {
+        "name": "100-161 - NOT AVAILABLE",
+        "voltage": 115,
+        "volt_class": "100-161",
+        "midpoint": {
+          "lat": 41.3916843,
+          "lng": -73.4187527
+        },
+        "distance_m": 150,
+        "bearing_deg": 4.49
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 100-161 - NOT AVAILABLE (115kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0130",
+      "coordinates": {
+        "lat": 40.6572665,
+        "lng": -75.3946898
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6573786,
+          "lng": -75.3947884
+        },
+        "distance_m": 15,
+        "bearing_deg": 146.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0131",
+      "coordinates": {
+        "lat": 40.6570423,
+        "lng": -75.3944926
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6573786,
+          "lng": -75.3947884
+        },
+        "distance_m": 45,
+        "bearing_deg": 146.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0132",
+      "coordinates": {
+        "lat": 40.6562577,
+        "lng": -75.3938026
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 40.6573786,
+          "lng": -75.3947884
+        },
+        "distance_m": 150,
+        "bearing_deg": 146.29
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0133",
+      "coordinates": {
+        "lat": 42.1135377,
+        "lng": -73.9475659
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 42.1134763,
+          "lng": -73.9474042
+        },
+        "distance_m": 15,
+        "bearing_deg": 297.1
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius (adjusted: nearest line is Under 100 - NOT AVAILABLE at 271m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0134",
+      "coordinates": {
+        "lat": 42.1136605,
+        "lng": -73.9478893
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 42.1134763,
+          "lng": -73.9474042
+        },
+        "distance_m": 45,
+        "bearing_deg": 297.1
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from Under 100 - NOT AVAILABLE (69kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0135",
+      "coordinates": {
+        "lat": 42.1140901,
+        "lng": -73.9490213
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from Under 100 - NOT AVAILABLE (69kV)",
+      "source_segment": {
+        "name": "Under 100 - NOT AVAILABLE",
+        "voltage": 69,
+        "volt_class": "Under 100",
+        "midpoint": {
+          "lat": 42.1134763,
+          "lng": -73.9474042
+        },
+        "distance_m": 150,
+        "bearing_deg": 297.1
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from Under 100 - NOT AVAILABLE (69kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0136",
+      "coordinates": {
+        "lat": 39.9306343,
+        "lng": -74.875778
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.9306023,
+          "lng": -74.8759487
+        },
+        "distance_m": 15,
+        "bearing_deg": 76.27
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 115m, not 15m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0137",
+      "coordinates": {
+        "lat": 39.9306982,
+        "lng": -74.8754366
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.9306023,
+          "lng": -74.8759487
+        },
+        "distance_m": 45,
+        "bearing_deg": 76.27
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius (adjusted: nearest line is NOT AVAILABLE - NOT AVAILABLE at 146m, not 45m as generated)",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0138",
+      "coordinates": {
+        "lat": 39.9309221,
+        "lng": -74.8742417
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - NOT AVAILABLE",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 39.9306023,
+          "lng": -74.8759487
+        },
+        "distance_m": 150,
+        "bearing_deg": 76.27
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - NOT AVAILABLE (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0139",
+      "coordinates": {
+        "lat": 40.819173,
+        "lng": -74.3792418
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.8193074,
+          "lng": -74.3792308
+        },
+        "distance_m": 15,
+        "bearing_deg": 183.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0140",
+      "coordinates": {
+        "lat": 40.818904,
+        "lng": -74.3792637
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.8193074,
+          "lng": -74.3792308
+        },
+        "distance_m": 45,
+        "bearing_deg": 183.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0141",
+      "coordinates": {
+        "lat": 40.8179625,
+        "lng": -74.3793403
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.8193074,
+          "lng": -74.3792308
+        },
+        "distance_m": 150,
+        "bearing_deg": 183.53
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0142",
+      "coordinates": {
+        "lat": 40.253994,
+        "lng": -74.7136114
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2539279,
+          "lng": -74.7137653
+        },
+        "distance_m": 15,
+        "bearing_deg": 60.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0143",
+      "coordinates": {
+        "lat": 40.2541263,
+        "lng": -74.7133038
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2539279,
+          "lng": -74.7137653
+        },
+        "distance_m": 45,
+        "bearing_deg": 60.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0144",
+      "coordinates": {
+        "lat": 40.2545893,
+        "lng": -74.712227
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.2539279,
+          "lng": -74.7137653
+        },
+        "distance_m": 150,
+        "bearing_deg": 60.6
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0145",
+      "coordinates": {
+        "lat": 40.7911073,
+        "lng": -73.3445178
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7912191,
+          "lng": -73.3446172
+        },
+        "distance_m": 15,
+        "bearing_deg": 146.05
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "15m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0146",
+      "coordinates": {
+        "lat": 40.7908838,
+        "lng": -73.3443191
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7912191,
+          "lng": -73.3446172
+        },
+        "distance_m": 45,
+        "bearing_deg": 146.05
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "45m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 adjusted to PASS: no HIFLD line found within 300m of generated point",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0147",
+      "coordinates": {
+        "lat": 40.7901013,
+        "lng": -73.3436234
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE)",
+      "source_segment": {
+        "name": "NOT AVAILABLE - LONG ISLAND POWER AUTHORITY",
+        "voltage": "",
+        "volt_class": "NOT AVAILABLE",
+        "midpoint": {
+          "lat": 40.7912191,
+          "lng": -73.3446172
+        },
+        "distance_m": 150,
+        "bearing_deg": 146.05
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from NOT AVAILABLE - LONG ISLAND POWER AUTHORITY (NOT AVAILABLE) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0148",
+      "coordinates": {
+        "lat": 40.6477367,
+        "lng": -74.2600645
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 15m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.6476106,
+          "lng": -74.2601271
+        },
+        "distance_m": 15,
+        "bearing_deg": 20.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "15m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0149",
+      "coordinates": {
+        "lat": 40.6479889,
+        "lng": -74.2599393
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 45m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.6476106,
+          "lng": -74.2601271
+        },
+        "distance_m": 45,
+        "bearing_deg": 20.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "45m from 220-287 - NOT AVAILABLE (230kV) \u2014 inside 60m warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-hifld-0150",
+      "coordinates": {
+        "lat": 40.6488716,
+        "lng": -74.2595011
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from 220-287 - NOT AVAILABLE (230kV)",
+      "source_segment": {
+        "name": "220-287 - NOT AVAILABLE",
+        "voltage": 230,
+        "volt_class": "220-287",
+        "midpoint": {
+          "lat": 40.6476106,
+          "lng": -74.2601271
+        },
+        "distance_m": 150,
+        "bearing_deg": 20.64
+      },
+      "tier1_health_checks": {
+        "hifld_power_lines": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from 220-287 - NOT AVAILABLE (230kV) \u2014 outside warning radius",
+          "source": "synthetic from spatial.db facilities_hifld"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
