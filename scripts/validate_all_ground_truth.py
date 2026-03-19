@@ -36,6 +36,7 @@ _DIMENSION_LABELS = {
     "fra": "FRA rail proximity",
     "hifld": "HIFLD power lines",
     "tri": "TRI toxic release proximity",
+    "fema": "FEMA flood zone containment",
 }
 
 

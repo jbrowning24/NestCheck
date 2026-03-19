@@ -1,0 +1,3015 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T03:15:57.468247+00:00",
+  "_generator": "generate_ground_truth_fema.py",
+  "_polygon_count": 50,
+  "_test_count": 100,
+  "_thresholds": {
+    "zone_a_v": "FAIL (Special Flood Hazard Area)",
+    "zone_x_shaded": "WARNING (moderate risk)",
+    "outside": "PASS",
+    "source": "property_evaluator.py check_flood_zones()"
+  },
+  "addresses": [
+    {
+      "id": "gt-fema-0001",
+      "coordinates": {
+        "lat": 40.813097,
+        "lng": -74.1936539
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.813097,
+          "lng": -74.1936539
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0002",
+      "coordinates": {
+        "lat": 40.8166863,
+        "lng": -74.1972086
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.813097,
+          "lng": -74.1936539
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 323.22
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0003",
+      "coordinates": {
+        "lat": 40.7214286,
+        "lng": -74.3906989
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7214286,
+          "lng": -74.3906989
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0004",
+      "coordinates": {
+        "lat": 40.7189022,
+        "lng": -74.3870815
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7214286,
+          "lng": -74.3906989
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 143.78
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0005",
+      "coordinates": {
+        "lat": 41.571272,
+        "lng": -72.5914736
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.571272,
+          "lng": -72.5914736
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone A (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0006",
+      "coordinates": {
+        "lat": 41.5750765,
+        "lng": -72.5910662
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.571272,
+          "lng": -72.5914736
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 78.96
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone A (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0007",
+      "coordinates": {
+        "lat": 40.450594,
+        "lng": -74.363607
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.450594,
+          "lng": -74.363607
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0008",
+      "coordinates": {
+        "lat": 40.454956,
+        "lng": -74.3640553
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.450594,
+          "lng": -74.363607
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 359.11
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0009",
+      "coordinates": {
+        "lat": 40.3053713,
+        "lng": -74.0633752
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.3053713,
+          "lng": -74.0633752
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0010",
+      "coordinates": {
+        "lat": 40.3008335,
+        "lng": -74.0636523
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.3053713,
+          "lng": -74.0633752
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 183.43
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0011",
+      "coordinates": {
+        "lat": 40.8797114,
+        "lng": -74.2932517
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8797114,
+          "lng": -74.2932517
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0012",
+      "coordinates": {
+        "lat": 40.8848855,
+        "lng": -74.2930422
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8797114,
+          "lng": -74.2932517
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 32.73
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone AE (SFHA) (adjusted: landed in AE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0013",
+      "coordinates": {
+        "lat": 40.5947527,
+        "lng": -73.7405917
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.5947527,
+          "lng": -73.7405917
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0014",
+      "coordinates": {
+        "lat": 40.6001702,
+        "lng": -73.7423783
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.5947527,
+          "lng": -73.7405917
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 16.96
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone AE (SFHA) (adjusted: landed in AE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0015",
+      "coordinates": {
+        "lat": 40.7934929,
+        "lng": -74.3630781
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7934929,
+          "lng": -74.3630781
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0016",
+      "coordinates": {
+        "lat": 40.8029681,
+        "lng": -74.36204
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7934929,
+          "lng": -74.3630781
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 39.47
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0017",
+      "coordinates": {
+        "lat": 40.4577349,
+        "lng": -74.4491056
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4577349,
+          "lng": -74.4491056
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0018",
+      "coordinates": {
+        "lat": 40.4544722,
+        "lng": -74.4532597
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4577349,
+          "lng": -74.4491056
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 225.88
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0019",
+      "coordinates": {
+        "lat": 41.7066812,
+        "lng": -72.5851079
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7066812,
+          "lng": -72.5851079
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0020",
+      "coordinates": {
+        "lat": 41.7043527,
+        "lng": -72.594031
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7066812,
+          "lng": -72.5851079
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 285.15
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone AE (SFHA) (adjusted: landed in AE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0021",
+      "coordinates": {
+        "lat": 40.2074795,
+        "lng": -74.0076785
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2074795,
+          "lng": -74.0076785
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0022",
+      "coordinates": {
+        "lat": 40.204636,
+        "lng": -74.0019189
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2074795,
+          "lng": -74.0076785
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 151.98
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone AE (SFHA) (adjusted: landed in VE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0023",
+      "coordinates": {
+        "lat": 40.4997527,
+        "lng": -74.2692056
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4997527,
+          "lng": -74.2692056
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0024",
+      "coordinates": {
+        "lat": 40.5048335,
+        "lng": -74.2730364
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4997527,
+          "lng": -74.2692056
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 22.87
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0025",
+      "coordinates": {
+        "lat": 41.0054634,
+        "lng": -72.3177817
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 41.0054634,
+          "lng": -72.3177817
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0026",
+      "coordinates": {
+        "lat": 41.0036597,
+        "lng": -72.3128819
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 41.0054634,
+          "lng": -72.3177817
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 137.38
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0027",
+      "coordinates": {
+        "lat": 40.5785506,
+        "lng": -73.9321088
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.5785506,
+          "lng": -73.9321088
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone VE (SFHA) (adjusted: centroid is in X)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0028",
+      "coordinates": {
+        "lat": 40.5789672,
+        "lng": -73.9467331
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.5785506,
+          "lng": -73.9321088
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 358.6
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone VE (SFHA) (adjusted: landed in AE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0029",
+      "coordinates": {
+        "lat": 40.4135373,
+        "lng": -74.5107977
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4135373,
+          "lng": -74.5107977
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0030",
+      "coordinates": {
+        "lat": 40.4090924,
+        "lng": -74.5118371
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4135373,
+          "lng": -74.5107977
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 190.48
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0031",
+      "coordinates": {
+        "lat": 40.8832928,
+        "lng": -74.2977476
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8832928,
+          "lng": -74.2977476
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0032",
+      "coordinates": {
+        "lat": 40.8876616,
+        "lng": -74.2988666
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8832928,
+          "lng": -74.2977476
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 349.59
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0033",
+      "coordinates": {
+        "lat": 40.4239478,
+        "lng": -74.3583331
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4239478,
+          "lng": -74.3583331
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0034",
+      "coordinates": {
+        "lat": 40.4248629,
+        "lng": -74.3638205
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4239478,
+          "lng": -74.3583331
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 309.88
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0035",
+      "coordinates": {
+        "lat": 40.7838525,
+        "lng": -73.8499047
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7838525,
+          "lng": -73.8499047
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0036",
+      "coordinates": {
+        "lat": 40.7888439,
+        "lng": -73.8514305
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7838525,
+          "lng": -73.8499047
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 4.13
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0037",
+      "coordinates": {
+        "lat": 41.8370612,
+        "lng": -72.7163911
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8370612,
+          "lng": -72.7163911
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0038",
+      "coordinates": {
+        "lat": 41.8351664,
+        "lng": -72.7196748
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8370612,
+          "lng": -72.7163911
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 259.46
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0039",
+      "coordinates": {
+        "lat": 40.4537779,
+        "lng": -74.5086611
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4537779,
+          "lng": -74.5086611
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0040",
+      "coordinates": {
+        "lat": 40.4517904,
+        "lng": -74.5137016
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4537779,
+          "lng": -74.5086611
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 245.42
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0041",
+      "coordinates": {
+        "lat": 40.8572779,
+        "lng": -74.2784023
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8572779,
+          "lng": -74.2784023
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0042",
+      "coordinates": {
+        "lat": 40.8523631,
+        "lng": -74.2790311
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8572779,
+          "lng": -74.2784023
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 193.31
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0043",
+      "coordinates": {
+        "lat": 41.7514678,
+        "lng": -72.6412818
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7514678,
+          "lng": -72.6412818
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0044",
+      "coordinates": {
+        "lat": 41.7515721,
+        "lng": -72.634216
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7514678,
+          "lng": -72.6412818
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 96.06
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0045",
+      "coordinates": {
+        "lat": 40.6756249,
+        "lng": -74.3603374
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6756249,
+          "lng": -74.3603374
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0046",
+      "coordinates": {
+        "lat": 40.6722989,
+        "lng": -74.3623819
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6756249,
+          "lng": -74.3603374
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 230.75
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0047",
+      "coordinates": {
+        "lat": 40.1233761,
+        "lng": -74.0524129
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.1233761,
+          "lng": -74.0524129
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0048",
+      "coordinates": {
+        "lat": 40.1273607,
+        "lng": -74.0495878
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.1233761,
+          "lng": -74.0524129
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 40.16
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0049",
+      "coordinates": {
+        "lat": 40.2294372,
+        "lng": -74.0804784
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2294372,
+          "lng": -74.0804784
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0050",
+      "coordinates": {
+        "lat": 40.2390725,
+        "lng": -74.0708101
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2294372,
+          "lng": -74.0804784
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 156.52
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0051",
+      "coordinates": {
+        "lat": 40.0899777,
+        "lng": -74.0372563
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.0899777,
+          "lng": -74.0372563
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0052",
+      "coordinates": {
+        "lat": 40.085752,
+        "lng": -74.0353169
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.0899777,
+          "lng": -74.0372563
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 163.34
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0053",
+      "coordinates": {
+        "lat": 40.8549082,
+        "lng": -74.228547
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8549082,
+          "lng": -74.228547
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0054",
+      "coordinates": {
+        "lat": 40.8587218,
+        "lng": -74.2315441
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8549082,
+          "lng": -74.228547
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 343.37
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0055",
+      "coordinates": {
+        "lat": 41.7192281,
+        "lng": -72.6191401
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7192281,
+          "lng": -72.6191401
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0056",
+      "coordinates": {
+        "lat": 41.722197,
+        "lng": -72.6235411
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7192281,
+          "lng": -72.6191401
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 315.31
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "500m outside bbox of Zone AE (SFHA) (adjusted: landed in AE)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0057",
+      "coordinates": {
+        "lat": 41.0334331,
+        "lng": -72.1379041
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.0334331,
+          "lng": -72.1379041
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0058",
+      "coordinates": {
+        "lat": 41.0404636,
+        "lng": -72.129741
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.0334331,
+          "lng": -72.1379041
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 94.82
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0059",
+      "coordinates": {
+        "lat": 40.6448494,
+        "lng": -73.8733529
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6448494,
+          "lng": -73.8733529
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0060",
+      "coordinates": {
+        "lat": 40.6398035,
+        "lng": -73.8732278
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6448494,
+          "lng": -73.8733529
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 180.21
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0061",
+      "coordinates": {
+        "lat": 41.8966479,
+        "lng": -72.7459735
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8966479,
+          "lng": -72.7459735
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid is in X)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0062",
+      "coordinates": {
+        "lat": 41.9022818,
+        "lng": -72.7481197
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8966479,
+          "lng": -72.7459735
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 64.31
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0063",
+      "coordinates": {
+        "lat": 41.723003,
+        "lng": -72.9167745
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.723003,
+          "lng": -72.9167745
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone A (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0064",
+      "coordinates": {
+        "lat": 41.7250526,
+        "lng": -72.9223781
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.723003,
+          "lng": -72.9167745
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 328.55
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone A (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0065",
+      "coordinates": {
+        "lat": 40.8635637,
+        "lng": -74.2262864
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8635637,
+          "lng": -74.2262864
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0066",
+      "coordinates": {
+        "lat": 40.8653113,
+        "lng": -74.2311911
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8635637,
+          "lng": -74.2262864
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 313.39
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0067",
+      "coordinates": {
+        "lat": 40.4344034,
+        "lng": -74.396025
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4344034,
+          "lng": -74.396025
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0068",
+      "coordinates": {
+        "lat": 40.4331238,
+        "lng": -74.3894992
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.4344034,
+          "lng": -74.396025
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 107.44
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0069",
+      "coordinates": {
+        "lat": 41.7947833,
+        "lng": -72.5048196
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7947833,
+          "lng": -72.5048196
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0070",
+      "coordinates": {
+        "lat": 41.7917842,
+        "lng": -72.5078726
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.7947833,
+          "lng": -72.5048196
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 230.02
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0071",
+      "coordinates": {
+        "lat": 40.2375323,
+        "lng": -74.0828187
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2375323,
+          "lng": -74.0828187
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0072",
+      "coordinates": {
+        "lat": 40.2337337,
+        "lng": -74.0860231
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.2375323,
+          "lng": -74.0828187
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 219.23
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0073",
+      "coordinates": {
+        "lat": 40.9077765,
+        "lng": -72.3045191
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.9077765,
+          "lng": -72.3045191
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0074",
+      "coordinates": {
+        "lat": 40.9135648,
+        "lng": -72.3016852
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.9077765,
+          "lng": -72.3045191
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 55.02
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0075",
+      "coordinates": {
+        "lat": 40.5241053,
+        "lng": -74.3556352
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.5241053,
+          "lng": -74.3556352
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0076",
+      "coordinates": {
+        "lat": 40.5242967,
+        "lng": -74.3617516
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.5241053,
+          "lng": -74.3556352
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 274.5
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0077",
+      "coordinates": {
+        "lat": 40.444654,
+        "lng": -74.4391924
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.444654,
+          "lng": -74.4391924
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0078",
+      "coordinates": {
+        "lat": 40.4402382,
+        "lng": -74.4405874
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.444654,
+          "lng": -74.4391924
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 194.18
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0079",
+      "coordinates": {
+        "lat": 40.8017206,
+        "lng": -73.7560795
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.8017206,
+          "lng": -73.7560795
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0080",
+      "coordinates": {
+        "lat": 40.8010605,
+        "lng": -73.7637697
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.8017206,
+          "lng": -73.7560795
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 280.31
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0081",
+      "coordinates": {
+        "lat": 40.427105,
+        "lng": -74.4357795
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.427105,
+          "lng": -74.4357795
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0082",
+      "coordinates": {
+        "lat": 40.4216569,
+        "lng": -74.4333715
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE - FLOODWAY (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE - FLOODWAY",
+        "fld_zone": "AE",
+        "zone_subtype": "FLOODWAY",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.427105,
+          "lng": -74.4357795
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 190.93
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0083",
+      "coordinates": {
+        "lat": 40.6179975,
+        "lng": -74.3814026
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6179975,
+          "lng": -74.3814026
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0084",
+      "coordinates": {
+        "lat": 40.6269265,
+        "lng": -74.3899797
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.6179975,
+          "lng": -74.3814026
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 0.21
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0085",
+      "coordinates": {
+        "lat": 40.2706915,
+        "lng": -73.9832099
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.2706915,
+          "lng": -73.9832099
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0086",
+      "coordinates": {
+        "lat": 40.2792411,
+        "lng": -73.973327
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone VE (Zone VE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone VE",
+        "fld_zone": "VE",
+        "zone_subtype": "",
+        "zone_label": "Zone VE (SFHA)",
+        "centroid": {
+          "lat": 40.2706915,
+          "lng": -73.9832099
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 116.7
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone VE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0087",
+      "coordinates": {
+        "lat": 40.254734,
+        "lng": -74.039394
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.254734,
+          "lng": -74.039394
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0088",
+      "coordinates": {
+        "lat": 40.259197,
+        "lng": -74.0386926
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.254734,
+          "lng": -74.039394
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 7.01
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0089",
+      "coordinates": {
+        "lat": 41.8876246,
+        "lng": -72.80419
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.8876246,
+          "lng": -72.80419
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone A (SFHA) (adjusted: centroid is in X)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0090",
+      "coordinates": {
+        "lat": 41.8887342,
+        "lng": -72.8121986
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone A (Zone A (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone A",
+        "fld_zone": "A",
+        "zone_subtype": "",
+        "zone_label": "Zone A (SFHA)",
+        "centroid": {
+          "lat": 41.8876246,
+          "lng": -72.80419
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 334.48
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone A (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0091",
+      "coordinates": {
+        "lat": 40.8231499,
+        "lng": -74.2497738
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8231499,
+          "lng": -74.2497738
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0092",
+      "coordinates": {
+        "lat": 40.8218184,
+        "lng": -74.2558034
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.8231499,
+          "lng": -74.2497738
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 316.34
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0093",
+      "coordinates": {
+        "lat": 40.7914323,
+        "lng": -74.2006901
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7914323,
+          "lng": -74.2006901
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0094",
+      "coordinates": {
+        "lat": 40.7933809,
+        "lng": -74.2059716
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7914323,
+          "lng": -74.2006901
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 299.4
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0095",
+      "coordinates": {
+        "lat": 41.8651285,
+        "lng": -72.6911618
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8651285,
+          "lng": -72.6911618
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "centroid of Zone AE (SFHA) (adjusted: centroid outside polygon boundary)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0096",
+      "coordinates": {
+        "lat": 41.863645,
+        "lng": -72.6851503
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.8651285,
+          "lng": -72.6911618
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 110.71
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0097",
+      "coordinates": {
+        "lat": 41.0552652,
+        "lng": -72.3176605
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.0552652,
+          "lng": -72.3176605
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0098",
+      "coordinates": {
+        "lat": 41.0605833,
+        "lng": -72.3164777
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 41.0552652,
+          "lng": -72.3176605
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 20.85
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0099",
+      "coordinates": {
+        "lat": 40.7926354,
+        "lng": -74.1781255
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 centroid of Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7926354,
+          "lng": -74.1781255
+        },
+        "position": "inside"
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "FAIL",
+          "expected_pass": false,
+          "notes": "centroid of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fema-0100",
+      "coordinates": {
+        "lat": 40.7954935,
+        "lng": -74.183596
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m outside Flood Zone AE (Zone AE (SFHA))",
+      "source_polygon": {
+        "name": "Flood Zone AE",
+        "fld_zone": "AE",
+        "zone_subtype": "",
+        "zone_label": "Zone AE (SFHA)",
+        "centroid": {
+          "lat": 40.7926354,
+          "lng": -74.1781255
+        },
+        "position": "outside",
+        "offset_m": 500,
+        "bearing_deg": 316.08
+      },
+      "tier1_health_checks": {
+        "flood_zone": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m outside bbox of Zone AE (SFHA)",
+          "source": "synthetic from spatial.db facilities_fema_nfhl"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
