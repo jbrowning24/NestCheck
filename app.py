@@ -3849,7 +3849,7 @@ INGEST_REGISTRY = {
     "tri":         ("ingest_tri.py",         {"state", "limit", "verify"}),
     "sems":        ("ingest_sems.py",        {"state", "limit", "verify"}),
     "hpms":        ("ingest_hpms.py",        {"state", "states", "limit", "dry_run", "verify"}),
-    "fema":        ("ingest_fema.py",        {"metro", "bbox", "limit", "verify"}),
+    "fema":        ("ingest_fema.py",        {"metro", "metros", "states", "bbox", "limit", "verify"}),
     "hifld":       ("ingest_hifld.py",       {"limit", "verify"}),
     "fra":         ("ingest_fra.py",         {"limit", "us_only", "verify"}),
     "ejscreen":    ("ingest_ejscreen.py",    {"state", "limit", "verify"}),
@@ -3890,6 +3890,7 @@ def _build_script_args(dataset, opts):
         ("verify",  "--verify",  opts.get("verify", False)),
         ("us_only", "--us-only", opts.get("us_only", False)),
         ("dry_run", "--dry-run", opts.get("dry_run", False)),
+        ("metros",  "--metros",  opts.get("metros", False)),
     ]
     for key, flag, is_set in bool_opts:
         if key in supported and is_set:
@@ -3916,7 +3917,9 @@ def _register_ingest_command():
     @click.option("--states", default="",
                   help="HPMS: comma-separated states (e.g., NY,CA,IL). Default: all 52.")
     @click.option("--metro", "-m", default="",
-                  help="FEMA: predefined metro bbox (nyc, sf, chicago, la, seattle).")
+                  help="FEMA: predefined metro bbox (nyc, sf, chicago, la, seattle, detroit).")
+    @click.option("--metros", is_flag=True,
+                  help="FEMA: ingest all metros matching --states (or all TARGET_STATES).")
     @click.option("--bbox", default="",
                   help="Bounding box: lng_min,lat_min,lng_max,lat_max (FEMA, TIGER).")
     @click.option("--county", default="",
@@ -3929,7 +3932,7 @@ def _register_ingest_command():
                   help="FRA: filter to US rail lines only.")
     @click.option("--dry-run", "dry_run", is_flag=True,
                   help="HPMS: probe services without writing to DB.")
-    def ingest_command(datasets, list_datasets, state, states, metro, bbox,
+    def ingest_command(datasets, list_datasets, state, states, metro, metros, bbox,
                        county, limit, verify, us_only, dry_run):
         """Ingest spatial datasets into spatial.db."""
 
@@ -3958,7 +3961,7 @@ def _register_ingest_command():
 
         # Collect options into a dict for _build_script_args
         opts = dict(
-            state=state, states=states, metro=metro, bbox=bbox,
+            state=state, states=states, metro=metro, metros=metros, bbox=bbox,
             county=county, limit=limit, verify=verify,
             us_only=us_only, dry_run=dry_run,
         )

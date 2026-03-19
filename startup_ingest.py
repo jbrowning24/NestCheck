@@ -11,7 +11,7 @@ never blocks the others or crashes the worker.
 
 Geographic scope: controlled by TARGET_STATES config below. State-filtered
 datasets derive their filter lists from this dict. HIFLD ingests nationally
-(no state field available). Only FEMA NFHL still uses bbox filtering.
+(no state field available). Only FEMA NFHL uses bbox filtering.
 """
 
 import fcntl
@@ -35,7 +35,7 @@ import re
 #   fips      — 2-digit FIPS code (used by TIGER school districts)
 #   full_name — full state name (used by UST)
 #
-# HIFLD ingests nationally (no state attribute field). FEMA NFHL still uses
+# HIFLD ingests nationally (no state attribute field). FEMA NFHL uses
 # per-metro bboxes with automatic 0.5-degree grid chunking (NES-286).
 TARGET_STATES = {
     "NY": {"fips": "36", "full_name": "New York"},
