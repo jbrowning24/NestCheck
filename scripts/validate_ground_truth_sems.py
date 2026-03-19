@@ -69,7 +69,8 @@ def main():
     print(f"Generated at: {gt_data.get('_generated_at', '?')}")
     print()
 
-    # No SpatialDataStore init needed — check_superfund_npl creates its own
+    # No SpatialDataStore init needed — check_superfund_npl() creates a new
+    # SpatialDataStore instance internally on each call (line ~2504).
 
     # Run validation
     results = []
