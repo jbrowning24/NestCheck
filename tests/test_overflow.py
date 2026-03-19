@@ -126,3 +126,15 @@ class TestDump:
             result = overflow(items, limit=2, dump_path=path, dump_fn=bad_fn)
             assert result.dump_path is None
             assert result.truncated is True
+
+
+class TestValidation:
+    """Input validation edge cases."""
+
+    def test_limit_zero_raises(self):
+        with pytest.raises(ValueError, match="limit must be >= 1"):
+            overflow([1, 2, 3], limit=0)
+
+    def test_limit_negative_raises(self):
+        with pytest.raises(ValueError, match="limit must be >= 1"):
+            overflow([1], limit=-1)
