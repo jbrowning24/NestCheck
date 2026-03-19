@@ -157,10 +157,10 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("CT")
         assert dims["health"] == CoverageTier.FULL
 
-    def test_mi_health_is_minimal(self):
-        """MI has SEMS + TRI + UST active but EJSCREEN/HPMS/HIFLD/FRA/FEMA not → MINIMAL."""
+    def test_mi_health_is_full(self):
+        """MI has all 8 health sources active (HPMS added NES-305) → FULL."""
         dims = get_dimension_coverage("MI")
-        assert dims["health"] == CoverageTier.MINIMAL
+        assert dims["health"] == CoverageTier.FULL
 
     def test_mi_education_is_minimal(self):
         """MI has STATE_EDUCATION active but SCHOOL_DISTRICTS and NCES intended → MINIMAL."""
@@ -177,10 +177,10 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("MI")
         assert dims["transit"] == CoverageTier.FULL
 
-    def test_expansion_state_health_minimal(self):
-        """CA has SEMS + TRI + UST active but others intended/planned → MINIMAL."""
+    def test_expansion_state_health_partial(self):
+        """CA has SEMS + EJSCREEN + TRI + UST + HIFLD + FRA active, HPMS/FEMA planned → PARTIAL."""
         dims = get_dimension_coverage("CA")
-        assert dims["health"] == CoverageTier.MINIMAL
+        assert dims["health"] == CoverageTier.PARTIAL
 
     def test_unknown_state_returns_empty(self):
         dims = get_dimension_coverage("ZZ")
@@ -383,10 +383,10 @@ class TestSectionCoverage:
         result = get_section_coverage("NJ")
         assert "health" not in result  # FULL is omitted
 
-    def test_mi_health_minimal(self):
-        """MI health is MINIMAL → badge appears as 'minimal'."""
+    def test_mi_health_full(self):
+        """MI health is FULL (all 8 sources active, NES-305) → no badge."""
         result = get_section_coverage("MI")
-        assert result.get("health") == "minimal"
+        assert "health" not in result  # FULL is omitted
 
     def test_mi_parks_full(self):
         """MI parks mapped to green_space (FULL: live API) → no badge."""

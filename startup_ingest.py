@@ -116,6 +116,68 @@ def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
         return (False, 0)
 
 
+def _ejscreen_missing_states(db_path: str) -> list[str]:
+    """Return target state codes that have 0 EJScreen rows in spatial.db.
+
+    EJScreen stores state as 2-letter abbreviation in
+    json_extract(metadata_json, '$.state').
+    Returns e.g. ['MI', 'CA', 'TX'] for states without data.
+    On any error (table missing, DB missing), returns all target states.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='facilities_ejscreen'"
+            )
+            if not cursor.fetchone():
+                return list(TARGET_STATES.keys())
+
+            cursor = conn.execute(
+                "SELECT DISTINCT json_extract(metadata_json, '$.state') FROM facilities_ejscreen"
+            )
+            present_abbrevs = {row[0] for row in cursor.fetchall()}
+            return [
+                code for code in TARGET_STATES
+                if code not in present_abbrevs
+            ]
+        finally:
+            conn.close()
+    except Exception:
+        return list(TARGET_STATES.keys())
+
+
+def _hpms_missing_states(db_path: str) -> list[str]:
+    """Return target state codes that have 0 HPMS rows in spatial.db.
+
+    HPMS stores state as 2-letter abbreviation in
+    json_extract(metadata_json, '$.state').
+    Returns e.g. ['MI', 'CA', 'TX'] for states without data.
+    On any error (table missing, DB missing), returns all target states.
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='facilities_hpms'"
+            )
+            if not cursor.fetchone():
+                return list(TARGET_STATES.keys())
+
+            cursor = conn.execute(
+                "SELECT DISTINCT json_extract(metadata_json, '$.state') FROM facilities_hpms"
+            )
+            present_abbrevs = {row[0] for row in cursor.fetchall()}
+            return [
+                code for code in TARGET_STATES
+                if code not in present_abbrevs
+            ]
+        finally:
+            conn.close()
+    except Exception:
+        return list(TARGET_STATES.keys())
+
+
 def _ust_missing_states(db_path: str) -> list[str]:
     """Return target state codes that have 0 UST rows in spatial.db.
 
@@ -221,21 +283,37 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
         _run_ingest("fema_nfhl", _ingest_fema)
 
-    # --- HPMS (high-traffic roads, tri-state) ---
-    has_data, count = _table_has_data(db_path, "facilities_hpms")
-    if has_data:
-        logger.info("Dataset hpms: present (%d records), skipping", count)
+    # --- HPMS (high-traffic roads, all TARGET_STATES) ---
+    # HPMS uses per-state DELETE+INSERT (incremental), so only missing states
+    # need ingestion — no need to re-fetch existing states (NES-305).
+    hpms_missing = _hpms_missing_states(db_path)
+    if hpms_missing:
+        has_data, count = _table_has_data(db_path, "facilities_hpms")
+        logger.info(
+            "Dataset hpms: missing states %s (%d existing records), ingesting missing states...",
+            hpms_missing, count,
+        )
+        _run_ingest("hpms", lambda: _ingest_hpms(states_override=hpms_missing))
     else:
-        logger.info("Dataset hpms: missing or empty, starting ingestion...")
-        _run_ingest("hpms", _ingest_hpms)
+        has_data, count = _table_has_data(db_path, "facilities_hpms")
+        logger.info("Dataset hpms: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
-    # --- EJScreen (EPA environmental justice block groups, NY+CT+NJ) ---
-    has_data, count = _table_has_data(db_path, "facilities_ejscreen")
-    if has_data:
-        logger.info("Dataset ejscreen: present (%d records), skipping", count)
-    else:
-        logger.info("Dataset ejscreen: missing or empty, starting ingestion...")
+    # --- EJScreen (EPA environmental justice block groups, all TARGET_STATES) ---
+    # EJScreen uses create_facility_table() which drops and recreates,
+    # so a full re-ingest is required when any state is missing (NES-302).
+    ejscreen_missing = _ejscreen_missing_states(db_path)
+    if ejscreen_missing:
+        has_data, count = _table_has_data(db_path, "facilities_ejscreen")
+        logger.info(
+            "Dataset ejscreen: missing states %s (%d existing records), starting full ingestion...",
+            ejscreen_missing, count,
+        )
         _run_ingest("ejscreen", _ingest_ejscreen)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_ejscreen")
+        logger.info("Dataset ejscreen: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
     # --- TRI (EPA Toxic Release Inventory, NY+CT+NJ) ---
     has_data, count = _table_has_data(db_path, "facilities_tri")
@@ -344,9 +422,9 @@ def _ingest_fema():
     ingest_metros(target_states=list(TARGET_STATES.keys()))
 
 
-def _ingest_hpms():
+def _ingest_hpms(states_override: list[str] | None = None):
     from scripts.ingest_hpms import ingest as do_ingest
-    do_ingest(states_filter=list(TARGET_STATES.keys()))
+    do_ingest(states_filter=states_override or list(TARGET_STATES.keys()))
 
 
 def _ingest_ejscreen():

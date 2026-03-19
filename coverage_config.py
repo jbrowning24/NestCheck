@@ -147,9 +147,9 @@ _SOURCE_METADATA = {
         "table": "facilities_hifld",
         "dimension": "health",
         "source_url": "https://hifld-geoplatform.opendata.arcgis.com/",
-        "state_filter": None,  # bbox-filtered, no state column
+        "state_filter": None,  # national ingest, no state column
         "spatial_filter_required": True,
-        "notes": "Bbox-filtered to tri-state area (-75.6, 38.9, -71.8, 42.1).",
+        "notes": "National ingest (~94K segments). No state attribute field (NES-285).",
     },
     "FRA": {
         "description": "Freight Rail Network Lines",
@@ -158,7 +158,7 @@ _SOURCE_METADATA = {
         "source_url": "https://geodata.bts.gov/datasets/north-american-rail-network-lines",
         "state_filter": None,
         "spatial_filter_required": True,
-        "notes": "Bbox-filtered to tri-state area (-75.6, 38.9, -71.8, 42.1).",
+        "notes": "State-filtered via STATEAB WHERE clause (NES-285).",
     },
     "FEMA_NFHL": {
         "description": "FEMA Flood Zones (NFHL)",
@@ -333,12 +333,12 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "MI": {
         "name": "Michigan",
         "SEMS": "active",           # 90 rows (nationwide dataset)
-        "EJSCREEN": "intended",     # targeted but 0 rows
+        "EJSCREEN": "active",       # NES-302
         "TRI": "active",            # 769 rows (NES-303)
         "UST": "active",            # 27,780 rows (NES-304)
-        "HPMS": "intended",         # targeted but 0 rows
-        "HIFLD": "planned",         # bbox doesn't cover MI
-        "FRA": "planned",           # bbox doesn't cover MI
+        "HPMS": "active",           # NES-305
+        "HIFLD": "active",          # national ingest (NES-306)
+        "FRA": "active",            # state-filtered STATEAB (NES-306)
         "FEMA_NFHL": "active",      # Detroit metro bbox (NES-286)
         "GOOGLE_PLACES_PARKS": "active",   # live API
         "GOOGLE_TRANSIT": "active",        # live API
@@ -352,12 +352,12 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "CA": {
         "name": "California",
         "SEMS": "active",
-        "EJSCREEN": "intended",
+        "EJSCREEN": "active",       # NES-302
         "TRI": "active",            # 1,160 rows (NES-303)
         "UST": "active",            # 13,496 rows (NES-304)
-        "HPMS": "intended",
-        "HIFLD": "planned",
-        "FRA": "planned",
+        "HPMS": "active",           # NES-305
+        "HIFLD": "active",          # national ingest (NES-306)
+        "FRA": "active",            # state-filtered STATEAB (NES-306)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
@@ -370,12 +370,12 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "TX": {
         "name": "Texas",
         "SEMS": "active",
-        "EJSCREEN": "intended",
+        "EJSCREEN": "active",       # NES-302
         "TRI": "active",            # 1,734 rows (NES-303)
         "UST": "active",            # 61,236 rows (NES-304)
-        "HPMS": "intended",
-        "HIFLD": "planned",
-        "FRA": "planned",
+        "HPMS": "active",           # NES-305
+        "HIFLD": "active",          # national ingest (NES-306)
+        "FRA": "active",            # state-filtered STATEAB (NES-306)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
@@ -388,12 +388,12 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "FL": {
         "name": "Florida",
         "SEMS": "active",
-        "EJSCREEN": "intended",
+        "EJSCREEN": "active",       # NES-302
         "TRI": "active",            # 670 rows (NES-303)
         "UST": "active",            # 38,402 rows (NES-304)
-        "HPMS": "intended",
-        "HIFLD": "planned",
-        "FRA": "planned",
+        "HPMS": "active",           # NES-305
+        "HIFLD": "active",          # national ingest (NES-306)
+        "FRA": "active",            # state-filtered STATEAB (NES-306)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
@@ -406,12 +406,12 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
     "IL": {
         "name": "Illinois",
         "SEMS": "active",
-        "EJSCREEN": "intended",
+        "EJSCREEN": "active",       # NES-302
         "TRI": "active",            # 948 rows (NES-303)
         "UST": "active",            # 28,233 rows (NES-304)
-        "HPMS": "intended",
-        "HIFLD": "planned",
-        "FRA": "planned",
+        "HPMS": "active",           # NES-305
+        "HIFLD": "active",          # national ingest (NES-306)
+        "FRA": "active",            # state-filtered STATEAB (NES-306)
         "FEMA_NFHL": "planned",
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
