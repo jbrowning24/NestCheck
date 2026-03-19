@@ -274,29 +274,47 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
         _run_ingest("fema_nfhl", _ingest_fema)
 
-    # --- HPMS (high-traffic roads, tri-state) ---
-    has_data, count = _table_has_data(db_path, "facilities_hpms")
-    if has_data:
-        logger.info("Dataset hpms: present (%d records), skipping", count)
+    # --- HPMS (high-traffic roads, per-state incremental) ---
+    hpms_missing = _missing_states_abbr(db_path, "facilities_hpms")
+    if hpms_missing:
+        has_data, count = _table_has_data(db_path, "facilities_hpms")
+        logger.info(
+            "Dataset hpms: missing states %s (%d existing records), ingesting missing states...",
+            hpms_missing, count,
+        )
+        _run_ingest("hpms", lambda: _ingest_hpms_states(hpms_missing))
     else:
-        logger.info("Dataset hpms: missing or empty, starting ingestion...")
-        _run_ingest("hpms", _ingest_hpms)
+        has_data, count = _table_has_data(db_path, "facilities_hpms")
+        logger.info("Dataset hpms: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
-    # --- EJScreen (EPA environmental justice block groups, NY+CT+NJ) ---
-    has_data, count = _table_has_data(db_path, "facilities_ejscreen")
-    if has_data:
-        logger.info("Dataset ejscreen: present (%d records), skipping", count)
-    else:
-        logger.info("Dataset ejscreen: missing or empty, starting ingestion...")
+    # --- EJScreen (EPA environmental justice block groups) ---
+    ejscreen_missing = _missing_states_abbr(db_path, "facilities_ejscreen")
+    if ejscreen_missing:
+        has_data, count = _table_has_data(db_path, "facilities_ejscreen")
+        logger.info(
+            "Dataset ejscreen: missing states %s (%d existing records), re-ingesting all states...",
+            ejscreen_missing, count,
+        )
         _run_ingest("ejscreen", _ingest_ejscreen)
-
-    # --- TRI (EPA Toxic Release Inventory, NY+CT+NJ) ---
-    has_data, count = _table_has_data(db_path, "facilities_tri")
-    if has_data:
-        logger.info("Dataset tri: present (%d records), skipping", count)
     else:
-        logger.info("Dataset tri: missing or empty, starting ingestion...")
+        has_data, count = _table_has_data(db_path, "facilities_ejscreen")
+        logger.info("Dataset ejscreen: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
+
+    # --- TRI (EPA Toxic Release Inventory) ---
+    tri_missing = _missing_states_abbr(db_path, "facilities_tri")
+    if tri_missing:
+        has_data, count = _table_has_data(db_path, "facilities_tri")
+        logger.info(
+            "Dataset tri: missing states %s (%d existing records), re-ingesting all states...",
+            tri_missing, count,
+        )
         _run_ingest("tri", _ingest_tri)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_tri")
+        logger.info("Dataset tri: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
     # --- UST (EPA Underground Storage Tanks, all TARGET_STATES) ---
     # UST uses json_extract(metadata_json, '$.state') with full state names.
@@ -324,20 +342,36 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("hifld", _ingest_hifld)
 
     # --- FRA (rail network lines, state-filtered via STATEAB) ---
-    has_data, count = _table_has_data(db_path, "facilities_fra")
-    if has_data:
-        logger.info("Dataset fra: present (%d records), skipping", count)
-    else:
-        logger.info("Dataset fra: missing or empty, starting ingestion...")
+    fra_missing = _missing_states(
+        db_path, "facilities_fra",
+        "json_extract(metadata_json, '$.stateab')",
+        {code: code for code in TARGET_STATES},
+    )
+    if fra_missing:
+        has_data, count = _table_has_data(db_path, "facilities_fra")
+        logger.info(
+            "Dataset fra: missing states %s (%d existing records), re-ingesting all states...",
+            fra_missing, count,
+        )
         _run_ingest("fra", _ingest_fra)
-
-    # --- School Districts (TIGER unified school district boundaries, NY+CT+NJ) ---
-    has_data, count = _table_has_data(db_path, "facilities_school_districts")
-    if has_data:
-        logger.info("Dataset school_districts: present (%d records), skipping", count)
     else:
-        logger.info("Dataset school_districts: missing or empty, starting ingestion...")
+        has_data, count = _table_has_data(db_path, "facilities_fra")
+        logger.info("Dataset fra: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
+
+    # --- School Districts (TIGER unified school district boundaries) ---
+    sd_missing = _missing_states_fips(db_path, "facilities_school_districts", "geoid")
+    if sd_missing:
+        has_data, count = _table_has_data(db_path, "facilities_school_districts")
+        logger.info(
+            "Dataset school_districts: missing states %s (%d existing records), re-ingesting all states...",
+            sd_missing, count,
+        )
         _run_ingest("school_districts", _ingest_school_districts)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_school_districts")
+        logger.info("Dataset school_districts: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
     # --- State Education Performance (school district performance metrics, multi-state) ---
     # Each state's education data is checked and ingested independently.
@@ -358,13 +392,19 @@ def _check_and_ingest_all(db_path: str) -> None:
             )
             _run_ingest(f"state_education_performance_{state_code.lower()}", ingest_fn)
 
-    # --- NCES Public Schools (2022-23, tri-state) ---
-    has_data, count = _table_has_data(db_path, "facilities_nces_schools")
-    if has_data:
-        logger.info("Dataset nces_schools: present (%d records), skipping", count)
-    else:
-        logger.info("Dataset nces_schools: missing or empty, starting ingestion...")
+    # --- NCES Public Schools (2022-23) ---
+    nces_missing = _missing_states_fips(db_path, "facilities_nces_schools", "leaid")
+    if nces_missing:
+        has_data, count = _table_has_data(db_path, "facilities_nces_schools")
+        logger.info(
+            "Dataset nces_schools: missing states %s (%d existing records), re-ingesting all states...",
+            nces_missing, count,
+        )
         _run_ingest("nces_schools", _ingest_nces_schools)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_nces_schools")
+        logger.info("Dataset nces_schools: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
 
 
 def _run_ingest(name: str, fn) -> None:
@@ -400,6 +440,12 @@ def _ingest_fema():
 def _ingest_hpms():
     from scripts.ingest_hpms import ingest as do_ingest
     do_ingest(states_filter=list(TARGET_STATES.keys()))
+
+
+def _ingest_hpms_states(states: list[str]):
+    """Ingest HPMS for specific states only (incremental — HPMS supports per-state DELETE+INSERT)."""
+    from scripts.ingest_hpms import ingest as do_ingest
+    do_ingest(states_filter=states)
 
 
 def _ingest_ejscreen():
