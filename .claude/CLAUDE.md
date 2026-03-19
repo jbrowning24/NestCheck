@@ -15,6 +15,8 @@ Property evaluation tool for Westchester County rentals. Analyzes health, lifest
 ```
 NestCheck/
 ├── app.py              # Flask routes, API endpoints
+├── cli.py              # CLI entry point (python cli.py evaluate "...")
+├── overflow.py         # Presentation-layer list truncation utility (NES-263)
 ├── models.py           # SQLite models, job queue
 ├── worker.py           # Background evaluation worker
 ├── property_evaluator.py  # Core evaluation logic, API clients
@@ -96,6 +98,14 @@ NestCheck/
 - **UI Design Specification reference**: The canonical UI spec is at `docs/UI_Design_Specification_v1.1.md`. Reference it for token values, component patterns, layout architecture, spacing rules, and accessibility requirements. When the spec and the code disagree, the spec is authoritative for new work; existing code should be migrated toward the spec incrementally.
 
 ## Key Patterns
+
+### CLI Entry Point (cli.py, NES-262)
+- **Canonical CLI**: `python cli.py evaluate "123 Main St, White Plains, NY"`. Subcommand pattern via argparse — extensible for future commands.
+- **JSON to stdout by default** (pipe to `jq`), `--pretty` for human-readable (`format_result()`), `--verbose` for stage timings to stderr.
+- **Lazy import for Flask isolation**: `from app import result_to_dict` is inside `_cmd_evaluate()`, not at module top. This keeps `--help` instant and avoids Flask bootstrapping (which fails without `SECRET_KEY` in production-like environments). The `--pretty` path uses `format_result()` from `property_evaluator.py` which has no Flask dependency. Future cleanup: extract `result_to_dict()` and its helpers to `serialization.py`.
+- **`on_stage_complete` callback**: `evaluate_property()` accepts an optional `on_stage_complete(stage_name, elapsed_seconds)` callback that fires after each stage (success or failure). The CLI uses it for `--verbose` output. Distinct from `on_stage` (fires *before* stage, used by worker for DB updates).
+- **Old CLI deprecated**: `property_evaluator.py:main()` still works but has hand-rolled JSON serialization that drifts from `result_to_dict()`. Use `cli.py evaluate` for canonical output.
+- **Makefile**: `make evaluate ADDR="..." ARGS="--verbose"`.
 
 ### Async Evaluation (job queue)
 - **POST /** with address: creates a job in SQLite, returns `{job_id}` immediately (no client timeout).
@@ -327,6 +337,7 @@ NestCheck/
 | 2026-03 | Consolidated nav links (NES-296) | Global nav links (Pricing, Coverage, auth) defined once in `_base.html`. `nav_links` block reserved for page-specific additions only (snapshot/compare "Evaluate an address" CTA, builder Dashboard). Removed 6 redundant `nav_links` overrides. Added `aria-current="page"` active-state handling via `request.path` matching |
 | 2026-03 | Curated list pages (NES-293) | Config-driven (JSON files in `data/lists/`), not database-driven. Editorial control at 3-5 lists doesn't justify a CMS. `_prepare_snapshot_for_display()` extracted to deduplicate migration pipeline across 4 deserialization paths. OG images deferred to fast-follow — static fallback sufficient for launch |
 | 2026-03 | Centralized Tier 1 thresholds (NES-265) | All health check proximity thresholds now live in `scoring_config.py:Tier1Thresholds` (17 fields). `property_evaluator.py` imports via `_T1 = SCORING_MODEL.tier1` and re-exports module-level constants for backward compatibility with ground truth scripts. Zero behavior change — pure refactor for single source of truth |
+| 2026-03 | CLI entry point via cli.py (NES-262) | `cli.py` with argparse subcommand pattern wraps `evaluate_property()` directly — no Flask, no job queue, no polling. JSON default (pipe to jq), `--pretty` for humans, `--verbose` for stage timings to stderr. `result_to_dict()` lazy-imported from `app.py` to avoid Flask bootstrapping at startup. Old CLI in `property_evaluator.py:main()` deprecated but preserved |
 
 ### Payment (Stripe Checkout + Free Tier)
 - **Payment state machine**: `pending` (checkout created) → `paid` (webhook confirmed or Stripe API verified) → `redeemed` (evaluation started). On eval failure: `redeemed` → `failed_reissued` (user can retry). Atomic CAS guards (`expected_status`) prevent TOCTOU races between webhook and return-from-Stripe.
