@@ -268,11 +268,25 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("sems", _ingest_sems)
 
     # --- FEMA NFHL (flood zones, per-metro with grid chunking) ---
+    # Version-based re-ingestion: when metro bboxes change, FEMA_INGEST_VERSION
+    # is bumped in ingest_fema.py. Compare against stored version to trigger
+    # re-ingest even when the table already has data.
+    from scripts.ingest_fema import FEMA_INGEST_VERSION, get_stored_fema_version
+    stored_fema_version = get_stored_fema_version()
     has_data, count = _table_has_data(db_path, "facilities_fema_nfhl")
-    if has_data:
-        logger.info("Dataset fema_nfhl: present (%d records), skipping", count)
+    if has_data and stored_fema_version >= FEMA_INGEST_VERSION:
+        logger.info(
+            "Dataset fema_nfhl: present (%d records, v%d), skipping",
+            count, stored_fema_version,
+        )
     else:
-        logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
+        if has_data and stored_fema_version < FEMA_INGEST_VERSION:
+            logger.info(
+                "Dataset fema_nfhl: version mismatch (stored v%d, current v%d), re-ingesting...",
+                stored_fema_version, FEMA_INGEST_VERSION,
+            )
+        else:
+            logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
         _run_ingest("fema_nfhl", _ingest_fema)
 
     # --- HPMS (high-traffic roads, per-state incremental) ---
