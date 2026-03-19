@@ -116,6 +116,74 @@ def _table_has_data(db_path: str, table_name: str) -> tuple[bool, int]:
         return (False, 0)
 
 
+def _missing_states(
+    db_path: str,
+    table_name: str,
+    state_expr: str,
+    expected: dict[str, str],
+) -> list[str]:
+    """Return TARGET_STATES codes that have 0 rows in the given table.
+
+    Args:
+        db_path: Path to spatial.db.
+        table_name: Table to check (e.g., "facilities_tri").
+        state_expr: SQL expression that extracts the state identifier from a row.
+            Examples:
+            - "json_extract(metadata_json, '$.state')"  (returns 2-letter code)
+            - "SUBSTR(json_extract(metadata_json, '$.geoid'), 1, 2)"  (returns FIPS)
+            SAFETY: This is interpolated into SQL. Only pass hardcoded expressions
+            from _missing_states_abbr/_missing_states_fips — never user input.
+        expected: Mapping of TARGET_STATES code -> value that state_expr produces.
+            e.g., {"NY": "NY", "MI": "MI"} for 2-letter, or {"NY": "36", "MI": "26"} for FIPS.
+
+    Returns list of TARGET_STATES codes (e.g., ["MI", "CA"]) that are missing.
+    On any error, returns all codes from expected (safe: triggers full re-ingest).
+    """
+    try:
+        _validate_table_name(table_name)
+        conn = sqlite3.connect(db_path)
+        try:
+            cursor = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
+            )
+            if not cursor.fetchone():
+                return list(expected.keys())
+
+            cursor = conn.execute(
+                f"SELECT DISTINCT {state_expr} FROM {table_name}"
+            )
+            present = {row[0] for row in cursor.fetchall()}
+            return [
+                code for code, val in expected.items()
+                if val not in present
+            ]
+        finally:
+            conn.close()
+    except Exception:
+        return list(expected.keys())
+
+
+def _missing_states_abbr(db_path: str, table_name: str) -> list[str]:
+    """Missing states for tables where metadata $.state is 2-letter code."""
+    return _missing_states(
+        db_path, table_name,
+        "json_extract(metadata_json, '$.state')",
+        {code: code for code in TARGET_STATES},
+    )
+
+
+def _missing_states_fips(db_path: str, table_name: str, json_field: str) -> list[str]:
+    """Missing states for tables where a metadata field has FIPS prefix."""
+    if not json_field.isalpha():
+        raise ValueError(f"json_field must be alphabetic, got {json_field!r}")
+    return _missing_states(
+        db_path, table_name,
+        f"SUBSTR(json_extract(metadata_json, '$.{json_field}'), 1, 2)",
+        {code: info["fips"] for code, info in TARGET_STATES.items()},
+    )
+
+
 def _ust_missing_states(db_path: str) -> list[str]:
     """Return target state codes that have 0 UST rows in spatial.db.
 
@@ -123,27 +191,12 @@ def _ust_missing_states(db_path: str) -> list[str]:
     Returns e.g. ['NJ', 'CT', 'MI'] for states without data.
     On any error (table missing, DB missing), returns all target states.
     """
-    try:
-        conn = sqlite3.connect(db_path)
-        try:
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='facilities_ust'"
-            )
-            if not cursor.fetchone():
-                return list(TARGET_STATES.keys())
-
-            cursor = conn.execute(
-                "SELECT DISTINCT json_extract(metadata_json, '$.state') FROM facilities_ust"
-            )
-            present_names = {row[0] for row in cursor.fetchall()}
-            return [
-                code for code, info in TARGET_STATES.items()
-                if info["full_name"] not in present_names
-            ]
-        finally:
-            conn.close()
-    except Exception:
-        return list(TARGET_STATES.keys())
+    return _missing_states(
+        db_path,
+        "facilities_ust",
+        "json_extract(metadata_json, '$.state')",
+        {code: info["full_name"] for code, info in TARGET_STATES.items()},
+    )
 
 
 def ensure_spatial_data() -> None:
