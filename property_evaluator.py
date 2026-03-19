@@ -5749,7 +5749,7 @@ def estimate_percentile(score: int) -> Tuple[int, str]:
 # MAIN EVALUATION
 # =============================================================================
 
-def _timed_stage(stage_name, fn, *args, **kwargs):
+def _timed_stage(stage_name, fn, *args, on_stage_complete=None, **kwargs):
     """Run *fn* with timing.  Logs duration and re-raises on failure."""
     trace = get_trace()
     if trace:
@@ -5762,6 +5762,8 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
             trace.record_stage(stage_name, t0, t1)
         else:
             logger.info("  [stage] %s OK (%.1fs)", stage_name, t1 - t0)
+        if on_stage_complete is not None:
+            on_stage_complete(stage_name, t1 - t0)
         return result
     except Exception as exc:
         t1 = time.time()
@@ -5773,6 +5775,8 @@ def _timed_stage(stage_name, fn, *args, **kwargs):
             )
         else:
             logger.warning("  [stage] %s FAILED (%.1fs)", stage_name, t1 - t0, exc_info=True)
+        if on_stage_complete is not None:
+            on_stage_complete(stage_name, t1 - t0)
         raise
 
 
@@ -5781,6 +5785,7 @@ def evaluate_property(
     api_key: str,
     pre_geocode: Optional[Dict[str, Any]] = None,
     on_stage: Optional[Callable[[str], None]] = None,
+    on_stage_complete: Optional[Callable[[str, float], None]] = None,
     place_id: Optional[str] = None,
 ) -> EvaluationResult:
     """Run full evaluation on a property listing.
@@ -5792,6 +5797,8 @@ def evaluate_property(
     Args:
         on_stage: Optional callback invoked with stage name as evaluation
             progresses, used by the worker to update job status in the DB.
+        on_stage_complete: Optional callback invoked with (stage_name, elapsed_seconds)
+            after each stage completes (or fails). Used by CLI for verbose timing output.
         place_id: Optional Google place_id (unused in evaluation itself,
             reserved for future use).
     """
@@ -5802,7 +5809,7 @@ def evaluate_property(
     def _staged(stage_name, fn, *args, **kwargs):
         """Notify the frontend of the current stage, then run _timed_stage."""
         _notify(stage_name)
-        return _timed_stage(stage_name, fn, *args, **kwargs)
+        return _timed_stage(stage_name, fn, *args, on_stage_complete=on_stage_complete, **kwargs)
 
     eval_start = time.time()
 
@@ -6331,10 +6338,14 @@ def _join_and(items: List[str]) -> str:
 
 
 # =============================================================================
-# CLI
+# CLI (DEPRECATED — use `python cli.py evaluate` instead)
 # =============================================================================
 
+
 def main():
+    # Deprecated: prefer `python cli.py evaluate <address>` which uses
+    # result_to_dict() for complete JSON serialization. This CLI uses a
+    # hand-rolled subset that drifts from the canonical output.
     parser = argparse.ArgumentParser(
         description="Evaluate a property against health, lifestyle, and budget criteria"
     )

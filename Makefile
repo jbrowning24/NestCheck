@@ -24,7 +24,7 @@ smoke-tristate-local:
 
 # Scoring regression tests (fast, no external deps)
 test-scoring:
-	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py -v --tb=short
+	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py -v --tb=short
 
 # Ground truth validation (requires spatial.db + SpatiaLite)
 validate:
@@ -64,6 +64,15 @@ spatial-baseline:
 # Check and send digest email (set SPATIAL_HEALTH_EMAIL or pass EMAIL=)
 spatial-health-email:
 	python3 scripts/spatial_health_check.py --email $(or $(EMAIL),$(SPATIAL_HEALTH_EMAIL))
+
+# ---------------------------------------------------------------------------
+# CLI evaluation (NES-262)
+# ---------------------------------------------------------------------------
+
+# Usage: make evaluate ADDR="123 Main St, White Plains, NY"
+#        make evaluate ADDR="123 Main St" ARGS="--verbose --pretty"
+evaluate:
+	python3 cli.py evaluate "$(ADDR)" $(ARGS)
 
 # ---------------------------------------------------------------------------
 # Daily smoke test (evaluation pipeline)
