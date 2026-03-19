@@ -107,6 +107,12 @@ NestCheck/
 - **Old CLI deprecated**: `property_evaluator.py:main()` still works but has hand-rolled JSON serialization that drifts from `result_to_dict()`. Use `cli.py evaluate` for canonical output.
 - **Makefile**: `make evaluate ADDR="..." ARGS="--verbose"`.
 
+### Overflow Mode (overflow.py, NES-263)
+- **Presentation-layer truncation**: `overflow(items, limit, *, label, label_fn, dump_path, dump_fn) → OverflowResult`. Truncates large lists for display with a summary footer and optional JSON file dump. Zero Flask/DB dependencies — pure stdlib utility.
+- **`label_fn` replaces `label` entirely**: When `label_fn` is provided, its return value is used as the complete label text in the summary. The `label` parameter is ignored. They are mutually exclusive in effect — `label_fn` does not modify or extend `label`.
+- **Dump is opt-in and truncation-gated**: File dump only occurs when BOTH `dump_path` is provided AND truncation happens. No dump on non-truncated results even if `dump_path` is set. Dump failure logs a warning and returns `dump_path=None` — never raises.
+- **Not wired into any consumer yet**: Standalone module. Integration with CLI (NES-262), batch mode, and agent layer happens in those tickets. The pipeline's existing `[:5]`/`LIMIT 50` slices are data-fetching limits — this utility is for display truncation at the presentation boundary.
+
 ### Async Evaluation (job queue)
 - **POST /** with address: creates a job in SQLite, returns `{job_id}` immediately (no client timeout).
 - **GET /job/<job_id>**: returns `{status, current_stage?, snapshot_id?, error?}` for polling. status: `queued` | `running` | `done` | `failed`.
@@ -338,6 +344,7 @@ NestCheck/
 | 2026-03 | Curated list pages (NES-293) | Config-driven (JSON files in `data/lists/`), not database-driven. Editorial control at 3-5 lists doesn't justify a CMS. `_prepare_snapshot_for_display()` extracted to deduplicate migration pipeline across 4 deserialization paths. OG images deferred to fast-follow — static fallback sufficient for launch |
 | 2026-03 | Centralized Tier 1 thresholds (NES-265) | All health check proximity thresholds now live in `scoring_config.py:Tier1Thresholds` (17 fields). `property_evaluator.py` imports via `_T1 = SCORING_MODEL.tier1` and re-exports module-level constants for backward compatibility with ground truth scripts. Zero behavior change — pure refactor for single source of truth |
 | 2026-03 | CLI entry point via cli.py (NES-262) | `cli.py` with argparse subcommand pattern wraps `evaluate_property()` directly — no Flask, no job queue, no polling. JSON default (pipe to jq), `--pretty` for humans, `--verbose` for stage timings to stderr. `result_to_dict()` lazy-imported from `app.py` to avoid Flask bootstrapping at startup. Old CLI in `property_evaluator.py:main()` deprecated but preserved |
+| 2026-03 | Overflow mode utility (NES-263) | `overflow.py` — standalone presentation-layer utility for truncating large lists. One function (`overflow()`), one dataclass (`OverflowResult`), opt-in file dump via `_dump_json()`. Zero Flask/DB deps. Not wired into any consumer yet — ready for CLI, batch, agent layer. Distinct from pipeline-level `[:5]`/`LIMIT 50` slices which control data fetching, not display |
 
 ### Payment (Stripe Checkout + Free Tier)
 - **Payment state machine**: `pending` (checkout created) → `paid` (webhook confirmed or Stripe API verified) → `redeemed` (evaluation started). On eval failure: `redeemed` → `failed_reissued` (user can retry). Atomic CAS guards (`expected_status`) prevent TOCTOU races between webhook and return-from-Stripe.
