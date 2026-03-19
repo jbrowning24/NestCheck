@@ -33,6 +33,8 @@ _DIMENSION_LABELS = {
     "parks": "Parks & Green Space (Tier 2)",
     "transit": "Transit access",
     "schools": "Schools (spatial)",
+    "fra": "FRA rail proximity",
+    "hifld": "HIFLD power lines",
 }
 
 

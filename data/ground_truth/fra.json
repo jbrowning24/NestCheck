@@ -1,0 +1,2334 @@
+{
+  "_schema_version": "0.1.0",
+  "_generated_at": "2026-03-19T03:01:37.443203+00:00",
+  "_generator": "generate_ground_truth_fra.py",
+  "_segment_count": 40,
+  "_test_count": 80,
+  "_thresholds": {
+    "warn_radius_m": 300,
+    "search_radius_m": 800,
+    "source": "property_evaluator.py check_rail_proximity()"
+  },
+  "addresses": [
+    {
+      "id": "gt-fra-0001",
+      "coordinates": {
+        "lat": 40.7088904,
+        "lng": -74.143361
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7100895,
+          "lng": -74.14255
+        },
+        "distance_m": 150,
+        "bearing_deg": 207.14
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0002",
+      "coordinates": {
+        "lat": 40.7060926,
+        "lng": -74.1452532
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7100895,
+          "lng": -74.14255
+        },
+        "distance_m": 500,
+        "bearing_deg": 207.14
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (Y) at 213m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0003",
+      "coordinates": {
+        "lat": 41.5755414,
+        "lng": -72.7780167
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from AMTK (S) (freight rail)",
+      "source_segment": {
+        "name": "AMTK (S)",
+        "owner": "AMTK",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.576071,
+          "lng": -72.779673
+        },
+        "distance_m": 150,
+        "bearing_deg": 113.15
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from AMTK (S) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0004",
+      "coordinates": {
+        "lat": 41.5743056,
+        "lng": -72.7741521
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from AMTK (S) (freight rail)",
+      "source_segment": {
+        "name": "AMTK (S)",
+        "owner": "AMTK",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.576071,
+          "lng": -72.779673
+        },
+        "distance_m": 500,
+        "bearing_deg": 113.15
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from AMTK (S) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0005",
+      "coordinates": {
+        "lat": 40.7161245,
+        "lng": -74.1809525
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NJT (M) (freight rail)",
+      "source_segment": {
+        "name": "NJT (M)",
+        "owner": "NJT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7168835,
+          "lng": -74.1824215
+        },
+        "distance_m": 150,
+        "bearing_deg": 124.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NJT (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0006",
+      "coordinates": {
+        "lat": 40.7143536,
+        "lng": -74.177525
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NJT (M) (freight rail)",
+      "source_segment": {
+        "name": "NJT (M)",
+        "owner": "NJT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7168835,
+          "lng": -74.1824215
+        },
+        "distance_m": 500,
+        "bearing_deg": 124.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from NJT (M) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (M) at 5m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0007",
+      "coordinates": {
+        "lat": 40.5022518,
+        "lng": -74.2811592
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5009465,
+          "lng": -74.2807195
+        },
+        "distance_m": 150,
+        "bearing_deg": 345.63
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0008",
+      "coordinates": {
+        "lat": 40.5052976,
+        "lng": -74.282185
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5009465,
+          "lng": -74.2807195
+        },
+        "distance_m": 500,
+        "bearing_deg": 345.63
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (O) at 94m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0009",
+      "coordinates": {
+        "lat": 40.7433104,
+        "lng": -74.100947
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7446551,
+          "lng": -74.1010608
+        },
+        "distance_m": 150,
+        "bearing_deg": 176.33
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0010",
+      "coordinates": {
+        "lat": 40.7401727,
+        "lng": -74.1006815
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7446551,
+          "lng": -74.1010608
+        },
+        "distance_m": 500,
+        "bearing_deg": 176.33
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (Y) at 85m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0011",
+      "coordinates": {
+        "lat": 40.6479971,
+        "lng": -74.0206334
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NYNJ (O) (freight rail)",
+      "source_segment": {
+        "name": "NYNJ (O)",
+        "owner": "NYNJ",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6488426,
+          "lng": -74.0192506
+        },
+        "distance_m": 150,
+        "bearing_deg": 231.14
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NYNJ (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0012",
+      "coordinates": {
+        "lat": 40.6460242,
+        "lng": -74.02386
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NYNJ (O) (freight rail)",
+      "source_segment": {
+        "name": "NYNJ (O)",
+        "owner": "NYNJ",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6488426,
+          "lng": -74.0192506
+        },
+        "distance_m": 500,
+        "bearing_deg": 231.14
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from NYNJ (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is NYNJ (M) at 11m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0013",
+      "coordinates": {
+        "lat": 40.4269775,
+        "lng": -74.5140451
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.4263446,
+          "lng": -74.5156078
+        },
+        "distance_m": 150,
+        "bearing_deg": 61.99
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0014",
+      "coordinates": {
+        "lat": 40.4284543,
+        "lng": -74.5103988
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.4263446,
+          "lng": -74.5156078
+        },
+        "distance_m": 500,
+        "bearing_deg": 61.99
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0015",
+      "coordinates": {
+        "lat": 40.1758561,
+        "lng": -74.9461925
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NS (M) (freight rail)",
+      "source_segment": {
+        "name": "NS (M)",
+        "owner": "NS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.177165,
+          "lng": -74.9466114
+        },
+        "distance_m": 150,
+        "bearing_deg": 166.26
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NS (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0016",
+      "coordinates": {
+        "lat": 40.172802,
+        "lng": -74.9452151
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NS (M) (freight rail)",
+      "source_segment": {
+        "name": "NS (M)",
+        "owner": "NS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.177165,
+          "lng": -74.9466114
+        },
+        "distance_m": 500,
+        "bearing_deg": 166.26
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from NS (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0017",
+      "coordinates": {
+        "lat": 40.6534263,
+        "lng": -74.0960874
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from EJR (O) (freight rail)",
+      "source_segment": {
+        "name": "EJR (O)",
+        "owner": "EJR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.652093,
+          "lng": -74.0958305
+        },
+        "distance_m": 150,
+        "bearing_deg": 351.68
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from EJR (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0018",
+      "coordinates": {
+        "lat": 40.6565373,
+        "lng": -74.0966869
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from EJR (O) (freight rail)",
+      "source_segment": {
+        "name": "EJR (O)",
+        "owner": "EJR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.652093,
+          "lng": -74.0958305
+        },
+        "distance_m": 500,
+        "bearing_deg": 351.68
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from EJR (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is EJR (O) at 2m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0019",
+      "coordinates": {
+        "lat": 40.8542564,
+        "lng": -73.9176916
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from MNCW (M) (freight rail)",
+      "source_segment": {
+        "name": "MNCW (M)",
+        "owner": "MNCW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.854959,
+          "lng": -73.9192117
+        },
+        "distance_m": 150,
+        "bearing_deg": 121.43
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from MNCW (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0020",
+      "coordinates": {
+        "lat": 40.8526169,
+        "lng": -73.9141446
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from MNCW (M) (freight rail)",
+      "source_segment": {
+        "name": "MNCW (M)",
+        "owner": "MNCW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.854959,
+          "lng": -73.9192117
+        },
+        "distance_m": 500,
+        "bearing_deg": 121.43
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from MNCW (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0021",
+      "coordinates": {
+        "lat": 39.8404847,
+        "lng": -75.4190217
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSXT (O) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (O)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.841338,
+          "lng": -75.4176635
+        },
+        "distance_m": 150,
+        "bearing_deg": 230.71
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSXT (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0022",
+      "coordinates": {
+        "lat": 39.8384937,
+        "lng": -75.4221908
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSXT (O) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (O)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.841338,
+          "lng": -75.4176635
+        },
+        "distance_m": 500,
+        "bearing_deg": 230.71
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSXT (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0023",
+      "coordinates": {
+        "lat": 40.7057118,
+        "lng": -74.0609602
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (M) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (M)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7068278,
+          "lng": -74.0619563
+        },
+        "distance_m": 150,
+        "bearing_deg": 145.92
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0024",
+      "coordinates": {
+        "lat": 40.7031078,
+        "lng": -74.0586358
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (M) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (M)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7068278,
+          "lng": -74.0619563
+        },
+        "distance_m": 500,
+        "bearing_deg": 145.92
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (M) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (O) at 148m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0025",
+      "coordinates": {
+        "lat": 41.5789769,
+        "lng": -72.1363777
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NECR (O) (freight rail)",
+      "source_segment": {
+        "name": "NECR (O)",
+        "owner": "NECR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.5798877,
+          "lng": -72.1350501
+        },
+        "distance_m": 150,
+        "bearing_deg": 227.48
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NECR (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0026",
+      "coordinates": {
+        "lat": 41.5768519,
+        "lng": -72.1394755
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NECR (O) (freight rail)",
+      "source_segment": {
+        "name": "NECR (O)",
+        "owner": "NECR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.5798877,
+          "lng": -72.1350501
+        },
+        "distance_m": 500,
+        "bearing_deg": 227.48
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from NECR (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0027",
+      "coordinates": {
+        "lat": 40.2597894,
+        "lng": -74.8121118
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSXT (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (Y)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.2604505,
+          "lng": -74.8136504
+        },
+        "distance_m": 150,
+        "bearing_deg": 119.38
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSXT (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0028",
+      "coordinates": {
+        "lat": 40.258247,
+        "lng": -74.8085216
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSXT (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (Y)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.2604505,
+          "lng": -74.8136504
+        },
+        "distance_m": 500,
+        "bearing_deg": 119.38
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSXT (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0029",
+      "coordinates": {
+        "lat": 40.746951,
+        "lng": -74.1408186
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NJT (O) (freight rail)",
+      "source_segment": {
+        "name": "NJT (O)",
+        "owner": "NJT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7468235,
+          "lng": -74.139048
+        },
+        "distance_m": 150,
+        "bearing_deg": 275.43
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NJT (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0030",
+      "coordinates": {
+        "lat": 40.7472484,
+        "lng": -74.1449501
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NJT (O) (freight rail)",
+      "source_segment": {
+        "name": "NJT (O)",
+        "owner": "NJT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7468235,
+          "lng": -74.139048
+        },
+        "distance_m": 500,
+        "bearing_deg": 275.43
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from NJT (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0031",
+      "coordinates": {
+        "lat": 40.5098923,
+        "lng": -74.3368058
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5098578,
+          "lng": -74.3385775
+        },
+        "distance_m": 150,
+        "bearing_deg": 88.53
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0032",
+      "coordinates": {
+        "lat": 40.5099729,
+        "lng": -74.3326718
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5098578,
+          "lng": -74.3385775
+        },
+        "distance_m": 500,
+        "bearing_deg": 88.53
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (I) at 192m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0033",
+      "coordinates": {
+        "lat": 41.1750442,
+        "lng": -73.9511974
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSXT (M) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (M)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.1756166,
+          "lng": -73.9495768
+        },
+        "distance_m": 150,
+        "bearing_deg": 244.86
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "150m from CSXT (M) (freight rail) \u2014 outside warning buffer (adjusted: nearest rail segment is CSXT (M) at 593m, not 150m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0034",
+      "coordinates": {
+        "lat": 41.1737085,
+        "lng": -73.9549788
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSXT (M) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (M)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.1756166,
+          "lng": -73.9495768
+        },
+        "distance_m": 500,
+        "bearing_deg": 244.86
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSXT (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0035",
+      "coordinates": {
+        "lat": 41.7441737,
+        "lng": -72.6614846
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from PW (O) (freight rail)",
+      "source_segment": {
+        "name": "PW (O)",
+        "owner": "PW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.7446552,
+          "lng": -72.6631713
+        },
+        "distance_m": 150,
+        "bearing_deg": 110.94
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from PW (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0036",
+      "coordinates": {
+        "lat": 41.7430501,
+        "lng": -72.6575489
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from PW (O) (freight rail)",
+      "source_segment": {
+        "name": "PW (O)",
+        "owner": "PW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.7446552,
+          "lng": -72.6631713
+        },
+        "distance_m": 500,
+        "bearing_deg": 110.94
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from PW (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSO (O) at 95m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0037",
+      "coordinates": {
+        "lat": 40.8442126,
+        "lng": -73.899346
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from MNCW (M) (freight rail)",
+      "source_segment": {
+        "name": "MNCW (M)",
+        "owner": "MNCW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.8447395,
+          "lng": -73.9009854
+        },
+        "distance_m": 150,
+        "bearing_deg": 113.02
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from MNCW (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0038",
+      "coordinates": {
+        "lat": 40.8429831,
+        "lng": -73.8955208
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from MNCW (M) (freight rail)",
+      "source_segment": {
+        "name": "MNCW (M)",
+        "owner": "MNCW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.8447395,
+          "lng": -73.9009854
+        },
+        "distance_m": 500,
+        "bearing_deg": 113.02
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from MNCW (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0039",
+      "coordinates": {
+        "lat": 40.6840488,
+        "lng": -74.1622784
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.684679,
+          "lng": -74.163849
+        },
+        "distance_m": 150,
+        "bearing_deg": 117.89
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0040",
+      "coordinates": {
+        "lat": 40.6825782,
+        "lng": -74.1586137
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.684679,
+          "lng": -74.163849
+        },
+        "distance_m": 500,
+        "bearing_deg": 117.89
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0041",
+      "coordinates": {
+        "lat": 39.9390452,
+        "lng": -75.2084963
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from AMTK (M) (freight rail)",
+      "source_segment": {
+        "name": "AMTK (M)",
+        "owner": "AMTK",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9400268,
+          "lng": -75.2097003
+        },
+        "distance_m": 150,
+        "bearing_deg": 136.76
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from AMTK (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0042",
+      "coordinates": {
+        "lat": 39.9367548,
+        "lng": -75.205687
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from AMTK (M) (freight rail)",
+      "source_segment": {
+        "name": "AMTK (M)",
+        "owner": "AMTK",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9400268,
+          "lng": -75.2097003
+        },
+        "distance_m": 500,
+        "bearing_deg": 136.76
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from AMTK (M) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSXT (M) at 137m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0043",
+      "coordinates": {
+        "lat": 39.8220897,
+        "lng": -75.3977552
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.823255,
+          "lng": -75.398636
+        },
+        "distance_m": 150,
+        "bearing_deg": 149.86
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0044",
+      "coordinates": {
+        "lat": 39.8193706,
+        "lng": -75.3956998
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.823255,
+          "lng": -75.398636
+        },
+        "distance_m": 500,
+        "bearing_deg": 149.86
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0045",
+      "coordinates": {
+        "lat": 40.7247986,
+        "lng": -74.1379479
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7239562,
+          "lng": -74.1365602
+        },
+        "distance_m": 150,
+        "bearing_deg": 308.69
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0046",
+      "coordinates": {
+        "lat": 40.7267642,
+        "lng": -74.1411858
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7239562,
+          "lng": -74.1365602
+        },
+        "distance_m": 500,
+        "bearing_deg": 308.69
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (M) at 72m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0047",
+      "coordinates": {
+        "lat": 40.7088185,
+        "lng": -74.1424017
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.710094,
+          "lng": -74.1418285
+        },
+        "distance_m": 150,
+        "bearing_deg": 198.81
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0048",
+      "coordinates": {
+        "lat": 40.7058424,
+        "lng": -74.1437392
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.710094,
+          "lng": -74.1418285
+        },
+        "distance_m": 500,
+        "bearing_deg": 198.81
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (Y) at 169m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0049",
+      "coordinates": {
+        "lat": 40.7484883,
+        "lng": -73.3796136
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from LI (M) (freight rail)",
+      "source_segment": {
+        "name": "LI (M)",
+        "owner": "LI",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7497788,
+          "lng": -73.3801252
+        },
+        "distance_m": 150,
+        "bearing_deg": 163.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from LI (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0050",
+      "coordinates": {
+        "lat": 40.745477,
+        "lng": -73.3784199
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from LI (M) (freight rail)",
+      "source_segment": {
+        "name": "LI (M)",
+        "owner": "LI",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7497788,
+          "lng": -73.3801252
+        },
+        "distance_m": 500,
+        "bearing_deg": 163.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from LI (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0051",
+      "coordinates": {
+        "lat": 40.5462044,
+        "lng": -74.2602603
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from A (freight rail)",
+      "source_segment": {
+        "name": "A",
+        "owner": "",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5451633,
+          "lng": -74.261386
+        },
+        "distance_m": 150,
+        "bearing_deg": 39.41
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from A (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0052",
+      "coordinates": {
+        "lat": 40.5486336,
+        "lng": -74.2576336
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from A (freight rail)",
+      "source_segment": {
+        "name": "A",
+        "owner": "",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.5451633,
+          "lng": -74.261386
+        },
+        "distance_m": 500,
+        "bearing_deg": 39.41
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from A (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (S) at 102m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0053",
+      "coordinates": {
+        "lat": 41.6644674,
+        "lng": -72.8029809
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from PAS (M) (freight rail)",
+      "source_segment": {
+        "name": "PAS (M)",
+        "owner": "PAS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.6658105,
+          "lng": -72.8031257
+        },
+        "distance_m": 150,
+        "bearing_deg": 175.4
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from PAS (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0054",
+      "coordinates": {
+        "lat": 41.6613334,
+        "lng": -72.8026432
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from PAS (M) (freight rail)",
+      "source_segment": {
+        "name": "PAS (M)",
+        "owner": "PAS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 41.6658105,
+          "lng": -72.8031257
+        },
+        "distance_m": 500,
+        "bearing_deg": 175.4
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from PAS (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0055",
+      "coordinates": {
+        "lat": 40.7142336,
+        "lng": -74.1511453
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (M) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (M)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7129691,
+          "lng": -74.1517594
+        },
+        "distance_m": 150,
+        "bearing_deg": 20.21
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0056",
+      "coordinates": {
+        "lat": 40.7171841,
+        "lng": -74.1497123
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (M) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (M)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7129691,
+          "lng": -74.1517594
+        },
+        "distance_m": 500,
+        "bearing_deg": 20.21
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0057",
+      "coordinates": {
+        "lat": 40.7774926,
+        "lng": -75.1759588
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from NS (O) (freight rail)",
+      "source_segment": {
+        "name": "NS (O)",
+        "owner": "NS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7770117,
+          "lng": -75.1776211
+        },
+        "distance_m": 150,
+        "bearing_deg": 69.09
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from NS (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0058",
+      "coordinates": {
+        "lat": 40.7786146,
+        "lng": -75.1720802
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from NS (O) (freight rail)",
+      "source_segment": {
+        "name": "NS (O)",
+        "owner": "NS",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7770117,
+          "lng": -75.1776211
+        },
+        "distance_m": 500,
+        "bearing_deg": 69.09
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from NS (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0059",
+      "coordinates": {
+        "lat": 40.6095576,
+        "lng": -75.343204
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from LVRB (Y) (freight rail)",
+      "source_segment": {
+        "name": "LVRB (Y)",
+        "owner": "LVRB",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6087517,
+          "lng": -75.3446265
+        },
+        "distance_m": 150,
+        "bearing_deg": 53.27
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from LVRB (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0060",
+      "coordinates": {
+        "lat": 40.6114381,
+        "lng": -75.339885
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from LVRB (Y) (freight rail)",
+      "source_segment": {
+        "name": "LVRB (Y)",
+        "owner": "LVRB",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6087517,
+          "lng": -75.3446265
+        },
+        "distance_m": 500,
+        "bearing_deg": 53.27
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from LVRB (Y) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is NS (I) at 272m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0061",
+      "coordinates": {
+        "lat": 40.6983521,
+        "lng": -73.8305879
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from LI (M) (freight rail)",
+      "source_segment": {
+        "name": "LI (M)",
+        "owner": "LI",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6995259,
+          "lng": -73.8297153
+        },
+        "distance_m": 150,
+        "bearing_deg": 209.4
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from LI (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0062",
+      "coordinates": {
+        "lat": 40.695613,
+        "lng": -73.832624
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from LI (M) (freight rail)",
+      "source_segment": {
+        "name": "LI (M)",
+        "owner": "LI",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6995259,
+          "lng": -73.8297153
+        },
+        "distance_m": 500,
+        "bearing_deg": 209.4
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from LI (M) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is LI (M) at 296m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0063",
+      "coordinates": {
+        "lat": 40.8214609,
+        "lng": -74.4164845
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from ME (M) (freight rail)",
+      "source_segment": {
+        "name": "ME (M)",
+        "owner": "ME",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.8227735,
+          "lng": -74.416887
+        },
+        "distance_m": 150,
+        "bearing_deg": 166.94
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from ME (M) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0064",
+      "coordinates": {
+        "lat": 40.8183982,
+        "lng": -74.4155454
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from ME (M) (freight rail)",
+      "source_segment": {
+        "name": "ME (M)",
+        "owner": "ME",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.8227735,
+          "lng": -74.416887
+        },
+        "distance_m": 500,
+        "bearing_deg": 166.94
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from ME (M) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0065",
+      "coordinates": {
+        "lat": 40.7186149,
+        "lng": -74.1248601
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7199181,
+          "lng": -74.1244083
+        },
+        "distance_m": 150,
+        "bearing_deg": 194.72
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0066",
+      "coordinates": {
+        "lat": 40.715574,
+        "lng": -74.1259144
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.7199181,
+          "lng": -74.1244083
+        },
+        "distance_m": 500,
+        "bearing_deg": 194.72
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (O) at 6m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0067",
+      "coordinates": {
+        "lat": 39.9323617,
+        "lng": -75.2025283
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSXT (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (Y)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9327211,
+          "lng": -75.2042219
+        },
+        "distance_m": 150,
+        "bearing_deg": 105.47
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSXT (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0068",
+      "coordinates": {
+        "lat": 39.9315232,
+        "lng": -75.1985766
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSXT (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSXT (Y)",
+        "owner": "CSXT",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9327211,
+          "lng": -75.2042219
+        },
+        "distance_m": 500,
+        "bearing_deg": 105.47
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSXT (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0069",
+      "coordinates": {
+        "lat": 40.437838,
+        "lng": -74.500663
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.4365185,
+          "lng": -74.5003037
+        },
+        "distance_m": 150,
+        "bearing_deg": 348.29
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0070",
+      "coordinates": {
+        "lat": 40.4409166,
+        "lng": -74.5015014
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.4365185,
+          "lng": -74.5003037
+        },
+        "distance_m": 500,
+        "bearing_deg": 348.29
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is CSAO (O) at 89m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0071",
+      "coordinates": {
+        "lat": 40.6942893,
+        "lng": -74.196768
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6941446,
+          "lng": -74.1950011
+        },
+        "distance_m": 150,
+        "bearing_deg": 276.16
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0072",
+      "coordinates": {
+        "lat": 40.6946268,
+        "lng": -74.2008908
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.6941446,
+          "lng": -74.1950011
+        },
+        "distance_m": 500,
+        "bearing_deg": 276.16
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0073",
+      "coordinates": {
+        "lat": 39.4493322,
+        "lng": -75.2136359
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from WW (Y) (freight rail)",
+      "source_segment": {
+        "name": "WW (Y)",
+        "owner": "WW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.4500115,
+          "lng": -75.215143
+        },
+        "distance_m": 150,
+        "bearing_deg": 120.27
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from WW (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0074",
+      "coordinates": {
+        "lat": 39.4477472,
+        "lng": -75.2101195
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from WW (Y) (freight rail)",
+      "source_segment": {
+        "name": "WW (Y)",
+        "owner": "WW",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.4500115,
+          "lng": -75.215143
+        },
+        "distance_m": 500,
+        "bearing_deg": 120.27
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from WW (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0075",
+      "coordinates": {
+        "lat": 40.6382221,
+        "lng": -74.2173044
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from SIRR (O) (freight rail)",
+      "source_segment": {
+        "name": "SIRR (O)",
+        "owner": "SIRR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.639565,
+          "lng": -74.2174505
+        },
+        "distance_m": 150,
+        "bearing_deg": 175.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from SIRR (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0076",
+      "coordinates": {
+        "lat": 40.6350887,
+        "lng": -74.2169637
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from SIRR (O) (freight rail)",
+      "source_segment": {
+        "name": "SIRR (O)",
+        "owner": "SIRR",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.639565,
+          "lng": -74.2174505
+        },
+        "distance_m": 500,
+        "bearing_deg": 175.28
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "500m from SIRR (O) (freight rail) \u2014 inside 300m warning radius (adjusted: nearest rail segment is SIRR (O) at 24m, not 500m as generated)",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0077",
+      "coordinates": {
+        "lat": 40.0892789,
+        "lng": -74.8381444
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.0880082,
+          "lng": -74.8375586
+        },
+        "distance_m": 150,
+        "bearing_deg": 340.57
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (O) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0078",
+      "coordinates": {
+        "lat": 40.092244,
+        "lng": -74.8395112
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (O) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (O)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 40.0880082,
+          "lng": -74.8375586
+        },
+        "distance_m": 500,
+        "bearing_deg": 340.57
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (O) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0079",
+      "coordinates": {
+        "lat": 39.9514038,
+        "lng": -75.0886041
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 150m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9523811,
+          "lng": -75.0898142
+        },
+        "distance_m": 150,
+        "bearing_deg": 136.49
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "WARNING",
+          "expected_pass": false,
+          "notes": "150m from CSAO (Y) (freight rail) \u2014 inside 300m warning radius",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    },
+    {
+      "id": "gt-fra-0080",
+      "coordinates": {
+        "lat": 39.9491234,
+        "lng": -75.0857806
+      },
+      "layer": 4,
+      "layer_notes": "Synthetic \u2014 500m perpendicular from CSAO (Y) (freight rail)",
+      "source_segment": {
+        "name": "CSAO (Y)",
+        "owner": "CSAO",
+        "rail_type": "freight rail",
+        "midpoint": {
+          "lat": 39.9523811,
+          "lng": -75.0898142
+        },
+        "distance_m": 500,
+        "bearing_deg": 136.49
+      },
+      "tier1_health_checks": {
+        "rail_proximity": {
+          "expected_result": "PASS",
+          "expected_pass": true,
+          "notes": "500m from CSAO (Y) (freight rail) \u2014 outside warning buffer",
+          "source": "synthetic from spatial.db facilities_fra"
+        }
+      },
+      "tier2_scored_dimensions": {}
+    }
+  ]
+}
