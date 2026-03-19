@@ -209,6 +209,7 @@ def ingest(
                     name = str(name).strip() or "Unknown"
 
                 metadata = {
+                    "state_code": attrs.get("STATEAB", ""),
                     "owner": owner,
                     "owner2": attrs.get("RROWNER2", ""),
                     "net": net,
