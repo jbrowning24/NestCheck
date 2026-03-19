@@ -102,5 +102,16 @@ def _dump_json(
     """Write items as JSON to path. Returns path on success, None on failure.
 
     Uses logging.getLogger(__name__) for warnings on failure.
+    Creates parent directories automatically.
     """
-    raise NotImplementedError
+    try:
+        data = [dump_fn(item) for item in items] if dump_fn is not None else items
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+        return path
+    except Exception:
+        logger.warning("Failed to write overflow dump to %s", path, exc_info=True)
+        return None

@@ -69,3 +69,60 @@ class TestTruncation:
         )
         assert result.summary == "Showing 10 of 50 TRI facilities within 5km."
         assert "should be ignored" not in result.summary
+
+
+class TestDump:
+    """File dump behavior — only on truncation with dump_path provided."""
+
+    def test_dump_on_truncation(self):
+        items = list(range(10))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "results.json")
+            result = overflow(items, limit=3, dump_path=path)
+            assert result.dump_path == path
+            assert os.path.exists(path)
+            with open(path) as f:
+                dumped = json.load(f)
+            assert dumped == items
+
+    def test_dump_creates_parent_dirs(self):
+        items = list(range(10))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "nested", "deep", "results.json")
+            result = overflow(items, limit=3, dump_path=path)
+            assert result.dump_path == path
+            assert os.path.exists(path)
+
+    def test_dump_fn_applied(self):
+        items = [{"name": "Park A", "internal_id": 99}, {"name": "Park B", "internal_id": 100}]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "parks.json")
+            result = overflow(
+                items,
+                limit=1,
+                dump_path=path,
+                dump_fn=lambda x: {"name": x["name"]},
+            )
+            assert result.dump_path == path
+            with open(path) as f:
+                dumped = json.load(f)
+            assert dumped == [{"name": "Park A"}, {"name": "Park B"}]
+
+    def test_dump_failure_graceful(self):
+        items = list(range(10))
+        result = overflow(items, limit=3, dump_path="/dev/null/impossible/file.json")
+        assert result.dump_path is None
+        assert result.truncated is True
+        assert result.summary is not None
+
+    def test_dump_fn_raises_graceful(self):
+        items = [1, 2, 3, 4, 5]
+
+        def bad_fn(x):
+            raise TypeError("can't serialize this")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "results.json")
+            result = overflow(items, limit=2, dump_path=path, dump_fn=bad_fn)
+            assert result.dump_path is None
+            assert result.truncated is True
