@@ -162,10 +162,10 @@ class TestDimensionCoverage:
         dims = get_dimension_coverage("MI")
         assert dims["health"] == CoverageTier.FULL
 
-    def test_mi_education_is_minimal(self):
-        """MI has STATE_EDUCATION active but SCHOOL_DISTRICTS and NCES intended → MINIMAL."""
+    def test_mi_education_is_full(self):
+        """MI has all 3 education sources active (NES-297) → FULL."""
         dims = get_dimension_coverage("MI")
-        assert dims["education"] == CoverageTier.MINIMAL
+        assert dims["education"] == CoverageTier.FULL
 
     def test_mi_green_space_is_full(self):
         """MI green_space: single source (Google Places) active → FULL."""
@@ -273,11 +273,13 @@ class TestVerifyCoverage:
 
     @requires_spatial_db
     def test_bbox_sources_skipped(self):
-        """HIFLD/FRA/FEMA should be skipped (spatial filter required)."""
+        """FEMA_NFHL should be skipped (spatial filter required). HIFLD/FRA now have state filters (NES-297)."""
         results = verify_coverage("NY")
-        for src in ("HIFLD", "FRA", "FEMA_NFHL"):
-            assert results[src]["actual_rows"] is None
-            assert "skipped" in results[src]["note"].lower()
+        # Only FEMA_NFHL still requires spatial filtering
+        assert results["FEMA_NFHL"]["actual_rows"] is None
+        assert "skipped" in results["FEMA_NFHL"]["note"].lower()
+        # HIFLD has no state_filter — counts all rows (national)
+        # FRA now has state_filter via stateab (NES-297) — counts per-state
 
     @requires_spatial_db
     def test_census_acs_skipped(self):
@@ -398,9 +400,10 @@ class TestSectionCoverage:
         result = get_section_coverage("MI")
         assert "getting_around" not in result
 
-    def test_mi_education_minimal(self):
+    def test_mi_education_full(self):
+        """MI education is FULL (all 3 sources active, NES-297) → no badge."""
         result = get_section_coverage("MI")
-        assert result.get("school_district") == "minimal"
+        assert "school_district" not in result  # FULL is omitted
 
     def test_unknown_state_empty(self):
         assert get_section_coverage("ZZ") == {}
