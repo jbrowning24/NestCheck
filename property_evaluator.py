@@ -6338,10 +6338,14 @@ def _join_and(items: List[str]) -> str:
 
 
 # =============================================================================
-# CLI
+# CLI (DEPRECATED — use `python cli.py evaluate` instead)
 # =============================================================================
 
+
 def main():
+    # Deprecated: prefer `python cli.py evaluate <address>` which uses
+    # result_to_dict() for complete JSON serialization. This CLI uses a
+    # hand-rolled subset that drifts from the canonical output.
     parser = argparse.ArgumentParser(
         description="Evaluate a property against health, lifestyle, and budget criteria"
     )

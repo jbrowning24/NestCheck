@@ -66,6 +66,15 @@ spatial-health-email:
 	python3 scripts/spatial_health_check.py --email $(or $(EMAIL),$(SPATIAL_HEALTH_EMAIL))
 
 # ---------------------------------------------------------------------------
+# CLI evaluation (NES-262)
+# ---------------------------------------------------------------------------
+
+# Usage: make evaluate ADDR="123 Main St, White Plains, NY"
+#        make evaluate ADDR="123 Main St" ARGS="--verbose --pretty"
+evaluate:
+	python3 cli.py evaluate "$(ADDR)" $(ARGS)
+
+# ---------------------------------------------------------------------------
 # Daily smoke test (evaluation pipeline)
 # ---------------------------------------------------------------------------
 
