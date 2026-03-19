@@ -158,7 +158,7 @@ class TestDimensionCoverage:
         assert dims["health"] == CoverageTier.FULL
 
     def test_mi_health_is_minimal(self):
-        """MI has only SEMS active for health → MINIMAL."""
+        """MI has SEMS + TRI + UST active but EJSCREEN/HPMS/HIFLD/FRA/FEMA not → MINIMAL."""
         dims = get_dimension_coverage("MI")
         assert dims["health"] == CoverageTier.MINIMAL
 
