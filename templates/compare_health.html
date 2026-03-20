@@ -8,7 +8,12 @@
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=onMapsReady"></script>
+<script>
+(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Check for unintended extra calls."):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+  key: "{{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}",
+  v: "weekly"
+});
+</script>
 {% endif %}
 {% endblock %}
 
@@ -217,39 +222,52 @@
     renumberFields();
   };
 
-  // Google Places Autocomplete
-  function initAutocompleteOnInput(input) {
-    if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
-    new google.maps.places.Autocomplete(input, {
-      types: ['address'],
-      componentRestrictions: { country: 'us' },
-      fields: ['formatted_address']
+  // Google Places Autocomplete (New API)
+  async function initAutocompleteOnInput(input) {
+    if (!input) return;
+    try {
+      await google.maps.importLibrary('places');
+    } catch(e) {
+      console.warn('Google Maps Places library failed to load:', e);
+      return;
+    }
+
+    var container = input.parentNode;
+    var autocompleteEl = new google.maps.places.PlaceAutocompleteElement({
+      includedRegionCodes: ['us'],
+      types: ['address']
+    });
+
+    autocompleteEl.style.flex = '1';
+    autocompleteEl.style.minWidth = '0';
+    autocompleteEl.style.border = 'none';
+    autocompleteEl.style.outline = 'none';
+    autocompleteEl.style.background = 'transparent';
+    autocompleteEl.style.fontSize = '16px';
+
+    input.style.display = 'none';
+    container.insertBefore(autocompleteEl, input);
+
+    autocompleteEl.addEventListener('gmp-select', async function(event) {
+      var place = event.placePrediction.toPlace();
+      await place.fetchFields({ fields: ['formattedAddress'] });
+      input.value = place.formattedAddress || '';
     });
   }
 
-  // Init autocomplete on existing fields (called once when Maps API is ready)
+  // Init autocomplete on existing fields
   var _autocompleteInitDone = false;
-  window._initCompareAutocomplete = function() {
+  async function _initAllAutocomplete() {
     if (_autocompleteInitDone) return;
     _autocompleteInitDone = true;
     var inputs = fieldContainer.querySelectorAll('.compare-address-input');
     for (var i = 0; i < inputs.length; i++) {
-      initAutocompleteOnInput(inputs[i]);
+      await initAutocompleteOnInput(inputs[i]);
     }
-  };
-
-  // If Maps API already loaded (cached), init now
-  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-    window._initCompareAutocomplete();
   }
+  _initAllAutocomplete();
 
   updateAddBtn();
 })();
-
-function onMapsReady() {
-  if (typeof window._initCompareAutocomplete === 'function') {
-    window._initCompareAutocomplete();
-  }
-}
 </script>
 {% endblock %}
