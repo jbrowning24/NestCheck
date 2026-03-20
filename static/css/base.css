@@ -213,7 +213,7 @@ footer {
   font-family: var(--font-body) !important;
   margin-top: 6px !important;
   padding: 4px 0 !important;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Hide Google "powered by" watermark */
