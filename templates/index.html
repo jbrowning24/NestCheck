@@ -141,74 +141,6 @@
   </div>
   {% endif %}
 
-  {# ── PREVIEW CARDS ───────────────────────────────────────── #}
-  <section class="section-preview">
-    <h2 class="section-preview-label">REPORT PREVIEWS</h2>
-    <div class="preview-grid">
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Scarsdale Village</h4>
-            <p>Scarsdale, NY</p>
-          </div>
-          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">All Clear</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Walkable</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Bronxville Village</h4>
-            <p>Bronxville, NY</p>
-          </div>
-          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">All Clear</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Very Walkable</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Downtown Ann Arbor</h4>
-            <p>Ann Arbor, MI</p>
-          </div>
-          <div class="mini-badge" style="background: var(--band-exceptional);">Exceptional</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">1 Warning</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Walkable</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
   {# ── SECTION 1: HOW IT WORKS ────────────────────────────── #}
   <section class="hp-section" id="how-it-works">
     <h2 class="hp-section-label">HOW IT WORKS</h2>
@@ -1090,6 +1022,22 @@
       }
     }
   });
+
+  // Scroll-triggered fade-in for comparison grid (NES-314)
+  (function() {
+    var el = document.getElementById('what-we-evaluate');
+    if (!el) return;
+    if (!('IntersectionObserver' in window)) { return; } // no-JS/old browser: stays visible
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) { return; } // reduced motion: stays visible, no fade
+    el.classList.add('hp-fade-ready'); // opt-in to opacity:0 (CSS only hides when this class is present)
+    new IntersectionObserver(function(entries, obs) {
+      if (entries[0].isIntersecting) {
+        el.classList.add('hp-visible');
+        obs.disconnect();
+      }
+    }, { threshold: 0.1 }).observe(el);
+  })();
 
   // Relocate flash messages into the vote section when redirected from /vote-state
   if (window.location.hash === '#help-us-expand') {

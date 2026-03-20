@@ -17,7 +17,7 @@ body:has(.landing-container) {
   padding: 80px 48px;
   display: flex;
   flex-direction: column;
-  gap: 80px;
+  gap: var(--space-3xl); /* 64px between major sections */
 }
 
 /* ── Hero section ─────────────────────────────────────────── */
@@ -25,6 +25,7 @@ body:has(.landing-container) {
   text-align: center;
   max-width: 800px;
   margin: 0 auto;
+  padding-bottom: var(--space-xl); /* Extra breathing room: 64px gap + 32px pad = 96px before first section */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -64,7 +65,7 @@ body:has(.landing-container) {
 .search-input-wrapper {
   background: var(--color-surface);
   border-radius: 100px;
-  padding: 12px 12px 12px 32px;
+  padding: 8px 12px 8px 8px;
   display: flex;
   align-items: center;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
@@ -107,6 +108,11 @@ body:has(.landing-container) {
 .search-input-wrapper button:hover {
   background: #333333;
   transform: translateY(-1px);
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06), 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .search-input-wrapper button:disabled {
@@ -272,102 +278,6 @@ body:has(.landing-container) {
   text-decoration: underline;
 }
 
-/* ── Preview section ──────────────────────────────────────── */
-.section-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.section-preview-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: #B0B0B0;
-  text-transform: uppercase;
-  text-align: center;
-  margin: 0;
-}
-
-.preview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-}
-
-.preview-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  border: 1px solid var(--color-border-light);
-}
-
-/* preview-card hover removed — cards are static examples, not interactive (NES-slop-audit) */
-
-.card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.address-info h4 {
-  font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: #111111;
-  margin: 0 0 4px;
-  line-height: 1.2;
-}
-
-.address-info p {
-  font-size: 13px;
-  color: #666666;
-  margin: 0;
-}
-
-.mini-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 100px;
-  color: #111111;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.mini-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-top: 1px solid #F0F0F0;
-  padding-top: 16px;
-}
-
-.mini-stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.mini-stat-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #B0B0B0;
-  text-transform: uppercase;
-}
-
-.mini-stat-val {
-  font-size: 14px;
-  font-weight: 500;
-  color: #111111;
-}
-
 /* ── Landing footer ───────────────────────────────────────── */
 .landing-footer {
   text-align: center;
@@ -529,11 +439,11 @@ body:has(.landing-container) {
 
   .landing-container {
     padding: 40px 20px;
-    gap: 48px;
+    gap: var(--space-2xl); /* 48px on mobile */
   }
 
-  .preview-grid {
-    grid-template-columns: 1fr;
+  .hero-section {
+    padding-bottom: var(--space-base); /* Reduce hero extra spacing on mobile */
   }
 
   .search-input-wrapper {
@@ -556,4 +466,45 @@ body:has(.landing-container) {
     margin: 0;
     padding: 12px 16px;
   }
+}
+
+/* ── Accessibility: disable motion ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .search-input-wrapper button,
+  .search-input-wrapper {
+    transition: none;
+  }
+
+  .search-input-wrapper button:hover {
+    transform: none;
+  }
+
+  .search-box button {
+    transition: none;
+  }
+
+  .search-box button:hover {
+    transform: none;
+  }
+}
+
+/* Google Places Autocomplete (New) element */
+.nestcheck-autocomplete {
+  flex: 1;
+  min-width: 0;
+  --gmp-mat-color-surface: transparent;
+  --gmp-mat-color-on-surface: var(--color-text, #1E293B);
+  --gmp-mat-color-outline: transparent;
+  --gmp-mat-color-primary: var(--color-accent, #2563EB);
+}
+
+/* Remove the built-in border/background from the Google element */
+.nestcheck-autocomplete::part(input) {
+  font-size: 16px;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  color: var(--color-text, #1E293B);
 }
