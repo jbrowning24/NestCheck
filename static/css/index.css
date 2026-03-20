@@ -65,7 +65,7 @@ body:has(.landing-container) {
 .search-input-wrapper {
   background: var(--color-surface);
   border-radius: 100px;
-  padding: 8px 12px 8px 8px;
+  padding: 12px 12px 12px 32px;
   display: flex;
   align-items: center;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
@@ -488,70 +488,44 @@ body:has(.landing-container) {
   }
 }
 
-/* Google Places Autocomplete (New) element */
-.nestcheck-autocomplete {
-  flex: 1;
-  min-width: 0;
-  /* Override Google Material Design theme tokens */
-  --gmp-mat-color-surface: transparent;
-  --gmp-mat-color-on-surface: #1E293B;
-  --gmp-mat-color-outline: transparent;
-  --gmp-mat-color-primary: #2563EB;
-  --gmp-mat-color-on-surface-variant: #475569;
-}
-
-/* Style the Google element's internal input via ::part */
-.nestcheck-autocomplete::part(input) {
-  font-size: 16px;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: transparent;
-  border: none;
-  outline: none;
-  box-shadow: none;
-  padding: 0;
-  color: #1E293B;
-  caret-color: #1E293B;
-}
-
-/* Remove the focus outline from the Google element — our pill wrapper handles focus visuals */
-.nestcheck-autocomplete:focus-within {
-  outline: none;
-  box-shadow: none;
-}
-
-.nestcheck-autocomplete::part(input):focus {
-  outline: none;
-  box-shadow: none;
-  border: none;
-}
-
-/* Override the predictions dropdown styling */
-.nestcheck-autocomplete::part(predictions) {
+/* Google Places Autocomplete dropdown */
+.pac-container {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   margin-top: 4px;
-  color: #1E293B;
-}
-
-.nestcheck-autocomplete::part(prediction-item) {
-  color: #1E293B;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  padding: 10px 16px;
+  z-index: 10000;
+  overflow: visible;
 }
 
-.nestcheck-autocomplete::part(prediction-item):hover {
+.pac-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #1E293B;
+  border-top: 1px solid #F1F5F9;
+  cursor: pointer;
+}
+
+.pac-item:first-child {
+  border-top: none;
+}
+
+.pac-item:hover, .pac-item-selected {
   background: #F8FAFC;
 }
 
-/* Hide the search icon — we don't need it inside the pill */
-.nestcheck-autocomplete::part(search-icon) {
-  display: none;
+.pac-item-query {
+  font-size: 14px;
+  color: #1E293B;
 }
 
-/* Hide the clear button for cleaner look */
-.nestcheck-autocomplete::part(clear-icon) {
-  color: #94A3B8;
+.pac-matched {
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.pac-icon {
+  display: none;
 }
