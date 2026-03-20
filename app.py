@@ -164,6 +164,13 @@ if not os.environ.get("GOOGLE_MAPS_API_KEY"):
         "For local development, copy .env.example to .env and add your key."
     )
 
+if not app.config.get("GOOGLE_MAPS_FRONTEND_API_KEY"):
+    logger.warning(
+        "GOOGLE_MAPS_FRONTEND_API_KEY is not set. "
+        "Address autocomplete will be disabled on the landing page. "
+        "Set this to a domain-restricted Google Maps API key."
+    )
+
 
 # ---------------------------------------------------------------------------
 # Request ID middleware — every request gets a unique ID for tracing
