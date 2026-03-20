@@ -1065,34 +1065,27 @@
     return;
   }
 
-  var container = input.parentNode;
-  var autocompleteEl = new google.maps.places.PlaceAutocompleteElement({
-    includedRegionCodes: ['us'],
+  // Use the NEW Autocomplete class but keep our own input visible
+  var autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'us' },
+    fields: ['place_id', 'formatted_address'],
     types: ['address']
   });
 
-  // Style the element to match our input
-  autocompleteEl.className = 'nestcheck-autocomplete';
-
-  // Replace the plain input with the autocomplete element
-  input.style.display = 'none';
-
-  // Insert autocomplete element before the hidden input
-  container.insertBefore(autocompleteEl, input);
-
-  // Handle place selection
-  autocompleteEl.addEventListener('gmp-select', async function(event) {
-    var placePrediction = event.placePrediction;
-    var place = placePrediction.toPlace();
-    await place.fetchFields({ fields: ['formattedAddress', 'location'] });
-
-    // Fill the original hidden input so the form submits the address
-    input.value = place.formattedAddress || '';
-    input.style.display = 'none';
-
-    // Fill place_id hidden field
+  autocomplete.addListener('place_changed', function() {
+    var place = autocomplete.getPlace();
     var pid = document.getElementById('place-id-input');
-    if (pid) pid.value = place.id || '';
+    if (place.place_id && pid) {
+      pid.value = place.place_id;
+    }
+    if (place.formatted_address) {
+      input.value = place.formatted_address;
+    }
+  });
+
+  input.addEventListener('input', function() {
+    var pid = document.getElementById('place-id-input');
+    if (pid) pid.value = '';
   });
 })();
 </script>
