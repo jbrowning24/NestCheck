@@ -102,7 +102,7 @@
 
       <div class="search-input-wrapper">
         <label for="address-input" class="sr-only">Street address to evaluate</label>
-        <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+        <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
         <button type="submit" id="evalBtn">Generate Report</button>
       </div>
 
@@ -217,7 +217,7 @@
   <form method="POST" id="evalForm">
     <div class="search-box">
       <label for="address-input-result" class="sr-only">Street address to evaluate</label>
-      <input type="text" name="address" id="address-input-result" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+      <input type="text" name="address" id="address-input-result" placeholder="Enter any U.S. address..." value="{{ address }}" required autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       <button type="submit" id="evalBtn">New evaluation</button>
     </div>
   </form>
