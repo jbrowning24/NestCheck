@@ -52,6 +52,7 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
+    save_state_request, get_state_request_counts,
 )
 
 load_dotenv()
@@ -3729,32 +3730,88 @@ def pricing():
     return render_template("pricing.html")
 
 
-@app.route("/coverage")
+@app.route("/coverage", methods=["GET", "POST"])
 def coverage_page():
-    """Data coverage transparency page — per-state, per-source availability.
+    """Data coverage transparency page — competitive comparison, geographic
+    coverage tiers, state waitlist, and detailed source inventory.
 
-    Uses manifest-only data (no spatial.db queries) for fast page loads.
-    verify_coverage() is reserved for admin/diagnostic use.
+    GET: render the page with manifest-only data (no spatial.db queries).
+    POST: handle state request form submission.
     """
+    from coverage_config import (
+        get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
+        get_state_name, COVERAGE_MANIFEST,
+    )
+
+    def _classify_states():
+        """Split states into 'full' (education active) vs 'expanding'."""
+        full, expanding = [], []
+        for state in get_all_states():
+            manifest = COVERAGE_MANIFEST.get(state["code"], {})
+            if manifest.get("STATE_EDUCATION") == "active":
+                full.append(state)
+            else:
+                expanding.append(state)
+        return full, expanding
+
+    # Handle state request form submission
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip()
+        state_code = (request.form.get("state_code") or "").strip().upper()
+
+        # Basic email validation
+        if not email or "@" not in email or "." not in email.split("@")[-1]:
+            flash("Please enter a valid email address.", "error")
+            return redirect(url_for("coverage_page"))
+
+        # Validate state_code is a known expanding state (or "OTHER")
+        _, expanding = _classify_states()
+        valid_codes = {s["code"] for s in expanding}
+        valid_codes.add("OTHER")
+
+        if state_code not in valid_codes:
+            flash("Please select a valid state.", "error")
+            return redirect(url_for("coverage_page"))
+
+        saved = save_state_request(email, state_code)
+        state_label = get_state_name(state_code) if state_code != "OTHER" else "your state"
+        if saved:
+            flash(
+                f"Thanks! We'll let you know when we launch in {state_label}.",
+                "success",
+            )
+        else:
+            flash(
+                f"You're already on the list for {state_label}. We'll be in touch!",
+                "success",
+            )
+        return redirect(url_for("coverage_page"))
+
+    # GET: render the page
     try:
-        from coverage_config import (
-            get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
-        )
         states = get_all_states()
         state_details = {}
         for state in states:
             state_details[state["code"]] = get_source_coverage(state["code"])
         source_list = SOURCE_DISPLAY_LIST
+        full_states, expanding_states = _classify_states()
     except Exception:
         states = []
         state_details = {}
         source_list = []
+        full_states = []
+        expanding_states = []
+
+    request_counts = get_state_request_counts()
 
     return render_template(
         "coverage.html",
         states=states,
         state_details=state_details,
         source_list=source_list,
+        request_counts=request_counts,
+        full_states=full_states,
+        expanding_states=expanding_states,
     )
 
 
