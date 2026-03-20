@@ -1,325 +1,267 @@
 {% extends "_base.html" %}
 
-{% block title %}NestCheck — Data Coverage{% endblock %}
+{% block title %}NestCheck — Coverage &amp; Comparison{% endblock %}
 
-{% block meta_description %}<meta name="description" content="NestCheck evaluations are built on {{ source_list | length }} data sources from federal and state agencies. See what's available in each state.">{% endblock %}
+{% block meta_description %}<meta name="description" content="See how NestCheck compares to Zillow and Redfin. Evaluate health hazards, walkability, green space, transit, and schools — things listing platforms miss.">{% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ self.title() }}">
-<meta property="og:description" content="NestCheck evaluations are built on {{ source_list | length }} data sources. See per-state coverage.">
+<meta property="og:description" content="See how NestCheck compares to Zillow and Redfin. Evaluate health hazards, walkability, green space, transit, and schools — things listing platforms miss.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/coverage.css') }}">
+{% endblock %}
+
 {% block content %}
 
-<style>
-/* ── Coverage page styles (NES-288) ── */
-.cov-page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-lg);
-}
+<div class="coverage-page">
 
-/* Hero */
-.cov-hero {
-  margin-bottom: var(--space-xl);
-}
-.cov-hero h1 {
-  font-size: var(--type-l1-size);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0 0 var(--space-sm) 0;
-}
-.cov-hero p {
-  font-size: var(--font-size-body);
-  color: var(--color-text-secondary);
-  margin: 0;
-  max-width: 600px;
-}
-
-/* Table wrapper */
-.cov-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin-bottom: var(--space-xl);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-}
-.cov-table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-}
-
-/* Header */
-.cov-table thead th {
-  font-size: var(--type-caption);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-section);
-  padding: var(--space-2) var(--space-3);
-  text-align: center;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-bg-page);
-}
-.cov-table thead th:first-child {
-  text-align: left;
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--color-bg-page);
-}
-
-/* Dimension group header */
-.cov-dim-header th {
-  font-size: var(--type-caption);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-section);
-  padding: var(--space-2) var(--space-3) 0;
-  text-align: left;
-  border-bottom: none;
-  border-top: 1px solid var(--color-border-light);
-  background: var(--color-bg-page);
-}
-.cov-dim-header th:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--color-bg-page);
-}
-
-/* Data rows */
-.cov-table tbody td {
-  padding: var(--space-2) var(--space-3);
-  text-align: center;
-  border-bottom: 1px solid var(--color-border-light);
-  font-size: var(--font-size-body);
-}
-.cov-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* State name column */
-.cov-state-cell {
-  text-align: left;
-  font-weight: var(--weight-medium);
-  color: var(--color-text);
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--color-bg-card);
-}
-
-/* Coming soon row */
-.cov-row--coming-soon td {
-  color: var(--color-text-tertiary);
-}
-.cov-row--coming-soon .cov-state-cell {
-  color: var(--color-text-tertiary);
-  font-weight: var(--font-weight-regular);
-}
-.cov-coming-label {
-  display: inline-block;
-  font-size: var(--type-caption);
-  color: var(--color-text-tertiary);
-  margin-left: var(--space-2);
-  font-weight: var(--font-weight-regular);
-}
-
-/* Status indicators */
-.cov-status { cursor: default; }
-.cov-status--active { color: var(--color-text); }
-.cov-status--intended { color: var(--color-text-tertiary); }
-.cov-status--planned { color: var(--color-text-tertiary); }
-
-/* Divider row between supported and coming soon */
-.cov-divider td {
-  padding: var(--space-1) var(--space-3);
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-/* Dimension summary cards */
-.cov-dim-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-md);
-  margin-bottom: var(--space-xl);
-}
-.cov-dim-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
-}
-.cov-dim-card h3 {
-  font-size: var(--font-size-body);
-  font-weight: var(--weight-medium);
-  color: var(--color-text);
-  margin: 0 0 var(--space-sm) 0;
-}
-.cov-dim-card p {
-  font-size: var(--type-detail);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--space-sm) 0;
-  line-height: 1.5;
-}
-.cov-dim-card ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.cov-dim-card li {
-  font-size: var(--type-detail);
-  color: var(--color-text-secondary);
-  padding: var(--space-1) 0;
-}
-.cov-dim-card li a {
-  color: var(--color-text-secondary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.cov-footer-note {
-  font-size: var(--type-detail);
-  color: var(--color-text-tertiary);
-  text-align: center;
-}
-
-@media (max-width: 640px) {
-  .cov-page {
-    padding: var(--space-lg) var(--space-base);
-  }
-  .cov-dim-cards {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
-
-<div class="cov-page">
-
-  {# ── Section A: Hero ── #}
-  <div class="cov-hero">
-    <h1>Data Coverage</h1>
-    <p>NestCheck evaluations are built on {{ source_list | length }} data sources from federal and state agencies. This page shows what's available in each state.</p>
+  {# ══════════════════════════════════════════════════════════════════
+     SECTION 1: Hero + Competitive Comparison Grid
+     ══════════════════════════════════════════════════════════════════ #}
+  <div class="coverage-section coverage-hero">
+    <h1>How NestCheck Compares</h1>
+    <p>Listing platforms show you price, photos, and square footage. NestCheck evaluates what it's actually like to live there.</p>
   </div>
 
-  {# ── Section B: Coverage table ── #}
-  {% if states and source_list %}
-  <div class="cov-table-wrap">
-    <table class="cov-table">
-      <thead>
-        {# Dimension group headers #}
-        {% set _cur_dim = namespace(val='') %}
-        <tr class="cov-dim-header">
-          <th></th>
-          {% for src in source_list %}
-            {% if src.dimension != _cur_dim.val %}
-              {% set _cur_dim.val = src.dimension %}
-              {# Count sources in this dimension #}
-              {% set _dim_count = source_list | selectattr('dimension', 'equalto', src.dimension) | list | length %}
-              <th colspan="{{ _dim_count }}">{{ src.dimension | upper }}</th>
+  <div class="coverage-section">
+    <div class="coverage-compare-wrap">
+      <table class="coverage-compare">
+        <thead>
+          <tr>
+            <th>What's evaluated</th>
+            <th class="coverage-compare-nc">NestCheck</th>
+            <th>Zillow</th>
+            <th>Redfin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="coverage-compare-category">Health hazard proximity</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Environmental contamination</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Road noise &amp; traffic volume</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Flood zone analysis</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-partial">Climate risk</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Green space quality scoring</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Daily essentials walkability</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Transit connectivity</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-partial">Walk Score</span></td>
+            <td><span class="coverage-compare-partial">Walk Score</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">School district performance</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-partial">GreatSchools</span></td>
+            <td><span class="coverage-compare-partial">GreatSchools</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Pass/fail health safety gates</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td class="coverage-compare-category">Data confidence indicators</td>
+            <td><span class="coverage-compare-yes">&#9679;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+            <td><span class="coverage-compare-no">&mdash;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════════
+     SECTION 2: Geographic Coverage
+     ══════════════════════════════════════════════════════════════════ #}
+  <div class="coverage-section">
+    <div class="coverage-tier">
+      <h2 class="coverage-tier-label">Full Evaluation Available</h2>
+      <p class="coverage-tier-desc">Complete reports including health hazard checks, scored dimensions, school data, and neighborhood analysis.</p>
+      <div class="coverage-state-pills">
+        {% for state in full_states %}
+          <span class="coverage-state-pill coverage-state-pill--supported">{{ state.name }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if expanding_states %}
+    <div class="coverage-tier">
+      <h2 class="coverage-tier-label">Health &amp; Environment Checks Available</h2>
+      <p class="coverage-tier-desc">Our federal health datasets &mdash; EPA, FEMA, FHWA &mdash; cover every state. You can evaluate any US address for environmental hazards today. Full evaluation coverage is expanding.</p>
+      <div class="coverage-state-pills">
+        {% for state in expanding_states %}
+          <span class="coverage-state-pill">
+            {{ state.name }}
+            {% if request_counts.get(state.code) %}
+              <span class="coverage-request-count">{{ request_counts[state.code] }} requested</span>
             {% endif %}
-          {% endfor %}
-        </tr>
-        {# Source name headers #}
-        <tr>
-          <th>State</th>
-          {% for src in source_list %}
-            <th title="{{ src.name }} ({{ src.source_org }})">{{ src.name }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {# Supported states first #}
-        {% set supported = states | selectattr('status', 'equalto', 'supported') | list %}
-        {% set coming = states | selectattr('status', 'equalto', 'coming_soon') | list %}
-
-        {% for state in supported %}
-          <tr id="state-{{ state.code | lower }}">
-            <td class="cov-state-cell">{{ state.name }}</td>
-            {% for src in source_list %}
-              {% set detail = state_details.get(state.code, {}).get(src.key, {}) %}
-              {% set status = detail.get('status', 'planned') if detail is mapping else 'planned' %}
-              <td>
-                {% if status == 'active' %}
-                  <span class="cov-status cov-status--active"
-                        title="Active"
-                    >&#9679;</span>
-                {% elif status == 'intended' %}
-                  <span class="cov-status cov-status--intended"
-                        title="Data source available but not yet ingested"
-                    >&#9675;</span>
-                {% else %}
-                  <span class="cov-status cov-status--planned">&mdash;</span>
-                {% endif %}
-              </td>
-            {% endfor %}
-          </tr>
+          </span>
         {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
 
-        {# Divider #}
-        {% if coming %}
-        <tr class="cov-divider">
-          <td colspan="{{ source_list | length + 1 }}"></td>
-        </tr>
-        {% endif %}
-
-        {# Coming soon states #}
-        {% for state in coming %}
-          <tr id="state-{{ state.code | lower }}" class="cov-row--coming-soon">
-            <td class="cov-state-cell">{{ state.name }}<span class="cov-coming-label">Coming Soon</span></td>
-            {% for src in source_list %}
-              <td><span class="cov-status cov-status--planned">&mdash;</span></td>
+  {# ══════════════════════════════════════════════════════════════════
+     SECTION 3: State Request Form
+     ══════════════════════════════════════════════════════════════════ #}
+  {% if expanding_states %}
+  <div class="coverage-section">
+    <div class="coverage-request-form">
+      <h3>Want full coverage in your state?</h3>
+      <p>Tell us where you're looking and we'll notify you when we launch there.</p>
+      <form method="POST" action="{{ url_for('coverage_page') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="coverage-form-row">
+          <input type="email" name="email" placeholder="you@example.com" required>
+          <select name="state_code" required>
+            <option value="" disabled selected>State</option>
+            {% for state in expanding_states %}
+              <option value="{{ state.code }}">{{ state.name }}</option>
             {% endfor %}
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div class="coverage-form-row">
+          <button type="submit" class="coverage-form-submit">Notify me</button>
+        </div>
+      </form>
+      <p class="coverage-form-privacy">We'll email you when we launch in your state. That's it. No spam.</p>
+    </div>
   </div>
   {% endif %}
 
-  {# ── Section C: Dimension summary cards ── #}
-  <div class="cov-dim-cards">
-    <div class="cov-dim-card">
-      <h3>Health &amp; Safety</h3>
-      <p>Environmental hazards and infrastructure risks near a property. These checks flag issues, not score them.</p>
-      <ul>
-        <li><a href="https://www.epa.gov/superfund" target="_blank" rel="noopener noreferrer">EPA Superfund (SEMS)</a></li>
-        <li><a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener noreferrer">EPA EJScreen</a></li>
-        <li><a href="https://www.epa.gov/toxics-release-inventory-tri-program" target="_blank" rel="noopener noreferrer">EPA Toxic Release Inventory</a></li>
-        <li><a href="https://www.epa.gov/ust" target="_blank" rel="noopener noreferrer">EPA Underground Storage Tanks</a></li>
-        <li><a href="https://www.fhwa.dot.gov/policyinformation/hpms.cfm" target="_blank" rel="noopener noreferrer">FHWA Traffic Counts (HPMS)</a></li>
-        <li><a href="https://hifld-geoplatform.opendata.arcgis.com/" target="_blank" rel="noopener noreferrer">DHS Power Transmission Lines</a></li>
-        <li><a href="https://geodata.bts.gov/datasets/north-american-rail-network-lines" target="_blank" rel="noopener noreferrer">FRA Rail Network</a></li>
-        <li><a href="https://www.fema.gov/flood-maps/national-flood-hazard-layer" target="_blank" rel="noopener noreferrer">FEMA Flood Zones</a></li>
-      </ul>
-    </div>
-    <div class="cov-dim-card">
-      <h3>Education</h3>
-      <p>School district boundaries, performance data, and individual school locations.</p>
-      <ul>
-        <li><a href="https://tigerweb.geo.census.gov/" target="_blank" rel="noopener noreferrer">Census TIGER School Districts</a></li>
-        <li>State Departments of Education (varies by state)</li>
-        <li><a href="https://nces.ed.gov/ccd/schoolsearch/" target="_blank" rel="noopener noreferrer">NCES School Locations (2022-23)</a></li>
-      </ul>
-    </div>
-    <div class="cov-dim-card">
-      <h3>Area Context</h3>
-      <p>Demographic and community data shown as reference information, never scored.</p>
-      <ul>
-        <li><a href="https://www.census.gov/programs-surveys/acs" target="_blank" rel="noopener noreferrer">Census American Community Survey</a></li>
-      </ul>
+  {# ══════════════════════════════════════════════════════════════════
+     SECTION 4: Detailed Data Sources (collapsed)
+     ══════════════════════════════════════════════════════════════════ #}
+  {% if states and source_list %}
+  <div class="coverage-section">
+    <button class="coverage-sources-toggle"
+            aria-expanded="false"
+            aria-controls="coverage-sources-body"
+            onclick="this.setAttribute('aria-expanded', this.getAttribute('aria-expanded') === 'true' ? 'false' : 'true'); document.getElementById('coverage-sources-body').classList.toggle('coverage-sources-body--open')">
+      <span class="coverage-chevron">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4,2 8,6 4,10"/></svg>
+      </span>
+      For researchers: our {{ source_list | length }} data sources
+    </button>
+
+    <div id="coverage-sources-body" class="coverage-sources-body">
+      <div class="coverage-source-table-wrap">
+        <table class="coverage-source-table">
+          <thead>
+            {# Dimension group headers #}
+            {% set _cur_dim = namespace(val='') %}
+            <tr class="coverage-dim-header">
+              <th></th>
+              {% for src in source_list %}
+                {% if src.dimension != _cur_dim.val %}
+                  {% set _cur_dim.val = src.dimension %}
+                  {% set _dim_count = source_list | selectattr('dimension', 'equalto', src.dimension) | list | length %}
+                  <th colspan="{{ _dim_count }}">{{ src.dimension | upper }}</th>
+                {% endif %}
+              {% endfor %}
+            </tr>
+            {# Source name headers #}
+            <tr>
+              <th>State</th>
+              {% for src in source_list %}
+                <th title="{{ src.name }} ({{ src.source_org }})">{{ src.name }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {# Supported states first #}
+            {% for state in full_states %}
+              <tr id="state-{{ state.code | lower }}">
+                <td class="coverage-source-state">{{ state.name }}</td>
+                {% for src in source_list %}
+                  {% set detail = state_details.get(state.code, {}).get(src.key, {}) %}
+                  {% set status = detail.get('status', 'planned') if detail is mapping else 'planned' %}
+                  <td>
+                    {% if status == 'active' %}
+                      <span class="coverage-src-active" title="Active">&#9679;</span>
+                    {% elif status == 'intended' %}
+                      <span class="coverage-src-intended" title="Data source available but not yet ingested">&#9675;</span>
+                    {% else %}
+                      <span class="coverage-src-planned">&mdash;</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+
+            {# Divider #}
+            {% if expanding_states %}
+            <tr class="coverage-source-divider">
+              <td colspan="{{ source_list | length + 1 }}"></td>
+            </tr>
+            {% endif %}
+
+            {# Coming soon states #}
+            {% for state in expanding_states %}
+              <tr id="state-{{ state.code | lower }}" class="coverage-source-row--soon">
+                <td class="coverage-source-state">{{ state.name }}<span class="coverage-soon-label">Expanding</span></td>
+                {% for src in source_list %}
+                  {% set detail = state_details.get(state.code, {}).get(src.key, {}) %}
+                  {% set status = detail.get('status', 'planned') if detail is mapping else 'planned' %}
+                  <td>
+                    {% if status == 'active' %}
+                      <span class="coverage-src-active" title="Active">&#9679;</span>
+                    {% elif status == 'intended' %}
+                      <span class="coverage-src-intended" title="Data source available but not yet ingested">&#9675;</span>
+                    {% else %}
+                      <span class="coverage-src-planned">&mdash;</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="coverage-footer-note">
+        NestCheck also uses live data from Google Maps and OpenStreetMap for venue discovery, transit, and walkability scoring.
+        These sources are available for all addresses and are not shown in the table above.
+      </p>
     </div>
   </div>
-
-  <p class="cov-footer-note">
-    NestCheck also uses live data from Google Maps, OpenStreetMap, and Walk Score for venue discovery, transit, and walkability scoring.
-    These sources are available for all addresses and are not shown in the table above.
-  </p>
+  {% endif %}
 
 </div>
 

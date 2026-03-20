@@ -163,6 +163,15 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_eval_coverage_addr
             ON evaluation_coverage(address);
+
+        CREATE TABLE IF NOT EXISTS state_requests (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            email       TEXT NOT NULL,
+            state_code  TEXT NOT NULL,
+            created_at  TEXT NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_state_requests_email_state
+            ON state_requests(email, state_code);
     """)
 
     # Migration for pre-place_id databases.
@@ -1260,6 +1269,41 @@ def save_evaluation_coverage(data: dict) -> None:
             conn.close()
     except Exception as e:
         logger.warning("Failed to save evaluation coverage: %s", e)
+
+
+# ---------------------------------------------------------------------------
+# State coverage requests (waitlist)
+# ---------------------------------------------------------------------------
+
+
+def save_state_request(email: str, state_code: str) -> bool:
+    """Record a state coverage request. Returns True on success, False on duplicate."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        conn.execute(
+            """INSERT INTO state_requests (email, state_code, created_at)
+               VALUES (?, ?, ?)""",
+            (email.strip().lower(), state_code.upper(), now),
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def get_state_request_counts() -> dict:
+    """Return {state_code: count} for all state requests."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT state_code, COUNT(*) as cnt FROM state_requests GROUP BY state_code"
+        ).fetchall()
+        return {row["state_code"]: row["cnt"] for row in rows}
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
