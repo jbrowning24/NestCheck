@@ -10,7 +10,7 @@
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=initAutocomplete"></script>
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places"></script>
 {% endif %}
 {% endblock %}
 
@@ -884,6 +884,14 @@
       var pid = document.getElementById('place-id-input');
       if (pid) pid.value = '';
     });
+  }
+
+  // If Google Maps already loaded before this script ran, call immediately.
+  // Otherwise, register for the load event.
+  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+    initAutocomplete();
+  } else {
+    window.addEventListener('load', initAutocomplete);
   }
 </script>
 {% endif %}
