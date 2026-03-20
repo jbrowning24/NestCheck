@@ -1,7 +1,8 @@
 /* ================================================================
-   homepage.css — Styles for the five new content sections on the
-   landing page (below hero, above footer).
+   homepage.css — Styles for the content sections on the landing
+   page (below hero, above footer).
    All values use design tokens from tokens.css.
+   NES-314: vertical rhythm, comparison stage, motion, depth.
    ================================================================ */
 
 /* ── Shared section structure ────────────────────────────── */
@@ -74,7 +75,26 @@
   max-width: 280px;
 }
 
-/* ── Section 2: Competitive comparison grid ──────────────── */
+/* ── Section 2: Competitive comparison grid (staged) ─────── */
+/* NES-314: distinct background + depth to make this the
+   "stop scrolling" moment on the page. */
+#what-we-evaluate {
+  background: var(--color-surface-alt);
+  border-top: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl) var(--space-xl);
+  box-shadow: var(--shadow-md);
+}
+
+#what-we-evaluate .hp-section-label {
+  font-size: var(--type-l3-size);
+  font-weight: var(--type-l3-weight);
+  letter-spacing: var(--type-l3-tracking);
+  color: var(--type-l3-color);
+  text-transform: none;
+  line-height: var(--type-l3-leading);
+}
+
 .hp-compare-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -281,6 +301,7 @@
   background: var(--color-bg-card);
   cursor: pointer;
   min-width: 200px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .hp-vote-form select:focus {
@@ -316,6 +337,45 @@
   margin: 0 auto var(--space-md);
 }
 
+/* ── NES-314: Restrained motion (CSS-only) ───────────────── */
+
+/* Scroll-triggered fade-in for comparison grid (IntersectionObserver) */
+@keyframes hp-fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-base));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#what-we-evaluate.hp-visible {
+  animation: hp-fadeUp var(--transition-slow) ease both;
+}
+
+/* Hidden until IntersectionObserver adds .hp-visible.
+   The JS sets .hp-fade-ready on the element first — without JS
+   the element stays fully visible (no opacity rule applies). */
+#what-we-evaluate.hp-fade-ready:not(.hp-visible) {
+  opacity: 0;
+}
+
+/* ── Accessibility: disable all motion ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hp-vote-form select,
+  .hp-vote-form button,
+  .search-input-wrapper button {
+    transition: none;
+  }
+
+  #what-we-evaluate {
+    animation: none;
+    opacity: 1; /* Ensure visible even without JS when motion is reduced */
+  }
+}
+
 /* ── Responsive: stack to 1 column below 640px ───────────── */
 @media (max-width: 640px) {
   .hp-steps {
@@ -333,6 +393,11 @@
 
   .hp-coverage-grid {
     grid-template-columns: 1fr;
+  }
+
+  #what-we-evaluate {
+    padding: var(--space-xl) var(--space-base);
+    border-radius: var(--radius-md);
   }
 
   .hp-vote-form {
