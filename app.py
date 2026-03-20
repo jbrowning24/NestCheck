@@ -52,7 +52,6 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
-    save_state_request, get_state_request_counts,
 )
 
 load_dotenv()
@@ -3730,92 +3729,25 @@ def pricing():
     return render_template("pricing.html")
 
 
-@app.route("/coverage", methods=["GET", "POST"])
-def coverage_page():
-    """Data coverage transparency page — competitive comparison, geographic
-    coverage tiers, state waitlist, and detailed source inventory.
+@app.route("/vote-state", methods=["POST"])
+def vote_state():
+    """Handle anonymous state demand vote from homepage form."""
+    state = (request.form.get("state") or "").strip().upper()
+    if not state:
+        flash("Please select a state.", "error")
+        return redirect("/#help-us-expand")
 
-    GET: render the page with manifest-only data (no spatial.db queries).
-    POST: handle state request form submission.
-    """
-    from coverage_config import (
-        get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
-        get_state_name, COVERAGE_MANIFEST,
-    )
+    from models import record_state_vote, _US_STATES
 
-    def _classify_states():
-        """Split states into 'full' (education active) vs 'expanding'."""
-        full, expanding = [], []
-        for state in get_all_states():
-            manifest = COVERAGE_MANIFEST.get(state["code"], {})
-            if manifest.get("STATE_EDUCATION") == "active":
-                full.append(state)
-            else:
-                expanding.append(state)
-        return full, expanding
+    # Only allow votes for states we don't fully support yet
+    _SUPPORTED_STATES = {"NY", "NJ", "CT", "MI"}
+    if state not in _US_STATES or state in _SUPPORTED_STATES:
+        flash("That state is already supported! Enter any address to get a report.", "error")
+        return redirect("/#help-us-expand")
 
-    # Handle state request form submission
-    if request.method == "POST":
-        email = (request.form.get("email") or "").strip()
-        state_code = (request.form.get("state_code") or "").strip().upper()
-
-        # Basic email validation
-        if not email or "@" not in email or "." not in email.split("@")[-1]:
-            flash("Please enter a valid email address.", "error")
-            return redirect(url_for("coverage_page"))
-
-        # Validate state_code is a known expanding state (or "OTHER")
-        _, expanding = _classify_states()
-        valid_codes = {s["code"] for s in expanding}
-        valid_codes.add("OTHER")
-
-        if state_code not in valid_codes:
-            flash("Please select a valid state.", "error")
-            return redirect(url_for("coverage_page"))
-
-        saved = save_state_request(email, state_code)
-        state_label = get_state_name(state_code) if state_code != "OTHER" else "your state"
-        if saved:
-            flash(
-                f"Thanks! We'll let you know when we launch in {state_label}.",
-                "success",
-            )
-        else:
-            flash(
-                f"You're already on the list for {state_label}. We'll be in touch!",
-                "success",
-            )
-        return redirect(url_for("coverage_page"))
-
-    # GET: render the page
-    try:
-        states = get_all_states()
-        state_details = {}
-        for state in states:
-            state_details[state["code"]] = get_source_coverage(state["code"])
-        source_list = SOURCE_DISPLAY_LIST
-        full_states, expanding_states = _classify_states()
-    except Exception:
-        states = []
-        state_details = {}
-        source_list = []
-        full_states = []
-        expanding_states = []
-
-    try:
-        request_counts = get_state_request_counts()
-    except Exception:
-        request_counts = {}
-
-    return render_template(
-        "coverage.html",
-        states=states,
-        state_details=state_details,
-        source_list=source_list,
-        request_counts=request_counts,
-        full_states=full_states,
-        expanding_states=expanding_states,
-    )
+    record_state_vote(state)
+    flash("Thanks for voting! Your input helps us prioritize.", "success")
+    return redirect("/#help-us-expand")
 
 
 # ---------------------------------------------------------------------------
