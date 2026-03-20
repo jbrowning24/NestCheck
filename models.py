@@ -172,6 +172,14 @@ def init_db():
         );
         CREATE UNIQUE INDEX IF NOT EXISTS idx_state_requests_email_state
             ON state_requests(email, state_code);
+
+        CREATE TABLE IF NOT EXISTS state_votes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            state       TEXT NOT NULL,
+            created_at  TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_state_votes_state
+            ON state_votes(state);
     """)
 
     # Migration for pre-place_id databases.
@@ -1302,6 +1310,42 @@ def get_state_request_counts() -> dict:
             "SELECT state_code, COUNT(*) as cnt FROM state_requests GROUP BY state_code"
         ).fetchall()
         return {row["state_code"]: row["cnt"] for row in rows}
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# State votes (anonymous demand signal)
+# ---------------------------------------------------------------------------
+
+# Valid 2-letter US state abbreviations (all 50 states)
+_US_STATES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+}
+
+
+def record_state_vote(state: str) -> bool:
+    """Record an anonymous state demand vote. Returns True on success.
+
+    Validates that state is a valid 2-letter US state abbreviation.
+    Returns False if the state code is invalid.
+    """
+    state = state.strip().upper()
+    if state not in _US_STATES:
+        return False
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO state_votes (state, created_at) VALUES (?, ?)",
+            (state, now),
+        )
+        conn.commit()
+        return True
     finally:
         conn.close()
 
