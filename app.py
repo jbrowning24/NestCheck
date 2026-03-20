@@ -3802,7 +3802,10 @@ def coverage_page():
         full_states = []
         expanding_states = []
 
-    request_counts = get_state_request_counts()
+    try:
+        request_counts = get_state_request_counts()
+    except Exception:
+        request_counts = {}
 
     return render_template(
         "coverage.html",
