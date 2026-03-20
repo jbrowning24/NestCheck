@@ -60,10 +60,7 @@ app = Flask(__name__)
 # Trust Railway's reverse proxy headers so url_for(_external=True) generates https://.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
-app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
-    os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
-    os.environ.get('GOOGLE_MAPS_API_KEY')
-)
+app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY')
 
 # Session and remember-me cookie security hardening.
 _is_production = app.config['SECRET_KEY'] != 'nestcheck-dev-key'
@@ -3544,8 +3541,6 @@ def compare():
             "compare_health.html",
             comparison=comparison,
             addresses=addresses,
-            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
-            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
         )
 
     # --- GET: snapshot-based comparison (existing) or empty form ---
@@ -3556,8 +3551,6 @@ def compare():
             "compare_health.html",
             comparison=None,
             addresses=[],
-            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
-            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
         )
 
     requested_ids = [part.strip() for part in raw_ids.split(",") if part.strip()]

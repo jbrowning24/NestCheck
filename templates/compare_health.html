@@ -7,8 +7,8 @@
 {% endblock %}
 
 {% block head_extra %}
-{% if google_maps_api_key %}
-<script async src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async&callback=onMapsReady"></script>
+{% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
+<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=onMapsReady"></script>
 {% endif %}
 {% endblock %}
 
