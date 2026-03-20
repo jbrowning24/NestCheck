@@ -3825,6 +3825,20 @@ def healthz():
     }), 200 if config_ok else 503
 
 
+@app.route("/debug-env")
+def debug_env():
+    """Temporary diagnostic route — remove after NES-312 debugging."""
+    import os as _os
+    maps_keys = {k: v[:8] + '...' if v else 'EMPTY'
+                 for k, v in _os.environ.items()
+                 if 'GOOGLE' in k or 'MAPS' in k}
+    frontend = app.config.get('GOOGLE_MAPS_FRONTEND_API_KEY')
+    return jsonify({
+        'env_vars_with_google_or_maps': maps_keys,
+        'flask_config_frontend_key': (frontend[:8] + '...') if frontend else None,
+    })
+
+
 @app.route("/api/spatial-health")
 def api_spatial_health():
     """Check spatial.db health on the production volume.
