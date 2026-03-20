@@ -52,6 +52,7 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
+    save_state_request, get_state_request_counts,
 )
 
 load_dotenv()
@@ -161,6 +162,13 @@ if not os.environ.get("GOOGLE_MAPS_API_KEY"):
         "GOOGLE_MAPS_API_KEY is not set. "
         "Address evaluations will fail until it is configured. "
         "For local development, copy .env.example to .env and add your key."
+    )
+
+if not app.config.get("GOOGLE_MAPS_FRONTEND_API_KEY"):
+    logger.warning(
+        "GOOGLE_MAPS_FRONTEND_API_KEY is not set. "
+        "Address autocomplete will be disabled on the landing page. "
+        "Set this to a domain-restricted Google Maps API key."
     )
 
 
@@ -3722,13 +3730,41 @@ def pricing():
     return render_template("pricing.html")
 
 
-@app.route("/coverage")
+@app.route("/coverage", methods=["GET", "POST"])
 def coverage_page():
     """Data coverage transparency page — per-state, per-source availability.
 
     Uses manifest-only data (no spatial.db queries) for fast page loads.
     verify_coverage() is reserved for admin/diagnostic use.
     """
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        state_code = request.form.get("state_code", "").strip().upper()
+
+        if not email or "@" not in email or "." not in email:
+            flash("Please enter a valid email address.", "error")
+            return redirect("/coverage")
+
+        # Validate state_code against coming_soon states or "OTHER"
+        valid_codes = {"OTHER"}
+        try:
+            from coverage_config import get_all_states
+            for s in get_all_states():
+                if s["status"] == "coming_soon":
+                    valid_codes.add(s["code"])
+        except Exception:
+            pass
+
+        if state_code not in valid_codes:
+            flash("Invalid state selection.", "error")
+            return redirect("/coverage")
+
+        if save_state_request(email, state_code):
+            flash("Thanks! We'll notify you when we expand coverage.", "success")
+        else:
+            flash("You're already on the list for that state!", "info")
+        return redirect("/coverage")
+
     try:
         from coverage_config import (
             get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
@@ -3743,11 +3779,14 @@ def coverage_page():
         state_details = {}
         source_list = []
 
+    request_counts = get_state_request_counts()
+
     return render_template(
         "coverage.html",
         states=states,
         state_details=state_details,
         source_list=source_list,
+        request_counts=request_counts,
     )
 
 

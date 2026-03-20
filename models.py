@@ -163,6 +163,14 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_eval_coverage_addr
             ON evaluation_coverage(address);
+
+        CREATE TABLE IF NOT EXISTS state_requests (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            email       TEXT NOT NULL,
+            state_code  TEXT NOT NULL,
+            created_at  TEXT NOT NULL,
+            UNIQUE(email, state_code)
+        );
     """)
 
     # Migration for pre-place_id databases.
@@ -1429,5 +1437,37 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
             (stripe_customer_id, user_id),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def save_state_request(email: str, state_code: str) -> bool:
+    """Record a user's interest in a state. Returns True on success, False on duplicate."""
+    email = email.strip().lower()
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO state_requests (email, state_code, created_at) VALUES (?, ?, ?)",
+            (email, state_code, now),
+        )
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+    finally:
+        conn.close()
+
+
+def get_state_request_counts() -> dict:
+    """Return {state_code: count} of state expansion requests."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT state_code, COUNT(*) as cnt FROM state_requests GROUP BY state_code"
+        ).fetchall()
+        return {row["state_code"]: row["cnt"] for row in rows}
+    except Exception:
+        return {}
     finally:
         conn.close()
