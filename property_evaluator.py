@@ -3733,6 +3733,17 @@ def transit_frequency_class(review_count: int) -> str:
     return "Very low frequency"
 
 
+# Per-type search radii for find_primary_transit().
+# Commuter rail stations (tagged train_station by Google) have ~10-mile
+# catchment areas — people drive to them.  Subway and light rail are
+# walk-to modes with tighter catchments.
+TRANSIT_SEARCH_RADII = {
+    "train_station": 16000,        # ~10 mi — commuter rail (drive-to)
+    "subway_station": 5000,        # ~3 mi — urban subway (walk-to)
+    "light_rail_station": 5000,    # ~3 mi — light rail (walk-to)
+}
+
+
 def find_primary_transit(
     maps: GoogleMapsClient,
     lat: float,
@@ -3748,7 +3759,8 @@ def find_primary_transit(
     raw_candidates: List[Tuple[int, Dict, str]] = []
     for place_type, mode, priority in search_types:
         try:
-            places = maps.places_nearby(lat, lng, place_type, radius_meters=5000)
+            radius = TRANSIT_SEARCH_RADII[place_type]
+            places = maps.places_nearby(lat, lng, place_type, radius_meters=radius)
         except Exception:
             continue
         for place in places:
