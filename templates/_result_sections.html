@@ -8,7 +8,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge, access_mode_annotation %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -242,6 +242,9 @@
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
                      target="_blank" rel="noopener noreferrer">View satellite imagery <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+                {% endif %}
+                {% if pc.area_context_annotation is defined and pc.area_context_annotation %}
+                  {{ annotation(pc.area_context_annotation) }}
                 {% endif %}
                 {% if pc.health_context is defined and pc.health_context %}
                   <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
@@ -1159,7 +1162,7 @@
 
           {% if result.state_code is defined and result.state_code %}
           <p class="scoring-note">
-            <a href="/coverage#state-{{ result.state_code | lower }}">Data sources for {{ result.state_name | default(result.state_code) }}</a>
+            <a href="/#health-check-data-sources">Data sources for {{ result.state_name | default(result.state_code) }}</a>
           </p>
           {% endif %}
 

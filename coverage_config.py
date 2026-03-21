@@ -166,7 +166,7 @@ _SOURCE_METADATA = {
         "source_url": "https://www.fema.gov/flood-maps/national-flood-hazard-layer",
         "state_filter": None,
         "spatial_filter_required": True,
-        "notes": "Bbox-filtered to tri-state area, chunked 0.5° tiles.",
+        "notes": "Bbox-filtered to 10 metro areas, chunked 0.5° tiles.",
     },
     "SCHOOL_DISTRICTS": {
         "description": "Census TIGER School District Boundaries",
@@ -357,7 +357,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # SF + LA metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -375,7 +375,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Houston + Dallas metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -393,7 +393,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Miami + Tampa metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -411,7 +411,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "HPMS": "active",           # per-state incremental ingest (NES-297)
         "HIFLD": "active",          # national ingest covers all states (NES-285)
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
-        "FEMA_NFHL": "planned",
+        "FEMA_NFHL": "active",      # Chicago metro bbox (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
@@ -668,6 +668,114 @@ def get_section_coverage(state_code: str) -> Dict[str, str]:
     except Exception:
         logger.warning("get_section_coverage failed for %s", state_code, exc_info=True)
         return {}
+
+
+# =============================================================================
+# Auto-sync manifest from spatial.db (NES-309)
+# =============================================================================
+
+# Whitelist of table names valid for sync queries. Must match tables in
+# _SOURCE_METADATA. Prevents SQL injection if metadata is ever mutated
+# (e.g., by tests). Mirrors _VALID_FACILITY_TYPES in spatial_data.py.
+_SYNC_VALID_TABLES = frozenset(
+    meta["table"] for meta in _SOURCE_METADATA.values() if meta.get("table")
+)
+
+# Whitelist of state_filter SQL expressions valid for sync queries.
+# These are interpolated into f-strings — only hardcoded expressions from
+# _SOURCE_METADATA are allowed, never user input.
+_SYNC_VALID_FILTERS = frozenset(
+    meta["state_filter"]
+    for meta in _SOURCE_METADATA.values()
+    if meta.get("state_filter")
+)
+
+
+def sync_manifest_from_db() -> Dict[str, List[str]]:
+    """Update COVERAGE_MANIFEST in-place to match actual spatial.db contents.
+
+    For each source that has a DB table and a state_filter, queries per-state
+    row counts and:
+      - rows > 0 → sets status to "active"
+      - rows == 0 and currently "active" → sets status to "intended"
+      - leaves "planned" and "not_available" untouched (manual signals)
+
+    Skips sources with no table (live APIs), sources with
+    spatial_filter_required (need spatial join), and sources with no
+    state_filter (national datasets like HIFLD — can't determine per-state
+    coverage from a total row count).
+
+    Returns {"promoted": [...], "demoted": [...]} with human-readable
+    change descriptions for logging.
+    """
+    changes: Dict[str, List[str]] = {"promoted": [], "demoted": []}
+
+    try:
+        from spatial_data import _spatial_db_path
+        db_path = _spatial_db_path()
+        if not os.path.exists(db_path):
+            logger.warning("sync_manifest_from_db: spatial.db not found at %s", db_path)
+            return changes
+        conn = sqlite3.connect(db_path)
+    except Exception as e:
+        logger.warning("sync_manifest_from_db: cannot connect to spatial.db: %s", e)
+        return changes
+
+    for source_key, meta in _SOURCE_METADATA.items():
+        table = meta.get("table")
+        if not table:
+            continue  # live API source
+        if meta.get("spatial_filter_required"):
+            continue  # needs spatial join
+        state_filter_col = meta.get("state_filter")
+        if not state_filter_col:
+            continue  # national dataset — can't determine per-state coverage
+
+        # Validate against whitelists before f-string interpolation
+        if table not in _SYNC_VALID_TABLES:
+            logger.warning("sync_manifest_from_db: unknown table %r, skipping", table)
+            continue
+        if state_filter_col not in _SYNC_VALID_FILTERS:
+            logger.warning("sync_manifest_from_db: unknown filter %r, skipping", state_filter_col)
+            continue
+
+        # Check if table exists
+        cursor = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        )
+        if not cursor.fetchone():
+            # Table missing = failed re-ingestion (DROP TABLE scripts),
+            # not a genuine data gap. Don't demote — the data was there
+            # before and will return on the next successful ingest.
+            continue
+
+        key_format = meta.get("state_key_format", "abbr")
+
+        for state_code, state_data in COVERAGE_MANIFEST.items():
+            current = state_data.get(source_key)
+            if current in (SourceStatus.PLANNED, SourceStatus.NOT_AVAILABLE, "planned", "not_available"):
+                continue  # manual signals, don't touch
+
+            if key_format == "fips":
+                state_value = _STATE_FIPS.get(state_code, state_code)
+            elif key_format == "full_name":
+                state_value = _STATE_FULL_NAME.get(state_code, state_code)
+            else:
+                state_value = state_code
+
+            query = f"SELECT count(*) FROM {table} WHERE {state_filter_col} = ?"
+            actual_rows = conn.execute(query, (state_value,)).fetchone()[0]
+
+            if actual_rows > 0 and current not in (SourceStatus.ACTIVE, "active"):
+                state_data[source_key] = "active"
+                changes["promoted"].append(f"{state_code}/{source_key}: {current} → active ({actual_rows:,} rows)")
+            elif actual_rows == 0 and current in (SourceStatus.ACTIVE, "active"):
+                state_data[source_key] = "intended"
+                changes["demoted"].append(f"{state_code}/{source_key}: active → intended (0 rows)")
+
+    conn.close()
+    return changes
 
 
 # =============================================================================

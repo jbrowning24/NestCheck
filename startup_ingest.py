@@ -243,6 +243,7 @@ def ensure_spatial_data() -> None:
 
     try:
         _check_and_ingest_all(db_path)
+        _sync_coverage_manifest()
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         lock_fd.close()
@@ -267,11 +268,25 @@ def _check_and_ingest_all(db_path: str) -> None:
         _run_ingest("sems", _ingest_sems)
 
     # --- FEMA NFHL (flood zones, per-metro with grid chunking) ---
+    # Version-based re-ingestion: when metro bboxes change, FEMA_INGEST_VERSION
+    # is bumped in ingest_fema.py. Compare against stored version to trigger
+    # re-ingest even when the table already has data.
+    from scripts.ingest_fema import FEMA_INGEST_VERSION, get_stored_fema_version
+    stored_fema_version = get_stored_fema_version()
     has_data, count = _table_has_data(db_path, "facilities_fema_nfhl")
-    if has_data:
-        logger.info("Dataset fema_nfhl: present (%d records), skipping", count)
+    if has_data and stored_fema_version >= FEMA_INGEST_VERSION:
+        logger.info(
+            "Dataset fema_nfhl: present (%d records, v%d), skipping",
+            count, stored_fema_version,
+        )
     else:
-        logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
+        if has_data and stored_fema_version < FEMA_INGEST_VERSION:
+            logger.info(
+                "Dataset fema_nfhl: version mismatch (stored v%d, current v%d), re-ingesting...",
+                stored_fema_version, FEMA_INGEST_VERSION,
+            )
+        else:
+            logger.info("Dataset fema_nfhl: missing or empty, starting ingestion...")
         _run_ingest("fema_nfhl", _ingest_fema)
 
     # --- HPMS (high-traffic roads, per-state incremental) ---
@@ -405,6 +420,32 @@ def _check_and_ingest_all(db_path: str) -> None:
         has_data, count = _table_has_data(db_path, "facilities_nces_schools")
         logger.info("Dataset nces_schools: present for all %d states (%d records), skipping",
                      len(TARGET_STATES), count)
+
+
+def _sync_coverage_manifest() -> None:
+    """Sync COVERAGE_MANIFEST with actual spatial.db contents (NES-309).
+
+    Called after all ingestion completes. Updates manifest statuses in-place
+    so the /coverage page reflects reality without manual edits.
+    """
+    try:
+        from coverage_config import sync_manifest_from_db
+        changes = sync_manifest_from_db()
+        promoted = changes.get("promoted", [])
+        demoted = changes.get("demoted", [])
+        if promoted or demoted:
+            for desc in promoted:
+                logger.info("Coverage manifest promoted: %s", desc)
+            for desc in demoted:
+                logger.info("Coverage manifest demoted: %s", desc)
+            logger.info(
+                "Coverage manifest synced: %d promoted, %d demoted",
+                len(promoted), len(demoted),
+            )
+        else:
+            logger.info("Coverage manifest: already in sync with spatial.db")
+    except Exception:
+        logger.warning("Coverage manifest sync failed", exc_info=True)
 
 
 def _run_ingest(name: str, fn) -> None:

@@ -29,6 +29,7 @@ from app import (
     suppress_unknown_safety_checks,
     _serialize_urban_access,
     result_to_dict,
+    _prepare_snapshot_for_display,
 )
 
 
@@ -505,3 +506,130 @@ class TestBuilderRoutes:
         with patch.dict(os.environ, {"BUILDER_MODE": "false", "BUILDER_SECRET": "secret123"}):
             resp = client.get("/debug/trace/fake-id")
             assert resp.status_code == 404
+
+
+# ============================================================================
+# EJScreen cross-reference annotations (NES-316)
+# ============================================================================
+
+class TestEJScreenCrossRef:
+    """Tests for _EJSCREEN_CROSS_REFS annotation injection."""
+
+    def _result_with_checks(self, checks, ejscreen_profile=None):
+        """Build a minimal result dict suitable for _prepare_snapshot_for_display."""
+        tier1 = [
+            {"name": c[0], "result": c[1], "details": c[2]}
+            for c in checks
+        ]
+        result = {
+            "tier1_checks": tier1,
+            "ejscreen_profile": ejscreen_profile,
+            "passed_tier1": True,
+            "final_score": 70,
+            "address": "123 Test St",
+        }
+        result["presented_checks"] = present_checks(tier1)
+        return result
+
+    def test_superfund_clear_high_pnpl_gets_annotation(self):
+        """Passing Superfund + PNPL >= 80 → annotation on the check card."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "PASS", "Not within an EPA Superfund site")],
+            ejscreen_profile={"PNPL": 94.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" in pc
+        assert "94th percentile" in pc["area_context_annotation"]
+
+    def test_superfund_fail_high_pnpl_no_annotation(self):
+        """Failing Superfund check → no annotation even with high PNPL."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "FAIL", "Within Superfund site")],
+            ejscreen_profile={"PNPL": 94.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" not in pc
+
+    def test_tri_and_ust_both_get_ptsdf_annotation(self):
+        """Both TRI and UST pass + high PTSDF → both get annotations."""
+        result = self._result_with_checks(
+            [
+                ("TRI facility", "PASS", "No TRI facility nearby"),
+                ("ust_proximity", "PASS", "No UST nearby"),
+            ],
+            ejscreen_profile={"PTSDF": 85.0},
+        )
+        _prepare_snapshot_for_display(result)
+        tri = next(p for p in result["presented_checks"] if p["name"] == "TRI facility")
+        ust = next(p for p in result["presented_checks"] if p["name"] == "ust_proximity")
+        assert "area_context_annotation" in tri
+        assert "area_context_annotation" in ust
+        assert "85th percentile" in tri["area_context_annotation"]
+
+    def test_below_threshold_no_annotation(self):
+        """PNPL below 80 → no annotation even on passing check."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "PASS", "Clear")],
+            ejscreen_profile={"PNPL": 45.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" not in pc
+
+    def test_no_ejscreen_data_no_annotation(self):
+        """Missing ejscreen_profile → no annotation, no error."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "PASS", "Clear")],
+            ejscreen_profile=None,
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" not in pc
+
+    def test_threshold_boundary_fires(self):
+        """Exactly 80th percentile → annotation fires (>= threshold)."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "PASS", "Clear")],
+            ejscreen_profile={"PNPL": 80.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" in pc
+        assert "80th percentile" in pc["area_context_annotation"]
+
+    def test_old_snapshot_without_presented_checks(self):
+        """Old snapshot missing presented_checks → backfill + annotation."""
+        result = {
+            "tier1_checks": [
+                {"name": "Superfund (NPL)", "result": "PASS",
+                 "details": "Clear"},
+            ],
+            "ejscreen_profile": {"PNPL": 90.0},
+            "passed_tier1": True,
+            "final_score": 70,
+            "address": "123 Test St",
+        }
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" in pc
+        assert "90th percentile" in pc["area_context_annotation"]

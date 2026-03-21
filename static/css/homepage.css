@@ -1,0 +1,414 @@
+/* ================================================================
+   homepage.css — Styles for the content sections on the landing
+   page (below hero, above footer).
+   All values use design tokens from tokens.css.
+   NES-314: vertical rhythm, comparison stage, motion, depth.
+   ================================================================ */
+
+/* ── Shared section structure ────────────────────────────── */
+.hp-section {
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.hp-section-label {
+  font-size: var(--type-l2-size);
+  font-weight: var(--type-l2-weight);
+  letter-spacing: var(--type-l2-tracking);
+  color: var(--type-l2-color);
+  text-transform: var(--type-l2-transform);
+  line-height: var(--type-l2-leading);
+  margin: 0 0 var(--space-6) 0;
+  text-align: center;
+}
+
+/* ── Expectation-setter below address input ──────────────── */
+.expectation-setter {
+  font-size: var(--type-caption);
+  color: var(--color-text-faint);
+  text-align: center;
+  margin: 0;
+  line-height: var(--line-height-normal);
+}
+
+/* ── Section 1: How it works (3-step strip) ──────────────── */
+.hp-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+
+.hp-step {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hp-step-num {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hp-step-title {
+  font-size: var(--type-l4-size);
+  font-weight: var(--type-l4-weight);
+  color: var(--type-l4-color);
+  margin: 0;
+}
+
+.hp-step-desc {
+  font-size: var(--type-body);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+  max-width: 280px;
+}
+
+/* ── Section 2: Competitive comparison grid (staged) ─────── */
+/* NES-314: distinct background + depth to make this the
+   "stop scrolling" moment on the page. */
+#what-we-evaluate {
+  background: var(--color-surface-alt);
+  border-top: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl) var(--space-xl);
+  box-shadow: var(--shadow-md);
+}
+
+#what-we-evaluate .hp-section-label {
+  font-size: var(--type-l3-size);
+  font-weight: var(--type-l3-weight);
+  letter-spacing: var(--type-l3-tracking);
+  color: var(--type-l3-color);
+  text-transform: none;
+  line-height: var(--type-l3-leading);
+}
+
+.hp-compare-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hp-compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-body);
+}
+
+.hp-compare thead th {
+  font-size: var(--type-detail);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hp-compare thead th:first-child {
+  text-align: left;
+}
+
+.hp-compare-nc {
+  color: var(--color-accent) !important;
+}
+
+.hp-compare tbody td {
+  padding: var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.hp-compare tbody td:first-child {
+  text-align: left;
+}
+
+.hp-compare-cat {
+  display: block;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.hp-compare-sub {
+  display: block;
+  font-size: var(--type-detail);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+.hp-check {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--color-pass);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hp-partial {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  font-size: var(--type-detail);
+  font-weight: var(--font-weight-medium);
+}
+
+.hp-dash {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-body);
+}
+
+.hp-compare-footnote {
+  font-size: var(--type-detail);
+  color: var(--color-text-muted);
+  margin: var(--space-md) 0 0;
+  font-style: italic;
+}
+
+/* ── Section 3: Health check data sources ────────────────── */
+.hp-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+}
+
+.hp-source-card {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-base) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.hp-source-label {
+  font-size: var(--type-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.hp-source-detail {
+  font-size: var(--type-detail);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+/* ── Section 4: Coverage ─────────────────────────────────── */
+.hp-coverage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+}
+
+.hp-coverage-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.hp-coverage-heading {
+  font-size: var(--type-l3-size);
+  font-weight: var(--type-l3-weight);
+  color: var(--type-l3-color);
+  margin: 0;
+}
+
+.hp-coverage-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.hp-pill {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--type-detail);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hp-pill--accent {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.hp-pill--green {
+  background: var(--color-pass-bg);
+  color: var(--color-pass-text);
+}
+
+.hp-coverage-desc {
+  font-size: var(--type-body);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.hp-coverage-soon {
+  font-size: var(--type-detail);
+  color: var(--color-text-faint);
+  margin: 0;
+}
+
+/* ── Section 5: State vote form ──────────────────────────── */
+.hp-vote-heading {
+  font-size: var(--type-l3-size);
+  font-weight: var(--type-l3-weight);
+  color: var(--type-l3-color);
+  margin: 0;
+  text-align: center;
+}
+
+.hp-vote-desc {
+  font-size: var(--type-body);
+  color: var(--color-text-muted);
+  margin: var(--space-xs) 0 0;
+  text-align: center;
+}
+
+.hp-vote-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.hp-vote-form select {
+  padding: var(--space-sm) var(--space-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--font-size-input);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  cursor: pointer;
+  min-width: 200px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.hp-vote-form select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.hp-vote-form button {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-button);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hp-vote-form button:hover {
+  background: var(--color-accent-hover);
+}
+
+/* ── Flash messages relocated into vote section ──────────── */
+.hp-vote-flash:empty {
+  display: none;
+}
+
+.hp-vote-flash {
+  max-width: 480px;
+  margin: 0 auto var(--space-md);
+}
+
+/* ── NES-314: Restrained motion (CSS-only) ───────────────── */
+
+/* Scroll-triggered fade-in for comparison grid (IntersectionObserver) */
+@keyframes hp-fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-base));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#what-we-evaluate.hp-visible {
+  animation: hp-fadeUp var(--transition-slow) ease both;
+}
+
+/* Hidden until IntersectionObserver adds .hp-visible.
+   The JS sets .hp-fade-ready on the element first — without JS
+   the element stays fully visible (no opacity rule applies). */
+#what-we-evaluate.hp-fade-ready:not(.hp-visible) {
+  opacity: 0;
+}
+
+/* ── Accessibility: disable all motion ───────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hp-vote-form select,
+  .hp-vote-form button,
+  .search-input-wrapper button {
+    transition: none;
+  }
+
+  #what-we-evaluate {
+    animation: none;
+    opacity: 1; /* Ensure visible even without JS when motion is reduced */
+  }
+}
+
+/* ── Responsive: stack to 1 column below 640px ───────────── */
+@media (max-width: 640px) {
+  .hp-steps {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .hp-step-desc {
+    max-width: none;
+  }
+
+  .hp-sources-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hp-coverage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #what-we-evaluate {
+    padding: var(--space-xl) var(--space-base);
+    border-radius: var(--radius-md);
+  }
+
+  .hp-vote-form {
+    flex-direction: column;
+  }
+
+  .hp-vote-form select {
+    width: 100%;
+  }
+
+  .hp-vote-form button {
+    width: 100%;
+  }
+}

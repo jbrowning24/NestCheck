@@ -6,11 +6,17 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/snapshot.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
 {% endblock %}
 
 {% block head_extra %}
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
-<script async src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}&libraries=places&loading=async&callback=initAutocomplete"></script>
+<script>
+(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Check for unintended extra calls."):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+  key: "{{ config.GOOGLE_MAPS_FRONTEND_API_KEY }}",
+  v: "weekly"
+});
+</script>
 {% endif %}
 {% endblock %}
 
@@ -102,7 +108,7 @@
 
       <div class="search-input-wrapper">
         <label for="address-input" class="sr-only">Street address to evaluate</label>
-        <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+        <input type="text" name="address" id="address-input" placeholder="Enter any U.S. address..." value="{{ address }}" required autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
         <button type="submit" id="evalBtn">Generate Report</button>
       </div>
 
@@ -116,6 +122,7 @@
         <input type="email" name="email" id="email-input" placeholder="Email for your report (optional)" aria-label="Email for your report (optional)">
       </div>
     </form>
+    <p class="expectation-setter">Available in NY, NJ, CT, and MI. <em>Outside these states? You'll get a health hazard report. Full evaluations coming soon.</em></p>
   </section>
 
   {# ── AUTH CALLOUT (unauthenticated only) ──────────────────── #}
@@ -134,77 +141,239 @@
   </div>
   {% endif %}
 
-  {# ── PREVIEW CARDS ───────────────────────────────────────── #}
-  <section class="section-preview">
-    <h2 class="section-preview-label">REPORT PREVIEWS</h2>
-    <div class="preview-grid">
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Scarsdale Village</h4>
-            <p>Scarsdale, NY</p>
-          </div>
-          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">All Clear</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Walkable</span>
-          </div>
-        </div>
+  {# ── SECTION 1: HOW IT WORKS ────────────────────────────── #}
+  <section class="hp-section" id="how-it-works">
+    <h2 class="hp-section-label">HOW IT WORKS</h2>
+    <div class="hp-steps">
+      <div class="hp-step">
+        <div class="hp-step-num">1</div>
+        <h3 class="hp-step-title">Enter an address</h3>
+        <p class="hp-step-desc">Any US residential address. We geocode it and begin querying federal databases.</p>
       </div>
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Bronxville Village</h4>
-            <p>Bronxville, NY</p>
-          </div>
-          <div class="mini-badge" style="background: var(--color-yellow);">Strong</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">All Clear</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Very Walkable</span>
-          </div>
-        </div>
+      <div class="hp-step">
+        <div class="hp-step-num">2</div>
+        <h3 class="hp-step-title">We query 15+ databases</h3>
+        <p class="hp-step-desc">EPA, FEMA, HPMS, and more. Real data with evidence-based thresholds — not AI summaries.</p>
       </div>
-
-      <div class="preview-card">
-        <div class="card-top">
-          <div class="address-info">
-            <h4>Hastings-on-Hudson</h4>
-            <p>Hastings, NY</p>
-          </div>
-          <div class="mini-badge" style="background: var(--color-orange);">Moderate</div>
-        </div>
-        <div class="mini-stats">
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">HEALTH CHECKS</span>
-            <span class="mini-stat-val">1 Warning</span>
-          </div>
-          <div class="mini-stat-item">
-            <span class="mini-stat-label">WALKABILITY</span>
-            <span class="mini-stat-val">Somewhat Walkable</span>
-          </div>
-        </div>
+      <div class="hp-step">
+        <div class="hp-step-num">3</div>
+        <h3 class="hp-step-title">Get your report</h3>
+        <p class="hp-step-desc">Health hazards, walk quality, green space, daily essentials, transit — scored and sourced.</p>
       </div>
-
     </div>
+  </section>
+
+  {# ── SECTION 2: WHAT WE EVALUATE ──────────────────────── #}
+  <section class="hp-section" id="what-we-evaluate">
+    <h2 class="hp-section-label">WHAT WE EVALUATE</h2>
+    <div class="hp-compare-wrap">
+      <table class="hp-compare">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th class="hp-compare-nc">NestCheck</th>
+            <th>Zillow</th>
+            <th>Redfin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Health hazard proximity</span>
+              <span class="hp-compare-sub">Gas stations, Superfund, TRI, UST</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Flood zone assessment</span>
+              <span class="hp-compare-sub">FEMA flood zone designation</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-partial">Partial</span></td>
+            <td><span class="hp-partial">Partial</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Walk quality</span>
+              <span class="hp-compare-sub">Actual walk times to specific venues</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-partial">Partial</span></td>
+            <td><span class="hp-partial">Partial</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Green space quality</span>
+              <span class="hp-compare-sub">Park scoring with loop, shade, amenities</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Daily essentials</span>
+              <span class="hp-compare-sub">Groceries, coffee, fitness nearby</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Transit access</span>
+              <span class="hp-compare-sub">Stations, commute times, reachability</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-partial">Partial</span></td>
+            <td><span class="hp-partial">Partial</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="hp-compare-cat">Road noise &amp; traffic</span>
+              <span class="hp-compare-sub">HPMS traffic counts, road classification</span>
+            </td>
+            <td><svg class="hp-check" viewBox="0 0 20 20"><polyline points="4,10 8,14 16,6"/></svg></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+            <td><span class="hp-dash">&mdash;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hp-compare-footnote">"Partial" means the platform surfaces third-party data (Walk Score, First Street) but doesn't evaluate it independently.</p>
+  </section>
+
+  {# ── SECTION 3: HEALTH CHECK DATA SOURCES ─────────────── #}
+  <section class="hp-section" id="health-check-data-sources">
+    <h2 class="hp-section-label">HEALTH CHECK DATA SOURCES</h2>
+    <div class="hp-sources-grid">
+      <div class="hp-source-card">
+        <span class="hp-source-label">Gas stations &amp; UST</span>
+        <span class="hp-source-detail">EPA UST Finder &middot; 2.2M tanks, 800K facilities</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Superfund sites</span>
+        <span class="hp-source-detail">EPA SEMS &middot; 1,300+ NPL sites, updated every 2 hrs</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Toxic releases</span>
+        <span class="hp-source-detail">EPA TRI &middot; 800+ chemicals, 21K facilities</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Flood zones</span>
+        <span class="hp-source-detail">FEMA NFHL &middot; ~90% US population coverage</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">High-traffic roads</span>
+        <span class="hp-source-detail">FHWA HPMS &middot; AADT counts, all public roads</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Power lines</span>
+        <span class="hp-source-detail">HIFLD &middot; 69kV–765kV transmission lines</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Rail corridors</span>
+        <span class="hp-source-detail">FRA Safety Data &middot; National rail network</span>
+      </div>
+      <div class="hp-source-card">
+        <span class="hp-source-label">Air quality indicators</span>
+        <span class="hp-source-detail">EPA EJScreen 2.3 &middot; 13 environmental indicators</span>
+      </div>
+    </div>
+  </section>
+
+  {# ── SECTION 4: COVERAGE ──────────────────────────────── #}
+  <section class="hp-section" id="coverage">
+    <h2 class="hp-section-label">COVERAGE</h2>
+    <div class="hp-coverage-grid">
+      <div class="hp-coverage-col">
+        <h3 class="hp-coverage-heading">Full evaluation available</h3>
+        <div class="hp-coverage-pills">
+          <span class="hp-pill hp-pill--accent">NY</span>
+          <span class="hp-pill hp-pill--accent">NJ</span>
+          <span class="hp-pill hp-pill--accent">CT</span>
+          <span class="hp-pill hp-pill--accent">MI</span>
+        </div>
+        <p class="hp-coverage-desc">Complete reports including health hazards, walkability, green space, transit, schools, and scored dimensions.</p>
+        <p class="hp-coverage-soon">Expanding soon: CA, TX, FL, IL</p>
+      </div>
+      <div class="hp-coverage-col">
+        <h3 class="hp-coverage-heading">Health checks available</h3>
+        <div class="hp-coverage-pills">
+          <span class="hp-pill hp-pill--green">All 50 states</span>
+        </div>
+        <p class="hp-coverage-desc">Our federal health datasets — EPA, FEMA, FHWA — cover every state. Enter any US address for an environmental hazard report.</p>
+      </div>
+    </div>
+  </section>
+
+  {# ── SECTION 5: HELP US EXPAND ────────────────────────── #}
+  <section class="hp-section" id="help-us-expand">
+    <h2 class="hp-section-label">HELP US EXPAND</h2>
+    <h3 class="hp-vote-heading">Which state should we support next?</h3>
+    <p class="hp-vote-desc">Your vote helps us prioritize.</p>
+    <div class="hp-vote-flash" id="voteFlash"></div>
+    <form method="POST" action="/vote-state" class="hp-vote-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="state" required>
+        <option value="" disabled selected>Select a state</option>
+        <option value="AL">Alabama</option>
+        <option value="AK">Alaska</option>
+        <option value="AZ">Arizona</option>
+        <option value="AR">Arkansas</option>
+        <option value="CA">California</option>
+        <option value="CO">Colorado</option>
+        <option value="DE">Delaware</option>
+        <option value="FL">Florida</option>
+        <option value="GA">Georgia</option>
+        <option value="HI">Hawaii</option>
+        <option value="ID">Idaho</option>
+        <option value="IL">Illinois</option>
+        <option value="IN">Indiana</option>
+        <option value="IA">Iowa</option>
+        <option value="KS">Kansas</option>
+        <option value="KY">Kentucky</option>
+        <option value="LA">Louisiana</option>
+        <option value="ME">Maine</option>
+        <option value="MD">Maryland</option>
+        <option value="MA">Massachusetts</option>
+        <option value="MN">Minnesota</option>
+        <option value="MS">Mississippi</option>
+        <option value="MO">Missouri</option>
+        <option value="MT">Montana</option>
+        <option value="NE">Nebraska</option>
+        <option value="NV">Nevada</option>
+        <option value="NH">New Hampshire</option>
+        <option value="NM">New Mexico</option>
+        <option value="NC">North Carolina</option>
+        <option value="ND">North Dakota</option>
+        <option value="OH">Ohio</option>
+        <option value="OK">Oklahoma</option>
+        <option value="OR">Oregon</option>
+        <option value="PA">Pennsylvania</option>
+        <option value="RI">Rhode Island</option>
+        <option value="SC">South Carolina</option>
+        <option value="SD">South Dakota</option>
+        <option value="TN">Tennessee</option>
+        <option value="TX">Texas</option>
+        <option value="UT">Utah</option>
+        <option value="VT">Vermont</option>
+        <option value="VA">Virginia</option>
+        <option value="WA">Washington</option>
+        <option value="WV">West Virginia</option>
+        <option value="WI">Wisconsin</option>
+        <option value="WY">Wyoming</option>
+      </select>
+      <button type="submit">Vote</button>
+    </form>
   </section>
 
   {# ── LANDING FOOTER ──────────────────────────────────────── #}
   <footer class="landing-footer">
-    © 2025 NestCheck. Powered by EPA, FEMA, FHWA, and OpenStreetMap data.
+    © 2026 NestCheck. Powered by EPA, FEMA, FHWA, and OpenStreetMap data.
   </footer>
 
 </div>{# /.landing-container #}
@@ -217,7 +386,7 @@
   <form method="POST" id="evalForm">
     <div class="search-box">
       <label for="address-input-result" class="sr-only">Street address to evaluate</label>
-      <input type="text" name="address" id="address-input-result" placeholder="Enter any U.S. address..." value="{{ address }}" required>
+      <input type="text" name="address" id="address-input-result" placeholder="Enter any U.S. address..." value="{{ address }}" required autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       <button type="submit" id="evalBtn">New evaluation</button>
     </div>
   </form>
@@ -853,38 +1022,72 @@
       }
     }
   });
+
+  // Scroll-triggered fade-in for comparison grid (NES-314)
+  (function() {
+    var el = document.getElementById('what-we-evaluate');
+    if (!el) return;
+    if (!('IntersectionObserver' in window)) { return; } // no-JS/old browser: stays visible
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mq.matches) { return; } // reduced motion: stays visible, no fade
+    el.classList.add('hp-fade-ready'); // opt-in to opacity:0 (CSS only hides when this class is present)
+    new IntersectionObserver(function(entries, obs) {
+      if (entries[0].isIntersecting) {
+        el.classList.add('hp-visible');
+        obs.disconnect();
+      }
+    }, { threshold: 0.1 }).observe(el);
+  })();
+
+  // Relocate flash messages into the vote section when redirected from /vote-state
+  if (window.location.hash === '#help-us-expand') {
+    var flashContainer = document.querySelector('.flash-messages');
+    var voteFlash = document.getElementById('voteFlash');
+    if (flashContainer && voteFlash && flashContainer.children.length > 0) {
+      while (flashContainer.firstChild) {
+        voteFlash.appendChild(flashContainer.firstChild);
+      }
+      flashContainer.remove();
+    }
+  }
 </script>
 
 {% if config.GOOGLE_MAPS_FRONTEND_API_KEY %}
 <script>
-  // Google Places Autocomplete — initialised by Maps API async callback
-  function initAutocomplete() {
-    var input = document.getElementById('address-input');
-    if (!input || typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+(async function() {
+  var input = document.getElementById('address-input');
+  if (!input) return;
 
-    var autocomplete = new google.maps.places.Autocomplete(input, {
-      componentRestrictions: { country: 'us' },
-      fields: ['place_id', 'formatted_address'],
-      types: ['address']
-    });
-
-    autocomplete.addListener('place_changed', function() {
-      var place = autocomplete.getPlace();
-      var pid = document.getElementById('place-id-input');
-      if (place.place_id && pid) {
-        pid.value = place.place_id;
-      }
-      if (place.formatted_address) {
-        input.value = place.formatted_address;
-      }
-    });
-
-    // Clear place_id when user manually edits after selecting
-    input.addEventListener('input', function() {
-      var pid = document.getElementById('place-id-input');
-      if (pid) pid.value = '';
-    });
+  try {
+    await google.maps.importLibrary('places');
+  } catch(e) {
+    console.warn('Google Maps Places library failed to load:', e);
+    return;
   }
+
+  // Use the NEW Autocomplete class but keep our own input visible
+  var autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'us' },
+    fields: ['place_id', 'formatted_address'],
+    types: ['address']
+  });
+
+  autocomplete.addListener('place_changed', function() {
+    var place = autocomplete.getPlace();
+    var pid = document.getElementById('place-id-input');
+    if (place.place_id && pid) {
+      pid.value = place.place_id;
+    }
+    if (place.formatted_address) {
+      input.value = place.formatted_address;
+    }
+  });
+
+  input.addEventListener('input', function() {
+    var pid = document.getElementById('place-id-input');
+    if (pid) pid.value = '';
+  });
+})();
 </script>
 {% endif %}
 

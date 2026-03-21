@@ -60,10 +60,7 @@ app = Flask(__name__)
 # Trust Railway's reverse proxy headers so url_for(_external=True) generates https://.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'nestcheck-dev-key')
-app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = (
-    os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY') or
-    os.environ.get('GOOGLE_MAPS_API_KEY')
-)
+app.config['GOOGLE_MAPS_FRONTEND_API_KEY'] = os.environ.get('GOOGLE_MAPS_FRONTEND_API_KEY')
 
 # Session and remember-me cookie security hardening.
 _is_production = app.config['SECRET_KEY'] != 'nestcheck-dev-key'
@@ -164,6 +161,13 @@ if not os.environ.get("GOOGLE_MAPS_API_KEY"):
         "GOOGLE_MAPS_API_KEY is not set. "
         "Address evaluations will fail until it is configured. "
         "For local development, copy .env.example to .env and add your key."
+    )
+
+if not app.config.get("GOOGLE_MAPS_FRONTEND_API_KEY"):
+    logger.warning(
+        "GOOGLE_MAPS_FRONTEND_API_KEY is not set. "
+        "Address autocomplete will be disabled on the landing page. "
+        "Set this to a domain-restricted Google Maps API key."
     )
 
 
@@ -813,6 +817,32 @@ _EJSCREEN_INDICATOR_NAMES = {
 }
 
 _CHECK_RESULT_SEVERITY = {"FAIL": 3, "WARNING": 2, "UNKNOWN": 1, "PASS": 0}
+
+# ---------------------------------------------------------------------------
+# EJScreen cross-reference: area-level annotations on passing address checks
+# (NES-316)
+# ---------------------------------------------------------------------------
+
+_EJSCREEN_CROSS_REFS = [
+    {
+        "address_checks": ["Superfund (NPL)"],
+        "ejscreen_field": "PNPL",
+        "threshold": 80,
+        "template": (
+            "Address clear, but this area ranks {pct}th percentile "
+            "nationally for Superfund proximity."
+        ),
+    },
+    {
+        "address_checks": ["TRI facility", "ust_proximity"],
+        "ejscreen_field": "PTSDF",
+        "threshold": 80,
+        "template": (
+            "No facilities in our buffer, but this area ranks {pct}th "
+            "percentile nationally for hazardous waste proximity."
+        ),
+    },
+]
 
 
 def _build_comparison_data(
@@ -2121,6 +2151,20 @@ def _prepare_snapshot_for_display(result):
         if "hazard_tier" not in pc else pc
         for pc in result.get("presented_checks", [])
     ]
+
+    # NES-316: Cross-reference EJScreen area indicators on passing checks.
+    _ejscreen = result.get("ejscreen_profile")
+    if _ejscreen:
+        for xref in _EJSCREEN_CROSS_REFS:
+            pct = _ejscreen.get(xref["ejscreen_field"])
+            if pct is None or pct < xref["threshold"]:
+                continue
+            for pc in result["presented_checks"]:
+                if (pc.get("name") in xref["address_checks"]
+                        and pc.get("result_type") == "CLEAR"):
+                    pc["area_context_annotation"] = xref["template"].format(
+                        pct=int(pct)
+                    )
 
     # NES-210: Migrate legacy dimension names (on the shallow copy).
     _migrate_dimension_names(result)
@@ -3564,8 +3608,6 @@ def compare():
             "compare_health.html",
             comparison=comparison,
             addresses=addresses,
-            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
-            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
         )
 
     # --- GET: snapshot-based comparison (existing) or empty form ---
@@ -3576,8 +3618,6 @@ def compare():
             "compare_health.html",
             comparison=None,
             addresses=[],
-            google_maps_api_key=os.environ.get("GOOGLE_MAPS_FRONTEND_API_KEY")
-            or os.environ.get("GOOGLE_MAPS_API_KEY", ""),
         )
 
     requested_ids = [part.strip() for part in raw_ids.split(",") if part.strip()]
@@ -3749,33 +3789,25 @@ def pricing():
     return render_template("pricing.html")
 
 
-@app.route("/coverage")
-def coverage_page():
-    """Data coverage transparency page — per-state, per-source availability.
+@app.route("/vote-state", methods=["POST"])
+def vote_state():
+    """Handle anonymous state demand vote from homepage form."""
+    state = (request.form.get("state") or "").strip().upper()
+    if not state:
+        flash("Please select a state.", "error")
+        return redirect("/#help-us-expand")
 
-    Uses manifest-only data (no spatial.db queries) for fast page loads.
-    verify_coverage() is reserved for admin/diagnostic use.
-    """
-    try:
-        from coverage_config import (
-            get_all_states, get_source_coverage, SOURCE_DISPLAY_LIST,
-        )
-        states = get_all_states()
-        state_details = {}
-        for state in states:
-            state_details[state["code"]] = get_source_coverage(state["code"])
-        source_list = SOURCE_DISPLAY_LIST
-    except Exception:
-        states = []
-        state_details = {}
-        source_list = []
+    from models import record_state_vote, _US_STATES
 
-    return render_template(
-        "coverage.html",
-        states=states,
-        state_details=state_details,
-        source_list=source_list,
-    )
+    # Only allow votes for states we don't fully support yet
+    _SUPPORTED_STATES = {"NY", "NJ", "CT", "MI"}
+    if state not in _US_STATES or state in _SUPPORTED_STATES:
+        flash("That state is already supported! Enter any address to get a report.", "error")
+        return redirect("/#help-us-expand")
+
+    record_state_vote(state)
+    flash("Thanks for voting! Your input helps us prioritize.", "success")
+    return redirect("/#help-us-expand")
 
 
 # ---------------------------------------------------------------------------

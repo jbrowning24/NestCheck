@@ -4719,8 +4719,8 @@ def score_park_access(
                 points=0,
                 max_points=10,
                 details="No primary green escape within a 30-minute walk",
-                data_confidence=CONFIDENCE_ESTIMATED,
-                data_confidence_note="No green spaces found in search area",
+                data_confidence=CONFIDENCE_NOT_SCORED,
+                data_confidence_note="Legacy path — green space engine unavailable",
             )
 
         if green_escape.walk_time_min <= PARK_WALK_IDEAL_MIN:
@@ -4738,8 +4738,8 @@ def score_park_access(
             points=points,
             max_points=10,
             details=details,
-            data_confidence=CONFIDENCE_ESTIMATED,
-            data_confidence_note="Legacy scoring path — limited quality signals",
+            data_confidence=CONFIDENCE_NOT_SCORED,
+            data_confidence_note="Legacy path — green space engine unavailable",
         )
 
     except Exception as e:

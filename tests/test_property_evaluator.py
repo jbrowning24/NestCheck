@@ -40,6 +40,7 @@ from property_evaluator import (
     check_tri_facility_proximity,
     score_cost,
     score_park_access,
+    CONFIDENCE_NOT_SCORED,
     COST_IDEAL,
     TRI_FACILITY_WARNING_RADIUS_M,
     COST_MAX,
@@ -1103,6 +1104,7 @@ class TestScoreParkAccess:
         result = score_park_access(maps, 40.0, -74.0)
         assert result.points == 0
         assert result.max_points == 10
+        assert result.data_confidence == CONFIDENCE_NOT_SCORED
 
     def test_legacy_with_green_escape(self):
         maps = MagicMock(spec=GoogleMapsClient)
@@ -1119,6 +1121,7 @@ class TestScoreParkAccess:
         )
         result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
         assert result.points == 10  # walk_time <= 20 min ideal
+        assert result.data_confidence == CONFIDENCE_NOT_SCORED
 
     def test_legacy_acceptable_walk_time(self):
         maps = MagicMock(spec=GoogleMapsClient)
@@ -1135,9 +1138,36 @@ class TestScoreParkAccess:
         )
         result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
         assert result.points == 6  # walk_time > ideal but within acceptable
+        assert result.data_confidence == CONFIDENCE_NOT_SCORED
 
     def test_no_green_escape_zero_points(self):
         maps = MagicMock(spec=GoogleMapsClient)
         green_eval = GreenSpaceEvaluation(green_escape=None)
         result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
         assert result.points == 0
+        assert result.data_confidence == CONFIDENCE_NOT_SCORED
+
+    def test_legacy_not_scored_excluded_from_composite(self):
+        """Legacy park score with NOT_SCORED should not contribute to composite."""
+        maps = MagicMock(spec=GoogleMapsClient)
+        green_eval = GreenSpaceEvaluation(
+            green_escape=GreenSpace(
+                place_id="p1",
+                name="Saxon Woods Park",
+                rating=4.5,
+                user_ratings_total=200,
+                walk_time_min=15,
+                types=["park"],
+                types_display="Park",
+            )
+        )
+        result = score_park_access(maps, 40.0, -74.0, green_space_evaluation=green_eval)
+        # Points are still computed (for display in edge cases)
+        assert result.points == 10
+        # But NOT_SCORED means the composite filter excludes it
+        assert result.data_confidence == CONFIDENCE_NOT_SCORED
+        # Verify it would be filtered by the _scorable check in evaluate_property
+        assert not (
+            result.points is not None
+            and getattr(result, "data_confidence", None) != CONFIDENCE_NOT_SCORED
+        )
