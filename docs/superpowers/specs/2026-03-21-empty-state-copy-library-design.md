@@ -73,16 +73,61 @@ class CopyEntry:
 
 - `CopyEntry` — frozen dataclass. Typos in field names fail at construction, not at render time.
 - `COPY_LIBRARY: dict[str, dict[str, CopyEntry]]` — `check_name → failure_type → CopyEntry`
+- `CHECK_NAME_ALIASES: dict[str, str]` — maps evaluator check names to copy library keys (see Key Naming below)
 - `EVALUATION_FAILURE_COPY: CopyEntry` — standalone F6 entry
-- `get_copy(check_name: str, failure_type: str) -> CopyEntry | None` — returns `None` on miss so the caller can fall back to current generic text during migration.
+- `get_copy(check_name: str, failure_type: str) -> CopyEntry | None` — resolves aliases, then looks up. Returns `None` on miss so the caller can fall back to current generic text during migration. Logs a `logger.debug` on miss to track migration completeness and surface key mismatch bugs.
+
+### Key naming and aliases
+
+Copy library keys use clean snake_case identifiers (`flood_zone`, `ust_proximity`, `tri_proximity`). The evaluator uses inconsistent names — legacy checks have display names (`"Power lines"`, `"Gas station"`, `"Superfund (NPL)"`), Phase 1B spatial checks use snake_case (`"hifld_power_lines"`, `"ust_proximity"`), and listing amenity checks use display names (`"W/D in unit"`, `"Central air"`, `"Size"`, `"Bedrooms"`).
+
+`CHECK_NAME_ALIASES` maps evaluator names to copy library keys:
+
+```python
+CHECK_NAME_ALIASES = {
+    # Legacy display names → copy library keys
+    "Power lines": "power_lines",
+    "Gas station": "gas_station",
+    "Superfund (NPL)": "superfund",
+    "High-traffic road": "high_traffic_road",
+    "TRI facility": "tri_proximity",
+    "Industrial zone": "industrial_zone",
+    "Electrical substation": "electrical_substation",
+    "Cell tower": "cell_tower",
+    # Phase 1B spatial names (already snake_case, but some differ)
+    "hifld_power_lines": "power_lines",
+    # Listing amenity display names
+    "W/D in unit": "washer_dryer",
+    "Central air": "central_air",
+    "Size": "square_footage",
+    "Bedrooms": "bedrooms",
+    # EJScreen per-indicator names all resolve to block-group-level copy
+    "EJScreen PM2.5": "ejscreen",
+    "EJScreen cancer risk": "ejscreen",
+    "EJScreen diesel PM": "ejscreen",
+    "EJScreen lead paint": "ejscreen",
+    "EJScreen Superfund": "ejscreen",
+    "EJScreen hazardous waste": "ejscreen",
+}
+```
+
+`get_copy()` resolves aliases first: `key = CHECK_NAME_ALIASES.get(check_name, check_name)`, then looks up `COPY_LIBRARY[key][failure_type]`. Names already matching a copy library key (e.g., `"flood_zone"`) pass through unchanged.
+
+**EJScreen note:** The six per-indicator EJScreen check names all resolve to the single `ejscreen` entry. F1 fires only when the entire block group query fails — individual indicator checks don't independently produce F1/F2.
 
 ### `combined` property note
 
 Space-separated concatenation works for most entries, but F4/F5 entries with actionable `so_what` strings (e.g., flood zone lender guidance) can feel abrupt when concatenated after a `why`. Flagged for CMO review. The NES-264 template wiring will almost certainly use the three-field version.
 
+### Adding new checks
+
+When adding a new health check or dimension to the evaluator, add corresponding copy entries to `copy_library.py` in the same commit. If the evaluator check name differs from the copy library key, add an alias to `CHECK_NAME_ALIASES`.
+
 ## Copy Inventory
 
-### Tier 1 Health Checks (13 checks, 22 entries)
+### Tier 1 Health Checks (13 check keys, 21 entries)
+
+Note: `power_lines` serves both legacy `"Power lines"` and spatial `"hifld_power_lines"` via aliases. `electrical_substation` and `cell_tower` have F1 only — zero Overpass results for these checks are treated as PASS (no nearby hazard), not as a failure state.
 
 #### `flood_zone`
 
@@ -167,7 +212,7 @@ Space-separated concatenation works for most entries, but F4/F5 entries with act
 
 Note: `{vintage_year}` is a placeholder. NES-264 wiring will inject the actual vintage year from ingestion metadata.
 
-### Tier 2 Dimensions (7 dimensions, 18 entries)
+### Tier 2 Dimensions (6 dimensions, 16 entries)
 
 #### `coffee_social`
 
@@ -215,15 +260,15 @@ Note: `{vintage_year}` is a placeholder. NES-264 wiring will inject the actual v
 | F1 | Road noise data is temporarily unavailable. | The traffic data service isn't responding right now. | This dimension is not included in your score. |
 | F5 | Road noise could not be estimated for this area. | Traffic noise modeling requires road segment data that is not available for this state. | Road noise can be assessed in person — visit during weekday rush hours for a representative sample. |
 
+### User Input Gaps (5 checks, 5 entries)
+
+These use `input_missing` — distinct from F5 because they represent a user input gap, not a system/pipeline failure. Includes listing amenity checks and the cost dimension (which depends on user-provided data, not an API or data pipeline).
+
 #### `cost`
 
 | F-type | what | why | so_what |
 |--------|------|-----|---------|
-| F5 | Monthly cost was not provided. | No monthly housing cost was provided for this evaluation. | Cost is not factored into your overall score. |
-
-### Listing Amenity Checks (4 checks, 4 entries)
-
-These use `input_missing` — distinct from F5 because they represent a user input gap, not a pipeline failure.
+| input_missing | Monthly cost was not provided. | No monthly housing cost was provided for this evaluation. | Cost is not factored into your overall score. |
 
 #### `washer_dryer`
 
@@ -264,13 +309,15 @@ These use `input_missing` — distinct from F5 because they represent a user inp
 3. **`{vintage_year}` placeholder** in ejscreen F2 — inject from ingestion metadata at render time.
 4. **`input_missing` vs `F5`** — these need different UI treatments. F5 gets the informational callout pattern (caution variant per spec 4.12.1). `input_missing` renders as a quiet absence with a hint (no callout, no severity signal).
 5. **`combined` property** — use the three-field version in templates. Reserve `combined` for contexts that genuinely need a single string (e.g., meta descriptions, tooltips).
+6. **F3 "suspected bad data"** (misclassified POI with caution badge) is handled by the confidence badge system, not the copy library. The copy library covers F3 zero-results only.
+7. **Walk Score** is listed in the UI spec F1 examples but is not a current data source. No copy entry needed unless Walk Score is added as a dimension.
 
 ## Inventory
 
 | Category | Checks/Sections | F-types | Entries |
 |----------|-----------------|---------|---------|
-| Tier 1 health | 13 | F1, F2, F4 | 22 |
-| Tier 2 dimensions | 7 | F1, F3, F5 | 18 |
-| Listing amenities | 4 | input_missing | 4 |
+| Tier 1 health | 13 check keys | F1, F2, F4 | 21 |
+| Tier 2 dimensions | 6 | F1, F3, F5 | 16 |
+| User input gaps | 5 | input_missing | 5 |
 | F6 standalone | 1 | F6 | 1 |
-| **Total** | **25** | **7 types** | **45** |
+| **Total** | **25** | **7 types** | **43** |
