@@ -95,6 +95,8 @@ CHECK_NAME_ALIASES = {
     "Industrial zone": "industrial_zone",
     "Electrical substation": "electrical_substation",
     "Cell tower": "cell_tower",
+    # Legacy display names that need alias (verified against evaluator)
+    "Road Noise": "road_noise",
     # Phase 1B spatial names (already snake_case, but some differ)
     "hifld_power_lines": "power_lines",
     # Listing amenity display names
@@ -312,6 +314,7 @@ These use `input_missing` — distinct from F5 because they represent a user inp
 5. **`combined` property** — use the three-field version in templates. Reserve `combined` for contexts that genuinely need a single string (e.g., meta descriptions, tooltips).
 6. **F3 "suspected bad data"** (misclassified POI with caution badge) is handled by the confidence badge system, not the copy library. The copy library covers F3 zero-results only.
 7. **Walk Score** is listed in the UI spec F1 examples but is not a current data source. No copy entry needed unless Walk Score is added as a dimension.
+8. **F4 changes health badge count semantics.** When a Tier 1 health check produces F4, the health summary badge should render as "9 Clear · 1 Unverified" (per UI spec 4.12.1), not "10 Clear." The copy library doesn't own this logic, but NES-264 wiring must use the presence of an F4 `CopyEntry` to adjust the badge count.
 
 ## Inventory
 
