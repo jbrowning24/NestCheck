@@ -818,6 +818,32 @@ _EJSCREEN_INDICATOR_NAMES = {
 
 _CHECK_RESULT_SEVERITY = {"FAIL": 3, "WARNING": 2, "UNKNOWN": 1, "PASS": 0}
 
+# ---------------------------------------------------------------------------
+# EJScreen cross-reference: area-level annotations on passing address checks
+# (NES-316)
+# ---------------------------------------------------------------------------
+
+_EJSCREEN_CROSS_REFS = [
+    {
+        "address_checks": ["Superfund (NPL)"],
+        "ejscreen_field": "PNPL",
+        "threshold": 80,
+        "template": (
+            "Address clear, but this area ranks {pct}th percentile "
+            "nationally for Superfund proximity."
+        ),
+    },
+    {
+        "address_checks": ["TRI facility", "ust_proximity"],
+        "ejscreen_field": "PTSDF",
+        "threshold": 80,
+        "template": (
+            "No facilities in our buffer, but this area ranks {pct}th "
+            "percentile nationally for hazardous waste proximity."
+        ),
+    },
+]
+
 
 def _build_comparison_data(
     evaluations: List[dict],
@@ -2125,6 +2151,20 @@ def _prepare_snapshot_for_display(result):
         if "hazard_tier" not in pc else pc
         for pc in result.get("presented_checks", [])
     ]
+
+    # NES-316: Cross-reference EJScreen area indicators on passing checks.
+    _ejscreen = result.get("ejscreen_profile")
+    if _ejscreen:
+        for xref in _EJSCREEN_CROSS_REFS:
+            pct = _ejscreen.get(xref["ejscreen_field"])
+            if pct is None or pct < xref["threshold"]:
+                continue
+            for pc in result["presented_checks"]:
+                if (pc.get("name") in xref["address_checks"]
+                        and pc.get("result_type") == "CLEAR"):
+                    pc["area_context_annotation"] = xref["template"].format(
+                        pct=int(pct)
+                    )
 
     # NES-210: Migrate legacy dimension names (on the shallow copy).
     _migrate_dimension_names(result)
