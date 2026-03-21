@@ -86,6 +86,7 @@ Copy library keys use clean snake_case identifiers (`flood_zone`, `ust_proximity
 ```python
 CHECK_NAME_ALIASES = {
     # Legacy display names → copy library keys
+    "Flood zone": "flood_zone",
     "Power lines": "power_lines",
     "Gas station": "gas_station",
     "Superfund (NPL)": "superfund",
@@ -125,7 +126,7 @@ When adding a new health check or dimension to the evaluator, add corresponding 
 
 ## Copy Inventory
 
-### Tier 1 Health Checks (13 check keys, 21 entries)
+### Tier 1 Health Checks (12 check keys, 21 entries)
 
 Note: `power_lines` serves both legacy `"Power lines"` and spatial `"hifld_power_lines"` via aliases. `electrical_substation` and `cell_tower` have F1 only — zero Overpass results for these checks are treated as PASS (no nearby hazard), not as a failure state.
 
@@ -316,8 +317,8 @@ These use `input_missing` — distinct from F5 because they represent a user inp
 
 | Category | Checks/Sections | F-types | Entries |
 |----------|-----------------|---------|---------|
-| Tier 1 health | 13 check keys | F1, F2, F4 | 21 |
+| Tier 1 health | 12 check keys | F1, F2, F4 | 21 |
 | Tier 2 dimensions | 6 | F1, F3, F5 | 16 |
 | User input gaps | 5 | input_missing | 5 |
 | F6 standalone | 1 | F6 | 1 |
-| **Total** | **25** | **7 types** | **43** |
+| **Total** | **24** | **7 types** | **43** |
