@@ -49,17 +49,17 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
     """Drive-time scoring for suburban fitness facilities."""
 
     def test_drive_score_wins_over_walk_for_far_gym(self):
-        """Walk 25 min (score ~4.5) but 8 min drive (score ~9.2).
+        """Walk 25 min (score ~4.5) but 8 min drive (score ~5.4).
         Final score should use drive score, details should say 'drive'."""
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[25], drive_time=8)
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         # Drive score should dominate — 8 min drive on FITNESS_DRIVE_KNOTS
-        # gives base ~8.4, × 1.0 quality = ~8.4, rounded to 8.
-        # Walk score: base ~4.5 × 1.0 = ~4.5.
-        self.assertGreaterEqual(score.points, 7)
+        # (NES-315 ceiling 6): base ~5.4, × 1.0 quality = 5.4, rounded to 5.
+        # Walk score: base ~4.5 × 1.0 = ~4.5. Drive wins.
+        self.assertGreaterEqual(score.points, 5)
         self.assertIn("drive", score.details)
         self.assertNotIn("walk", score.details)
 
@@ -77,7 +77,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[15])
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         # Walk 15 min → base 8.0 × 1.0 quality = 8.0, rounded to 8
         self.assertGreaterEqual(score.points, 7)
@@ -95,7 +95,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[WALK_DRIVE_BOTH_THRESHOLD])
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         maps.driving_time.assert_not_called()
         self.assertIn("walk", score.details)
@@ -105,7 +105,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[21], drive_time=6)
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         maps.driving_time.assert_called_once()
 
@@ -114,7 +114,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[25], drive_time=9999)
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         # Walk score should be used (25 min walk → ~4.5)
         self.assertIn("walk", score.details)
@@ -129,7 +129,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         maps = _mock_maps([gym], walk_times=[25])
         maps.driving_time.side_effect = ValueError("Distance Matrix API failed")
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         self.assertIn("walk", score.details)
         self.assertIsNotNone(score.points)
@@ -139,7 +139,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[21], drive_time=25)
 
-        score, places = score_fitness_access(maps, 42.5, -83.5)
+        score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         # Walk 21 min → ~5.7, drive 25 min → ~1.0. Walk wins.
         self.assertIn("walk", score.details)
@@ -149,7 +149,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[10])
 
-        _, places = score_fitness_access(maps, 42.5, -83.5)
+        _, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         for p in places:
             self.assertIn("drive_time_min", p)

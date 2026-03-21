@@ -2207,6 +2207,16 @@ def _prepare_snapshot_for_display(result):
     _add_coverage_metadata(result)
 
 
+# NES-315: Tier2Score.name → user-facing category label for annotations.
+# Only dimensions that participate in access-mode annotations are listed.
+_ANNOTATION_CATEGORY_LABELS = {
+    "Fitness access": "fitness",
+    "Coffee & Social Spots": "coffee shops",
+    "Provisioning": "grocery",
+    "Primary Green Escape": "parks",
+}
+
+
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
     output = {
@@ -2412,9 +2422,14 @@ def result_to_dict(result):
 
     # Dimension summaries — derived from tier2_scores for the verdict card
     # breakdown.  Each entry carries the confidence indicator (NES-189).
-    output["dimension_summaries"] = [
-        {
-            "name": s["name"],
+    # NES-315: merge access-mode annotation data from dimension_details_data.
+    _dd_all = getattr(result, "dimension_details_data", {})
+    output["dimension_summaries"] = []
+    for s in output.get("tier2_scores", []):
+        _dim_name = s["name"]
+        _dd = _dd_all.get(_dim_name, {})
+        _entry = {
+            "name": _dim_name,
             "score": s["points"],
             "max_score": s["max"],
             "summary": s["details"],
@@ -2422,9 +2437,14 @@ def result_to_dict(result):
             "data_confidence_note": s.get("data_confidence_note"),
             "suppressed_reason": s.get("suppressed_reason"),
             "band": _dim_band(s["points"], s["max"]),
+            # NES-315: access-mode annotation fields
+            "access_mode": _dd.get("access_mode"),
+            "walk_time_min": _dd.get("walk_time_min"),
+            "drive_time_min": _dd.get("drive_time_min"),
+            "venue_name": _dd.get("venue_name"),
+            "category_label": _ANNOTATION_CATEGORY_LABELS.get(_dim_name),
         }
-        for s in output.get("tier2_scores", [])
-    ]
+        output["dimension_summaries"].append(_entry)
 
     # Aggregate data confidence (weakest-link across scorable dimensions).
     # Only populated when tier2_scores exist (i.e. passed tier 1).

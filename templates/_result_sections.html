@@ -8,7 +8,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge, annotation %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -136,6 +136,7 @@
               {% if dim.summary %}
               <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
+              {{ access_mode_annotation(dim) }}
             </div>
             {% elif dim.data_confidence is defined and dim.data_confidence == 'sparse' %}
             <div class="dim-card dim-card--sparse">
@@ -147,6 +148,7 @@
               {% if dim.summary %}
               <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
+              {{ access_mode_annotation(dim) }}
             </div>
             {% elif dim.suppressed_reason is defined and dim.suppressed_reason %}
             <div class="dim-card dim-card--suppressed">
@@ -157,6 +159,7 @@
               {% if dim.summary %}
               <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
+              {{ access_mode_annotation(dim) }}
             </div>
             {% else %}
             <div class="dim-card dim-card--{{ band_key }}">
@@ -173,6 +176,7 @@
               {% if dim.summary %}
               <p class="dim-card__detail">{{ dim.summary }}</p>
               {% endif %}
+              {{ access_mode_annotation(dim) }}
             </div>
             {% endif %}
             {% endfor %}
