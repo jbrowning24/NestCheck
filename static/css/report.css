@@ -230,6 +230,14 @@ h1.narrative-summary {
   line-height: var(--line-height-normal);
   margin: 0;
 }
+.dim-card__annotation {
+  font-size: var(--type-detail);
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  margin-left: 4px;
+  max-width: 120ch;
+  line-height: 1.4;
+}
 .dim-card--not-scored .dim-card__name,
 .dim-card--suppressed .dim-card__name {
   color: var(--color-text-faint);

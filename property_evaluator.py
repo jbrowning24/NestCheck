@@ -45,6 +45,7 @@ from scoring_config import (
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     _FITNESS_DRIVE_KNOTS,
     WALK_DRIVE_BOTH_THRESHOLD,
+    DRIVE_ONLY_CEILING,
 )
 
 _T1 = SCORING_MODEL.tier1  # shorthand for Tier 1 thresholds
@@ -424,6 +425,10 @@ class EvaluationResult:
 
     # Neighborhood places surfaced from scoring (Phase 3)
     neighborhood_places: Optional[Dict[str, list]] = None
+
+    # NES-315: per-dimension access-mode annotation data for templates.
+    # Keyed by Tier2Score.name → {access_mode, walk_time_min, drive_time_min, venue_name}.
+    dimension_details_data: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     # Keep these from main
     final_score: int = 0
@@ -4858,6 +4863,8 @@ def score_third_place_access(
 
         if not eligible_places:
             conf, conf_note = _classify_places_confidence(0, 0)
+            _no_data = {"access_mode": None, "walk_time_min": None,
+                        "drive_time_min": None, "venue_name": None}
             return (Tier2Score(
                 name="Coffee & Social Spots",
                 points=0,
@@ -4865,7 +4872,7 @@ def score_third_place_access(
                 details="No high-quality cafés or bakeries within walking distance",
                 data_confidence=conf,
                 data_confidence_note=conf_note,
-            ), [], _empty_counts)
+            ), [], _empty_counts, _no_data)
 
         # Batch walking times — 1 API call per 25 places instead of 1 each
         destinations = [
@@ -4954,6 +4961,12 @@ def score_third_place_access(
         # Round to int for Tier2Score.points (piecewise returns float)
         points = int(max(SCORING_MODEL.coffee.floor, capped_score) + 0.5)
 
+        _details_data = {
+            "access_mode": "walk",
+            "walk_time_min": best_walk_time if best_walk_time != 9999 else None,
+            "drive_time_min": None,
+            "venue_name": best_place.get("name", "Coffee spot") if best_place else None,
+        }
         return (Tier2Score(
             name="Coffee & Social Spots",
             points=points,
@@ -4961,9 +4974,11 @@ def score_third_place_access(
             details=details,
             data_confidence=conf,
             data_confidence_note=conf_note,
-        ), neighborhood_places, category_counts)
+        ), neighborhood_places, category_counts, _details_data)
 
     except Exception as e:
+        _no_data = {"access_mode": None, "walk_time_min": None,
+                    "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Coffee & Social Spots",
             points=0,
@@ -4971,7 +4986,7 @@ def score_third_place_access(
             details=f"Error: {str(e)}",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
-        ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0})
+        ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}, _no_data)
 
 
 def score_cost(cost: Optional[int]) -> Tier2Score:
@@ -5328,6 +5343,8 @@ def score_provisioning_access(
 
         if not eligible_stores:
             conf, conf_note = _classify_places_confidence(0, 0)
+            _no_data = {"access_mode": None, "walk_time_min": None,
+                        "drive_time_min": None, "venue_name": None}
             return (Tier2Score(
                 name="Provisioning",
                 points=0,
@@ -5335,7 +5352,7 @@ def score_provisioning_access(
                 details="No full-service provisioning options within walking distance",
                 data_confidence=conf,
                 data_confidence_note=conf_note,
-            ), [])
+            ), [], _no_data)
 
         # Batch walking times — 1 API call per 25 stores instead of 1 each
         destinations = [
@@ -5395,6 +5412,12 @@ def score_provisioning_access(
         # Round to int for Tier2Score.points (piecewise returns float)
         points = int(max(SCORING_MODEL.grocery.floor, capped_score) + 0.5)
 
+        _details_data = {
+            "access_mode": "walk",
+            "walk_time_min": best_walk_time if best_walk_time != 9999 else None,
+            "drive_time_min": None,
+            "venue_name": best_store.get("name", "Provisioning store") if best_store else None,
+        }
         return (Tier2Score(
             name="Provisioning",
             points=points,
@@ -5402,9 +5425,11 @@ def score_provisioning_access(
             details=details,
             data_confidence=conf,
             data_confidence_note=conf_note,
-        ), neighborhood_places)
+        ), neighborhood_places, _details_data)
 
     except Exception as e:
+        _no_data = {"access_mode": None, "walk_time_min": None,
+                    "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Provisioning",
             points=0,
@@ -5412,7 +5437,7 @@ def score_provisioning_access(
             details=f"Error: {str(e)}",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
-        ), [])
+        ), [], _no_data)
 
 
 def score_fitness_access(
@@ -5570,6 +5595,8 @@ def score_fitness_access(
 
         # Use the better of walk and drive scores
         best_score = max(best_walk_score, best_drive_score)
+        if best_drive_score > best_walk_score:
+            best_score = min(best_score, DRIVE_ONLY_CEILING)
 
         # Build details string
         if best_facility:
@@ -5621,6 +5648,19 @@ def score_fitness_access(
             len(eligible_places), best_review_count,
         )
 
+        # NES-315: Build access-mode annotation data
+        _fitness_venue_name = (
+            best_facility.get("name", "Fitness center") if best_facility else None
+        )
+        _fitness_details_data = {
+            "access_mode": (
+                "drive" if best_drive_score > best_walk_score else "walk"
+            ) if best_facility else None,
+            "walk_time_min": best_walk_time if best_walk_time != 9999 else None,
+            "drive_time_min": best_drive_time,
+            "venue_name": _fitness_venue_name,
+        }
+
         # No eligible venues passed the review threshold — suppress the
         # numeric score but still return the raw venue list for display.
         if not eligible_places:
@@ -5637,7 +5677,7 @@ def score_fitness_access(
                 suppressed_reason=(
                     "No fitness venues with sufficient reviews found"
                 ),
-            ), neighborhood_places)
+            ), neighborhood_places, _fitness_details_data)
 
         if best_score == 0:
             return (Tier2Score(
@@ -5647,7 +5687,7 @@ def score_fitness_access(
                 details="No gyms or fitness centers found within 30 min walk",
                 data_confidence=conf,
                 data_confidence_note=conf_note,
-            ), neighborhood_places)
+            ), neighborhood_places, _fitness_details_data)
 
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
@@ -5662,9 +5702,11 @@ def score_fitness_access(
             details=best_details,
             data_confidence=conf,
             data_confidence_note=conf_note,
-        ), neighborhood_places)
+        ), neighborhood_places, _fitness_details_data)
 
     except Exception as e:
+        _no_data = {"access_mode": None, "walk_time_min": None,
+                    "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Fitness access",
             points=0,
@@ -5672,7 +5714,7 @@ def score_fitness_access(
             details=f"Error: {str(e)}",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
-        ), [])
+        ), [], _no_data)
 
 
 def calculate_bonuses(listing: PropertyListing) -> List[Tier3Bonus]:
@@ -6064,17 +6106,20 @@ def evaluate_property(
                 green_escape_evaluation=result.green_escape_evaluation,
             )
         )
-        _coffee_score, _coffee_places, _coffee_category_counts = _staged(
+        _coffee_score, _coffee_places, _coffee_category_counts, _coffee_dd = _staged(
             "score_third_place", score_third_place_access, maps, lat, lng)
         result.tier2_scores.append(_coffee_score)
+        result.dimension_details_data[_coffee_score.name] = _coffee_dd
 
-        _grocery_score, _grocery_places = _staged(
+        _grocery_score, _grocery_places, _grocery_dd = _staged(
             "score_provisioning", score_provisioning_access, maps, lat, lng)
         result.tier2_scores.append(_grocery_score)
+        result.dimension_details_data[_grocery_score.name] = _grocery_dd
 
-        _fitness_score, _fitness_places = _staged(
+        _fitness_score, _fitness_places, _fitness_dd = _staged(
             "score_fitness", score_fitness_access, maps, lat, lng)
         result.tier2_scores.append(_fitness_score)
+        result.dimension_details_data[_fitness_score.name] = _fitness_dd
 
         # Cost dimension removed — users never provide listing cost data,
         # so score_cost() always returned 0/10, silently penalising every
@@ -6118,6 +6163,23 @@ def evaluate_property(
             "fitness": _fitness_places,
             "parks": _park_places,
         }
+
+        # NES-315: Build park details_data from green_escape (parks scoring
+        # function returns plain Tier2Score — details_data built here to
+        # avoid changing its return type and breaking test call sites).
+        _best_park = (
+            result.green_escape_evaluation.best_daily_park
+            if result.green_escape_evaluation else None
+        )
+        result.dimension_details_data["Primary Green Escape"] = {
+            "access_mode": "walk" if _best_park else None,
+            "walk_time_min": _best_park.walk_time_min if _best_park else None,
+            "drive_time_min": None,
+            "venue_name": _best_park.name if _best_park else None,
+        }
+        # Transit and road noise: no annotations (see NES-315 spec)
+        result.dimension_details_data["Road Noise"] = {}
+        result.dimension_details_data["Urban access"] = {}
 
         # Filter out non-scorable dimensions from composite calculation:
         # - not_scored: insufficient data, excluded to prevent inflation/deflation

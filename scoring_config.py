@@ -321,15 +321,22 @@ _FITNESS_KNOTS = (
     PiecewiseKnot(60, 1),
 )
 
+# Policy: no dimension score exceeds this when best option requires driving.
+# Universal safety net — currently fires only for fitness (the only wired
+# drive fallback), but protects against future drift if other dimensions
+# get drive wiring.  See NES-315.
+DRIVE_ONLY_CEILING = 6
+
 # Car-friendly mode: drive time in minutes → score.
-# Same breakpoints as coffee/grocery — driving normalizes the experience.
+# Ceiling is 6 (not 10) — driving is inherently higher-friction than walking.
+# A 0-5 min drive is "good but not walkable-good".  See NES-315.
 _FITNESS_DRIVE_KNOTS = (
-    PiecewiseKnot(0, 10),
-    PiecewiseKnot(5, 10),
-    PiecewiseKnot(10, 8),
-    PiecewiseKnot(15, 6),
-    PiecewiseKnot(20, 3),
-    PiecewiseKnot(25, 1),
+    PiecewiseKnot(0, 6),
+    PiecewiseKnot(5, 6),
+    PiecewiseKnot(10, 5),
+    PiecewiseKnot(15, 3),
+    PiecewiseKnot(20, 1),
+    PiecewiseKnot(25, 0),
     PiecewiseKnot(30, 0),
 )
 

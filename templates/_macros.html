@@ -297,3 +297,29 @@
   </svg>
 </span>
 {%- endmacro %}
+
+
+{# ── access_mode_annotation ─────────────────────────────────────────
+   NES-315: Inline annotation below dimension cards contextualising
+   the access mode (walk / drive).
+
+   Only renders when access_mode is set and the conditions are met:
+   - drive: always annotates
+   - walk > 15 min: annotates
+   - walk ≤ 15 min: silent (walkable is the default)
+
+   Grammar: "an 8-min", "an 11-min", "an 18-min", "a 14-min".
+   ─────────────────────────────────────────────────────────────────── #}
+{%- macro access_mode_annotation(dim) -%}
+{%- if dim.access_mode == 'drive' and dim.drive_time_min is not none and dim.category_label -%}
+<p class="dim-card__annotation">Best option is {{ a_an(dim.drive_time_min) }} {{ dim.drive_time_min }}-min drive — no walkable {{ dim.category_label }} at this address</p>
+{%- elif dim.access_mode == 'walk' and dim.walk_time_min is not none and dim.walk_time_min > 15 -%}
+<p class="dim-card__annotation">Best option is {{ a_an(dim.walk_time_min) }} {{ dim.walk_time_min }}-min walk</p>
+{%- endif -%}
+{%- endmacro -%}
+
+{# "a" or "an" before a number — "an" for 8, 11, 18, 80-89. #}
+{%- macro a_an(n) -%}
+{%- set s = n | string -%}
+{%- if s[0] == '8' or s == '11' or s == '18' -%}an{%- else -%}a{%- endif -%}
+{%- endmacro -%}
