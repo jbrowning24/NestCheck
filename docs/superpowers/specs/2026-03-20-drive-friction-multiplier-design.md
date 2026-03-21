@@ -86,17 +86,23 @@ The `min()` is redundant with the current knots (max knot value is 6 = ceiling) 
 
 ### Score impact examples
 
+All scores display as integers (per CLAUDE.md: `%.0f` for `/10` scores). Intermediate math shown for traceability.
+
 | Scenario | Current | After |
 |---|---|---|
-| 4.5-star gym, 8 min drive, no walkable option | 8/10 | ~5/10 (knot ~5.4 at 8 min × 1.0 quality) |
-| 4.0-star gym, 5 min drive, no walkable option | 8/10 | ~4.8/10 (6 × 0.8 quality) |
+| 4.5-star gym, 8 min drive, no walkable option | 8/10 | 5/10 (knot ~5.4 at 8 min × 1.0 quality = 5.4, rounded) |
+| 4.0-star gym, 5 min drive, no walkable option | 8/10 | 5/10 (6 × 0.8 quality = 4.8, rounded) |
 | 4.5-star gym, 12 min walk | 10/10 | 10/10 (unchanged — walk path) |
-| 4.5-star gym, 18 min walk | ~7.2/10 | ~7.2/10 (unchanged — walk path) |
+| 4.5-star gym, 18 min walk | 7/10 | 7/10 (unchanged — walk path) |
+
+### Confidence cap interaction
+
+`CONFIDENCE_SPARSE` caps scores at 6, which equals `DRIVE_ONLY_CEILING`. Order of operations: `drive_base * quality_multiplier` → `min(result, DRIVE_ONLY_CEILING)` → `_apply_confidence_cap(score, confidence)` → `int(score + 0.5)`. The ceiling and confidence cap are independent constraints — if `CONFIDENCE_SPARSE` cap is later changed (e.g., to 7), `DRIVE_ONLY_CEILING` still holds at 6 for drive-only results.
 
 ### Files changed
 
 - `scoring_config.py` — `_FITNESS_DRIVE_KNOTS` values, new `DRIVE_ONLY_CEILING` constant
-- `property_evaluator.py` — `min()` application in `score_fitness_access()` when drive path wins
+- `property_evaluator.py` — `min()` application in `score_fitness_access()` when drive path wins; `DRIVE_ONLY_CEILING` added to `from scoring_config import (...)` block
 
 ### Verification
 
@@ -147,10 +153,16 @@ Add four fields to each dimension's result dict in `result_to_dict()`:
 
 These fields are **additive** — the existing `summary` string is unchanged. If a field is absent or None, the template falls back to the summary string.
 
+### Architecture: where fields live
+
+The new fields are **not** added to the `Tier2Score` dataclass. Instead, each scoring function returns them as additional keys in the `details_data` dict (a new dict returned alongside the existing `Tier2Score`). `result_to_dict()` merges `details_data` into the `dimension_summaries` entry for each dimension. This avoids widening `Tier2Score` (which would touch serialization paths) and keeps the new fields as a presentation-layer concern.
+
+Concretely, each scoring function returns a tuple: `(Tier2Score, details_data_dict)`. `details_data` contains `access_mode`, `walk_time_min`, `drive_time_min`, `venue_name`. For dimensions that don't participate (transit, road noise), `details_data` is `{}`.
+
 ### Files changed
 
-- `property_evaluator.py` — each scoring function populates new fields on `Tier2Score` or its `scoring_inputs` dict
-- `app.py` (`result_to_dict()`) — passes new fields through to the template context dict
+- `property_evaluator.py` — scoring functions return `(Tier2Score, details_data)` tuples; `evaluate_property()` collects `details_data` per dimension
+- `app.py` (`result_to_dict()`) — merges `details_data` into `dimension_summaries` entries
 
 ### What could break
 
@@ -162,13 +174,15 @@ Nothing — fields are additive. Template ignores fields it doesn't reference. E
 
 ### Annotation rules
 
-Three bands based on access mode and walk time:
+Three bands determined by `access_mode` (set in Phase 2) and `walk_time_min`:
 
 | Condition | Annotation | Example |
 |---|---|---|
-| Walk time ≤ 15 min | None | (Walkable is the default — no explanation needed) |
-| Walk time 16–25 min | "Best option is a {X}-min walk" | "Best option is an 18-min walk" |
-| Drive-only (walk >25 min or no walkable option) | "Best option is a {X}-min drive — no walkable {category} at this address" | "Best option is an 8-min drive — no walkable fitness at this address" |
+| `access_mode == "walk"` and `walk_time_min <= 15` | None | (Walkable is the default — no explanation needed) |
+| `access_mode == "walk"` and `walk_time_min > 15` | "Best option is a {X}-min walk" | "Best option is an 18-min walk" |
+| `access_mode == "drive"` | "Best option is a {X}-min drive — no walkable {category} at this address" | "Best option is an 8-min drive — no walkable fitness at this address" |
+
+**Note:** `access_mode` is the sole trigger for drive-only copy. A 26-min walk where the walk path still scored higher than drive will have `access_mode == "walk"` and render the walk annotation, not the drive annotation. The 25-min threshold in the ticket description refers to the display threshold (`WALK_DRIVE_LEAD_DRIVE_THRESHOLD`) — it influences which mode is shown first in the `summary` string, but the annotation trigger is purely `access_mode`.
 
 **Category names** for annotation copy: "fitness", "coffee shops", "grocery", "parks". These are lowercase, user-facing labels.
 
@@ -210,11 +224,18 @@ Per UI spec Section 4.11 (annotation pattern):
 
 ### Additional template context field
 
-Add `category_label` to the dimension result dict for annotation copy:
+Add `category_label` to the dimension result dict for annotation copy. Lookup table from `Tier2Score.name` to user-facing label:
 
 ```python
-"category_label": "fitness"  # "fitness" | "coffee shops" | "grocery" | "parks"
+_ANNOTATION_CATEGORY_LABELS = {
+    "Fitness access": "fitness",
+    "Coffee & Social Spots": "coffee shops",
+    "Provisioning": "grocery",
+    "Primary Green Escape": "parks",
+}
 ```
+
+This dict lives in `app.py` alongside `result_to_dict()`. Dimensions not in the dict (transit, road noise) get no `category_label` and no annotation.
 
 ### Files changed
 
