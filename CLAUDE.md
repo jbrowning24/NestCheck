@@ -152,3 +152,25 @@ Track important architectural decisions here:
 3. **Be specific** - "We use X" is better than "Consider using X"
 4. **Include patterns** - Real code snippets from your project
 5. **List the no-no's** - What you DON'T want is as important as what you want
+
+## Expert Context & PRDs
+
+### PRDs & Specs (docs/)
+- @docs/prd-nestcheck-v1.md — Master PRD: scoring logic, data architecture, phased rollout
+- @docs/prd-report-design-system.md — Report design system: tokens, components, severity palette, mobile layout (supersedes docs/UI_Design_Specification_v1.1.md)
+- @docs/research-brief.md — Research brief and evidence base
+- @docs/workflow.md — Claude Code workflow notes
+
+### Expert Perspectives (docs/experts/)
+Consult the relevant expert context before non-trivial implementation:
+- @docs/experts/cto.md — Architecture, tech stack, performance constraints
+- @docs/experts/cdo.md — Design system, UI patterns, visual language
+- @docs/experts/cmo.md — Positioning, copy, growth strategy
+- @docs/experts/user-research-panel.md — User feedback panel and recruitment
+
+### Expert routing
+- UI work → design system spec + CDO + CMO
+- Scoring/data work → PRD + research brief
+- Architecture work → CTO
+- User-facing copy → CMO
+- New features → PRD + CTO + relevant domain expert
