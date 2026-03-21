@@ -49,7 +49,7 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
     """Drive-time scoring for suburban fitness facilities."""
 
     def test_drive_score_wins_over_walk_for_far_gym(self):
-        """Walk 25 min (score ~4.5) but 8 min drive (score ~9.2).
+        """Walk 25 min (score ~4.5) but 8 min drive (score ~5.4).
         Final score should use drive score, details should say 'drive'."""
         gym = _make_gym()
         maps = _mock_maps([gym], walk_times=[25], drive_time=8)
@@ -57,9 +57,9 @@ class TestFitnessDriveTimeScoring(unittest.TestCase):
         score, places, _dd = score_fitness_access(maps, 42.5, -83.5)
 
         # Drive score should dominate — 8 min drive on FITNESS_DRIVE_KNOTS
-        # gives base ~8.4, × 1.0 quality = ~8.4, rounded to 8.
-        # Walk score: base ~4.5 × 1.0 = ~4.5.
-        self.assertGreaterEqual(score.points, 7)
+        # (NES-315 ceiling 6): base ~5.4, × 1.0 quality = 5.4, rounded to 5.
+        # Walk score: base ~4.5 × 1.0 = ~4.5. Drive wins.
+        self.assertGreaterEqual(score.points, 5)
         self.assertIn("drive", score.details)
         self.assertNotIn("walk", score.details)
 
