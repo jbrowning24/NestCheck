@@ -34,5 +34,15 @@ def test_green_space_imports():
     assert evaluate_green_escape is not None
 
 
+def test_copy_library_imports():
+    """Copy library module must import without errors."""
+    from copy_library import CopyEntry, COPY_LIBRARY, CHECK_NAME_ALIASES, EVALUATION_FAILURE_COPY, get_copy
+    assert CopyEntry is not None
+    assert len(COPY_LIBRARY) > 0
+    assert len(CHECK_NAME_ALIASES) > 0
+    assert EVALUATION_FAILURE_COPY is not None
+    assert get_copy is not None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
