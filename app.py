@@ -3507,6 +3507,52 @@ def view_snapshot(snapshot_id):
     )
 
 
+@app.route("/widget/card/<snapshot_id>")
+def widget_card(snapshot_id):
+    """Embeddable score card widget — returns complete HTML for iframe."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        abort(404)
+
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
+
+    # Health summary counts
+    checks = result.get("presented_checks", [])
+    clear_count = sum(
+        1 for c in checks if c.get("result_type") == "CLEAR"
+    )
+    concern_count = sum(
+        1 for c in checks
+        if c.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+    )
+
+    # Score band
+    score = result.get("final_score") or 0
+    band = get_score_band(score)
+
+    # Configurable dimensions via query params
+    width = request.args.get("w", 300, type=int)
+    height = request.args.get("h", 200, type=int)
+
+    resp = make_response(render_template(
+        "widget_card.html",
+        snapshot_id=snapshot_id,
+        address=result.get("address", snapshot.get("address_norm", "")),
+        score=score,
+        band_label=band["label"],
+        band_css_class=band["css_class"],
+        clear_count=clear_count,
+        concern_count=concern_count,
+        width=width,
+        height=height,
+    ))
+    resp.headers["Content-Security-Policy"] = "frame-ancestors *"
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.route("/api/snapshot/<snapshot_id>/json")
 def export_snapshot_json(snapshot_id):
     """JSON export of a snapshot evaluation result."""
