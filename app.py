@@ -52,6 +52,7 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
+    save_feedback,
 )
 
 load_dotenv()
@@ -3442,6 +3443,26 @@ def job_status(job_id):
     return jsonify(resp)
 
 
+@app.route("/feedback/<snapshot_id>")
+def feedback_survey(snapshot_id):
+    """Render the detailed feedback survey for a snapshot."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        abort(404)
+
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
+
+    graded_dims = [d for d in result.get("dimension_summaries", [])
+                   if d.get("score") is not None
+                   and d.get("data_confidence") != "not_scored"]
+
+    return render_template("feedback.html",
+                           snapshot=snapshot,
+                           result=result,
+                           graded_dims=graded_dims)
+
+
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
     """Public, read-only snapshot page. No auth required."""
@@ -3760,6 +3781,44 @@ def track_event():
 
     log_event(event_type, snapshot_id=sid, visitor_id=g.visitor_id)
     return jsonify({"ok": True})
+
+
+@app.route("/api/feedback", methods=["POST"])
+def submit_feedback():
+    """Save user feedback from the detailed survey page."""
+    data = request.get_json(silent=True) or {}
+
+    snapshot_id = (data.get("snapshot_id") or "").strip()
+    feedback_type = (data.get("feedback_type") or "").strip()
+    response_json_str = data.get("response_json")
+
+    if not snapshot_id or not feedback_type:
+        return jsonify({"success": False, "error": "snapshot_id and feedback_type are required"}), 400
+
+    if not response_json_str:
+        return jsonify({"success": False, "error": "response_json is required"}), 400
+
+    try:
+        json.loads(response_json_str)
+    except (json.JSONDecodeError, TypeError):
+        return jsonify({"success": False, "error": "response_json must be valid JSON"}), 400
+
+    snapshot = get_snapshot(snapshot_id)
+    address_norm = snapshot.get("address_norm") if snapshot else None
+
+    save_feedback(
+        snapshot_id=snapshot_id,
+        feedback_type=feedback_type,
+        response_json=response_json_str,
+        address_norm=address_norm,
+        visitor_id=g.visitor_id,
+    )
+
+    log_event("feedback_submitted", snapshot_id=snapshot_id,
+              visitor_id=g.visitor_id,
+              metadata={"feedback_type": feedback_type})
+
+    return jsonify({"success": True})
 
 
 # ---------------------------------------------------------------------------
