@@ -195,23 +195,6 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_feedback_type
             ON feedback(feedback_type);
 
-        CREATE TABLE IF NOT EXISTS validation_feedback (
-            id                INTEGER PRIMARY KEY AUTOINCREMENT,
-            snapshot_id       TEXT NOT NULL,
-            email             TEXT NOT NULL DEFAULT '',
-            feedback_phase    TEXT NOT NULL,
-            created_at        TEXT NOT NULL DEFAULT (datetime('now')),
-            something_new     TEXT,
-            would_pay         TEXT,
-            comment           TEXT,
-            dimension_ratings TEXT,
-            health_ratings    TEXT,
-            UNIQUE(snapshot_id, email, feedback_phase) ON CONFLICT REPLACE
-        );
-        CREATE INDEX IF NOT EXISTS idx_vf_snapshot
-            ON validation_feedback(snapshot_id);
-        CREATE INDEX IF NOT EXISTS idx_vf_phase
-            ON validation_feedback(feedback_phase);
     """)
 
     # Migration for pre-place_id databases.
@@ -1666,81 +1649,3 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
         conn.close()
 
 
-# ---------------------------------------------------------------------------
-# NES-360: Validation feedback (dimension + health accuracy grading)
-# ---------------------------------------------------------------------------
-
-def save_validation_feedback(
-    snapshot_id: str,
-    email,
-    feedback_phase: str,
-    **kwargs,
-) -> None:
-    """Upsert a validation feedback row.
-
-    The UNIQUE(snapshot_id, email, feedback_phase) constraint uses ON CONFLICT
-    REPLACE so re-submissions overwrite the previous row.
-    """
-    email = (email or "")
-    allowed_cols = {
-        "something_new", "would_pay", "comment",
-        "dimension_ratings", "health_ratings",
-    }
-    extra_cols = {k: v for k, v in kwargs.items() if k in allowed_cols}
-
-    cols = ["snapshot_id", "email", "feedback_phase"] + list(extra_cols.keys())
-    placeholders = ", ".join(["?"] * len(cols))
-    values = [snapshot_id, email, feedback_phase] + list(extra_cols.values())
-
-    conn = _get_db()
-    try:
-        conn.execute(
-            f"INSERT OR REPLACE INTO validation_feedback ({', '.join(cols)}) "
-            f"VALUES ({placeholders})",
-            values,
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-def get_feedback_for_snapshot(snapshot_id: str) -> list:
-    """Return all validation_feedback rows for a snapshot as list of dicts."""
-    conn = _get_db()
-    try:
-        rows = conn.execute(
-            "SELECT * FROM validation_feedback WHERE snapshot_id = ? ORDER BY id",
-            (snapshot_id,),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
-
-
-def get_all_validation_feedback() -> list:
-    """Return all validation_feedback rows across all snapshots."""
-    conn = _get_db()
-    try:
-        rows = conn.execute(
-            "SELECT * FROM validation_feedback ORDER BY id",
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
-
-
-def has_feedback(snapshot_id: str, feedback_phase: str) -> bool:
-    """Return True if at least one validation_feedback row exists for this snapshot+phase."""
-    conn = _get_db()
-    try:
-        row = conn.execute(
-            "SELECT 1 FROM validation_feedback "
-            "WHERE snapshot_id = ? AND feedback_phase = ? LIMIT 1",
-            (snapshot_id, feedback_phase),
-        ).fetchone()
-        return row is not None
-    finally:
-        conn.close()
-
-
-# ---------------------------------------------------------------------------

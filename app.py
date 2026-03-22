@@ -1279,11 +1279,11 @@ _WARNING_HEADLINES = {
     "ejscreen_environmental": "Some environmental indicators are elevated in this area",
 }
 
-# ---------------------------------------------------------------------------
-# Health-check context copy — expanded "why we check this" content
 # -- Feedback prompt (NES-362) -----------------------------------------------
 FEEDBACK_PROMPT_MAX_AGE_DAYS = 30
 
+# ---------------------------------------------------------------------------
+# Health-check context copy — expanded "why we check this" content
 # ---------------------------------------------------------------------------
 # Keys: (check_name, result_category) where result_category is one of:
 #   "FAIL", "WARNING", "PASS"
@@ -3763,8 +3763,6 @@ def api_snapshot_fresh(snapshot_id):
         return jsonify({"exists": False, "fresh": False})
 
 
-
-
 @app.route("/api/feedback", methods=["POST"])
 def api_submit_feedback():
     """Accept inline feedback for a snapshot (NES-362)."""
@@ -3803,7 +3801,6 @@ def api_submit_feedback():
         return jsonify({"status": "duplicate"}), 200
 
     return jsonify({"status": "ok"}), 201
-
 
 @app.route("/api/feedback/<snapshot_id>/status")
 def api_feedback_status(snapshot_id):
