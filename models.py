@@ -488,8 +488,8 @@ def save_feedback(snapshot_id, feedback_type, response_json,
     """Save a user feedback submission to the feedback table."""
     now = datetime.now(timezone.utc).isoformat()
     for attempt in range(3):
-        conn = _get_db()
         try:
+            conn = _get_db()
             conn.execute(
                 """INSERT INTO feedback
                    (snapshot_id, feedback_type, response_json,
