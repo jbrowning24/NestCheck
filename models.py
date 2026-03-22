@@ -180,6 +180,20 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_state_votes_state
             ON state_votes(state);
+
+        CREATE TABLE IF NOT EXISTS feedback (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            snapshot_id TEXT NOT NULL,
+            feedback_type TEXT NOT NULL,
+            response_json TEXT NOT NULL,
+            address_norm TEXT,
+            visitor_id  TEXT,
+            created_at  TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_feedback_snapshot
+            ON feedback(snapshot_id);
+        CREATE INDEX IF NOT EXISTS idx_feedback_type
+            ON feedback(feedback_type);
     """)
 
     # Migration for pre-place_id databases.
@@ -467,6 +481,32 @@ def log_event(event_type, snapshot_id=None, visitor_id=None, metadata=None):
     )
     conn.commit()
     conn.close()
+
+
+def save_feedback(snapshot_id, feedback_type, response_json,
+                  address_norm=None, visitor_id=None):
+    """Save a user feedback submission to the feedback table."""
+    now = datetime.now(timezone.utc).isoformat()
+    for attempt in range(3):
+        conn = _get_db()
+        try:
+            conn.execute(
+                """INSERT INTO feedback
+                   (snapshot_id, feedback_type, response_json,
+                    address_norm, visitor_id, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (snapshot_id, feedback_type, response_json,
+                 address_norm, visitor_id, now),
+            )
+            conn.commit()
+            return
+        except sqlite3.OperationalError as e:
+            if ("locked" in str(e).lower() or "busy" in str(e).lower()) and attempt < 2:
+                time.sleep(0.1 * (attempt + 1))
+            else:
+                raise
+        finally:
+            conn.close()
 
 
 def check_return_visit(visitor_id, days=7):
