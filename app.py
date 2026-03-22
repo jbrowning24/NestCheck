@@ -3211,13 +3211,17 @@ def view_city(state, city_slug):
         if stats["eval_count"] > 0 else 0
     )
 
-    # Compute dimension averages from result_json (NES-352 spec requirement)
+    # Compute dimension averages from result_json (NES-352 spec requirement).
+    # Also cache the first full snapshot for Census lookup below.
     dim_totals = {}
     dim_counts = {}
+    first_full_snap = None
     for snap in snapshots:
         full = get_snapshot(snap["snapshot_id"])
         if not full:
             continue
+        if first_full_snap is None:
+            first_full_snap = full
         result = {**full["result"]}
         _prepare_snapshot_for_display(result)
         tier2 = result.get("tier2_scores") or []
@@ -3242,7 +3246,7 @@ def view_city(state, city_slug):
 
     demographics = None
     try:
-        first_snap = get_snapshot(snapshots[0]["snapshot_id"])
+        first_snap = first_full_snap
         if first_snap:
             result = first_snap.get("result", {})
             coords = result.get("coordinates", {})
@@ -4580,11 +4584,11 @@ def sitemap_xml():
         for city_row in city_list:
             slug = _city_slug(city_row["city"])
             st = city_row["state_abbr"].lower()
-            lines.append(
-                f"<url><loc>{base}/city/{st}/{slug}</loc>"
-                f"<changefreq>weekly</changefreq>"
-                f"<priority>0.6</priority></url>"
-            )
+            lines.append("  <url>")
+            lines.append(f"    <loc>{base}/city/{st}/{slug}</loc>")
+            lines.append("    <changefreq>weekly</changefreq>")
+            lines.append("    <priority>0.6</priority>")
+            lines.append("  </url>")
     except Exception:
         logger.warning("Failed to add city pages to sitemap")
 
