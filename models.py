@@ -194,7 +194,6 @@ def init_db():
             ON feedback(snapshot_id);
         CREATE INDEX IF NOT EXISTS idx_feedback_type
             ON feedback(feedback_type);
-
     """)
 
     # Migration for pre-place_id databases.
