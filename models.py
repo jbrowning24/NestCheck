@@ -776,6 +776,92 @@ def save_snapshot_for_place(
 
 
 # ---------------------------------------------------------------------------
+# City page queries (NES-352)
+# ---------------------------------------------------------------------------
+
+
+def get_city_snapshots(state_abbr: str, city_name: str) -> list:
+    """Return lightweight snapshot metadata for a city. No result_json parsing."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT snapshot_id, address_norm, final_score, passed_tier1,
+                      evaluated_at, city, state_abbr
+               FROM snapshots
+               WHERE state_abbr = ? AND city = ? AND is_preview = 0
+               ORDER BY evaluated_at DESC""",
+            (state_abbr, city_name),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_city_stats(state_abbr: str, city_name: str) -> dict:
+    """Return aggregate stats for a city."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            """SELECT COUNT(*) as eval_count,
+                      ROUND(AVG(final_score)) as avg_score,
+                      SUM(CASE WHEN passed_tier1 = 1 THEN 1 ELSE 0 END) as health_pass_count
+               FROM snapshots
+               WHERE state_abbr = ? AND city = ? AND is_preview = 0""",
+            (state_abbr, city_name),
+        ).fetchone()
+        d = dict(row)
+        d["avg_score"] = int(d["avg_score"]) if d["avg_score"] is not None else 0
+        return d
+    finally:
+        conn.close()
+
+
+def get_cities_with_snapshots(min_count: int = 3) -> list:
+    """Return cities meeting the minimum snapshot threshold."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT state_abbr, city, COUNT(*) as snapshot_count
+               FROM snapshots
+               WHERE city IS NOT NULL AND state_abbr IS NOT NULL AND is_preview = 0
+               GROUP BY state_abbr, city
+               HAVING COUNT(*) >= ?
+               ORDER BY state_abbr, city""",
+            (min_count,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_city_name_by_slug(state_abbr: str, city_slug: str, min_count: int = 3):
+    """Resolve a URL slug to canonical city name for a given state.
+    Returns the city name if found and meets threshold, else None.
+    """
+    import re
+
+    def _slugify(name):
+        return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT city, COUNT(*) as cnt
+               FROM snapshots
+               WHERE state_abbr = ? AND city IS NOT NULL AND is_preview = 0
+               GROUP BY city
+               HAVING cnt >= ?""",
+            (state_abbr, min_count),
+        ).fetchall()
+        for row in rows:
+            if _slugify(row["city"]) == city_slug:
+                return row["city"]
+        return None
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
 # Evaluation job queue
 # ---------------------------------------------------------------------------
 

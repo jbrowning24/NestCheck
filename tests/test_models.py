@@ -56,6 +56,11 @@ from models import (
     get_user_by_id,
     _get_db,
     _return_conn,
+    backfill_city_state,
+    get_city_snapshots,
+    get_city_stats,
+    get_cities_with_snapshots,
+    get_city_name_by_slug,
 )
 
 
@@ -743,3 +748,68 @@ class TestBackfillCityState:
         backfill_city_state()
         snap = get_snapshot("bf_no_demo")
         assert snap["city"] is None
+
+
+class TestCityQueries:
+    def _insert_snapshot(self, sid, city, state, score, passed, is_preview=0):
+        from models import _get_db
+        conn = _get_db()
+        conn.execute(
+            """INSERT INTO snapshots
+               (snapshot_id, address_input, address_norm, created_at, evaluated_at,
+                verdict, final_score, passed_tier1, result_json, is_preview,
+                city, state_abbr)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (sid, f"addr_{sid}", f"addr_{sid}", "2026-03-01T00:00:00",
+             "2026-03-01T00:00:00", "ok", score, passed, '{}', is_preview,
+             city, state),
+        )
+        conn.commit()
+        conn.close()
+
+    def test_get_city_snapshots_returns_matching(self):
+        self._insert_snapshot("cs1", "Rye", "NY", 80, 1)
+        self._insert_snapshot("cs2", "Rye", "NY", 70, 1)
+        self._insert_snapshot("cs3", "Larchmont", "NY", 60, 1)
+        from models import get_city_snapshots
+        results = get_city_snapshots("NY", "Rye")
+        assert len(results) == 2
+
+    def test_get_city_snapshots_excludes_previews(self):
+        self._insert_snapshot("cs4", "Rye", "NY", 80, 1)
+        self._insert_snapshot("cs5", "Rye", "NY", 70, 1, is_preview=1)
+        from models import get_city_snapshots
+        results = get_city_snapshots("NY", "Rye")
+        assert len(results) == 1
+
+    def test_get_city_stats_aggregates(self):
+        self._insert_snapshot("st1", "Scarsdale", "NY", 90, 1)
+        self._insert_snapshot("st2", "Scarsdale", "NY", 70, 1)
+        self._insert_snapshot("st3", "Scarsdale", "NY", 60, 0)
+        from models import get_city_stats
+        stats = get_city_stats("NY", "Scarsdale")
+        assert stats["eval_count"] == 3
+        assert stats["avg_score"] == 73
+        assert stats["health_pass_count"] == 2
+
+    def test_get_cities_with_snapshots_filters_by_min_count(self):
+        for i in range(3):
+            self._insert_snapshot(f"wp{i}", "White Plains", "NY", 75, 1)
+        for i in range(2):
+            self._insert_snapshot(f"rye{i}", "Rye", "NY", 80, 1)
+        from models import get_cities_with_snapshots
+        cities = get_cities_with_snapshots(min_count=3)
+        names = [c["city"] for c in cities]
+        assert "White Plains" in names
+        assert "Rye" not in names
+
+    def test_get_city_name_by_slug_resolves(self):
+        for i in range(3):
+            self._insert_snapshot(f"slug{i}", "White Plains", "NY", 75, 1)
+        from models import get_city_name_by_slug
+        assert get_city_name_by_slug("NY", "white-plains") == "White Plains"
+
+    def test_get_city_name_by_slug_returns_none_below_threshold(self):
+        self._insert_snapshot("slug_low1", "Rye", "NY", 75, 1)
+        from models import get_city_name_by_slug
+        assert get_city_name_by_slug("NY", "rye") is None
