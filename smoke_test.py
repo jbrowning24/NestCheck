@@ -49,6 +49,12 @@ LANDING_REQUIRED_MARKERS = [
     "Generate Report",        # Submit button text
 ]
 
+# Content markers for city area pages (NES-352)
+CITY_PAGE_REQUIRED_MARKERS = [
+    "city-addresses",        # Evaluated addresses section
+    "city-heading",          # City name heading
+]
+
 # Minimum response size (bytes) to catch empty/error pages
 MIN_PAGE_SIZE_BYTES = 5000
 
