@@ -292,6 +292,38 @@ def init_db():
     conn.commit()
     conn.close()
 
+    backfill_city_state()
+
+
+def backfill_city_state():
+    """Backfill city/state_abbr from result_json demographics.
+    Runs on every startup. Returns quickly (0 rows) once populated.
+    """
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT snapshot_id, result_json FROM snapshots "
+            "WHERE city IS NULL AND is_preview = 0"
+        ).fetchall()
+        if not rows:
+            return
+        logger.info("Backfilling city/state_abbr for %d snapshots", len(rows))
+        for row in rows:
+            try:
+                result = json.loads(row["result_json"])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            city, state_abbr = _extract_city_state(result)
+            if city or state_abbr:
+                conn.execute(
+                    "UPDATE snapshots SET city = ?, state_abbr = ? WHERE snapshot_id = ?",
+                    (city, state_abbr, row["snapshot_id"]),
+                )
+        conn.commit()
+        logger.info("Backfill complete")
+    finally:
+        conn.close()
+
 
 def generate_snapshot_id():
     """Short, URL-safe snapshot ID (8 chars)."""

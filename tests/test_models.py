@@ -687,3 +687,59 @@ class TestCityStateOnSave:
         snap = get_snapshot(sid)
         assert snap["city"] == "New City"
         assert snap["state_abbr"] == "NJ"
+
+
+class TestBackfillCityState:
+    def test_backfill_populates_from_demographics(self):
+        from models import _get_db, backfill_city_state, get_snapshot
+        conn = _get_db()
+        conn.execute(
+            """INSERT INTO snapshots
+               (snapshot_id, address_input, address_norm, created_at, verdict,
+                final_score, passed_tier1, result_json, is_preview)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("bf_test_1", "10 Main", "10 Main, Rye, NY", "2026-01-01T00:00:00",
+             "good", 80, 1,
+             '{"demographics": {"place_name": "Rye", "state_fips": "36"}}', 0),
+        )
+        conn.commit()
+        conn.close()
+        backfill_city_state()
+        snap = get_snapshot("bf_test_1")
+        assert snap["city"] == "Rye"
+        assert snap["state_abbr"] == "NY"
+
+    def test_backfill_skips_preview_snapshots(self):
+        from models import _get_db, backfill_city_state, get_snapshot
+        conn = _get_db()
+        conn.execute(
+            """INSERT INTO snapshots
+               (snapshot_id, address_input, address_norm, created_at, verdict,
+                final_score, passed_tier1, result_json, is_preview)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("bf_preview", "20 Elm", "20 Elm", "2026-01-01T00:00:00",
+             "ok", 60, 1,
+             '{"demographics": {"place_name": "Yonkers", "state_fips": "36"}}', 1),
+        )
+        conn.commit()
+        conn.close()
+        backfill_city_state()
+        snap = get_snapshot("bf_preview")
+        assert snap["city"] is None
+
+    def test_backfill_handles_missing_demographics(self):
+        from models import _get_db, backfill_city_state, get_snapshot
+        conn = _get_db()
+        conn.execute(
+            """INSERT INTO snapshots
+               (snapshot_id, address_input, address_norm, created_at, verdict,
+                final_score, passed_tier1, result_json, is_preview)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("bf_no_demo", "30 Oak", "30 Oak", "2026-01-01T00:00:00",
+             "ok", 70, 1, '{}', 0),
+        )
+        conn.commit()
+        conn.close()
+        backfill_city_state()
+        snap = get_snapshot("bf_no_demo")
+        assert snap["city"] is None
