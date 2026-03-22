@@ -172,7 +172,7 @@ New in `report.css`:
 | `templates/_base.html` | Add `csrfFetch` script block, `nestcheck_vid` cookie script |
 | `templates/index.html` | Remove `csrfFetch` definition (now inherited) |
 | `templates/_result_sections.html` | Add feedback prompt HTML + inline JS |
-| `static/css/report.css` | Add `.feedback-btn`, `.feedback-btn--selected` |
+| `static/css/report.css` | Add `.callout`, `.callout--neutral`, `.feedback-btn`, `.feedback-btn--selected` |
 
 ### Files NOT changed
 
