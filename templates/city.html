@@ -1,0 +1,115 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ city_name }}, {{ state_abbr }} — NestCheck Property Evaluations{% endblock %}
+
+{% block meta_description %}{{ stats.eval_count }} property evaluations in {{ city_name }}, {{ state_abbr }}. Average score: {{ stats.avg_score }}/100. {{ stats.health_pass_rate }}% passed all health checks.{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ city_name }}, {{ state_abbr }} Property Evaluations",
+  "description": "{{ stats.eval_count }} property evaluations in {{ city_name }}, {{ state_abbr }}",
+  "url": "{{ request.url.split('?')[0] }}",
+  "numberOfItems": {{ stats.eval_count }},
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {% for bc in breadcrumbs %}
+      {
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "name": "{{ bc.name }}"{% if bc.url %},
+        "item": "{{ request.host_url.rstrip('/') }}{{ bc.url }}"{% endif %}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  },
+  "mainEntity": {
+    "@type": "City",
+    "name": "{{ city_name }}",
+    "containedInPlace": {
+      "@type": "State",
+      "name": "{{ state_name }}"
+    }
+  }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/city.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="city-page">
+
+  <nav class="city-breadcrumbs" aria-label="Breadcrumb">
+    {% for bc in breadcrumbs %}
+      {% if bc.url %}
+        <a href="{{ bc.url }}">{{ bc.name }}</a>
+      {% else %}
+        <span>{{ bc.name }}</span>
+      {% endif %}
+      {% if not loop.last %}<span class="city-breadcrumb-sep">/</span>{% endif %}
+    {% endfor %}
+  </nav>
+
+  <h1 class="city-heading">{{ city_name }}, {{ state_abbr }}</h1>
+
+  {% if demographics %}
+  <section class="city-census">
+    <div class="city-census-pills">
+      {% if demographics.population %}
+      <div class="city-census-pill">
+        <span class="city-census-value">{{ "{:,}".format(demographics.population) }}</span>
+        <span class="city-census-label">Population</span>
+      </div>
+      {% endif %}
+      {% if demographics.median_household_income %}
+      <div class="city-census-pill">
+        <span class="city-census-value">${{ "{:,}".format(demographics.median_household_income) }}</span>
+        <span class="city-census-label">Median Income</span>
+      </div>
+      {% endif %}
+      {% if demographics.median_age %}
+      <div class="city-census-pill">
+        <span class="city-census-value">{{ "%.0f"|format(demographics.median_age) }}</span>
+        <span class="city-census-label">Median Age</span>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="city-health-summary">
+    <p>{{ stats.health_pass_count }} of {{ stats.eval_count }} evaluated addresses passed all health checks</p>
+  </section>
+
+  {% if stats.avg_score %}
+  <section class="city-avg-score">
+    <p>Average composite score: <strong>{{ stats.avg_score }}/100</strong></p>
+  </section>
+  {% endif %}
+
+  <section class="city-addresses" id="city-addresses">
+    <h2 class="city-section-heading">Evaluated Addresses</h2>
+    <div class="city-address-list">
+      {% for snap in snapshots %}
+      <a href="{{ url_for('view_snapshot', snapshot_id=snap.snapshot_id) }}" class="city-address-card">
+        <span class="city-address-text">{{ snap.address_norm }}</span>
+        <span class="city-score-pill city-band--{{ snap.score_band|lower|replace(' ', '-') }}">
+          {{ snap.final_score }}/100
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="city-cta">
+    <a href="/" class="city-cta-button">Evaluate an address in {{ city_name }}</a>
+  </section>
+
+</div>
+{% endblock %}

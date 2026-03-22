@@ -1,0 +1,183 @@
+/* City area page (NES-352) — page-scoped styles */
+
+.city-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-base);
+}
+
+.city-breadcrumbs {
+  font-size: var(--type-l5-size, 11px);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l5-tracking, 0.05em);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.city-breadcrumbs a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.city-breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.city-breadcrumb-sep {
+  margin: 0 var(--space-xs);
+}
+
+.city-heading {
+  font-size: var(--type-l1-size, 28px);
+  font-weight: var(--type-l1-weight, 600);
+  line-height: var(--type-l1-leading, 1.2);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-lg) 0;
+}
+
+.city-census {
+  margin-bottom: var(--space-lg);
+}
+
+.city-census-pills {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.city-census-pill {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.city-census-value {
+  font-size: var(--type-l3-size, 18px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-primary);
+}
+
+.city-census-label {
+  font-size: var(--type-l5-size, 11px);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l5-tracking, 0.05em);
+  color: var(--color-text-muted);
+}
+
+.city-health-summary {
+  margin-bottom: var(--space-md);
+  color: var(--color-text-secondary);
+}
+
+.city-avg-score {
+  margin-bottom: var(--space-lg);
+  color: var(--color-text-secondary);
+}
+
+.city-section-heading {
+  font-size: var(--type-l2-size, 14px);
+  font-weight: var(--type-l2-weight, 600);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l2-tracking, 0.08em);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.city-address-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.city-address-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.city-address-card:hover {
+  border-color: var(--color-border);
+}
+
+.city-address-text {
+  font-size: 15px;
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.city-score-pill {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold, 600);
+  padding: 2px 10px;
+  border-radius: var(--radius-full, 999px);
+  white-space: nowrap;
+}
+
+.city-band--exceptional,
+.city-band--strong {
+  background: var(--color-band-strong-bg, #E8F5E9);
+  color: var(--color-band-strong, #1D6B3F);
+}
+
+.city-band--solid,
+.city-band--moderate {
+  background: var(--color-band-moderate-bg, #FFF8E1);
+  color: var(--color-band-moderate, #9A6700);
+}
+
+.city-band--limited,
+.city-band--concerning,
+.city-band--critical {
+  background: var(--color-band-limited-bg, #F5F5F5);
+  color: var(--color-band-limited, #6B7280);
+}
+
+.city-band--unknown {
+  background: var(--color-surface-alt, #F1F5F9);
+  color: var(--color-text-muted);
+}
+
+.city-cta {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.city-cta-button {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: 15px;
+}
+
+.city-cta-button:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .city-page {
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  .city-census-pills {
+    flex-direction: column;
+  }
+
+  .city-address-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+}
