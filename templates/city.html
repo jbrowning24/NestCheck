@@ -93,6 +93,20 @@
   </section>
   {% endif %}
 
+  {% if stats.dimension_averages %}
+  <section class="city-dimensions">
+    <h2 class="city-section-heading">Average Dimension Scores</h2>
+    <div class="city-dim-pills">
+      {% for dim in stats.dimension_averages %}
+      <div class="city-dim-pill">
+        <span class="city-dim-score">{{ dim.avg_score }}/{{ dim.max }}</span>
+        <span class="city-dim-name">{{ dim.name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="city-addresses" id="city-addresses">
     <h2 class="city-section-heading">Evaluated Addresses</h2>
     <div class="city-address-list">

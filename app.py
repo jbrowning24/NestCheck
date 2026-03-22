@@ -3211,6 +3211,35 @@ def view_city(state, city_slug):
         if stats["eval_count"] > 0 else 0
     )
 
+    # Compute dimension averages from result_json (NES-352 spec requirement)
+    dim_totals = {}
+    dim_counts = {}
+    for snap in snapshots:
+        full = get_snapshot(snap["snapshot_id"])
+        if not full:
+            continue
+        result = {**full["result"]}
+        _prepare_snapshot_for_display(result)
+        tier2 = result.get("tier2_scores") or []
+        for t2 in tier2:
+            name = t2.get("name", "")
+            pts = t2.get("points")
+            if pts is not None and name:
+                dim_totals[name] = dim_totals.get(name, 0) + pts
+                dim_counts[name] = dim_counts.get(name, 0) + 1
+
+    dimension_averages = []
+    for name in dim_totals:
+        avg = round(dim_totals[name] / dim_counts[name])
+        dimension_averages.append({
+            "name": name,
+            "avg_score": avg,
+            "max": 10,
+        })
+    # Sort by name for consistent display
+    dimension_averages.sort(key=lambda d: d["name"])
+    stats["dimension_averages"] = dimension_averages
+
     demographics = None
     try:
         first_snap = get_snapshot(snapshots[0]["snapshot_id"])
