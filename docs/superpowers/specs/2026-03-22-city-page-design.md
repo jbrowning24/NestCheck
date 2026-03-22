@@ -23,7 +23,7 @@ ALTER TABLE snapshots ADD COLUMN city TEXT;
 ALTER TABLE snapshots ADD COLUMN state_abbr TEXT;
 ```
 
-Wrapped in `try/except` (column may already exist). SQLite `ALTER TABLE ADD COLUMN` is safe to re-run — it errors if the column exists, which we catch and ignore.
+Use the established `PRAGMA table_info(snapshots)` pattern (lines 199-218 of `models.py`): read column names into a set, then `if "city" not in cols:` before ALTER. Consistent with existing migrations for `user_id`, `is_preview`, etc.
 
 ### 2. Composite index
 
@@ -46,7 +46,7 @@ def _extract_city_state(result_dict):
     return city, state_abbr
 ```
 
-`_FIPS_TO_STATE` is derived from `_STATE_FIPS` in `coverage_config.py` (inverted). Keep a local copy in `models.py` to avoid circular imports.
+`_FIPS_TO_STATE` is computed by inverting `_STATE_FIPS` from `coverage_config.py`: `_FIPS_TO_STATE = {v: k for k, v in _STATE_FIPS.items()}`. Import directly — `coverage_config.py` has no Flask dependency and is safe to import from `models.py`.
 
 ### 4. Backfill function
 
@@ -58,7 +58,8 @@ def backfill_city_state():
 - SELECT snapshots WHERE `city IS NULL AND is_preview = 0`
 - Parse `result_json`, extract `demographics.place_name` and `demographics.state_fips`
 - UPDATE in batches of 100
-- Called from `init_db()` if any non-preview snapshot has NULL `city`
+- Runs on every startup — the SELECT returns 0 rows once everything is populated, so cost is negligible
+- Catches unlocked previews: snapshots unlocked via `unlock_snapshot()` after a previous backfill run will have `is_preview = 0` and `city IS NULL`, picked up on next restart
 - Idempotent — safe to re-run
 
 ## Query Functions (models.py)
@@ -66,8 +67,7 @@ def backfill_city_state():
 ### `get_city_snapshots(state_abbr, city_name)`
 
 ```sql
-SELECT snapshot_id, address_norm, final_score, passed_tier1, evaluated_at,
-       result_json
+SELECT snapshot_id, address_norm, final_score, passed_tier1, evaluated_at
 FROM snapshots
 WHERE state_abbr = ? AND city = ? AND is_preview = 0
 ORDER BY evaluated_at DESC
@@ -75,7 +75,7 @@ ORDER BY evaluated_at DESC
 
 Returns `list[dict]` with each dict containing: `snapshot_id`, `address` (from `address_norm`), `final_score`, `score_band` (computed from `final_score` via `get_score_band()`), `tier1_passed` (bool from `passed_tier1`).
 
-Note: Loads `result_json` to extract `score_band` and dimension summaries. Could optimize later with a `score_band` column if performance matters.
+**Optimization:** Do NOT load `result_json` here. Compute `score_band` from `final_score` using `get_score_band()` in Python — avoids parsing 100KB+ JSON per snapshot. Only load `result_json` for snapshots that need dimension averages (done separately in the stats computation).
 
 ### `get_city_stats(state_abbr, city_name)`
 
@@ -114,19 +114,22 @@ def _city_slug(city_name: str) -> str:
     return re.sub(r'[^a-z0-9]+', '-', city_name.lower()).strip('-')
 ```
 
-Reverse lookup in route handler: load all cities for the given state, find the one whose slug matches.
+Reverse lookup: dedicated query function in `models.py` instead of loading all cities and filtering in Python:
 
 ```python
-def _resolve_city_from_slug(state_abbr: str, city_slug: str) -> Optional[str]:
-    """Resolve a URL slug back to the canonical city name."""
-    cities = get_cities_with_snapshots(min_count=1)  # get all, filter in handler
-    for c in cities:
-        if c["state_abbr"] == state_abbr.upper() and _city_slug(c["city"]) == city_slug:
-            return c["city"]
-    return None
+def get_city_name_by_slug(state_abbr: str, city_slug: str, min_count: int = 3) -> Optional[str]:
+    """Resolve a URL slug to canonical city name. Returns None if not found or below threshold."""
 ```
 
-This is simple and correct. The number of cities is small (dozens, not thousands). If it grows, add a dedicated query.
+```sql
+SELECT city, COUNT(*) as cnt
+FROM snapshots
+WHERE state_abbr = ? AND city IS NOT NULL AND is_preview = 0
+GROUP BY city
+HAVING cnt >= ?
+```
+
+Then iterate the (small) result set in Python to match `_city_slug(row["city"]) == city_slug`. This avoids loading ALL cities across ALL states on every request — only loads cities for the one state. The `min_count` parameter enforces the threshold at query time, so the handler never fetches snapshots for a city it will 404 on.
 
 ## Route Handler (app.py)
 
@@ -142,9 +145,9 @@ def view_city(state, city_slug):
 3. 404 if city not found
 4. `get_city_snapshots(state, city_name)` → snapshots list
 5. 404 if `len(snapshots) < 3` (minimum threshold)
-6. Run `_prepare_snapshot_for_display()` on each snapshot's result
+6. For snapshots that need full display data (dimension averages), load `result_json` and run `_prepare_snapshot_for_display()`. **This is the 5th deserialization path** (after view_snapshot, export_json, export_csv, compare) — must be maintained alongside the other 4 per CLAUDE.md
 7. Compute stats: eval count, avg score, health pass rate, dimension averages
-8. Fetch census data: `get_demographics(lat, lng)` using first snapshot's coordinates (all addresses are in the same city — coordinates are close enough for Census place lookup)
+8. Fetch census data: `get_demographics(lat, lng)` using the first snapshot's coordinates. Verify the returned `place_name` matches `city_name` — if they diverge (edge-of-boundary resolution), skip the demographics section rather than showing mismatched data
 9. Build breadcrumbs: `[{"name": "Home", "url": "/"}, {"name": STATE_NAME, "url": None}, {"name": city_name, "url": None}]`
    - State page URL is `None` for now (NES-344 will add state pages later)
 10. Render `city.html`
@@ -245,17 +248,18 @@ Priority 0.6 — between list pages (0.7) and individual snapshots (0.5).
 
 ## State Name Mapping
 
-Need a `_STATE_NAMES` dict in `app.py` for full state names in display:
+`_STATE_FULL_NAMES` dict in `app.py` for display. Import `_STATE_FIPS` from `coverage_config.py` and derive:
 
 ```python
-_STATE_NAMES = {
+from coverage_config import _STATE_FIPS
+_STATE_FULL_NAMES = {
     "NY": "New York", "NJ": "New Jersey", "CT": "Connecticut",
     "MI": "Michigan", "CA": "California", "TX": "Texas",
     "FL": "Florida", "IL": "Illinois",
 }
 ```
 
-Derived from `TARGET_STATES` in `startup_ingest.py`, but kept local to avoid import dependency.
+Note: `coverage_config.py` has `_STATE_FIPS` (abbr→FIPS) but not abbr→full_name. `startup_ingest.py` has `TARGET_STATES` with `full_name` but importing from `startup_ingest` would trigger ingest machinery. Keep a local `_STATE_FULL_NAMES` dict — this is editorial display content (like `_CLEAR_HEADLINES`), not a data source that drifts. Adding a new state requires a CLAUDE.md-level checklist item anyway.
 
 ## Snapshot Save Path Updates
 
@@ -264,11 +268,11 @@ Per CLAUDE.md: "All snapshot save paths must include new columns."
 Three INSERT paths to update:
 1. `save_snapshot()` — add `city` and `state_abbr` to INSERT
 2. `save_snapshot_for_place()` INSERT branch — add `city` and `state_abbr`
-3. `save_snapshot_for_place()` UPDATE branch — add `city` and `state_abbr` to SET
+3. `save_snapshot_for_place()` UPDATE branch — add `city` and `state_abbr` to SET (always overwrite from new `result_dict`, not `COALESCE` — re-evaluations may produce updated Census data)
 
 ## Edge Cases
 
-- **Snapshots without demographics:** Old snapshots may have NULL demographics. `city` stays NULL — they won't appear on city pages. Acceptable.
+- **Snapshots without demographics:** Pre-NES-257 snapshots have no `demographics` in `result_json`. Backfill falls back to parsing state abbreviation from `address_norm` (format: "123 Main St, City, ST 12345" — regex `r',\s*([A-Z]{2})\s+\d{5}'`). City name extraction requires Census API, so those snapshots will have `state_abbr` but NULL `city` — they won't appear on city pages. Acceptable tradeoff.
 - **Same city name in different states:** Handled by the `state_abbr + city` composite key.
 - **City name variations:** Census cleaning normalizes names. Two addresses in "White Plains" should both get `place_name: "White Plains"` from Census. Edge case: if Census returns different place types (Incorporated Place vs CDP) with different names for nearby addresses — unlikely but possible. Accept for now.
 - **No census data for city page:** Demographics section is hidden (`{% if demographics %}`). City page still renders with just the evaluation list.
@@ -281,7 +285,7 @@ Three INSERT paths to update:
 | `app.py` | Route handler, `_city_slug()`, `_resolve_city_from_slug()`, `_STATE_NAMES`, sitemap addition |
 | `templates/city.html` | New template |
 | `static/css/city.css` | New stylesheet |
-| `smoke_test.py` | Optional: add city page marker check |
+| `smoke_test.py` | Add city page marker check (required per CLAUDE.md) |
 
 ## Not In Scope
 
