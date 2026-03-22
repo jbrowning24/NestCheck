@@ -42,7 +42,7 @@ Zero additional API cost. Pure Flask + SQLite.
 CREATE TABLE IF NOT EXISTS validation_feedback (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     snapshot_id TEXT NOT NULL,
-    email TEXT,
+    email TEXT NOT NULL DEFAULT '',      -- from snapshots.email, '' if NULL
     feedback_phase TEXT NOT NULL,        -- 'inline' or 'survey'
     something_new TEXT,                  -- 'yes' or 'no' (Phase 1 only)
     would_pay TEXT,                      -- 'yes', 'maybe', 'no' (Phase 1 only)
@@ -53,10 +53,9 @@ CREATE TABLE IF NOT EXISTS validation_feedback (
     UNIQUE(snapshot_id, email, feedback_phase)
 );
 CREATE INDEX IF NOT EXISTS idx_feedback_snapshot ON validation_feedback(snapshot_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_phase ON validation_feedback(feedback_phase);
 ```
 
-UNIQUE constraint prevents duplicate submissions. INSERT OR REPLACE handles resubmission (updates existing row).
+UNIQUE constraint prevents duplicate submissions. INSERT OR REPLACE handles resubmission. Email uses `''` sentinel when `snapshots.email` is NULL — avoids SQLite's NULL-is-distinct-in-UNIQUE behavior that would allow unlimited anonymous submissions per snapshot.
 
 ### JSON blob structure (dimension_ratings / health_ratings)
 
@@ -72,10 +71,10 @@ Rating values: `accurate`, `partially_accurate`, `inaccurate`. Keyed by dimensio
 
 ### Model functions (`models.py`)
 
-- `save_validation_feedback(snapshot_id, email, phase, **fields)` — INSERT OR REPLACE
+- `save_validation_feedback(snapshot_id, email, phase, **fields)` — INSERT OR REPLACE. Coerces `None` email to `''`
 - `get_feedback_for_snapshot(snapshot_id)` — returns list of feedback rows for both phases
 - `get_all_validation_feedback()` — returns all rows for dashboard aggregation
-- `has_feedback(snapshot_id, phase)` — lightweight existence check (returns bool)
+- `has_feedback(snapshot_id, phase)` — lightweight existence check (returns bool). Used by survey page to decide between form vs read-only view, and by the inline widget's server-side rendering fallback when cookies are cleared
 
 ## Phase 1: Inline Feedback Widget
 
@@ -93,11 +92,11 @@ Bottom of `_result_sections.html`, below the share/export bar.
 - On success: widget replaced with "Thanks for your feedback!" message
 - Sets `nc_feedback_<snapshot_id>` cookie (30-day expiry, `SameSite=Lax`, `Path=/`)
 - On page load: if cookie exists, render "Thanks" state instead of form
-- Email pulled from `snapshots.email` for the given snapshot_id — not asked from user
+- Email pulled from `snapshots.email` for the given snapshot_id — not asked from user. If `snapshots.email` is NULL, feedback is stored with `email = ''` (anonymous). Dashboard shows "Anonymous" for blank emails
 - Section header: "QUICK FEEDBACK" (L5 uppercase label style)
 
 ### Styling
-- Contained in a card (`.section-card` pattern) with `max-width: 560px`
+- Contained in a new `.feedback-card` div (`background: var(--color-bg-card)`, `border: 1px solid var(--color-border-light)`, `border-radius: 12px`, `padding: 24px 28px`) with `max-width: 560px`
 - Toggle buttons: pill-style, `border: 1px solid var(--color-border-light)`, selected state uses `border-color: var(--color-brand)` + `background: var(--color-bg-page)`
 - Submit button: `background: var(--color-brand)`, `color: var(--color-text-inverse)`
 - Uses existing design tokens throughout
@@ -127,10 +126,11 @@ Loads snapshot via `_prepare_snapshot_for_display()`. Renders:
 5. **Submit button**
 
 ### Behavior
-- Submits to `POST /api/feedback` with `feedback_phase: 'survey'`
+- Submits to `POST /api/feedback` via `csrfFetch()` — JSON POST with `feedback_phase: 'survey'`
 - `dimension_ratings` and `health_ratings` JSON blobs built client-side from form state
-- If feedback already exists for this snapshot+survey phase, show read-only summary
+- If `has_feedback(snapshot_id, 'survey')` returns true, show read-only summary of previous responses instead of form
 - No auth gate — URL is the secret (sent manually to testers)
+- Returns 404 if `snapshot_id` not found
 
 ## Builder Dashboard Aggregation
 
@@ -138,24 +138,24 @@ Loads snapshot via `_prepare_snapshot_for_display()`. Renders:
 New "Validation Results" section in existing `/builder/dashboard` route and `builder_dashboard.html` template.
 
 ### Subsection 1: Falsification Check
-Two lines:
-- "Something new: X/Y" — green background if ≥ 3 of 5, red otherwise
-- "Would pay: X/Y" — green if ≥ 2 of 5, red otherwise (counts "yes" only; "maybe" count shown separately)
+Two lines where Y = actual inline submission count (not hardcoded 5):
+- "Something new: X/Y" — green background if X ≥ 3, red if X < 3, gray "insufficient data" if Y < 5
+- "Would pay: X/Y" — green if X ≥ 2, red if X < 2, gray if Y < 5 (counts "yes" only; "maybe" count shown separately)
 
 Thresholds: `FALSIFICATION_SOMETHING_NEW = 3`, `FALSIFICATION_WOULD_PAY = 2` (constants, not magic numbers).
 
 ### Subsection 2: Per-User Breakdown
 Table with columns: Email | Something New | Would Pay | Comment | Snapshot Link | Submitted At
 
-Rows: one per inline feedback submission. Sorted by `created_at`. Snapshot link goes to `/s/<snapshot_id>`.
+Rows: one per inline feedback submission. Sorted by `created_at`. Snapshot link goes to `/s/<snapshot_id>`. Survey link goes to `/survey/<snapshot_id>` (shown as a separate column so you can copy/send it to the tester).
 
 ### Subsection 3: Dimension Accuracy Heatmap
 Table with rows = dimension/check names, columns = Accurate / Partially Accurate / Inaccurate counts.
 
-Cell background colors:
-- Green (`--color-health-pass`) for Accurate majority
-- Yellow (`--color-health-caution`) for Partially Accurate majority
-- Red (`--color-health-concern`) for Inaccurate majority
+Cell background colors (using generic status colors, not health-scoped tokens):
+- Green (`#dcfce7`) for Accurate majority
+- Yellow (`#fef9c3`) for Partially Accurate majority
+- Red (`#fee2e2`) for Inaccurate majority
 
 Only renders when Phase 2 survey responses exist. Built from `json_extract()` on `dimension_ratings` and `health_ratings` blobs.
 
@@ -190,7 +190,7 @@ Route handler queries `get_all_validation_feedback()`, computes aggregates in Py
 
 **Response:** `{"status": "ok"}` on success. `{"error": "description"}` with 400 status on validation failure.
 
-**CSRF:** Uses `csrfFetch()` from inline widget. Survey page includes CSRF token in form.
+**CSRF:** Both inline widget and survey page use `csrfFetch()` for JSON POST. No traditional form submission.
 
 ## Files Changed
 
