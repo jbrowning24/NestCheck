@@ -639,3 +639,51 @@ class TestCityStateColumns:
         cols = {row[1] for row in conn.execute("PRAGMA table_info(snapshots)").fetchall()}
         conn.close()
         assert "state_abbr" in cols
+
+
+class TestCityStateOnSave:
+    def test_save_snapshot_populates_city_and_state(self):
+        from models import save_snapshot, get_snapshot
+        result = {
+            "verdict": "test", "final_score": 75, "passed_tier1": True,
+            "demographics": {"place_name": "White Plains", "state_fips": "36"},
+        }
+        sid = save_snapshot("123 Main St", "123 Main St, White Plains, NY", result)
+        snap = get_snapshot(sid)
+        assert snap["city"] == "White Plains"
+        assert snap["state_abbr"] == "NY"
+
+    def test_save_snapshot_handles_missing_demographics(self):
+        from models import save_snapshot, get_snapshot
+        result = {"verdict": "test", "final_score": 50, "passed_tier1": True}
+        sid = save_snapshot("456 Elm St", "456 Elm St", result)
+        snap = get_snapshot(sid)
+        assert snap["city"] is None
+        assert snap["state_abbr"] is None
+
+    def test_save_snapshot_for_place_insert_populates_city(self):
+        from models import save_snapshot_for_place, get_snapshot
+        result = {
+            "verdict": "test", "final_score": 80, "passed_tier1": True,
+            "demographics": {"place_name": "Novi", "state_fips": "26"},
+        }
+        sid = save_snapshot_for_place("place_abc", "789 Oak", "789 Oak, Novi, MI", None, result)
+        snap = get_snapshot(sid)
+        assert snap["city"] == "Novi"
+        assert snap["state_abbr"] == "MI"
+
+    def test_save_snapshot_for_place_update_overwrites_city(self):
+        from models import save_snapshot_for_place, get_snapshot
+        result1 = {
+            "verdict": "v1", "final_score": 60, "passed_tier1": True,
+            "demographics": {"place_name": "Old City", "state_fips": "36"},
+        }
+        sid = save_snapshot_for_place("place_xyz", "1 St", "1 St", None, result1)
+        result2 = {
+            "verdict": "v2", "final_score": 70, "passed_tier1": True,
+            "demographics": {"place_name": "New City", "state_fips": "34"},
+        }
+        save_snapshot_for_place("place_xyz", "1 St", "1 St", None, result2, existing_snapshot_id=sid)
+        snap = get_snapshot(sid)
+        assert snap["city"] == "New City"
+        assert snap["state_abbr"] == "NJ"

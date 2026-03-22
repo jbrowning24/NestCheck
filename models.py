@@ -311,13 +311,15 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     is_preview = 1 if kwargs.get("is_preview") else 0
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
+    city, state_abbr = _extract_city_state(result_dict)
 
     conn = _get_db()
     conn.execute(
         """INSERT INTO snapshots
            (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-            verdict, final_score, passed_tier1, result_json, email, user_id, is_preview)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            verdict, final_score, passed_tier1, result_json, email, user_id, is_preview,
+            city, state_abbr)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             snapshot_id,
             address_input,
@@ -332,6 +334,8 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
             email,
             user_id,
             is_preview,
+            city,
+            state_abbr,
         ),
     )
     conn.commit()
@@ -677,6 +681,7 @@ def save_snapshot_for_place(
     now = datetime.now(timezone.utc).isoformat()
     evaluated_ts = evaluated_at or now
     norm = address_norm or address_input
+    city, state_abbr = _extract_city_state(result_dict)
 
     conn = _get_db()
     try:
@@ -686,7 +691,8 @@ def save_snapshot_for_place(
                    SET address_input = ?, address_norm = ?, place_id = ?,
                        evaluated_at = ?, created_at = ?,
                        verdict = ?, final_score = ?, passed_tier1 = ?, result_json = ?,
-                       email = COALESCE(?, email)
+                       email = COALESCE(?, email),
+                       city = ?, state_abbr = ?
                    WHERE snapshot_id = ?""",
                 (
                     address_input,
@@ -699,6 +705,8 @@ def save_snapshot_for_place(
                     1 if result_dict.get("passed_tier1") else 0,
                     json.dumps(result_dict, default=str),
                     email,
+                    city,
+                    state_abbr,
                     existing_snapshot_id,
                 ),
             )
@@ -709,8 +717,9 @@ def save_snapshot_for_place(
         conn.execute(
             """INSERT INTO snapshots
                (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-                verdict, final_score, passed_tier1, result_json, email, user_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                verdict, final_score, passed_tier1, result_json, email, user_id,
+                city, state_abbr)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 snapshot_id,
                 address_input,
@@ -724,6 +733,8 @@ def save_snapshot_for_place(
                 json.dumps(result_dict, default=str),
                 email,
                 user_id,
+                city,
+                state_abbr,
             ),
         )
         conn.commit()
