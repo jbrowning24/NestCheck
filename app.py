@@ -52,7 +52,7 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
-    save_feedback,
+    save_feedback, save_inline_feedback, has_inline_feedback,
 )
 
 load_dotenv()
@@ -1278,6 +1278,9 @@ _WARNING_HEADLINES = {
     # Health comparison summary check
     "ejscreen_environmental": "Some environmental indicators are elevated in this area",
 }
+
+# -- Feedback prompt (NES-362) -----------------------------------------------
+FEEDBACK_PROMPT_MAX_AGE_DAYS = 30
 
 # ---------------------------------------------------------------------------
 # Health-check context copy — expanded "why we check this" content
@@ -3483,12 +3486,24 @@ def view_snapshot(snapshot_id):
     # None/absent.  Live re-fetch would be possible but is deliberately
     # avoided to keep view_snapshot() side-effect-free.
 
+    # NES-362: show feedback prompt for recent snapshots only
+    show_feedback_prompt = False
+    evaluated_at_str = snapshot.get("evaluated_at")
+    if evaluated_at_str:
+        try:
+            evaluated_at = datetime.fromisoformat(evaluated_at_str)
+            age_days = (datetime.now(timezone.utc) - evaluated_at).days
+            show_feedback_prompt = age_days <= FEEDBACK_PROMPT_MAX_AGE_DAYS
+        except (ValueError, TypeError):
+            pass
+
     return render_template(
         "snapshot.html",
         snapshot=snapshot,
         result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+        show_feedback_prompt=show_feedback_prompt,
     )
 
 
@@ -3766,6 +3781,57 @@ def api_snapshot_fresh(snapshot_id):
         })
     except Exception:
         return jsonify({"exists": False, "fresh": False})
+
+
+@app.route("/api/feedback", methods=["POST"])
+def api_submit_feedback():
+    """Accept inline feedback for a snapshot (NES-362)."""
+    data = request.get_json(silent=True) or {}
+
+    snapshot_id = data.get("snapshot_id")
+    if not snapshot_id:
+        return jsonify({"error": "snapshot_id is required"}), 400
+
+    told = data.get("told_something_new")
+    if told not in (0, 1, True, False):
+        return jsonify({"error": "told_something_new must be 0 or 1"}), 400
+    told = int(told)
+
+    free_text = data.get("free_text")
+    if free_text and len(free_text) > 1000:
+        return jsonify({"error": "free_text must be 1000 characters or fewer"}), 400
+
+    feedback_type = data.get("feedback_type", "inline_reaction")
+
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    visitor_id = request.cookies.get("nestcheck_vid")
+
+    if not user_id and not visitor_id:
+        return jsonify({"error": "No identity available"}), 400
+
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    saved = save_inline_feedback(snapshot_id, user_id, visitor_id,
+                                 feedback_type, told, free_text)
+    if not saved:
+        return jsonify({"status": "duplicate"}), 200
+
+    return jsonify({"status": "ok"}), 201
+
+@app.route("/api/feedback/<snapshot_id>/status")
+def api_feedback_status(snapshot_id):
+    """Check if the current user/visitor already submitted feedback (NES-362)."""
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    visitor_id = request.cookies.get("nestcheck_vid")
+
+    submitted = has_inline_feedback(snapshot_id, user_id, visitor_id)
+    return jsonify({"submitted": submitted})
 
 
 @app.route("/api/event", methods=["POST"])

@@ -1169,6 +1169,24 @@
         </div>{# #how-we-score #}
         {% endif %}
 
+        {# ── INLINE FEEDBACK (NES-362) ── #}
+        {% if show_feedback_prompt is defined and show_feedback_prompt %}
+        <div id="feedback-prompt" class="callout callout--neutral" data-snapshot-id="{{ snapshot_id }}">
+          <div>
+            <p class="feedback-consent">Your feedback helps improve NestCheck. We won't share your responses outside our development team.</p>
+            <p class="feedback-question">Did this report tell you something you didn't already know about this address?</p>
+            <div class="feedback-btn-group">
+              <button type="button" class="feedback-btn" data-value="1" onclick="feedbackSelect(this)">Yes</button>
+              <button type="button" class="feedback-btn" data-value="0" onclick="feedbackSelect(this)">No</button>
+            </div>
+            <label class="feedback-consent" for="feedback-text">Anything specific that stood out? (optional)</label>
+            <textarea id="feedback-text" class="feedback-textarea" rows="3" maxlength="1000"></textarea>
+            <button type="button" class="feedback-submit" disabled onclick="feedbackSubmit()">Submit feedback</button>
+            <div class="feedback-error" style="display:none"></div>
+          </div>
+        </div>
+        {% endif %}
+
         </div>{# .report-tier--context #}
 
       </div>{# .report-main #}
@@ -1340,3 +1358,69 @@
 
   </div>{# .report-container #}
 </div>{# .report #}
+
+{% if show_feedback_prompt is defined and show_feedback_prompt %}
+<script>
+(function() {
+  var prompt = document.getElementById('feedback-prompt');
+  if (!prompt) return;
+
+  var snapshotId = prompt.getAttribute('data-snapshot-id');
+  var selectedValue = null;
+
+  fetch('/api/feedback/' + snapshotId + '/status', {
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(function(r) { return r.ok ? r.json() : null; })
+  .then(function(data) {
+    if (data && data.submitted) {
+      prompt.innerHTML = '<div><p class="feedback-thanks">You\'ve already shared feedback. Thank you!</p></div>';
+    }
+  })
+  .catch(function() {});
+
+  window.feedbackSelect = function(btn) {
+    selectedValue = parseInt(btn.getAttribute('data-value'));
+    var btns = prompt.querySelectorAll('.feedback-btn');
+    btns.forEach(function(b) { b.classList.remove('feedback-btn--selected'); });
+    btn.classList.add('feedback-btn--selected');
+    prompt.querySelector('.feedback-submit').disabled = false;
+  };
+
+  window.feedbackSubmit = function() {
+    var submitBtn = prompt.querySelector('.feedback-submit');
+    var errorDiv = prompt.querySelector('.feedback-error');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    errorDiv.style.display = 'none';
+
+    var textarea = document.getElementById('feedback-text');
+    var body = {
+      snapshot_id: snapshotId,
+      feedback_type: 'inline_reaction',
+      told_something_new: selectedValue,
+      free_text: textarea ? textarea.value.trim() || null : null
+    };
+
+    csrfFetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    .then(function(data) {
+      if (data.status === 'ok' || data.status === 'duplicate') {
+        prompt.innerHTML = '<div><p class="feedback-thanks">Thanks! Your feedback has been recorded.</p></div>';
+      } else if (data.error) {
+        throw new Error(data.error);
+      }
+    })
+    .catch(function(err) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit feedback';
+      errorDiv.style.display = 'block';
+      errorDiv.innerHTML = 'Something went wrong \u2014 your feedback wasn\'t saved. <button class="feedback-retry" onclick="feedbackSubmit()">Try again</button>';
+    });
+  };
+})();
+</script>
+{% endif %}
