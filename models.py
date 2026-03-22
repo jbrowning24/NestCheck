@@ -1734,7 +1734,8 @@ def has_feedback(snapshot_id: str, feedback_phase: str) -> bool:
     conn = _get_db()
     try:
         row = conn.execute(
-            "SELECT 1 FROM validation_feedback WHERE snapshot_id = ? AND feedback_phase = ? LIMIT 1",
+            "SELECT 1 FROM validation_feedback "
+            "WHERE snapshot_id = ? AND feedback_phase = ? LIMIT 1",
             (snapshot_id, feedback_phase),
         ).fetchone()
         return row is not None
@@ -1742,4 +1743,4 @@ def has_feedback(snapshot_id: str, feedback_phase: str) -> bool:
         conn.close()
 
 
-# save_inline_feedback and has_inline_feedback are defined earlier (NES-362).
+# ---------------------------------------------------------------------------
