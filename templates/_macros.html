@@ -58,17 +58,26 @@
 
 
 {# ── verdict_badge ───────────────────────────────────────────────────
-   Square score badge for the main-column verdict card (Phase 4).
+   Square score badge for the main-column verdict card (§4.1).
    72px rounded square with band-coloured border + score number.
+   Band label rendered below the badge.
 
    Args:
      score:      Numeric score 0–100 (required).
-     band_class: CSS class for band colouring, e.g. "band-strong".
+     band_class: Band CSS class from score_band, e.g. "band-strong".
+     band_label: Human-readable band label, e.g. "Strong Daily Fit".
+
+   XSS: band_label comes from server-side ScoreBand — hardcoded strings, safe.
    ── #}
-{% macro verdict_badge(score, band_class='') %}
-<div class="verdict-badge {{ band_class }}">
+{% macro verdict_badge(score, band_class='', band_label='') %}
+{% set modifier = band_class | replace('band-', 'verdict-badge--') %}
+<div class="verdict-badge {{ modifier }}"
+     aria-label="Overall score: {{ score }} out of 100{% if band_label %}, {{ band_label }}{% endif %}">
   <span class="verdict-badge__score">{{ score }}</span>
 </div>
+{% if band_label %}
+<div class="verdict-badge__label">{{ band_label }}</div>
+{% endif %}
 {% endmacro %}
 
 

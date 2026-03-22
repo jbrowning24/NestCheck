@@ -8,7 +8,7 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -51,6 +51,13 @@
         <h1 class="narrative-summary">
           This address {% if result.passed_tier1 %}has <strong>passed</strong> health screening{% else %}has <strong>health concerns</strong> that need attention{% endif %}{% if show_score %}, rated as a <strong>{{ band_label }}</strong> for daily living{% endif %}.
         </h1>
+        {% endif %}
+
+        {# ── VERDICT SCORE BADGE (§4.1) ── #}
+        {% if not is_preview and show_score %}
+        <div class="verdict-badge-wrapper">
+          {{ verdict_badge(result.final_score, band_class, band_label) }}
+        </div>
         {% endif %}
 
         {# ── PREVIEW: Health status banner ── #}

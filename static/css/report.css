@@ -260,6 +260,59 @@ h1.narrative-summary {
   border-radius: var(--radius-sm);
 }
 
+/* --- Verdict Score Badge (§4.1) --- */
+.verdict-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 3px solid var(--color-band-limited);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.verdict-badge__score {
+  font-size: var(--type-verdict);
+  font-weight: var(--weight-semibold);
+  color: var(--color-band-limited);
+  line-height: 1;
+}
+.verdict-badge--exceptional .verdict-badge__score,
+.verdict-badge--strong .verdict-badge__score {
+  color: var(--color-band-strong);
+}
+.verdict-badge--exceptional,
+.verdict-badge--strong {
+  border-color: var(--color-band-strong);
+}
+.verdict-badge--moderate .verdict-badge__score {
+  color: var(--color-band-moderate);
+}
+.verdict-badge--moderate {
+  border-color: var(--color-band-moderate);
+}
+.verdict-badge--limited,
+.verdict-badge--constrained {
+  border-color: var(--color-band-limited);
+}
+.verdict-badge--limited .verdict-badge__score,
+.verdict-badge--constrained .verdict-badge__score,
+.verdict-badge--poor .verdict-badge__score {
+  color: var(--color-band-limited);
+}
+.verdict-badge--poor {
+  border-color: var(--color-band-limited);
+}
+.verdict-badge__label {
+  font-size: var(--type-body);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}
+.verdict-badge-wrapper {
+  margin-bottom: var(--space-base);
+}
+
 /* --- Sidebar Verdict Card --- */
 .sidebar-verdict-card {
   border-radius: var(--radius-md);
