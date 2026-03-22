@@ -103,7 +103,7 @@ Only show dimensions where `points is not None` and `data_confidence != "not_sco
 ## Endpoint: `POST /api/feedback`
 
 - CSRF-protected via `csrfFetch` pattern (no `@csrf.exempt`).
-- Validates: `snapshot_id` required, `feedback_type` required, `response_json` is valid JSON string.
+- Validates: `snapshot_id` required, `feedback_type` required, `response_json` required and must be valid JSON string. Missing `response_json` returns 400; empty object `{}` is accepted (partial feedback).
 - Calls `save_feedback()` then `log_event("feedback_submitted", ...)`.
 - Returns `{"success": true}` on success, `{"success": false, "error": "..."}` with 400 on validation failure.
 
