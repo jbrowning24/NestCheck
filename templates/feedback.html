@@ -1,0 +1,13 @@
+{% extends "_base.html" %}
+
+{% block title %}Feedback — NestCheck{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 0 auto; padding: 32px 16px;">
+  <h1>Feedback</h1>
+  <p>{{ snapshot.address_input }}</p>
+  {% for dim in graded_dims %}
+  <p>{{ dim.name }}: {{ dim.score }}/{{ dim.max_score }}</p>
+  {% endfor %}
+</div>
+{% endblock %}
