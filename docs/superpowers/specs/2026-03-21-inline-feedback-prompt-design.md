@@ -54,7 +54,7 @@ No UNIQUE constraint on the composite because SQLite treats NULL as always-disti
 
 - **Request body (JSON):** `{snapshot_id, feedback_type, told_something_new, free_text}`
 - **Identity:** `current_user.id` if authenticated; `request.cookies.get('nestcheck_vid')` for anonymous
-- **Validation:** snapshot exists (`get_snapshot`), `told_something_new` is `0` or `1`, at least one identity present
+- **Validation:** snapshot exists (`get_snapshot`), `told_something_new` is `0` or `1`, `free_text` max 1000 chars, at least one identity present
 - **Responses:**
   - `201 {"status": "ok"}` — saved
   - `200 {"status": "duplicate"}` — already submitted
@@ -78,13 +78,17 @@ In `_result_sections.html`, below "How We Score" section, above footer. Wrapped 
 
 ### Component structure
 
+Uses the `callout` macro from `_macros.html` for the outer wrapper, with an `id="feedback-prompt"` on a containing div for JS targeting:
+
 ```html
 {% if show_feedback_prompt %}
-<div class="callout callout--neutral" id="feedback-prompt">
-  <!-- consent line -->
-  <!-- Yes/No toggle buttons -->
-  <!-- optional free text (3-line textarea) -->
-  <!-- Submit button (disabled until Yes/No selected) -->
+<div id="feedback-prompt">
+  {% call callout(variant='neutral') %}
+    <!-- consent line -->
+    <!-- Yes/No toggle buttons -->
+    <!-- optional free text (3-line textarea) -->
+    <!-- Submit button (disabled until Yes/No selected) -->
+  {% endcall %}
 </div>
 {% endif %}
 ```
@@ -118,7 +122,7 @@ Anything specific that stood out? (optional)
 - Submit handler: `csrfFetch('/api/feedback', {method: 'POST', body: JSON.stringify({...})})`
 - On success: swap `#feedback-prompt` innerHTML to thank-you text
 - On error: show error message with retry button
-- On page load: `csrfFetch('/api/feedback/{snapshot_id}/status')` — if `submitted: true`, show "already shared" message
+- On page load: plain `fetch('/api/feedback/{snapshot_id}/status')` (GET — no CSRF needed) — if `submitted: true`, show "already shared" message
 
 ### `view_snapshot()` in `app.py`
 
@@ -151,9 +155,11 @@ Pass `show_feedback_prompt` to `render_template()`.
 
 ### CSS
 
-No new component classes. Uses existing `callout callout--neutral` styling and vanilla form inputs from `base.css`.
+The `callout` macro exists in `_macros.html` but has no backing CSS. Add `.callout` and `.callout--neutral` styles to `report.css` (left-border accent, padding, background per design system section 4.7). Use the `callout` macro from `_macros.html` for the component wrapper rather than raw HTML divs. Vanilla form inputs use existing form CSS from `base.css`.
 
 New in `report.css`:
+- `.callout` — base callout component (left border accent, padding, subtle background)
+- `.callout--neutral` — neutral variant (uses `--color-border-light` / `--color-bg-surface-alt`)
 - `.feedback-btn` — Yes/No toggle button base style
 - `.feedback-btn--selected` — active state highlight
 
