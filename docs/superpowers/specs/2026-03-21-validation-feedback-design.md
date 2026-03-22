@@ -6,11 +6,11 @@ Database table and API endpoint for storing validation feedback from testers —
 
 ## Approach
 
-All-in-`models.py` — table DDL in `init_db()`, four helper functions in `models.py`, one endpoint in `app.py`. Follows the existing pattern used by every other `nestcheck.db` table.
+All-in-`models.py` — table DDL in `init_db()`, five helper functions in `models.py`, one endpoint in `app.py`. Follows the existing pattern used by every other `nestcheck.db` table.
 
 ## Database Schema
 
-Added to `init_db()` in `models.py`:
+Appended inside the existing `conn.executescript("""...""")` block in `init_db()`:
 
 ```sql
 CREATE TABLE IF NOT EXISTS validation_feedback (
@@ -41,15 +41,15 @@ CREATE INDEX IF NOT EXISTS idx_feedback_type
 
 ### `snapshot_exists(snapshot_id: str) -> bool`
 
-Lightweight existence check — `SELECT 1 FROM snapshots WHERE snapshot_id = ?`. No `result_json` load. Swallows errors, returns `False` on failure.
+Lightweight existence check — `SELECT 1 FROM snapshots WHERE snapshot_id = ?`. No `result_json` load. Swallows errors, returns `False` on failure. General-purpose utility — also useful for future optimization of `api_snapshot_fresh` and similar endpoints that currently use `get_snapshot()` for existence checks.
 
 ### `save_validation_feedback(data: dict) -> Optional[int]`
 
-INSERT into `validation_feedback`. `json.dumps()` the `dimension_ratings` dict before storage. Returns the new row `id`, or `None` on error. Swallows DB errors with `logger.exception()`.
+INSERT into `validation_feedback`. `json.dumps()` the `dimension_ratings` dict before storage; stores `NULL` when `dimension_ratings` is absent or `None` in the input. Returns the new row `id`, or `None` on error. Follows the `try/finally: conn.close()` pattern from existing cache functions (e.g., `set_overpass_cache`).
 
 ### `get_feedback_for_snapshot(snapshot_id: str) -> list[dict]`
 
-SELECT all rows for a snapshot, ordered by `submitted_at DESC`. `json.loads()` the `dimension_ratings` back to dict. Returns `[]` on error.
+SELECT all rows for a snapshot, ordered by `submitted_at DESC`. `json.loads()` the `dimension_ratings` back to dict; guards for `None` values (returns `None` not `{}` when column is `NULL`). All functions follow `try/finally: conn.close()`. Returns `[]` on error.
 
 ### `get_all_validation_feedback() -> list[dict]`
 
@@ -76,7 +76,7 @@ Returns zeroed dict on error.
 
 Placed alongside existing `/api/*` routes.
 
-**Request**: JSON body with feedback fields.
+**Request**: JSON body with feedback fields. Uses `request.get_json(silent=True) or {}` to handle malformed/missing JSON bodies gracefully (matches `track_event` pattern).
 
 **Validation**:
 1. `snapshot_id` present → 400 if missing
@@ -105,11 +105,11 @@ Placed alongside existing `/api/*` routes.
 
 ## Files Changed
 
-- `models.py` — table DDL in `init_db()`, `snapshot_exists()`, 4 helper functions
+- `models.py` — table DDL in `init_db()`, `snapshot_exists()` + 4 CRUD/query functions
 - `app.py` — `POST /api/feedback` route
 
 ## Testing
 
-- Unit tests for all four helper functions
+- Unit tests for all five helper functions
 - Endpoint tests: valid submission (201), missing snapshot_id (400), invalid feedback_type (400), nonexistent snapshot (404)
 - Verify FK constraint blocks orphan feedback at DB level
