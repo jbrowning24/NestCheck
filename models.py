@@ -15,7 +15,21 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Tuple
 
+from coverage_config import _STATE_FIPS
+
 logger = logging.getLogger(__name__)
+
+# Reverse lookup: FIPS code → state abbreviation (e.g., "36" → "NY")
+_FIPS_TO_STATE = {v: k for k, v in _STATE_FIPS.items()}
+
+
+def _extract_city_state(result_dict):
+    """Extract city name and state abbreviation from result demographics."""
+    demographics = result_dict.get("demographics") or {}
+    city = demographics.get("place_name") or None
+    state_fips = demographics.get("state_fips") or ""
+    state_abbr = _FIPS_TO_STATE.get(state_fips)
+    return city, state_abbr
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
@@ -216,6 +230,14 @@ def init_db():
         conn.execute("ALTER TABLE snapshots ADD COLUMN is_preview INTEGER NOT NULL DEFAULT 0")
     if "og_image" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN og_image BLOB")
+    if "city" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN city TEXT")
+    if "state_abbr" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN state_abbr TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_snapshots_city_state "
+        "ON snapshots(state_abbr, city)"
+    )
 
     # Migration for users: add stripe_customer_id column
     user_cols = {
@@ -809,7 +831,7 @@ def update_job_stage(job_id: str, stage: str) -> None:
     """Update the current_stage for a running job (progress reporting)."""
     conn = _get_db()
     conn.execute(
-        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ?",
+        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ? AND status = 'running'",
         (stage, job_id),
     )
     conn.commit()
@@ -822,7 +844,8 @@ def complete_job(job_id: str, snapshot_id: str) -> None:
     conn = _get_db()
     conn.execute(
         """UPDATE evaluation_jobs
-           SET status = 'done', snapshot_id = ?, completed_at = ?
+           SET status = 'done', snapshot_id = ?, completed_at = ?,
+               current_stage = NULL
            WHERE job_id = ?""",
         (snapshot_id, now, job_id),
     )
@@ -833,6 +856,7 @@ def complete_job(job_id: str, snapshot_id: str) -> None:
 def fail_job(job_id: str, error: str) -> None:
     """Mark a job as failed with an error message."""
     now = datetime.now(timezone.utc).isoformat()
+    error = error[:2000] if error else error
     conn = _get_db()
     conn.execute(
         """UPDATE evaluation_jobs
@@ -842,6 +866,22 @@ def fail_job(job_id: str, error: str) -> None:
     )
     conn.commit()
     conn.close()
+
+
+def cancel_queued_job(job_id: str, reason: str) -> bool:
+    """Cancel a job that is still queued. Returns True if cancelled, False if not queued."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    cur = conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'failed', error = ?, completed_at = ?
+           WHERE job_id = ? AND status = 'queued'""",
+        (reason, now, job_id),
+    )
+    changed = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return changed
 
 
 def requeue_stale_running_jobs(max_age_seconds: int = 300) -> int:

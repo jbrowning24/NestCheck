@@ -309,7 +309,7 @@ class TestCompleteJob:
 
         job = get_job(job_id)
         assert job["status"] == "done"
-        assert job["result_snapshot_id"] == "snap123"
+        assert job["snapshot_id"] == "snap123"
         assert job["completed_at"] is not None
         assert job["current_stage"] is None
 
@@ -619,3 +619,23 @@ class TestUserStripeCustomer:
 
     def test_get_user_by_stripe_customer_not_found(self):
         assert get_user_by_stripe_customer("cus_nonexistent") is None
+
+
+# =========================================================================
+# City/state denormalized columns (NES-352)
+# =========================================================================
+
+class TestCityStateColumns:
+    def test_snapshots_table_has_city_column(self):
+        from models import _get_db
+        conn = _get_db()
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(snapshots)").fetchall()}
+        conn.close()
+        assert "city" in cols
+
+    def test_snapshots_table_has_state_abbr_column(self):
+        from models import _get_db
+        conn = _get_db()
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(snapshots)").fetchall()}
+        conn.close()
+        assert "state_abbr" in cols
