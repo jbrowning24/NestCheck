@@ -24,6 +24,13 @@
   {% block extra_css %}{% endblock %}
   {% block head_extra %}{% endblock %}
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <!-- Visitor identity cookie for anonymous feedback (NES-362) -->
+  <script>
+  if (!document.cookie.match(/nestcheck_vid=/)) {
+      document.cookie = 'nestcheck_vid=' + crypto.randomUUID() +
+          '; path=/; max-age=' + (30*86400) + '; SameSite=Lax';
+  }
+  </script>
   {% block json_ld %}{% endblock %}
 </head>
 <body>
@@ -75,6 +82,52 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
 {% block scripts %}{% endblock %}
+
+<!-- Shared CSRF-aware fetch utility (NES-362: extracted from index.html) -->
+<script>
+  function csrfToken() {
+    var el = document.querySelector('meta[name="csrf-token"]');
+    return el ? el.getAttribute('content') : '';
+  }
+  function refreshCsrfToken() {
+    return fetch('/csrf-token', { method: 'GET', headers: { 'Accept': 'application/json' } })
+      .then(function(resp) { return resp.json(); })
+      .then(function(data) {
+        if (data.csrf_token) {
+          document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
+        }
+        return data.csrf_token || '';
+      })
+      .catch(function() { return csrfToken(); });
+  }
+  function csrfFetch(url, options) {
+    function doFetch(token) {
+      var opts = Object.assign({}, options);
+      opts.headers = Object.assign({ 'Accept': 'application/json' }, opts.headers, { 'X-CSRFToken': token });
+      return fetch(url, opts);
+    }
+    function handleResp(resp, isRetry) {
+      if (!resp.ok) {
+        var ct = resp.headers.get('content-type') || '';
+        if (ct.indexOf('application/json') !== -1) {
+          return resp.json().then(function(data) {
+            if (!isRetry && resp.status === 400 && data.error_code === 'csrf_expired') {
+              return refreshCsrfToken().then(function(newToken) {
+                return doFetch(newToken).then(function(r) { return handleResp(r, true); });
+              });
+            }
+            return data;
+          });
+        }
+        return resp.text().then(function() {
+          throw new Error('Server error (' + resp.status + '). Please try again.');
+        });
+      }
+      return resp.json();
+    }
+    return doFetch(csrfToken()).then(function(resp) { return handleResp(resp, false); });
+  }
+</script>
 
 <!-- Cookie Consent Banner -->
 <div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie consent" aria-modal="false">

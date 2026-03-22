@@ -194,6 +194,24 @@ def init_db():
             ON feedback(snapshot_id);
         CREATE INDEX IF NOT EXISTS idx_feedback_type
             ON feedback(feedback_type);
+
+        CREATE TABLE IF NOT EXISTS validation_feedback (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            snapshot_id       TEXT NOT NULL,
+            email             TEXT NOT NULL DEFAULT '',
+            feedback_phase    TEXT NOT NULL,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+            something_new     TEXT,
+            would_pay         TEXT,
+            comment           TEXT,
+            dimension_ratings TEXT,
+            health_ratings    TEXT,
+            UNIQUE(snapshot_id, email, feedback_phase) ON CONFLICT REPLACE
+        );
+        CREATE INDEX IF NOT EXISTS idx_vf_snapshot
+            ON validation_feedback(snapshot_id);
+        CREATE INDEX IF NOT EXISTS idx_vf_phase
+            ON validation_feedback(feedback_phase);
     """)
 
     # Migration for pre-place_id databases.
@@ -266,6 +284,26 @@ def init_db():
             "ALTER TABLE evaluation_coverage "
             "ADD COLUMN walk_times_from_api INTEGER DEFAULT 0"
         )
+
+    # Migration: add NES-362 columns to feedback table
+    fb_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(feedback)").fetchall()
+    }
+    if "user_id" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN user_id INTEGER")
+    if "told_something_new" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN told_something_new INTEGER")
+    if "free_text" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN free_text TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_feedback_snapshot_user "
+        "ON feedback(snapshot_id, user_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_feedback_snapshot_visitor "
+        "ON feedback(snapshot_id, visitor_id)"
+    )
 
     conn.commit()
     conn.close()
@@ -507,6 +545,73 @@ def save_feedback(snapshot_id, feedback_type, response_json,
                 raise
         finally:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Inline feedback (NES-362)
+# ---------------------------------------------------------------------------
+
+def has_inline_feedback(snapshot_id: str, user_id=None, visitor_id=None) -> bool:
+    """Check if inline feedback already exists for this snapshot + identity."""
+    if not user_id and not visitor_id:
+        return False
+    conn = _get_db()
+    try:
+        if user_id:
+            row = conn.execute(
+                "SELECT 1 FROM feedback WHERE snapshot_id = ? AND user_id = ?"
+                " AND feedback_type = 'inline_reaction'",
+                (snapshot_id, user_id),
+            ).fetchone()
+            if row:
+                return True
+        if visitor_id:
+            row = conn.execute(
+                "SELECT 1 FROM feedback WHERE snapshot_id = ? AND visitor_id = ?"
+                " AND feedback_type = 'inline_reaction'",
+                (snapshot_id, visitor_id),
+            ).fetchone()
+            if row:
+                return True
+        return False
+    finally:
+        conn.close()
+
+
+def save_inline_feedback(snapshot_id: str, user_id, visitor_id,
+                         feedback_type: str, told_something_new: int,
+                         free_text=None) -> bool:
+    """Save inline feedback. Returns True on success, False if duplicate."""
+    if has_inline_feedback(snapshot_id, user_id, visitor_id):
+        return False
+
+    now = datetime.now(timezone.utc).isoformat()
+    last_err = None
+    for attempt in range(3):
+        try:
+            conn = _get_db()
+            try:
+                conn.execute(
+                    """INSERT INTO feedback
+                       (snapshot_id, user_id, visitor_id, feedback_type,
+                        told_something_new, free_text, response_json, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, '{}', ?)""",
+                    (snapshot_id, user_id, visitor_id, feedback_type,
+                     told_something_new, free_text, now),
+                )
+                conn.commit()
+                return True
+            finally:
+                conn.close()
+        except sqlite3.OperationalError as e:
+            last_err = e
+            if "locked" in str(e) or "busy" in str(e):
+                logger.warning("save_inline_feedback retry %d/3: %s",
+                               attempt + 1, e)
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            raise
+    raise last_err
 
 
 def check_return_visit(visitor_id, days=7):
@@ -1559,3 +1664,82 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# NES-360: Validation feedback (dimension + health accuracy grading)
+# ---------------------------------------------------------------------------
+
+def save_validation_feedback(
+    snapshot_id: str,
+    email,
+    feedback_phase: str,
+    **kwargs,
+) -> None:
+    """Upsert a validation feedback row.
+
+    The UNIQUE(snapshot_id, email, feedback_phase) constraint uses ON CONFLICT
+    REPLACE so re-submissions overwrite the previous row.
+    """
+    email = (email or "")
+    allowed_cols = {
+        "something_new", "would_pay", "comment",
+        "dimension_ratings", "health_ratings",
+    }
+    extra_cols = {k: v for k, v in kwargs.items() if k in allowed_cols}
+
+    cols = ["snapshot_id", "email", "feedback_phase"] + list(extra_cols.keys())
+    placeholders = ", ".join(["?"] * len(cols))
+    values = [snapshot_id, email, feedback_phase] + list(extra_cols.values())
+
+    conn = _get_db()
+    try:
+        conn.execute(
+            f"INSERT OR REPLACE INTO validation_feedback ({', '.join(cols)}) "
+            f"VALUES ({placeholders})",
+            values,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_feedback_for_snapshot(snapshot_id: str) -> list:
+    """Return all validation_feedback rows for a snapshot as list of dicts."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM validation_feedback WHERE snapshot_id = ? ORDER BY id",
+            (snapshot_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_all_validation_feedback() -> list:
+    """Return all validation_feedback rows across all snapshots."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM validation_feedback ORDER BY id",
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def has_feedback(snapshot_id: str, feedback_phase: str) -> bool:
+    """Return True if at least one validation_feedback row exists for this snapshot+phase."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM validation_feedback WHERE snapshot_id = ? AND feedback_phase = ? LIMIT 1",
+            (snapshot_id, feedback_phase),
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+# save_inline_feedback and has_inline_feedback are defined earlier (NES-362).
