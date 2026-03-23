@@ -242,6 +242,15 @@ def init_db():
         "WHERE eval_count IS NULL"
     )
 
+    # Migration for evaluation_jobs: add snapshot_id column if missing
+    # (production DB was created before snapshot_id was in the CREATE TABLE)
+    _job_cols_early = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()
+    }
+    if "snapshot_id" not in _job_cols_early:
+        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN snapshot_id TEXT")
+
     # Index for payment→snapshot join (NES-327)
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
