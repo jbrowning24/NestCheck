@@ -38,15 +38,22 @@ polling-based loading screen rather than a replacement.
 ### Layout (top to bottom, vertically centered in overlay)
 
 1. **Stage message** — the primary visual element
-   - Font: `--type-heading` (1.05rem / ~17px), `--font-weight-semibold` (600)
+   - Font: `--font-size-h3` (1.125rem / 18px), `--font-weight-semibold` (600)
+     (keeps existing token — close enough to `--type-heading` and avoids a
+     gratuitous change)
    - Color: `--color-text-inverse` (#FFFFFF)
-   - Text swaps via 200ms `opacity` crossfade as server reports new stages
+   - Text swaps via 200ms `opacity` crossfade as server reports new stages.
+     **Crossfade mechanism**: fade out (set `opacity: 0`), listen for
+     `transitionend`, swap `textContent`, then set `opacity: 1`. This produces
+     a true fade-out/fade-in (400ms total: 200ms out + 200ms in). Without the
+     `transitionend` listener, synchronous opacity:0/text/opacity:1 batches
+     into a single paint frame and the crossfade is invisible.
    - Respects `prefers-reduced-motion`: instant swap, no crossfade
 
 2. **Progress bar** — secondary, contextual
    - Width: `100%`, `max-width: 480px`
    - Height: 3px
-   - Track: `rgba(255, 255, 255, 0.12)`
+   - Track: `rgba(255, 255, 255, 0.15)` — keeps existing value
    - Fill: `var(--color-accent)` (#2563EB)
    - Border-radius: 2px (half of height)
    - Margin-top: `var(--space-base)` (16px)
@@ -55,15 +62,15 @@ polling-based loading screen rather than a replacement.
 
 3. **Sub-text** — static context
    - Text: "Checking parks, transit, safety, and more."
-   - Font: `--type-detail` (0.8rem / ~13px)
-   - Color: `rgba(255, 255, 255, 0.5)`
+   - Font: `--font-size-body` (0.9375rem / 15px) — keeps existing token
+   - Color: `rgba(255, 255, 255, 0.6)` — keeps existing value
    - Margin-top: `var(--space-md)` (12px)
 
 4. **Patience text** — progressive reassurance
-   - Font: `--type-detail` (0.8rem / ~13px)
+   - Font: `--font-size-small` (0.8125rem / 13px) — keeps existing token
    - Color: `rgba(255, 255, 255, 0.4)`
    - Margin-top: `var(--space-base)` (16px)
-   - Starts hidden (`opacity: 0`), fades in via `--transition-base` (200ms ease)
+   - Starts hidden (`opacity: 0`), fades in via existing `0.4s ease` transition
    - **At 15s**: "Detailed reports typically take 20-30 seconds."
    - **At 45s**: "This is taking longer than usual. The report will appear
      automatically when ready."
@@ -106,7 +113,7 @@ polling-based loading screen rather than a replacement.
 ### `templates/index.html`
 
 **HTML changes:**
-- Remove `.loading-brand` div containing the SVG home icon (lines 65-72)
+- Remove the `.loading-brand` div and its SVG contents
 - Update patience timer: 10s → 15s for first message
 - Add 45s `setTimeout` to update patience text to escalation copy
 - Add opacity crossfade class toggling for stage message transitions
@@ -114,9 +121,16 @@ polling-based loading screen rather than a replacement.
 **JS changes (in `startPolling()`):**
 - Change patience `setTimeout` from 10000 to 15000
 - Add second `setTimeout` at 45000 for escalation message
-- Add crossfade logic: set `opacity: 0` on `.loading-text`, update
-  `textContent`, set `opacity: 1` (CSS transition handles the rest)
+- Add crossfade logic: set `opacity: 0` on `.loading-text`, listen for
+  `transitionend`, then swap `textContent` and set `opacity: 1`. For
+  `prefers-reduced-motion`, skip the listener and swap text instantly.
 - Clear both timeouts in `hideOverlay()`
+- **Scope timers to evaluation polling only**: The loading overlay is also
+  shown briefly during Stripe checkout (`submitEvaluation`). The 15s/45s
+  patience timers must only be started inside `startPolling()`, not in
+  `submitEvaluation()`. Since `submitEvaluation()` calls `startPolling()`
+  on success, this is naturally scoped — but verify the checkout error path
+  doesn't trigger them.
 
 ### `static/css/index.css`
 
@@ -126,15 +140,16 @@ polling-based loading screen rather than a replacement.
 - `@keyframes pulse`
 
 **Modify:**
-- `.loading-text`: add `transition: opacity var(--transition-base)`
+- `.loading-sub`: add `transition: opacity 200ms ease` (this is the element whose
+  text changes with stage updates — `.loading-text` is static)
 - `.loading-progress`: change `width: 200px` → `width: 100%; max-width: 480px`,
   change `height: 6px` → `height: 3px`, change `border-radius: 3px` →
-  `border-radius: 2px`
+  `border-radius: 2px`. Background stays `rgba(255, 255, 255, 0.15)`.
 - `.loading-progress-fill`: change `border-radius: 3px` → `border-radius: 2px`
 
 **Add:**
 - `@media (prefers-reduced-motion: reduce)` block for `.loading-progress-fill`,
-  `.loading-patience`, `.loading-text`
+  `.loading-patience`, `.loading-sub`
 
 ## What stays the same
 
