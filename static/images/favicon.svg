@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- NestCheck logo mark: two skewed rectangles (matches nav CSS logo) -->
+  <rect x="3" y="6" width="11" height="19" rx="2" fill="#0B1D3A" transform="skewY(-8)"/>
+  <rect x="18" y="6" width="11" height="19" rx="2" fill="#0B1D3A" opacity="0.6" transform="skewY(8)"/>
+</svg>
