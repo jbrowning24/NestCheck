@@ -3266,7 +3266,7 @@ def view_city(state, city_slug):
 
     breadcrumbs = [
         {"name": "Home", "url": "/"},
-        {"name": state_name, "url": None},
+        {"name": state_name, "url": f"/state/{state_upper.lower()}"},
         {"name": city_name, "url": None},
     ]
 
