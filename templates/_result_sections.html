@@ -1440,3 +1440,91 @@
 })();
 </script>
 {% endif %}
+
+{% if not is_preview and snapshot_id %}
+<script>
+/* ── Embed Modal (NES-343) ── */
+(function() {
+  var sid = '{{ snapshot_id | e }}';
+  var baseUrl = location.origin;
+  var score = {{ result.final_score or 0 }};
+  var band = '{{ band_label | e }}';
+
+  function badgeSnippet(style) {
+    var w = style === 'square' ? 120 : 200;
+    var h = style === 'square' ? 120 : 60;
+    var styleParam = style === 'square' ? '?style=square' : '';
+    var alt = 'NestCheck Score: ' + score + ' (' + band + ')';
+    return '<a href="' + baseUrl + '/s/' + sid + '?utm_source=widget&utm_medium=badge" rel="noopener noreferrer">\n  <img src="' + baseUrl + '/widget/badge/' + sid + '.svg' + styleParam + '" alt="' + alt + '" width="' + w + '" height="' + h + '">\n</a>';
+  }
+
+  var cardSnippet = '<iframe src="' + baseUrl + '/widget/card/' + sid + '" width="300" height="200" frameborder="0" style="border: none;"></iframe>';
+  var apiSnippet = 'curl ' + baseUrl + '/api/v1/widget-data/' + sid;
+
+  var badgeCode = document.getElementById('embedBadgeCode');
+  var cardCode = document.getElementById('embedCardCode');
+  var apiCode = document.getElementById('embedApiCode');
+  var apiPreview = document.getElementById('embedApiPreview');
+
+  if (badgeCode) badgeCode.textContent = badgeSnippet('banner');
+  if (cardCode) cardCode.textContent = cardSnippet;
+  if (apiCode) apiCode.textContent = apiSnippet;
+
+  if (apiPreview) {
+    fetch('/api/v1/widget-data/' + sid)
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) { if (data) apiPreview.textContent = JSON.stringify(data, null, 2); })
+      .catch(function() { apiPreview.textContent = '(Could not load preview)'; });
+  }
+
+  document.querySelectorAll('[data-embed-tab]').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('[data-embed-tab]').forEach(function(t) {
+        t.classList.remove('embed-tab--active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tab.classList.add('embed-tab--active');
+      tab.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.embed-panel').forEach(function(p) { p.hidden = true; });
+      var panel = document.getElementById('embed-panel-' + tab.dataset.embedTab);
+      if (panel) panel.hidden = false;
+    });
+  });
+
+  document.querySelectorAll('[data-badge-style]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('[data-badge-style]').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var style = btn.dataset.badgeStyle;
+      var img = document.getElementById('embedBadgePreview');
+      if (img) {
+        img.src = '/widget/badge/' + sid + '.svg' + (style === 'square' ? '?style=square' : '');
+        img.width = style === 'square' ? 120 : 200;
+        img.height = style === 'square' ? 120 : 60;
+      }
+      if (badgeCode) badgeCode.textContent = badgeSnippet(style);
+    });
+  });
+
+  var overlay = document.getElementById('embedModal');
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.hidden = true;
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !overlay.hidden) overlay.hidden = true;
+    });
+  }
+})();
+
+function copyEmbedSnippet(btn) {
+  var pre = btn.parentElement.querySelector('pre');
+  if (!pre) return;
+  navigator.clipboard.writeText(pre.textContent).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+</script>
+{% endif %}
