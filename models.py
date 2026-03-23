@@ -1313,7 +1313,9 @@ def check_free_tier_available(email_hash: str) -> bool:
         if window_start:
             try:
                 ws = datetime.fromisoformat(window_start)
-                if datetime.utcnow() - ws > timedelta(days=_FREE_TIER_WINDOW_DAYS):
+                if ws.tzinfo is None:
+                    ws = ws.replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) - ws > timedelta(days=_FREE_TIER_WINDOW_DAYS):
                     return True
             except (ValueError, TypeError):
                 return True
@@ -1886,7 +1888,7 @@ def create_subscription(
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (subscription_id, user_email, stripe_subscription_id,
              stripe_customer_id, SUBSCRIPTION_ACTIVE, period_start,
-             period_end, datetime.utcnow().isoformat()),
+             period_end, datetime.now(timezone.utc).isoformat()),
         )
         conn.commit()
     finally:

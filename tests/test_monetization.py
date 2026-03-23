@@ -1,6 +1,6 @@
 import sqlite3
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from models import (
     init_db, _get_db,
@@ -48,7 +48,7 @@ def test_create_and_retrieve_subscription():
 
 def test_is_subscription_active_true():
     sub_id = uuid.uuid4().hex
-    future = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
     create_subscription(
         subscription_id=sub_id,
         user_email="active@example.com",
@@ -75,7 +75,7 @@ def test_is_subscription_active_expired():
 
 def test_update_subscription_status():
     sub_id = uuid.uuid4().hex
-    future = (datetime.utcnow() + timedelta(days=30)).isoformat()
+    future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
     create_subscription(
         subscription_id=sub_id,
         user_email="cancel@example.com",
