@@ -3693,6 +3693,57 @@ def view_snapshot(snapshot_id):
     )
 
 
+@app.route("/widget/badge/<snapshot_id>.svg")
+def widget_badge(snapshot_id):
+    """Embeddable SVG badge — returns self-contained SVG for <img> embedding (NES-343)."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        abort(404)
+
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
+
+    checks = result.get("presented_checks", [])
+    clear_count = sum(1 for c in checks if c.get("result_type") == "CLEAR")
+    concern_count = sum(
+        1 for c in checks
+        if c.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+    )
+
+    score = result.get("final_score") or 0
+    band = get_score_band(score)
+
+    # Map css_class to hex color (same mapping as widget_card.html)
+    band_colors = {
+        "band-exceptional": "#16A34A",
+        "band-strong": "#65A30D",
+        "band-moderate": "#D97706",
+        "band-limited": "#EA580C",
+        "band-concerning": "#DC2626",
+    }
+    band_color = band_colors.get(band["css_class"], "#DC2626")
+
+    style = request.args.get("style", "banner")
+    if style not in ("banner", "square"):
+        style = "banner"
+
+    resp = make_response(render_template(
+        "widget_badge.html",
+        snapshot_id=snapshot_id,
+        score=score,
+        band_label=band["label"],
+        band_color=band_color,
+        clear_count=clear_count,
+        concern_count=concern_count,
+        style=style,
+    ))
+    resp.headers["Content-Type"] = "image/svg+xml"
+    resp.headers["Content-Security-Policy"] = "frame-ancestors *"
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.route("/widget/card/<snapshot_id>")
 def widget_card(snapshot_id):
     """Embeddable score card widget — returns complete HTML for iframe."""
@@ -3734,6 +3785,51 @@ def widget_card(snapshot_id):
         height=height,
     ))
     resp.headers["Content-Security-Policy"] = "frame-ancestors *"
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
+@app.route("/api/v1/widget-data/<snapshot_id>")
+def api_widget_data(snapshot_id):
+    """Widget data API — returns JSON for programmatic access (NES-343)."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        resp = jsonify({"error": "Snapshot not found"})
+        resp.status_code = 404
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
+
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
+
+    checks = result.get("presented_checks", [])
+    clear_count = sum(1 for c in checks if c.get("result_type") == "CLEAR")
+    concern_count = sum(
+        1 for c in checks
+        if c.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+    )
+
+    score = result.get("final_score") or 0
+    band = get_score_band(score)
+
+    if concern_count == 0:
+        health_summary = f"{clear_count} clear"
+    else:
+        concern_word = "concern" if concern_count == 1 else "concerns"
+        health_summary = f"{clear_count} clear / {concern_count} {concern_word}"
+
+    report_url = request.host_url.rstrip("/") + "/s/" + snapshot_id
+
+    resp = jsonify({
+        "score": score,
+        "band": band["label"],
+        "address": result.get("address", snapshot.get("address_norm", "")),
+        "health_summary": health_summary,
+        "clear_count": clear_count,
+        "concern_count": concern_count,
+        "report_url": report_url,
+    })
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Cache-Control"] = "public, max-age=86400"
     return resp
