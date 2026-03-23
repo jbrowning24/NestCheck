@@ -242,20 +242,8 @@ def init_db():
         "WHERE eval_count IS NULL"
     )
 
-    # Migration for evaluation_jobs: add snapshot_id column if missing
-    # (production DB was created before snapshot_id was in the CREATE TABLE)
-    _job_cols_early = {
-        row["name"]
-        for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()
-    }
-    if "snapshot_id" not in _job_cols_early:
-        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN snapshot_id TEXT")
-
     # Index for payment→snapshot join (NES-327)
-    conn.execute("""
-        CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
-        ON evaluation_jobs(snapshot_id)
-    """)
+    # (snapshot_id migration merged into the job_cols block below)
 
     # Migration for pre-place_id databases.
     cols = {
@@ -294,14 +282,20 @@ def init_db():
     if "stripe_customer_id" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT")
 
-    # Migration for evaluation_jobs: add user_id column
+    # Migration for evaluation_jobs: add columns missing from original schema
     job_cols = {
         row["name"]
         for row in conn.execute("PRAGMA table_info(evaluation_jobs)").fetchall()
     }
     if "user_id" not in job_cols:
         conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN user_id TEXT")
+    if "snapshot_id" not in job_cols:
+        conn.execute("ALTER TABLE evaluation_jobs ADD COLUMN snapshot_id TEXT")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON evaluation_jobs(user_id)")
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
+        ON evaluation_jobs(snapshot_id)
+    """)
 
     # Legacy rows should be treated as previously evaluated at created_at.
     conn.execute(
