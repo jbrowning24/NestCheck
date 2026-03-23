@@ -7,10 +7,13 @@ R-tree indexes. Graceful degradation: if SpatiaLite or DB is unavailable,
 returns empty results — never crashes the evaluation.
 """
 
+import ctypes
+import ctypes.util
 import json
 import logging
 import os
 import sqlite3
+import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -46,6 +49,26 @@ def _spatial_db_path() -> str:
     if os.environ.get("RAILWAY_VOLUME_MOUNT_PATH"):
         return os.path.join(os.environ["RAILWAY_VOLUME_MOUNT_PATH"], "spatial.db")
     return os.environ.get("NESTCHECK_SPATIAL_DB_PATH", "data/spatial.db")
+
+
+# ---------------------------------------------------------------------------
+# macOS fork-safety fix: pre-load mod_spatialite via ctypes before SQLite
+# loads it through dlopen.  Without this, the pthread_atfork handler
+# registered by libgeos (a transitive dep of mod_spatialite) can point to
+# unmapped memory, causing a SIGSEGV on any subsequent subprocess.fork().
+# Pre-loading with RTLD_GLOBAL pins the library mappings so the handler
+# stays valid.  Harmless no-op on Linux or when the library is absent.
+# ---------------------------------------------------------------------------
+if sys.platform == "darwin":
+    for _lib in ("mod_spatialite", "libspatialite"):
+        _path = ctypes.util.find_library(_lib)
+        if _path:
+            try:
+                ctypes.CDLL(_path, mode=ctypes.RTLD_GLOBAL)
+            except OSError:
+                pass
+            else:
+                break
 
 
 def _connect() -> sqlite3.Connection:
