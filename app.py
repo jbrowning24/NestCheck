@@ -4715,6 +4715,7 @@ def sitemap_xml():
         lines.append("  </url>")
 
     # City pages (NES-352)
+    city_list = []
     try:
         city_list = get_cities_with_snapshots(min_count=3)
         for city_row in city_list:
