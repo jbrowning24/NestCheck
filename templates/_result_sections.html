@@ -8,6 +8,9 @@
 {# NES-132: Default is_preview to false for backward compatibility #}
 {% set is_preview = is_preview if is_preview is defined else false %}
 
+{# NES-327: Default is_full_access to true for backward compatibility #}
+{% set is_full_access = is_full_access if is_full_access is defined else true %}
+
 {% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
 
 {# ── Pre-compute sidebar data ── #}
@@ -391,6 +394,7 @@
           </div>
           {% endif %}
 
+          {% if is_full_access %}
           {% set categories = [
             ("coffee", "Coffee & Social Spots"),
             ("grocery", "Grocery & Essentials"),
@@ -420,10 +424,10 @@
                 </div>
               {% endif %}
 
-              <div class="place-cards">
+              <div class="venue-scroll{% if normal_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
                 {% for place in normal_places %}
                 {% set is_headline = loop.first and place.review_snippet %}
-                <div class="place-card{% if is_headline %} place-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}">
+                <div class="venue-card{% if is_headline %} venue-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}" role="listitem">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
@@ -471,9 +475,9 @@
             <div class="neighborhood-category neighborhood-category--expanded">
               <div class="category-label">{{ label }}</div>
               <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
-              <div class="place-cards">
+              <div class="venue-scroll{% if expanded_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} by car" tabindex="0">
                 {% for place in expanded_places %}
-                <div class="place-card place-card--muted section-card--quiet">
+                <div class="venue-card venue-card--muted section-card--quiet" role="listitem">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
@@ -509,6 +513,18 @@
             </div>
             {% endif %}
           {% endfor %}
+          {% else %}
+          <div class="gated-section">
+            <div class="gated-section__blur" aria-hidden="true">
+              <p style="color: transparent;">Detailed analysis of nearby cafes, groceries, and gyms with walk times and ratings.</p>
+              <p style="color: transparent;">Venue lists, quality ratings, and neighborhood character.</p>
+            </div>
+            <div class="gated-section__cta">
+              <p>Unlock the full evaluation</p>
+              <a href="/pricing">See full report</a>
+            </div>
+          </div>
+          {% endif %}
 
         </div>
         {% else %}
@@ -551,6 +567,7 @@
             </div>
           {% endif %}
 
+          {% if is_full_access %}
           {# Primary Transit Node #}
           {% if result.urban_access and result.urban_access.primary_transit %}
             {% set pt = result.urban_access.primary_transit %}
@@ -736,6 +753,17 @@
               </div>
             </div>
           {% endif %}
+          {% else %}
+          <div class="gated-section">
+            <div class="gated-section__blur" aria-hidden="true">
+              <p style="color: transparent;">Transit options, commute times, sidewalk coverage, and walkability analysis.</p>
+            </div>
+            <div class="gated-section__cta">
+              <p>Unlock the full evaluation</p>
+              <a href="/pricing">See full report</a>
+            </div>
+          </div>
+          {% endif %}
 
         </div>{# #getting-around #}
 
@@ -770,6 +798,7 @@
           </div>
           {% endif %}
 
+          {% if is_full_access %}
           {% if result.green_escape and result.green_escape.best_daily_park %}
             {% set park = result.green_escape.best_daily_park %}
             <div class="park-highlight section-card--highlighted">
@@ -944,6 +973,17 @@
             {% endif %}
           </div>
           {% endif %}
+          {% else %}
+          <div class="gated-section">
+            <div class="gated-section__blur" aria-hidden="true">
+              <p style="color: transparent;">Park quality scores, green space listings, library and pharmacy locations.</p>
+            </div>
+            <div class="gated-section__cta">
+              <p>Unlock the full evaluation</p>
+              <a href="/pricing">See full report</a>
+            </div>
+          </div>
+          {% endif %}
 
         </div>
         {% endif %}
@@ -953,6 +993,7 @@
         {# ── TIER 3: CONTEXT ──────────────────────────────────────────── #}
         <div class="report-tier report-tier--context" id="report-tier-context">
 
+        {% if is_full_access %}
         {# ── AREA CONTEXT ── #}
         {% set _has_context = (result.demographics is defined and result.demographics is not none)
             or (result.school_district is defined and result.school_district is not none)
@@ -1194,6 +1235,18 @@
         </div>
         {% endif %}
 
+        {% else %}
+        <div class="gated-section">
+          <div class="gated-section__blur" aria-hidden="true">
+            <p style="color: transparent;">Community demographics, school district performance, and environmental profile.</p>
+          </div>
+          <div class="gated-section__cta">
+            <p>Unlock the full evaluation</p>
+            <a href="/pricing">See full report</a>
+          </div>
+        </div>
+        {% endif %}
+
         </div>{# .report-tier--context #}
 
       </div>{# .report-main #}
@@ -1331,6 +1384,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>CSV</span>
         </a>
+        <button class="share-btn share-btn--secondary" onclick="document.getElementById('embedModal').hidden=false" aria-label="Get embed code">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <span>Embed</span>
+        </button>
         {% if compare_index is not defined %}
         <button class="share-btn share-btn--secondary" id="compareAddBtn"
                 data-snapshot-id="{{ snapshot_id | e }}"
@@ -1340,6 +1397,54 @@
         </button>
         {% endif %}
         <span id="copyFeedback" class="sr-only" role="status" aria-live="polite"></span>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── EMBED MODAL (NES-343) ── #}
+    {% if not is_preview and snapshot_id %}
+    <div class="embed-overlay" id="embedModal" hidden>
+      <div class="embed-modal" onclick="event.stopPropagation()">
+        <div class="embed-modal__header">
+          <h3>Embed this report</h3>
+          <button class="embed-modal__close" onclick="document.getElementById('embedModal').hidden=true" aria-label="Close">&times;</button>
+        </div>
+        <div class="embed-tabs" role="tablist">
+          <button class="embed-tab embed-tab--active" role="tab" data-embed-tab="badge" aria-selected="true">Badge</button>
+          <button class="embed-tab" role="tab" data-embed-tab="card" aria-selected="false">Card</button>
+          <button class="embed-tab" role="tab" data-embed-tab="api" aria-selected="false">API</button>
+        </div>
+        <div class="embed-panel" id="embed-panel-badge" role="tabpanel">
+          <div class="embed-style-toggle">
+            <button class="active" data-badge-style="banner">Banner</button>
+            <button data-badge-style="square">Square</button>
+          </div>
+          <div class="embed-preview">
+            <img id="embedBadgePreview" src="/widget/badge/{{ snapshot_id }}.svg" alt="NestCheck Badge" width="200" height="60">
+          </div>
+          <div class="embed-snippet">
+            <button class="embed-copy-btn" onclick="copyEmbedSnippet(this)">Copy</button>
+            <pre id="embedBadgeCode"></pre>
+          </div>
+        </div>
+        <div class="embed-panel" id="embed-panel-card" role="tabpanel" hidden>
+          <div class="embed-preview">
+            <iframe src="/widget/card/{{ snapshot_id }}" width="300" height="200" frameborder="0" style="border: none;"></iframe>
+          </div>
+          <div class="embed-snippet">
+            <button class="embed-copy-btn" onclick="copyEmbedSnippet(this)">Copy</button>
+            <pre id="embedCardCode"></pre>
+          </div>
+        </div>
+        <div class="embed-panel" id="embed-panel-api" role="tabpanel" hidden>
+          <div class="embed-preview" style="justify-content: flex-start;">
+            <pre id="embedApiPreview" style="font-size: 11px; margin: 0; white-space: pre-wrap; word-break: break-all;"></pre>
+          </div>
+          <div class="embed-snippet">
+            <button class="embed-copy-btn" onclick="copyEmbedSnippet(this)">Copy</button>
+            <pre id="embedApiCode"></pre>
+          </div>
+        </div>
       </div>
     </div>
     {% endif %}
