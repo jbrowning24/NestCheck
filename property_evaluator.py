@@ -1318,7 +1318,7 @@ class OverpassClient:
         # Retained temporarily for backward compatibility. Remove in future cleanup.
         """Get roads within radius of a point"""
         query = f"""
-        [out:json][timeout:25];
+        [out:json][timeout:10];
         (
           way["highway"~"motorway|trunk|primary|secondary"](around:{radius_meters},{lat},{lng});
         );
@@ -1332,7 +1332,7 @@ class OverpassClient:
                 OverpassRateLimitError as _HTTPRateLimitError,
                 overpass_query,
             )
-            data = overpass_query(query, caller="get_nearby_roads", timeout=25, ttl_days=30)
+            data = overpass_query(query, caller="get_nearby_roads", timeout=10, ttl_days=30)
         except (_HTTPRateLimitError, _HTTPQueryError) as e:
             raise OverpassUnavailableError(
                 "Road-data service temporarily unavailable"
@@ -1369,7 +1369,7 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -1427,7 +1427,7 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -1511,7 +1511,7 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -2021,7 +2021,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
     Returns None on any failure so check functions can fall back to UNKNOWN.
     """
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       way["power"="line"](around:200,{lat},{lng});
       node["power"="substation"](around:200,{lat},{lng});
@@ -2042,7 +2042,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
             OverpassRateLimitError as _HTTPRateLimitError,
             overpass_query as _overpass_http_query,
         )
-        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25, ttl_days=14)
+        data = _overpass_http_query(query, caller="environmental_hazards", timeout=10, ttl_days=14)
     except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
         logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
         return None
