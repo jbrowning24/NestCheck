@@ -130,7 +130,9 @@ login_manager.login_message_category = "info"
 @login_manager.user_loader
 def _load_user(user_id: str):
     user_dict = get_user_by_id(user_id)
-    return _FlaskUser(user_dict) if user_dict else None
+    user = _FlaskUser(user_dict) if user_dict else None
+    app.logger.info(f"[AUTH-DIAG] user_loader called with user_id={user_id}, found={'yes' if user else 'no'}")
+    return user
 
 
 # ---------------------------------------------------------------------------
@@ -4857,8 +4859,9 @@ def auth_login():
     if not _oauth_enabled:
         flash("Sign-in is not configured.", "warning")
         return redirect("/")
-    session["auth_next"] = request.args.get("next", "/my-reports")
+    session["auth_next"] = request.args.get("next", "/")
     redirect_uri = url_for("auth_callback", _external=True)
+    app.logger.info(f"[AUTH-DIAG] Login initiated. next={session.get('auth_next')} request.host={request.host} request.url={request.url}")
     return oauth.google.authorize_redirect(redirect_uri)
 
 
@@ -4885,6 +4888,8 @@ def auth_callback():
     picture = userinfo.get("picture")
     google_sub = userinfo.get("sub")
 
+    app.logger.info(f"[AUTH-DIAG] Callback received. user_email={userinfo.get('email')} request.host={request.host}")
+
     user_dict, created = get_or_create_user(
         email=email, name=name, picture_url=picture, google_sub=google_sub
     )
@@ -4895,11 +4900,13 @@ def auth_callback():
     if claimed:
         logger.info("Auto-claimed %d snapshot(s) for user %s", claimed, email)
 
-    login_user(_FlaskUser(user_dict), remember=True)
-    next_url = session.pop("auth_next", "/my-reports")
+    user = _FlaskUser(user_dict)
+    login_user(user, remember=True)
+    app.logger.info(f"[AUTH-DIAG] login_user() called. remember=True. user_id={user.id} is_authenticated={current_user.is_authenticated}")
+    next_url = session.pop("auth_next", "/")
     # Prevent open redirect: only allow relative paths on this host.
     if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
-        next_url = "/my-reports"
+        next_url = "/"
     return redirect(next_url)
 
 
@@ -4918,6 +4925,7 @@ def auth_logout():
 @login_required
 def my_reports():
     """Show the current user's evaluation history."""
+    app.logger.info(f"[AUTH-DIAG] /my-reports hit. is_authenticated={current_user.is_authenticated} user_id={current_user.id if current_user.is_authenticated else 'anon'}")
     snapshots = get_user_snapshots(current_user.id)
     return render_template(
         "my_reports.html",
