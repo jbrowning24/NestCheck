@@ -289,6 +289,26 @@ def init_db():
             "ADD COLUMN walk_times_from_api INTEGER DEFAULT 0"
         )
 
+    # Migration: add NES-362 columns to feedback table
+    fb_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(feedback)").fetchall()
+    }
+    if "user_id" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN user_id INTEGER")
+    if "told_something_new" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN told_something_new INTEGER")
+    if "free_text" not in fb_cols:
+        conn.execute("ALTER TABLE feedback ADD COLUMN free_text TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_feedback_snapshot_user "
+        "ON feedback(snapshot_id, user_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_feedback_snapshot_visitor "
+        "ON feedback(snapshot_id, visitor_id)"
+    )
+
     conn.commit()
     conn.close()
 
@@ -565,6 +585,73 @@ def save_feedback(snapshot_id, feedback_type, response_json,
                 raise
         finally:
             conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Inline feedback (NES-362)
+# ---------------------------------------------------------------------------
+
+def has_inline_feedback(snapshot_id: str, user_id=None, visitor_id=None) -> bool:
+    """Check if inline feedback already exists for this snapshot + identity."""
+    if not user_id and not visitor_id:
+        return False
+    conn = _get_db()
+    try:
+        if user_id:
+            row = conn.execute(
+                "SELECT 1 FROM feedback WHERE snapshot_id = ? AND user_id = ?"
+                " AND feedback_type = 'inline_reaction'",
+                (snapshot_id, user_id),
+            ).fetchone()
+            if row:
+                return True
+        if visitor_id:
+            row = conn.execute(
+                "SELECT 1 FROM feedback WHERE snapshot_id = ? AND visitor_id = ?"
+                " AND feedback_type = 'inline_reaction'",
+                (snapshot_id, visitor_id),
+            ).fetchone()
+            if row:
+                return True
+        return False
+    finally:
+        conn.close()
+
+
+def save_inline_feedback(snapshot_id: str, user_id, visitor_id,
+                         feedback_type: str, told_something_new: int,
+                         free_text=None) -> bool:
+    """Save inline feedback. Returns True on success, False if duplicate."""
+    if has_inline_feedback(snapshot_id, user_id, visitor_id):
+        return False
+
+    now = datetime.now(timezone.utc).isoformat()
+    last_err = None
+    for attempt in range(3):
+        try:
+            conn = _get_db()
+            try:
+                conn.execute(
+                    """INSERT INTO feedback
+                       (snapshot_id, user_id, visitor_id, feedback_type,
+                        told_something_new, free_text, response_json, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, '{}', ?)""",
+                    (snapshot_id, user_id, visitor_id, feedback_type,
+                     told_something_new, free_text, now),
+                )
+                conn.commit()
+                return True
+            finally:
+                conn.close()
+        except sqlite3.OperationalError as e:
+            last_err = e
+            if "locked" in str(e) or "busy" in str(e):
+                logger.warning("save_inline_feedback retry %d/3: %s",
+                               attempt + 1, e)
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            raise
+    raise last_err
 
 
 def check_return_visit(visitor_id, days=7):
@@ -1728,3 +1815,5 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
         conn.commit()
     finally:
         conn.close()
+
+

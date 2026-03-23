@@ -432,53 +432,7 @@
 <script>
   const REQUIRE_PAYMENT = {{ 'true' if require_payment else 'false' }};
 
-  // CSRF token from <meta> tag — included as X-CSRFToken header on every POST.
-  // Refreshed from server on demand when stale (e.g. tab left open > 1 hour).
-  function csrfToken() {
-    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-  }
-
-  function refreshCsrfToken() {
-    return fetch('/csrf-token', { method: 'GET', headers: { 'Accept': 'application/json' } })
-      .then(function(resp) { return resp.json(); })
-      .then(function(data) {
-        if (data.csrf_token) {
-          document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.csrf_token);
-        }
-        return data.csrf_token || '';
-      })
-      .catch(function() { return csrfToken(); });  // fall back to current (stale) token
-  }
-
-  // POST with automatic CSRF token refresh + single retry on expiry.
-  // Returns a promise that resolves to parsed JSON data.
-  function csrfFetch(url, options) {
-    function doFetch(token) {
-      var opts = Object.assign({}, options);
-      opts.headers = Object.assign({ 'Accept': 'application/json' }, opts.headers, { 'X-CSRFToken': token });
-      return fetch(url, opts);
-    }
-    function handleResp(resp, isRetry) {
-      if (!resp.ok) {
-        var ct = resp.headers.get('content-type') || '';
-        if (ct.indexOf('application/json') !== -1) {
-          return resp.json().then(function(data) {
-            if (!isRetry && resp.status === 400 && data.error_code === 'csrf_expired') {
-              return refreshCsrfToken().then(function(newToken) {
-                return doFetch(newToken).then(function(r) { return handleResp(r, true); });
-              });
-            }
-            return data;
-          });
-        }
-        return resp.text().then(function() {
-          throw new Error('Server error (' + resp.status + '). Please try again.');
-        });
-      }
-      return resp.json();
-    }
-    return doFetch(csrfToken()).then(function(resp) { return handleResp(resp, false); });
-  }
+  // csrfToken, refreshCsrfToken, csrfFetch are now in _base.html (NES-362)
 
   // --- Recent Searches cookie management ---
   function getRecentSearches() {
