@@ -25,4 +25,8 @@ Werkzeug==3.1.5
 WTForms==3.2.1
 Flask-Login==0.6.3
 Authlib==1.4.1
+# test dependencies
+pytest==8.3.4
+playwright==1.49.1
+pytest-playwright==0.6.2
 # cache bust
