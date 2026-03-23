@@ -51,7 +51,7 @@ class OverpassQueryError(Exception):
 
 
 class OverpassHTTPClient:
-    DEFAULT_TIMEOUT = 30  # seconds
+    DEFAULT_TIMEOUT = 10  # seconds
     MIN_SPACING = 1.0  # seconds between HTTP requests
     MAX_RETRIES = 2
     RETRY_BACKOFF = [2, 4]  # seconds

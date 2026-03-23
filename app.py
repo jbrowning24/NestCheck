@@ -39,6 +39,7 @@ from scoring_config import (
     WALK_DRIVE_BOTH_THRESHOLD, WALK_DRIVE_ONLY_THRESHOLD,
 )
 from census import serialize_for_result as _serialize_census
+from coverage_config import COVERAGE_MANIFEST
 from models import (
     init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -3185,6 +3186,44 @@ def view_list(slug):
 
 
 # ---------------------------------------------------------------------------
+# State area pages (NES-344)
+# ---------------------------------------------------------------------------
+
+@app.route("/state/<state_slug>")
+def view_state(state_slug):
+    """State-level area page listing evaluated cities (NES-344)."""
+    state_upper = state_slug.upper()
+    state_name = _STATE_FULL_NAMES.get(state_upper)
+    if not state_name:
+        abort(404)
+
+    # Cities with enough evaluations for their own page
+    all_cities = get_cities_with_snapshots(min_count=3)
+    state_cities = [c for c in all_cities if c["state_abbr"] == state_upper]
+    for c in state_cities:
+        c["slug"] = _city_slug(c["city"])
+
+    # Coverage tier from manifest
+    manifest = COVERAGE_MANIFEST.get(state_upper, {})
+    has_education = manifest.get("STATE_EDUCATION") == "active"
+    coverage_tier = "Full evaluation" if has_education else "Health check only"
+
+    breadcrumbs = [
+        {"name": "Home", "url": "/"},
+        {"name": state_name, "url": None},
+    ]
+
+    return render_template(
+        "state.html",
+        state_name=state_name,
+        state_abbr=state_upper,
+        state_cities=state_cities,
+        coverage_tier=coverage_tier,
+        breadcrumbs=breadcrumbs,
+    )
+
+
+# ---------------------------------------------------------------------------
 # City area page (NES-352)
 # ---------------------------------------------------------------------------
 
@@ -3266,7 +3305,7 @@ def view_city(state, city_slug):
 
     breadcrumbs = [
         {"name": "Home", "url": "/"},
-        {"name": state_name, "url": None},
+        {"name": state_name, "url": f"/state/{state_upper.lower()}"},
         {"name": city_name, "url": None},
     ]
 
@@ -4657,6 +4696,19 @@ def sitemap_xml():
             lines.append("  </url>")
     except Exception:
         logger.warning("Failed to add city pages to sitemap")
+
+    # State pages (NES-344) — only states with evaluated cities
+    try:
+        states_with_cities = {c["state_abbr"] for c in city_list}
+        for st_abbr in sorted(states_with_cities):
+            st_slug = _html_escape(st_abbr.lower())
+            lines.append("  <url>")
+            lines.append(f"    <loc>{base}/state/{st_slug}</loc>")
+            lines.append("    <changefreq>weekly</changefreq>")
+            lines.append("    <priority>0.6</priority>")
+            lines.append("  </url>")
+    except Exception:
+        logger.warning("Failed to add state pages to sitemap")
 
     for snap in snapshots:
         loc = f"{base}/s/{_html_escape(snap['snapshot_id'])}"

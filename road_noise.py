@@ -296,7 +296,7 @@ def fetch_all_roads(
     Returns an empty list on any failure (graceful degradation).
     """
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       way["highway"~"motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street"](around:{radius_m},{lat},{lng});
     );
@@ -308,7 +308,7 @@ def fetch_all_roads(
     try:
         from overpass_http import overpass_query
 
-        data = overpass_query(query, caller="road_noise", timeout=25)
+        data = overpass_query(query, caller="road_noise", timeout=10)
         return _parse_roads_with_geometry(data)
     except Exception:
         logger.warning(

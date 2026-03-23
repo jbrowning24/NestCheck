@@ -391,7 +391,7 @@ def _analyze_image(image_bytes: bytes) -> dict:
 def _build_infra_query(lat: float, lng: float, radius_m: int) -> str:
     """Build Overpass QL query for MAPS-Mini infrastructure features."""
     return f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       node["highway"="crossing"](around:{radius_m},{lat},{lng});
       node["highway"="street_lamp"](around:{radius_m},{lat},{lng});
@@ -407,7 +407,7 @@ def _build_infra_query(lat: float, lng: float, radius_m: int) -> str:
 def _build_infra_detail_query(lat: float, lng: float, radius_m: int) -> str:
     """Build Overpass query that returns individual elements for counting."""
     return f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       node["highway"="crossing"](around:{radius_m},{lat},{lng});
       node["highway"="street_lamp"](around:{radius_m},{lat},{lng});
@@ -435,7 +435,7 @@ def _fetch_infrastructure(lat: float, lng: float,
     query = _build_infra_detail_query(lat, lng, radius_m)
 
     try:
-        data = overpass_query(query, caller="walk_quality", timeout=25)
+        data = overpass_query(query, caller="walk_quality", timeout=10)
     except Exception:
         logger.warning("Overpass walk quality infrastructure query failed",
                        exc_info=True)
