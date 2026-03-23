@@ -3739,6 +3739,51 @@ def widget_card(snapshot_id):
     return resp
 
 
+@app.route("/api/v1/widget-data/<snapshot_id>")
+def api_widget_data(snapshot_id):
+    """Widget data API — returns JSON for programmatic access (NES-343)."""
+    snapshot = get_snapshot(snapshot_id)
+    if not snapshot:
+        resp = jsonify({"error": "Snapshot not found"})
+        resp.status_code = 404
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        return resp
+
+    result = {**snapshot["result"]}
+    _prepare_snapshot_for_display(result)
+
+    checks = result.get("presented_checks", [])
+    clear_count = sum(1 for c in checks if c.get("result_type") == "CLEAR")
+    concern_count = sum(
+        1 for c in checks
+        if c.get("result_type") in ("CONFIRMED_ISSUE", "WARNING_DETECTED")
+    )
+
+    score = result.get("final_score") or 0
+    band = get_score_band(score)
+
+    if concern_count == 0:
+        health_summary = f"{clear_count} clear"
+    else:
+        concern_word = "concern" if concern_count == 1 else "concerns"
+        health_summary = f"{clear_count} clear / {concern_count} {concern_word}"
+
+    report_url = request.host_url.rstrip("/") + "/s/" + snapshot_id
+
+    resp = jsonify({
+        "score": score,
+        "band": band["label"],
+        "address": result.get("address", snapshot.get("address_norm", "")),
+        "health_summary": health_summary,
+        "clear_count": clear_count,
+        "concern_count": concern_count,
+        "report_url": report_url,
+    })
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.route("/api/snapshot/<snapshot_id>/json")
 def export_snapshot_json(snapshot_id):
     """JSON export of a snapshot evaluation result."""
