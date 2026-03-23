@@ -82,12 +82,13 @@ app.config['SESSION_COOKIE_SECURE'] = _is_production
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = _is_production
-# Pin cookies to the canonical domain so they survive cross-domain visits.
-# _CANONICAL_DOMAIN is also used by _redirect_to_canonical() below.
+# _CANONICAL_DOMAIN is used by _redirect_to_canonical() below to 301-redirect
+# non-canonical hosts.  Cookie domain pinning is intentionally omitted — the
+# canonical redirect already ensures all traffic (and therefore all cookies)
+# goes through the single canonical host.  Setting SESSION_COOKIE_DOMAIN to a
+# domain cookie (e.g. ".nestcheck.org") causes dual-cookie conflicts with any
+# pre-existing host-only session cookies, breaking login persistence.
 _CANONICAL_DOMAIN = os.environ.get("CANONICAL_DOMAIN")  # e.g. "nestcheck.org"
-if _CANONICAL_DOMAIN:
-    app.config["SESSION_COOKIE_DOMAIN"] = f".{_CANONICAL_DOMAIN}"
-    app.config["REMEMBER_COOKIE_DOMAIN"] = f".{_CANONICAL_DOMAIN}"
 # Keep templates render-safe even if Flask-WTF is unavailable at runtime.
 app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
