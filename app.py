@@ -4697,6 +4697,19 @@ def sitemap_xml():
     except Exception:
         logger.warning("Failed to add city pages to sitemap")
 
+    # State pages (NES-344) — only states with evaluated cities
+    try:
+        states_with_cities = {c["state_abbr"] for c in city_list}
+        for st_abbr in sorted(states_with_cities):
+            st_slug = _html_escape(st_abbr.lower())
+            lines.append("  <url>")
+            lines.append(f"    <loc>{base}/state/{st_slug}</loc>")
+            lines.append("    <changefreq>weekly</changefreq>")
+            lines.append("    <priority>0.6</priority>")
+            lines.append("  </url>")
+    except Exception:
+        logger.warning("Failed to add state pages to sitemap")
+
     for snap in snapshots:
         loc = f"{base}/s/{_html_escape(snap['snapshot_id'])}"
         lastmod = snap["created_at"][:10] if snap.get("created_at") else ""
