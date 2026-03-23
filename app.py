@@ -3641,6 +3641,22 @@ def view_snapshot(snapshot_id):
     # None/absent.  Live re-fetch would be possible but is deliberately
     # avoided to keep view_snapshot() side-effect-free.
 
+    # NES-344: city page link + breadcrumbs
+    city_page_url = None
+    city_name_for_link = None
+    snap_city = snapshot.get("city")
+    snap_state = snapshot.get("state_abbr")
+    if snap_city and snap_state:
+        _city_stats = get_city_stats(snap_state, snap_city)
+        if _city_stats and _city_stats.get("eval_count", 0) >= 3:
+            city_page_url = f"/city/{snap_state.lower()}/{_city_slug(snap_city)}"
+            city_name_for_link = snap_city
+            state_full = _STATE_FULL_NAMES.get(snap_state, snap_state)
+            result["breadcrumbs"] = [
+                {"name": state_full, "url": f"/state/{snap_state.lower()}"},
+                {"name": snap_city, "url": city_page_url},
+            ]
+
     # NES-362: show feedback prompt for recent snapshots only
     show_feedback_prompt = False
     evaluated_at_str = snapshot.get("evaluated_at")
@@ -3659,6 +3675,8 @@ def view_snapshot(snapshot_id):
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
         show_feedback_prompt=show_feedback_prompt,
+        city_page_url=city_page_url,
+        city_name_for_link=city_name_for_link,
     )
 
 

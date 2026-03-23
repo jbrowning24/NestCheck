@@ -115,7 +115,7 @@
           "@type": "ListItem",
           "position": {{ loop.index + 1 }},
           "name": "{{ crumb.name | e }}",
-          "item": "{{ crumb.url }}"
+          "item": "{{ request.host_url.rstrip('/') }}{{ crumb.url }}"
         }{% endfor %}{% endif %},
         {
           "@type": "ListItem",

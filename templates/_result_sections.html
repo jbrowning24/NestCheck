@@ -1344,6 +1344,15 @@
     </div>
     {% endif %}
 
+    {# ── CITY PAGE LINK (NES-344) ── #}
+    {% if city_page_url %}
+    <div class="report-city-link-wrap">
+      <a href="{{ city_page_url }}" class="report-city-link">
+        More evaluations in {{ city_name_for_link }} →
+      </a>
+    </div>
+    {% endif %}
+
     {# ── CTA BANNER (snapshot only) ── #}
     {% if is_snapshot %}
     <div class="snapshot-cta">
