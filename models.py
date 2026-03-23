@@ -210,6 +210,44 @@ def init_db():
             ON feedback(feedback_type);
     """)
 
+    # Subscriptions table (NES-327)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id                    TEXT PRIMARY KEY,
+            user_email            TEXT NOT NULL,
+            stripe_subscription_id TEXT UNIQUE,
+            stripe_customer_id    TEXT,
+            status                TEXT NOT NULL DEFAULT 'active',
+            period_start          TEXT NOT NULL,
+            period_end            TEXT NOT NULL,
+            created_at            TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_subscriptions_email
+        ON subscriptions(user_email)
+    """)
+
+    # Free tier counter migration (NES-327)
+    try:
+        conn.execute("ALTER TABLE free_tier_usage ADD COLUMN eval_count INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE free_tier_usage ADD COLUMN window_start TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    conn.execute(
+        "UPDATE free_tier_usage SET eval_count = 1, window_start = created_at "
+        "WHERE eval_count IS NULL"
+    )
+
+    # Index for payment→snapshot join (NES-327)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
+        ON evaluation_jobs(snapshot_id)
+    """)
+
     # Migration for pre-place_id databases.
     cols = {
         row["name"]
