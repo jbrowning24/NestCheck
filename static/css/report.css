@@ -189,7 +189,7 @@ h1.narrative-summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-xs);
 }
 .dim-card__name {
@@ -215,7 +215,7 @@ h1.narrative-summary {
 .dim-card__band {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-xs);
 }
 .dim-card__band-label {
@@ -631,7 +631,7 @@ h1.narrative-summary {
 .section-summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 .summary-pill {
@@ -703,7 +703,7 @@ h1.narrative-summary {
 .health-stat-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 .health-stat-badge {
@@ -821,7 +821,7 @@ h1.narrative-summary {
 .data-row__right {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding-left: var(--space-base);
 }
 .data-row__value {
@@ -838,7 +838,7 @@ h1.narrative-summary {
 .data-row--dimension .data-row__name {
   color: var(--color-text-secondary);
   font-size: var(--font-size-body);
-  min-width: 160px;
+  min-width: 220px;
   flex-shrink: 0;
 }
 .data-row--dimension .data-row__detail {
@@ -846,7 +846,7 @@ h1.narrative-summary {
   font-size: var(--font-size-body);
   flex: 1;
 }
-.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-xs); }
+.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-2); }
 
 /* --- Confidence Badges (three-tier component system, NES-243) --- */
 
@@ -977,7 +977,7 @@ h1.narrative-summary {
 .dimension-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   min-width: 100px;
   flex-shrink: 0;
 }
@@ -1137,7 +1137,7 @@ h1.narrative-summary {
   padding: var(--space-base);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   box-shadow: var(--shadow-card);
 }
 .venue-card .place-name {
@@ -1250,7 +1250,7 @@ h1.narrative-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 .walk-quality-title {
   font-weight: var(--font-weight-semibold);
@@ -1381,7 +1381,7 @@ h1.narrative-summary {
 .subscore-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-top: var(--space-md);
 }
 .subscore-card {
@@ -1454,7 +1454,7 @@ h1.narrative-summary {
 .school-district-header {
   display: flex;
   align-items: baseline;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-md);
 }
 .school-district-name {
@@ -1603,7 +1603,7 @@ h1.narrative-summary {
 .band-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-body);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
@@ -1639,7 +1639,7 @@ h1.narrative-summary {
 .share-bar__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   align-items: center;
   justify-content: flex-end;
 }
@@ -1726,7 +1726,7 @@ h1.narrative-summary {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   color: var(--color-text-faint);
   border-radius: var(--radius-md);
   font-size: var(--font-size-body);
@@ -1921,7 +1921,7 @@ h1.narrative-summary {
   display: flex;
   align-items: flex-start;
   padding: var(--space-sm) 0;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 .missing-bullet { color: var(--color-amber); font-weight: var(--font-weight-bold); flex-shrink: 0; }
 .missing-text { font-size: var(--font-size-body); color: var(--color-warning-text-dark); }
@@ -2008,7 +2008,7 @@ h1.narrative-summary {
 .subscore-value-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 /* Subscore fill bar layout */
 .subscore-card .mini-fill-bar {
@@ -2043,7 +2043,7 @@ h1.narrative-summary {
   }
   /* .narrative-summary font-size now handled by clamp() in --type-verdict */
   .venue-card { width: 220px; }
-  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
+  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
   .venue-card.section-card--highlighted { border-left-width: 2px; }
   .park-highlight.section-card--highlighted { border-left-width: 2px; }
@@ -2087,7 +2087,7 @@ h1.narrative-summary {
 .callout {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding: var(--space-base) var(--space-lg);
   border-left: 3px solid var(--color-border-strong);
   background: var(--color-surface-subtle);
@@ -2130,7 +2130,7 @@ h1.narrative-summary {
 
 .feedback-btn-group {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 
