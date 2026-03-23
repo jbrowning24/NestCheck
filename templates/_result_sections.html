@@ -1348,7 +1348,7 @@
     {% if city_page_url %}
     <div class="report-city-link-wrap">
       <a href="{{ city_page_url }}" class="report-city-link">
-        More evaluations in {{ city_name_for_link }} →
+        More evaluations in {{ city_name_for_link | e }} →
       </a>
     </div>
     {% endif %}
