@@ -53,6 +53,8 @@ from models import (
     hash_email, check_free_tier_used, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
     save_feedback, save_inline_feedback, has_inline_feedback,
+    get_city_snapshots, get_city_stats, get_cities_with_snapshots,
+    get_city_name_by_slug,
 )
 
 load_dotenv()
@@ -699,6 +701,22 @@ def generate_structured_summary(presented_checks):
         f"This address has {count} health & safety {concern_word} "
         f"that {verb} full scoring: {names_str}."
     )
+
+
+# ---------------------------------------------------------------------------
+# City / area-page helpers (NES-352)
+# ---------------------------------------------------------------------------
+
+_STATE_FULL_NAMES = {
+    "NY": "New York", "NJ": "New Jersey", "CT": "Connecticut",
+    "MI": "Michigan", "CA": "California", "TX": "Texas",
+    "FL": "Florida", "IL": "Illinois",
+}
+
+
+def _city_slug(city_name: str) -> str:
+    """Convert city name to URL slug. 'White Plains' -> 'white-plains'."""
+    return re.sub(r'[^a-z0-9]+', '-', city_name.lower()).strip('-')
 
 
 # ---------------------------------------------------------------------------
@@ -3166,6 +3184,104 @@ def view_list(slug):
     )
 
 
+# ---------------------------------------------------------------------------
+# City area page (NES-352)
+# ---------------------------------------------------------------------------
+
+@app.route("/city/<state>/<city_slug>")
+def view_city(state, city_slug):
+    """City-level area page aggregating evaluations (NES-352)."""
+    state_upper = state.upper()
+    state_name = _STATE_FULL_NAMES.get(state_upper)
+    if not state_name:
+        abort(404)
+
+    city_name = get_city_name_by_slug(state_upper, city_slug)
+    if not city_name:
+        abort(404)
+
+    snapshots = get_city_snapshots(state_upper, city_name)
+    if len(snapshots) < 3:
+        abort(404)
+
+    for snap in snapshots:
+        snap["score_band"] = get_score_band(snap["final_score"])
+        snap["tier1_passed"] = bool(snap["passed_tier1"])
+
+    stats = get_city_stats(state_upper, city_name)
+    stats["health_pass_rate"] = (
+        round(stats["health_pass_count"] / stats["eval_count"] * 100)
+        if stats["eval_count"] > 0 else 0
+    )
+
+    # Compute dimension averages from result_json (NES-352 spec requirement).
+    # Also cache the first full snapshot for Census lookup below.
+    dim_totals = {}
+    dim_counts = {}
+    first_full_snap = None
+    for snap in snapshots:
+        full = get_snapshot(snap["snapshot_id"])
+        if not full:
+            continue
+        if first_full_snap is None:
+            first_full_snap = full
+        result = {**full["result"]}
+        _prepare_snapshot_for_display(result)
+        tier2 = result.get("tier2_scores") or []
+        for t2 in tier2:
+            name = t2.get("name", "")
+            pts = t2.get("points")
+            if pts is not None and name:
+                dim_totals[name] = dim_totals.get(name, 0) + pts
+                dim_counts[name] = dim_counts.get(name, 0) + 1
+
+    dimension_averages = []
+    for name in dim_totals:
+        avg = round(dim_totals[name] / dim_counts[name])
+        dimension_averages.append({
+            "name": name,
+            "avg_score": avg,
+            "max": 10,
+        })
+    # Sort by name for consistent display
+    dimension_averages.sort(key=lambda d: d["name"])
+    stats["dimension_averages"] = dimension_averages
+
+    demographics = None
+    try:
+        first_snap = first_full_snap
+        if first_snap:
+            result = first_snap.get("result", {})
+            coords = result.get("coordinates", {})
+            lat, lng = coords.get("lat"), coords.get("lng")
+            if lat and lng:
+                from census import get_demographics
+                demo_obj = get_demographics(lat, lng)
+                if demo_obj:
+                    demo_dict = _serialize_census(demo_obj)
+                    if demo_dict and demo_dict.get("place_name") == city_name:
+                        demographics = demo_dict
+    except Exception:
+        logger.warning("Census lookup failed for city page %s/%s", state, city_slug)
+
+    breadcrumbs = [
+        {"name": "Home", "url": "/"},
+        {"name": state_name, "url": None},
+        {"name": city_name, "url": None},
+    ]
+
+    return render_template(
+        "city.html",
+        city_name=city_name,
+        state_abbr=state_upper,
+        state_name=state_name,
+        snapshots=snapshots,
+        stats=stats,
+        demographics=demographics,
+        breadcrumbs=breadcrumbs,
+    )
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     result = None
@@ -4527,6 +4643,20 @@ def sitemap_xml():
         lines.append("    <changefreq>monthly</changefreq>")
         lines.append("    <priority>0.7</priority>")
         lines.append("  </url>")
+
+    # City pages (NES-352)
+    try:
+        city_list = get_cities_with_snapshots(min_count=3)
+        for city_row in city_list:
+            slug = _city_slug(city_row["city"])
+            st = city_row["state_abbr"].lower()
+            lines.append("  <url>")
+            lines.append(f"    <loc>{base}/city/{st}/{slug}</loc>")
+            lines.append("    <changefreq>weekly</changefreq>")
+            lines.append("    <priority>0.6</priority>")
+            lines.append("  </url>")
+    except Exception:
+        logger.warning("Failed to add city pages to sitemap")
 
     for snap in snapshots:
         loc = f"{base}/s/{_html_escape(snap['snapshot_id'])}"

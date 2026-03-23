@@ -15,7 +15,21 @@ import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Tuple
 
+from coverage_config import _STATE_FIPS
+
 logger = logging.getLogger(__name__)
+
+# Reverse lookup: FIPS code → state abbreviation (e.g., "36" → "NY")
+_FIPS_TO_STATE = {v: k for k, v in _STATE_FIPS.items()}
+
+
+def _extract_city_state(result_dict):
+    """Extract city name and state abbreviation from result demographics."""
+    demographics = result_dict.get("demographics") or {}
+    city = demographics.get("place_name") or None
+    state_fips = demographics.get("state_fips") or ""
+    state_abbr = _FIPS_TO_STATE.get(state_fips)
+    return city, state_abbr
 
 DB_PATH = os.environ.get("NESTCHECK_DB_PATH", "nestcheck.db")
 
@@ -216,6 +230,14 @@ def init_db():
         conn.execute("ALTER TABLE snapshots ADD COLUMN is_preview INTEGER NOT NULL DEFAULT 0")
     if "og_image" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN og_image BLOB")
+    if "city" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN city TEXT")
+    if "state_abbr" not in cols:
+        conn.execute("ALTER TABLE snapshots ADD COLUMN state_abbr TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_snapshots_city_state "
+        "ON snapshots(state_abbr, city)"
+    )
 
     # Migration for users: add stripe_customer_id column
     user_cols = {
@@ -290,6 +312,38 @@ def init_db():
     conn.commit()
     conn.close()
 
+    backfill_city_state()
+
+
+def backfill_city_state():
+    """Backfill city/state_abbr from result_json demographics.
+    Runs on every startup. Returns quickly (0 rows) once populated.
+    """
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            "SELECT snapshot_id, result_json FROM snapshots "
+            "WHERE city IS NULL AND is_preview = 0"
+        ).fetchall()
+        if not rows:
+            return
+        logger.info("Backfilling city/state_abbr for %d snapshots", len(rows))
+        for row in rows:
+            try:
+                result = json.loads(row["result_json"])
+            except (json.JSONDecodeError, TypeError):
+                continue
+            city, state_abbr = _extract_city_state(result)
+            if city or state_abbr:
+                conn.execute(
+                    "UPDATE snapshots SET city = ?, state_abbr = ? WHERE snapshot_id = ?",
+                    (city, state_abbr, row["snapshot_id"]),
+                )
+        conn.commit()
+        logger.info("Backfill complete")
+    finally:
+        conn.close()
+
 
 def generate_snapshot_id():
     """Short, URL-safe snapshot ID (8 chars)."""
@@ -309,13 +363,15 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
     is_preview = 1 if kwargs.get("is_preview") else 0
     snapshot_id = generate_snapshot_id()
     now = datetime.now(timezone.utc).isoformat()
+    city, state_abbr = _extract_city_state(result_dict)
 
     conn = _get_db()
     conn.execute(
         """INSERT INTO snapshots
            (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-            verdict, final_score, passed_tier1, result_json, email, user_id, is_preview)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            verdict, final_score, passed_tier1, result_json, email, user_id, is_preview,
+            city, state_abbr)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             snapshot_id,
             address_input,
@@ -330,6 +386,8 @@ def save_snapshot(address_input, address_norm, result_dict, email=None, **kwargs
             email,
             user_id,
             is_preview,
+            city,
+            state_abbr,
         ),
     )
     conn.commit()
@@ -742,6 +800,7 @@ def save_snapshot_for_place(
     now = datetime.now(timezone.utc).isoformat()
     evaluated_ts = evaluated_at or now
     norm = address_norm or address_input
+    city, state_abbr = _extract_city_state(result_dict)
 
     conn = _get_db()
     try:
@@ -751,7 +810,8 @@ def save_snapshot_for_place(
                    SET address_input = ?, address_norm = ?, place_id = ?,
                        evaluated_at = ?, created_at = ?,
                        verdict = ?, final_score = ?, passed_tier1 = ?, result_json = ?,
-                       email = COALESCE(?, email)
+                       email = COALESCE(?, email),
+                       city = ?, state_abbr = ?
                    WHERE snapshot_id = ?""",
                 (
                     address_input,
@@ -764,6 +824,8 @@ def save_snapshot_for_place(
                     1 if result_dict.get("passed_tier1") else 0,
                     json.dumps(result_dict, default=str),
                     email,
+                    city,
+                    state_abbr,
                     existing_snapshot_id,
                 ),
             )
@@ -774,8 +836,9 @@ def save_snapshot_for_place(
         conn.execute(
             """INSERT INTO snapshots
                (snapshot_id, address_input, address_norm, place_id, evaluated_at, created_at,
-                verdict, final_score, passed_tier1, result_json, email, user_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                verdict, final_score, passed_tier1, result_json, email, user_id,
+                city, state_abbr)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 snapshot_id,
                 address_input,
@@ -789,10 +852,98 @@ def save_snapshot_for_place(
                 json.dumps(result_dict, default=str),
                 email,
                 user_id,
+                city,
+                state_abbr,
             ),
         )
         conn.commit()
         return snapshot_id
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# City page queries (NES-352)
+# ---------------------------------------------------------------------------
+
+
+def get_city_snapshots(state_abbr: str, city_name: str) -> list:
+    """Return lightweight snapshot metadata for a city. No result_json parsing."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT snapshot_id, address_norm, final_score, passed_tier1,
+                      evaluated_at, city, state_abbr
+               FROM snapshots
+               WHERE state_abbr = ? AND city = ? AND is_preview = 0
+               ORDER BY evaluated_at DESC""",
+            (state_abbr, city_name),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_city_stats(state_abbr: str, city_name: str) -> dict:
+    """Return aggregate stats for a city."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            """SELECT COUNT(*) as eval_count,
+                      ROUND(AVG(final_score)) as avg_score,
+                      SUM(CASE WHEN passed_tier1 = 1 THEN 1 ELSE 0 END) as health_pass_count
+               FROM snapshots
+               WHERE state_abbr = ? AND city = ? AND is_preview = 0""",
+            (state_abbr, city_name),
+        ).fetchone()
+        d = dict(row)
+        d["avg_score"] = int(d["avg_score"]) if d["avg_score"] is not None else 0
+        return d
+    finally:
+        conn.close()
+
+
+def get_cities_with_snapshots(min_count: int = 3) -> list:
+    """Return cities meeting the minimum snapshot threshold."""
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT state_abbr, city, COUNT(*) as snapshot_count
+               FROM snapshots
+               WHERE city IS NOT NULL AND state_abbr IS NOT NULL AND is_preview = 0
+               GROUP BY state_abbr, city
+               HAVING COUNT(*) >= ?
+               ORDER BY state_abbr, city""",
+            (min_count,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_city_name_by_slug(state_abbr: str, city_slug: str, min_count: int = 3):
+    """Resolve a URL slug to canonical city name for a given state.
+    Returns the city name if found and meets threshold, else None.
+    """
+    import re
+
+    def _slugify(name):
+        return re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+
+    conn = _get_db()
+    try:
+        rows = conn.execute(
+            """SELECT city, COUNT(*) as cnt
+               FROM snapshots
+               WHERE state_abbr = ? AND city IS NOT NULL AND is_preview = 0
+               GROUP BY city
+               HAVING cnt >= ?""",
+            (state_abbr, min_count),
+        ).fetchall()
+        for row in rows:
+            if _slugify(row["city"]) == city_slug:
+                return row["city"]
+        return None
     finally:
         conn.close()
 
@@ -896,7 +1047,7 @@ def update_job_stage(job_id: str, stage: str) -> None:
     """Update the current_stage for a running job (progress reporting)."""
     conn = _get_db()
     conn.execute(
-        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ?",
+        "UPDATE evaluation_jobs SET current_stage = ? WHERE job_id = ? AND status = 'running'",
         (stage, job_id),
     )
     conn.commit()
@@ -909,7 +1060,8 @@ def complete_job(job_id: str, snapshot_id: str) -> None:
     conn = _get_db()
     conn.execute(
         """UPDATE evaluation_jobs
-           SET status = 'done', snapshot_id = ?, completed_at = ?
+           SET status = 'done', snapshot_id = ?, completed_at = ?,
+               current_stage = NULL
            WHERE job_id = ?""",
         (snapshot_id, now, job_id),
     )
@@ -920,6 +1072,7 @@ def complete_job(job_id: str, snapshot_id: str) -> None:
 def fail_job(job_id: str, error: str) -> None:
     """Mark a job as failed with an error message."""
     now = datetime.now(timezone.utc).isoformat()
+    error = error[:2000] if error else error
     conn = _get_db()
     conn.execute(
         """UPDATE evaluation_jobs
@@ -929,6 +1082,22 @@ def fail_job(job_id: str, error: str) -> None:
     )
     conn.commit()
     conn.close()
+
+
+def cancel_queued_job(job_id: str, reason: str) -> bool:
+    """Cancel a job that is still queued. Returns True if cancelled, False if not queued."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_db()
+    cur = conn.execute(
+        """UPDATE evaluation_jobs
+           SET status = 'failed', error = ?, completed_at = ?
+           WHERE job_id = ? AND status = 'queued'""",
+        (reason, now, job_id),
+    )
+    changed = cur.rowcount > 0
+    conn.commit()
+    conn.close()
+    return changed
 
 
 def requeue_stale_running_jobs(max_age_seconds: int = 300) -> int:
