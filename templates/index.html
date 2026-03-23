@@ -623,7 +623,12 @@
                     loadingSub.textContent = stageInfo.text;
                   } else {
                     loadingSub.style.opacity = '0';
+                    var fallback = setTimeout(function() {
+                      loadingSub.textContent = stageInfo.text;
+                      loadingSub.style.opacity = '1';
+                    }, 250);
                     loadingSub.addEventListener('transitionend', function() {
+                      clearTimeout(fallback);
                       loadingSub.textContent = stageInfo.text;
                       loadingSub.style.opacity = '1';
                     }, { once: true });
