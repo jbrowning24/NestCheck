@@ -95,6 +95,10 @@ app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Warn at startup if critical env vars are missing — visible in Railway deploy logs.
+if not os.environ.get("GOOGLE_MAPS_API_KEY"):
+    logger.warning("GOOGLE_MAPS_API_KEY is not set — evaluations will fail.")
+
 _csrf = None
 try:
     from flask_wtf.csrf import CSRFProtect, generate_csrf
@@ -4400,12 +4404,17 @@ def vote_state():
 
 @app.route("/healthz")
 def healthz():
-    """Lightweight health-check endpoint for monitoring."""
+    """Liveness probe for Railway — always 200 once Flask is accepting connections.
+
+    Reports config status in the body for monitoring, but never blocks
+    deployment with a non-200 response.  Missing env vars are an operational
+    concern, not a reason to fail the healthcheck and take the site down.
+    """
     config_ok, missing = _check_service_config()
     return jsonify({
         "status": "ok" if config_ok else "degraded",
         "missing_keys": missing,
-    }), 200 if config_ok else 503
+    }), 200
 
 
 @app.route("/api/spatial-health")
