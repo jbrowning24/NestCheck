@@ -41,7 +41,7 @@ from scoring_config import (
 from census import serialize_for_result as _serialize_census
 from coverage_config import COVERAGE_MANIFEST
 from models import (
-    init_db, save_snapshot, get_snapshot, increment_view_count,
+    _get_db, init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots, get_sitemap_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
@@ -51,8 +51,11 @@ from models import (
     get_user_snapshots, update_user_stripe_customer,
     create_payment, get_payment_by_id, get_payment_by_session,
     update_payment_status, redeem_payment, update_payment_job_id,
-    hash_email, check_free_tier_used, record_free_tier_usage,
-    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
+    hash_email, check_free_tier_available, record_free_tier_usage,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
+    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED, SUBSCRIPTION_EXPIRED,
+    create_subscription, update_subscription_status, is_subscription_active,
+    update_payment_snapshot_id_direct,
     save_feedback, save_inline_feedback, has_inline_feedback,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
     get_city_name_by_slug,
@@ -226,6 +229,7 @@ def _is_builder(req):
 _STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 _STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
+_STRIPE_SUBSCRIPTION_PRICE_ID = os.environ.get("STRIPE_SUBSCRIPTION_PRICE_ID")
 REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
 
 try:
@@ -3388,6 +3392,7 @@ def index():
         payment_token = request.form.get("payment_token", "").strip() or None
         _payment_id_for_job = None  # set if a paid token is being redeemed
         email_h = hash_email(email) if email else None
+        _is_subscriber = email and is_subscription_active(email)
 
         if not g.is_builder:
             if REQUIRE_PAYMENT and payment_token:
@@ -3476,7 +3481,7 @@ def index():
                         snapshot_id=snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                     )
-                if check_free_tier_used(email_h):
+                if not _is_subscriber and not check_free_tier_available(email_h):
                     if _wants_json():
                         return jsonify({"error": "free_tier_exhausted"}), 402
                     error = "Free evaluation already used for this email."
@@ -3490,7 +3495,7 @@ def index():
             else:
                 # REQUIRE_PAYMENT=false — free tier still applies when email given
                 if email:
-                    if check_free_tier_used(email_h):
+                    if not _is_subscriber and not check_free_tier_available(email_h):
                         if _wants_json():
                             return jsonify({"error": "free_tier_exhausted"}), 402
                         error = "Free evaluation already used for this email."
@@ -3557,9 +3562,9 @@ def index():
         if _payment_id_for_job:
             update_payment_job_id(_payment_id_for_job, job_id)
 
-        # Record free tier usage (unpaid path with email)
-        if not _payment_id_for_job and not g.is_builder and email:
-            record_free_tier_usage(email_h, email, job_id)
+        # Record free tier usage (unpaid path with email, skip for subscribers)
+        if not _payment_id_for_job and not g.is_builder and email and not _is_subscriber:
+            record_free_tier_usage(email_h, email)
 
         if _wants_json():
             return jsonify({"job_id": job_id})
@@ -3634,6 +3639,58 @@ def feedback_survey(snapshot_id):
                            graded_dims=graded_dims)
 
 
+def _check_full_access(snapshot_id: str, user_email: str | None = None) -> bool:
+    """Check if a snapshot should render with full detail.
+
+    Priority: builder > dev mode > payment (job join) >
+    payment (direct snapshot_id) > active sub > past sub.
+    """
+    if getattr(g, "is_builder", False):
+        return True
+    if not REQUIRE_PAYMENT:
+        return True
+    conn = _get_db()
+    try:
+        # Payment via job join (upfront purchase flow)
+        row = conn.execute(
+            "SELECT 1 FROM payments p JOIN evaluation_jobs j ON p.job_id = j.job_id "
+            "WHERE j.snapshot_id = ? AND p.status = ?",
+            (snapshot_id, PAYMENT_REDEEMED),
+        ).fetchone()
+        if row:
+            return True
+        # Payment via direct snapshot_id (unlock-existing-report flow)
+        row = conn.execute(
+            "SELECT 1 FROM payments WHERE snapshot_id = ? AND status = ?",
+            (snapshot_id, PAYMENT_REDEEMED),
+        ).fetchone()
+        if row:
+            return True
+        if user_email:
+            # Active subscription
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions "
+                "WHERE user_email = ? AND status IN (?, ?) "
+                "AND period_end > datetime('now') LIMIT 1",
+                (user_email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+            ).fetchone()
+            if row:
+                return True
+            # Past subscription covering this snapshot's creation time
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions s "
+                "JOIN snapshots snap ON snap.snapshot_id = ? "
+                "WHERE s.user_email = ? "
+                "AND snap.evaluated_at BETWEEN s.period_start AND s.period_end",
+                (snapshot_id, user_email),
+            ).fetchone()
+            if row:
+                return True
+    finally:
+        conn.close()
+    return False
+
+
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
     """Public, read-only snapshot page. No auth required."""
@@ -3648,6 +3705,44 @@ def view_snapshot(snapshot_id):
 
     result = {**snapshot["result"]}
     _prepare_snapshot_for_display(result)
+
+    # Payment redemption on snapshot view (NES-327)
+    payment_token = request.args.get("payment_token")
+    if payment_token and REQUIRE_PAYMENT:
+        payment = get_payment_by_id(payment_token)
+        if payment and payment["status"] in (PAYMENT_PENDING, PAYMENT_PAID):
+            if payment["status"] == PAYMENT_PENDING and STRIPE_AVAILABLE:
+                try:
+                    session = stripe.checkout.Session.retrieve(payment["stripe_session_id"])
+                    if session.payment_status == "paid":
+                        update_payment_status(payment_token, PAYMENT_PAID, expected_status=PAYMENT_PENDING)
+                except Exception:
+                    logger.warning("Stripe session check failed for %s", payment_token)
+            redeem_payment(payment_token)
+            # Link payment to this snapshot (unlock-existing-report flow)
+            update_payment_snapshot_id_direct(payment_token, snapshot_id)
+
+    # Content gating (NES-327)
+    user_email = None
+    try:
+        if current_user.is_authenticated:
+            user_email = current_user.email
+    except Exception:
+        pass
+    is_full_access = _check_full_access(snapshot_id, user_email=user_email)
+
+    if not is_full_access:
+        result = {**result}
+        result["dimension_summaries"] = [
+            {k: v for k, v in dim.items() if k in ("name", "points", "band")}
+            for dim in result.get("dimension_summaries", [])
+        ]
+        result["neighborhood_places"] = {}
+        result.pop("walkability_summary", None)
+        result.pop("green_escape", None)
+        result.pop("urban_access", None)
+        result.pop("census_demographics", None)
+        result.pop("school_district", None)
 
     # NES-257: demographics is not backfilled — old snapshots simply lack the
     # key and the template hides the section when result.demographics is
@@ -3687,6 +3782,7 @@ def view_snapshot(snapshot_id):
         result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+        is_full_access=is_full_access,
         show_feedback_prompt=show_feedback_prompt,
         city_page_url=city_page_url,
         city_name_for_link=city_name_for_link,
@@ -4582,28 +4678,53 @@ def checkout_create():
     if not STRIPE_AVAILABLE:
         return jsonify({"error": "Payment system not configured"}), 503
 
-    address = (request.form.get("address") or "").strip()
-    if not address:
-        return jsonify({"error": "Address required"}), 400
-
-    place_id = request.form.get("place_id", "").strip() or ""
-    email_for_checkout = request.form.get("email", "").strip() or ""
+    data = request.get_json(silent=True) or {}
+    tier = data.get("tier", request.form.get("tier", "single"))
+    snapshot_id = data.get("snapshot_id", request.form.get("snapshot_id", "")).strip() or None
 
     payment_id = uuid.uuid4().hex
     base_url = request.url_root.rstrip("/")
     try:
-        session_kwargs = {
-            "mode": "payment",
-            "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
-            "success_url": (
-                f"{base_url}/?payment_token={payment_id}"
-                f"&address={quote(address, safe='')}"
-                f"&place_id={quote(place_id, safe='')}"
-                f"&email={quote(email_for_checkout, safe='')}"
-            ),
-            "cancel_url": f"{base_url}/",
-            "client_reference_id": payment_id,
-        }
+        if tier == "subscription":
+            if not _STRIPE_SUBSCRIPTION_PRICE_ID:
+                return jsonify({"error": "Subscription pricing not configured"}), 503
+            email_for_checkout = data.get("email", request.form.get("email", "")).strip()
+            if not email_for_checkout:
+                return jsonify({"error": "Email required for subscription"}), 400
+            session_kwargs = {
+                "mode": "subscription",
+                "line_items": [{"price": _STRIPE_SUBSCRIPTION_PRICE_ID, "quantity": 1}],
+                "success_url": f"{base_url}/my-reports?subscription=active",
+                "cancel_url": f"{base_url}/pricing",
+                "client_reference_id": payment_id,
+            }
+            address = ""
+        else:
+            # Single-payment flow
+            address = data.get("address", request.form.get("address", "")).strip()
+            if not address:
+                return jsonify({"error": "Address required"}), 400
+
+            place_id = data.get("place_id", request.form.get("place_id", "")).strip() or ""
+            email_for_checkout = data.get("email", request.form.get("email", "")).strip() or ""
+
+            if snapshot_id:
+                success_url = f"{base_url}/s/{snapshot_id}?payment_token={payment_id}"
+            else:
+                success_url = (
+                    f"{base_url}/?payment_token={payment_id}"
+                    f"&address={quote(address, safe='')}"
+                    f"&place_id={quote(place_id, safe='')}"
+                    f"&email={quote(email_for_checkout, safe='')}"
+                )
+
+            session_kwargs = {
+                "mode": "payment",
+                "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
+                "success_url": success_url,
+                "cancel_url": f"{base_url}/",
+                "client_reference_id": payment_id,
+            }
 
         # Wire Stripe Customer for logged-in users so payments are
         # associated with their account for receipts and history.
@@ -4622,11 +4743,62 @@ def checkout_create():
             stripe_session_id=checkout_session.id,
             visitor_id=g.visitor_id,
             address=address,
+            snapshot_id=snapshot_id,
         )
         return jsonify({"checkout_url": checkout_session.url, "payment_id": payment_id})
     except Exception:
         logger.exception("Stripe checkout session creation failed")
         return jsonify({"error": "Payment system error"}), 500
+
+
+def _resolve_email_from_stripe_customer(customer_id: str) -> str | None:
+    """Look up email for a Stripe customer: local DB first, then Stripe API."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT email FROM users WHERE stripe_customer_id = ?",
+            (customer_id,),
+        ).fetchone()
+        if row:
+            return row[0]
+    finally:
+        conn.close()
+    if STRIPE_AVAILABLE:
+        try:
+            customer = stripe.Customer.retrieve(customer_id)
+            return customer.get("email")
+        except Exception:
+            logger.warning("Failed to retrieve Stripe customer %s", customer_id)
+    return None
+
+
+def _handle_subscription_event(sub_obj: dict, event_type: str) -> None:
+    """Handle subscription lifecycle events from Stripe webhooks."""
+    if event_type == "created":
+        email = _resolve_email_from_stripe_customer(sub_obj["customer"])
+        if not email:
+            logger.warning("No email for subscription %s — skipping", sub_obj["id"])
+            return
+        create_subscription(
+            subscription_id=uuid.uuid4().hex,
+            user_email=email,
+            stripe_subscription_id=sub_obj["id"],
+            stripe_customer_id=sub_obj["customer"],
+            period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
+            period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+        )
+    elif event_type == "updated":
+        status = SUBSCRIPTION_ACTIVE
+        if sub_obj.get("cancel_at_period_end"):
+            status = SUBSCRIPTION_CANCELED
+        update_subscription_status(
+            sub_obj["id"],
+            status,
+            period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
+            period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+        )
+    elif event_type == "deleted":
+        update_subscription_status(sub_obj["id"], SUBSCRIPTION_EXPIRED)
 
 
 @app.route("/webhook/stripe", methods=["POST"])
@@ -4660,6 +4832,12 @@ def stripe_webhook():
                 payment["id"], PAYMENT_PAID, expected_status=PAYMENT_PENDING,
             )
             logger.info("Webhook: payment %s → paid", payment["id"])
+    elif event["type"] == "customer.subscription.created":
+        _handle_subscription_event(event["data"]["object"], "created")
+    elif event["type"] == "customer.subscription.updated":
+        _handle_subscription_event(event["data"]["object"], "updated")
+    elif event["type"] == "customer.subscription.deleted":
+        _handle_subscription_event(event["data"]["object"], "deleted")
 
     return jsonify({"status": "ok"}), 200
 

@@ -1,6 +1,8 @@
 /* ================================================================
-   pricing.css — Pricing page styles (new visual system)
+   pricing.css — Three-tier pricing page (NES-327)
    Loaded by pricing.html after base.css and tokens.css.
+   Monochrome sub-palette: hardcoded palette colors for visual
+   identity, structural tokens for spacing/weights/radii.
    ================================================================ */
 
 body:has(.pricing-page) {
@@ -8,7 +10,7 @@ body:has(.pricing-page) {
 }
 
 .pricing-page {
-  max-width: 720px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 80px var(--space-2xl);
   display: flex;
@@ -20,13 +22,20 @@ body:has(.pricing-page) {
 /* ── Hero ─────────────────────────────────────────────────── */
 .pricing-hero {
   text-align: center;
-  max-width: 560px;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
   gap: var(--space-base);
 }
 
-.pricing-title {
+.pricing-tagline {
+  font-size: 16px;
+  color: #666666;
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.pricing-heading {
   font-family: var(--font-heading);
   font-size: 48px;
   font-weight: var(--font-weight-bold);
@@ -36,39 +45,61 @@ body:has(.pricing-page) {
   margin: 0;
 }
 
-.pricing-subtitle {
-  font-size: var(--font-size-h3);
-  color: #666666;
-  line-height: 1.6;
-  margin: 0;
-  text-wrap: balance;
+/* ── Pricing grid ────────────────────────────────────────── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+  width: 100%;
 }
 
-/* ── Price card ───────────────────────────────────────────── */
-.price-card {
+/* ── Tier card ───────────────────────────────────────────── */
+.pricing-card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: var(--space-2xl);
+  padding: var(--space-2xl) var(--space-xl);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--color-border);
-  width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-xl);
-  text-align: center;
+  gap: var(--space-lg);
+  position: relative;
 }
 
-.price-header {
+.pricing-card--recommended {
+  border: 2px solid var(--color-brand);
+}
+
+/* ── Recommended badge ───────────────────────────────────── */
+.pricing-card-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px var(--space-base);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+/* ── Card header ─────────────────────────────────────────── */
+.pricing-card-header {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 
-.price-amount {
+.pricing-card-price {
   font-family: var(--font-heading);
-  font-size: 72px;
+  font-size: 48px;
   font-weight: var(--font-weight-bold);
   letter-spacing: -0.04em;
   color: #111111;
@@ -76,56 +107,60 @@ body:has(.pricing-page) {
   font-variant-numeric: tabular-nums;
 }
 
-.price-unit {
-  font-size: 16px;
-  color: #666666;
+.pricing-card-period {
+  font-size: 20px;
   font-weight: var(--font-weight-medium);
+  color: #666666;
 }
 
-.price-desc {
-  font-size: var(--font-size-body);
+.pricing-card-name {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-semibold);
+  color: #111111;
+  margin: var(--space-xs) 0 0;
+}
+
+.pricing-card-headline {
+  font-size: 14px;
   color: #666666;
   line-height: var(--line-height-normal);
-  margin: var(--space-xs) 0 0;
-  max-width: 360px;
+  margin: 0;
 }
 
-/* ── Feature list ─────────────────────────────────────────── */
-.price-features {
+/* ── Feature list ────────────────────────────────────────── */
+.pricing-card-features {
   list-style: none;
   padding: var(--space-lg) 0;
   margin: 0;
-  width: 100%;
-  max-width: 420px;
   border-top: 1px solid var(--color-border-light);
-  border-bottom: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  flex: 1;
 }
 
-.price-features li {
+.pricing-card-features li {
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
   font-size: 14px;
   color: #666666;
-  text-align: left;
   line-height: 1.4;
 }
 
-.price-features li::before {
+.pricing-card-features li::before {
   content: "\2713";
   color: #111111;
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
-/* ── CTA button ───────────────────────────────────────────── */
-.price-btn {
+/* ── CTA buttons ─────────────────────────────────────────── */
+.pricing-cta {
   display: inline-block;
-  padding: var(--space-base) var(--space-10);
+  padding: var(--space-base) var(--space-xl);
   background: #111111;
   color: var(--color-text-inverse);
   border-radius: var(--radius-full);
@@ -133,59 +168,56 @@ body:has(.pricing-page) {
   font-size: 16px;
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
+  text-align: center;
+  border: none;
+  cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
+  margin-top: auto;
 }
 
-.price-btn:hover {
+.pricing-cta:hover {
   background: #333333;
   transform: translateY(-1px);
 }
 
-.cta-flow {
-  font-size: var(--font-size-small);
-  color: #B0B0B0;
+.pricing-cta--primary {
+  background: var(--color-brand);
 }
 
-/* ── Coming soon ──────────────────────────────────────────── */
-.coming-soon-section {
-  width: 100%;
+.pricing-cta--primary:hover {
+  background: var(--color-brand-light);
+  transform: translateY(-1px);
+}
+
+/* ── Subscribe form ──────────────────────────────────────── */
+.pricing-subscribe-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-base);
+  gap: var(--space-sm);
+  margin-top: auto;
 }
 
-.pricing-section-label {
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.08em;
-  color: #B0B0B0;
-  text-transform: uppercase;
-  text-align: center;
-}
-
-.coming-soon-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 28px var(--space-xl);
+.pricing-subscribe-form input[type="email"] {
+  padding: var(--space-sm) var(--space-base);
   border: 1px solid var(--color-border);
-}
-
-.coming-soon-card h3 {
-  font-family: var(--font-heading);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
-  color: #111111;
-  margin: 0 0 var(--space-sm);
-}
-
-.coming-soon-card p {
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
   font-size: 14px;
-  color: #666666;
-  line-height: var(--line-height-normal);
-  margin: 0;
+  color: #111111;
+  background: var(--color-surface);
+  outline: none;
+  transition: border-color var(--transition-fast);
 }
 
-/* ── Footer note ──────────────────────────────────────────── */
+.pricing-subscribe-form input[type="email"]:focus {
+  border-color: var(--color-brand);
+}
+
+.pricing-subscribe-form input[type="email"]::placeholder {
+  color: #B0B0B0;
+}
+
+/* ── Footer note ─────────────────────────────────────────── */
 .pricing-note {
   font-size: var(--font-size-small);
   color: #B0B0B0;
@@ -202,30 +234,29 @@ body:has(.pricing-page) {
   color: #111111;
 }
 
-/* ── Mobile ───────────────────────────────────────────────── */
+/* ── Mobile ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    padding: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .pricing-page {
     padding: var(--space-2xl) var(--space-lg);
     gap: 36px;
   }
 
-  .pricing-title {
+  .pricing-heading {
     font-size: var(--font-size-display);
   }
 
-  .pricing-subtitle {
-    font-size: 16px;
-  }
-
-  .price-card {
+  .pricing-card {
     padding: var(--space-xl) var(--space-lg);
   }
 
-  .price-amount {
-    font-size: 56px;
-  }
-
-  .coming-soon-card {
-    padding: var(--space-lg);
+  .pricing-card-price {
+    font-size: 40px;
   }
 }

@@ -210,6 +210,44 @@ def init_db():
             ON feedback(feedback_type);
     """)
 
+    # Subscriptions table (NES-327)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id                    TEXT PRIMARY KEY,
+            user_email            TEXT NOT NULL,
+            stripe_subscription_id TEXT UNIQUE,
+            stripe_customer_id    TEXT,
+            status                TEXT NOT NULL DEFAULT 'active',
+            period_start          TEXT NOT NULL,
+            period_end            TEXT NOT NULL,
+            created_at            TEXT NOT NULL
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_subscriptions_email
+        ON subscriptions(user_email)
+    """)
+
+    # Free tier counter migration (NES-327)
+    try:
+        conn.execute("ALTER TABLE free_tier_usage ADD COLUMN eval_count INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE free_tier_usage ADD COLUMN window_start TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    conn.execute(
+        "UPDATE free_tier_usage SET eval_count = 1, window_start = created_at "
+        "WHERE eval_count IS NULL"
+    )
+
+    # Index for payment→snapshot join (NES-327)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
+        ON evaluation_jobs(snapshot_id)
+    """)
+
     # Migration for pre-place_id databases.
     cols = {
         row["name"]
@@ -1255,61 +1293,69 @@ def hash_email(email: str) -> str:
     return hashlib.sha256(normalised.encode()).hexdigest()
 
 
-def check_free_tier_used(email_hash: str) -> bool:
-    """Return True if the given email hash has already used its free evaluation."""
+_FREE_TIER_MAX_EVALS = 10
+_FREE_TIER_WINDOW_DAYS = 30
+
+
+def check_free_tier_available(email_hash: str) -> bool:
+    """Return True if the email has free evals remaining in the current window."""
     conn = _get_db()
     try:
         row = conn.execute(
-            "SELECT 1 FROM free_tier_usage WHERE email_hash = ?", (email_hash,)
+            "SELECT eval_count, window_start FROM free_tier_usage "
+            "WHERE email_hash = ?",
+            (email_hash,),
         ).fetchone()
-        return row is not None
+        if row is None:
+            return True
+        eval_count = row[0] or 0
+        window_start = row[1]
+        if window_start:
+            try:
+                ws = datetime.fromisoformat(window_start)
+                if ws.tzinfo is None:
+                    ws = ws.replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) - ws > timedelta(days=_FREE_TIER_WINDOW_DAYS):
+                    return True
+            except (ValueError, TypeError):
+                return True
+        return eval_count < _FREE_TIER_MAX_EVALS
     finally:
         conn.close()
 
 
-def record_free_tier_usage(
-    email_hash: str, email_raw: str, job_id: str
-) -> bool:
-    """Record a free-tier evaluation claim. Returns True if inserted, False if duplicate."""
-    now = datetime.now(timezone.utc).isoformat()
+def record_free_tier_usage(email_hash: str, email_raw: str) -> None:
+    """Atomically increment the free tier counter for this email."""
     conn = _get_db()
     try:
         conn.execute(
-            """INSERT INTO free_tier_usage (email_hash, email_raw, job_id, created_at)
-               VALUES (?, ?, ?, ?)""",
-            (email_hash, email_raw, job_id, now),
+            "INSERT INTO free_tier_usage (email_hash, email_raw, created_at, "
+            "eval_count, window_start) "
+            "VALUES (?, ?, datetime('now'), 1, datetime('now')) "
+            "ON CONFLICT(email_hash) DO UPDATE SET "
+            "eval_count = CASE "
+            "  WHEN window_start < datetime('now', '-30 days') THEN 1 "
+            "  ELSE eval_count + 1 "
+            "END, "
+            "window_start = CASE "
+            "  WHEN window_start < datetime('now', '-30 days') THEN datetime('now') "
+            "  ELSE window_start "
+            "END",
+            (email_hash, email_raw),
         )
         conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
     finally:
         conn.close()
 
 
-def delete_free_tier_usage(job_id: str) -> bool:
-    """Delete a free-tier claim by job_id (for reissue on failure).
-
-    Returns True if a row was deleted, False otherwise.
-    """
-    conn = _get_db()
-    try:
-        cur = conn.execute(
-            "DELETE FROM free_tier_usage WHERE job_id = ?", (job_id,)
-        )
-        conn.commit()
-        return cur.rowcount > 0
-    finally:
-        conn.close()
-
-
-def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
-    """Backfill the snapshot_id on a free-tier usage row after evaluation completes."""
+def decrement_free_tier_usage(email_hash: str) -> None:
+    """Return one free tier credit (e.g., when a job fails)."""
     conn = _get_db()
     try:
         conn.execute(
-            "UPDATE free_tier_usage SET snapshot_id = ? WHERE email_hash = ?",
-            (snapshot_id, email_hash),
+            "UPDATE free_tier_usage SET eval_count = MAX(0, eval_count - 1) "
+            "WHERE email_hash = ?",
+            (email_hash,),
         )
         conn.commit()
     finally:
@@ -1811,6 +1857,119 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
         conn.execute(
             "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
             (stripe_customer_id, user_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# --- Subscription functions (NES-327) ---
+
+SUBSCRIPTION_ACTIVE = "active"
+SUBSCRIPTION_CANCELED = "canceled"
+SUBSCRIPTION_EXPIRED = "expired"
+
+
+def create_subscription(
+    subscription_id: str,
+    user_email: str,
+    stripe_subscription_id: str,
+    stripe_customer_id: str | None,
+    period_start: str,
+    period_end: str,
+) -> None:
+    """Create a new subscription record."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO subscriptions "
+            "(id, user_email, stripe_subscription_id, stripe_customer_id, "
+            "status, period_start, period_end, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (subscription_id, user_email, stripe_subscription_id,
+             stripe_customer_id, SUBSCRIPTION_ACTIVE, period_start,
+             period_end, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_subscription_by_stripe_id(stripe_subscription_id: str) -> dict | None:
+    """Look up a subscription by its Stripe subscription ID."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM subscriptions WHERE stripe_subscription_id = ?",
+            (stripe_subscription_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def update_subscription_status(
+    stripe_subscription_id: str,
+    status: str,
+    period_start: str | None = None,
+    period_end: str | None = None,
+) -> None:
+    """Update subscription status and optionally period dates."""
+    conn = _get_db()
+    try:
+        if period_start and period_end:
+            conn.execute(
+                "UPDATE subscriptions SET status = ?, period_start = ?, period_end = ? "
+                "WHERE stripe_subscription_id = ?",
+                (status, period_start, period_end, stripe_subscription_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE subscriptions SET status = ? WHERE stripe_subscription_id = ?",
+                (status, stripe_subscription_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def is_subscription_active(email: str) -> bool:
+    """Check if email has an active (or canceled-but-not-expired) subscription."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM subscriptions "
+            "WHERE user_email = ? AND status IN (?, ?) "
+            "AND period_end > datetime('now') LIMIT 1",
+            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
+def update_payment_snapshot_id(snapshot_id: str, job_id: str) -> None:
+    """Backfill snapshot_id on payments linked to this job."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE payments SET snapshot_id = ? WHERE job_id = ? AND snapshot_id IS NULL",
+            (snapshot_id, job_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_payment_snapshot_id_direct(payment_id: str, snapshot_id: str) -> None:
+    """Link a payment directly to a snapshot_id (unlock-existing-report flow)."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE payments SET snapshot_id = ? WHERE id = ?",
+            (snapshot_id, payment_id),
         )
         conn.commit()
     finally:

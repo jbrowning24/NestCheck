@@ -27,8 +27,7 @@ from models import (
     requeue_stale_running_jobs,
     get_payment_by_job_id,
     update_payment_status,
-    update_free_tier_snapshot,
-    delete_free_tier_usage,
+    decrement_free_tier_usage,
     update_snapshot_email_sent,
     PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
 )
@@ -85,20 +84,15 @@ def _reissue_payment_if_needed(job_id: str) -> None:
         logger.exception("[worker] Failed to reissue payment credit for job %s", job_id)
 
 
-def _reissue_free_tier_if_needed(job_id: str) -> None:
-    """If a failed job used a free tier credit, delete the claim so the user can retry.
-
-    Mirrors _reissue_payment_if_needed for the free tier path.
-    Swallows all exceptions for the same reason.
-    """
+def _reissue_free_tier_if_needed(email_hash: str | None) -> None:
+    """If a failed job used a free tier credit, decrement the counter."""
+    if not email_hash:
+        return
     try:
-        if delete_free_tier_usage(job_id):
-            logger.info(
-                "[worker] Reissued free tier credit for failed evaluation: job %s",
-                job_id,
-            )
+        decrement_free_tier_usage(email_hash)
+        logger.info("[worker] Decremented free tier credit for email_hash %s", email_hash)
     except Exception:
-        logger.exception("[worker] Failed to reissue free tier credit for job %s", job_id)
+        logger.exception("[worker] Failed to decrement free tier credit")
 
 
 def _run_job(job_id: str, address: str, visitor_id: str = None, request_id: str = None, place_id: str = None, email_hash: str = None, email_raw: str = None, user_id: str = None) -> None:
@@ -127,7 +121,7 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
     if not api_key:
         fail_job(job_id, "GOOGLE_MAPS_API_KEY not configured")
         _reissue_payment_if_needed(job_id)
-        _reissue_free_tier_if_needed(job_id)
+        _reissue_free_tier_if_needed(email_hash)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,
@@ -170,6 +164,13 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
             user_id=user_id,
         )
         complete_job(job_id, snapshot_id)
+
+        # Backfill snapshot_id on linked payment row (never blocks worker)
+        try:
+            from models import update_payment_snapshot_id
+            update_payment_snapshot_id(snapshot_id, job_id)
+        except Exception:
+            logger.warning("Failed to backfill payment snapshot_id for job %s", job_id)
 
         # Generate and store OG image (never blocks worker)
         try:
@@ -218,8 +219,6 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
                     metadata={"address": address},
                 )
 
-        if email_hash:
-            update_free_tier_snapshot(email_hash, snapshot_id)
         is_return = check_return_visit(visitor_id)
         log_event(
             "snapshot_created",
@@ -234,7 +233,7 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         logger.exception("[worker] Job %s failed: %s", job_id, e)
         fail_job(job_id, _sanitize_error(e))
         _reissue_payment_if_needed(job_id)
-        _reissue_free_tier_if_needed(job_id)
+        _reissue_free_tier_if_needed(email_hash)
         log_event(
             "evaluation_error",
             visitor_id=visitor_id,

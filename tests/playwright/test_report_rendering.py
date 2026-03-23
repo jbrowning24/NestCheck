@@ -115,6 +115,15 @@ class TestHealthyReport:
         first_pill_text = time_pills.first.text_content()
         assert "min" in first_pill_text
 
+    def test_venue_scroll_containers(self, page: Page, healthy_report_url):
+        """Each venue category has a scroll container with snap and ARIA."""
+        page.goto(healthy_report_url)
+        scrollers = page.locator(".venue-scroll")
+        assert scrollers.count() >= 1
+        first = scrollers.first
+        assert first.get_attribute("role") == "list"
+        assert first.get_attribute("tabindex") == "0"
+
     def test_health_summary_pills(self, page: Page, healthy_report_url):
         """Health stat badges show clear count."""
         page.goto(healthy_report_url)
