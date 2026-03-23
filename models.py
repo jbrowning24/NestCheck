@@ -1855,3 +1855,90 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
         conn.close()
 
 
+# --- Subscription functions (NES-327) ---
+
+SUBSCRIPTION_ACTIVE = "active"
+SUBSCRIPTION_CANCELED = "canceled"
+SUBSCRIPTION_EXPIRED = "expired"
+
+
+def create_subscription(
+    subscription_id: str,
+    user_email: str,
+    stripe_subscription_id: str,
+    stripe_customer_id: str | None,
+    period_start: str,
+    period_end: str,
+) -> None:
+    """Create a new subscription record."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO subscriptions "
+            "(id, user_email, stripe_subscription_id, stripe_customer_id, "
+            "status, period_start, period_end, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (subscription_id, user_email, stripe_subscription_id,
+             stripe_customer_id, SUBSCRIPTION_ACTIVE, period_start,
+             period_end, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_subscription_by_stripe_id(stripe_subscription_id: str) -> dict | None:
+    """Look up a subscription by its Stripe subscription ID."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM subscriptions WHERE stripe_subscription_id = ?",
+            (stripe_subscription_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def update_subscription_status(
+    stripe_subscription_id: str,
+    status: str,
+    period_start: str | None = None,
+    period_end: str | None = None,
+) -> None:
+    """Update subscription status and optionally period dates."""
+    conn = _get_db()
+    try:
+        if period_start and period_end:
+            conn.execute(
+                "UPDATE subscriptions SET status = ?, period_start = ?, period_end = ? "
+                "WHERE stripe_subscription_id = ?",
+                (status, period_start, period_end, stripe_subscription_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE subscriptions SET status = ? WHERE stripe_subscription_id = ?",
+                (status, stripe_subscription_id),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def is_subscription_active(email: str) -> bool:
+    """Check if email has an active (or canceled-but-not-expired) subscription."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM subscriptions "
+            "WHERE user_email = ? AND status IN (?, ?) "
+            "AND period_end > datetime('now') LIMIT 1",
+            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+        ).fetchone()
+        return row is not None
+    finally:
+        conn.close()
+
+
