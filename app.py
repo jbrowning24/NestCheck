@@ -82,6 +82,12 @@ app.config['SESSION_COOKIE_SECURE'] = _is_production
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = _is_production
+# Pin cookies to the canonical domain so they survive cross-domain visits.
+# _CANONICAL_DOMAIN is also used by _redirect_to_canonical() below.
+_CANONICAL_DOMAIN = os.environ.get("CANONICAL_DOMAIN")  # e.g. "nestcheck.org"
+if _CANONICAL_DOMAIN:
+    app.config["SESSION_COOKIE_DOMAIN"] = f".{_CANONICAL_DOMAIN}"
+    app.config["REMEMBER_COOKIE_DOMAIN"] = f".{_CANONICAL_DOMAIN}"
 # Keep templates render-safe even if Flask-WTF is unavailable at runtime.
 app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
@@ -130,13 +136,15 @@ login_manager.login_message_category = "info"
 @login_manager.user_loader
 def _load_user(user_id: str):
     user_dict = get_user_by_id(user_id)
-    user = _FlaskUser(user_dict) if user_dict else None
-    app.logger.info(f"[AUTH-DIAG] user_loader called with user_id={user_id}, found={'yes' if user else 'no'}")
-    return user
+    return _FlaskUser(user_dict) if user_dict else None
 
 
 # ---------------------------------------------------------------------------
 # Google OAuth via Authlib (optional — app works without it)
+# Google OAuth redirect URI is built dynamically from request host via url_for().
+# IMPORTANT: Only https://nestcheck.org/auth/callback should be registered in
+# Google Cloud Console. Remove any Railway URLs from authorized redirect URIs.
+# The CANONICAL_DOMAIN redirect ensures all OAuth flows go through nestcheck.org.
 # ---------------------------------------------------------------------------
 _GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 _GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
@@ -279,6 +287,30 @@ def _get_or_create_stripe_customer(user) -> Optional[str]:
     except Exception:
         logger.warning("Failed to create Stripe customer for %s", user.email, exc_info=True)
         return None
+
+
+# Paths exempt from canonical domain redirect (health probes, webhooks).
+_CANONICAL_EXEMPT_PATHS = frozenset({
+    "/healthz",              # Railway health probes
+    "/api/spatial-health",   # Cron service health check
+    "/webhook/stripe",       # Stripe webhook (POST, signature-verified)
+    "/robots.txt",           # Crawlers
+})
+
+
+@app.before_request
+def _redirect_to_canonical():
+    """301-redirect non-canonical domains (e.g. Railway URL) to nestcheck.org."""
+    if not _CANONICAL_DOMAIN:
+        return  # No canonical domain set — skip (local dev, staging)
+    if request.path in _CANONICAL_EXEMPT_PATHS:
+        return  # Health probes and webhooks must work on any domain
+    host = request.host.split(":")[0]  # Strip port if present
+    if host != _CANONICAL_DOMAIN:
+        target = f"https://{_CANONICAL_DOMAIN}{request.full_path}"
+        if target.endswith("?"):
+            target = target[:-1]
+        return redirect(target, code=301)
 
 
 @app.before_request
@@ -4861,7 +4893,6 @@ def auth_login():
         return redirect("/")
     session["auth_next"] = request.args.get("next", "/")
     redirect_uri = url_for("auth_callback", _external=True)
-    app.logger.info(f"[AUTH-DIAG] Login initiated. next={session.get('auth_next')} request.host={request.host} request.url={request.url}")
     return oauth.google.authorize_redirect(redirect_uri)
 
 
@@ -4888,8 +4919,6 @@ def auth_callback():
     picture = userinfo.get("picture")
     google_sub = userinfo.get("sub")
 
-    app.logger.info(f"[AUTH-DIAG] Callback received. user_email={userinfo.get('email')} request.host={request.host}")
-
     user_dict, created = get_or_create_user(
         email=email, name=name, picture_url=picture, google_sub=google_sub
     )
@@ -4900,9 +4929,7 @@ def auth_callback():
     if claimed:
         logger.info("Auto-claimed %d snapshot(s) for user %s", claimed, email)
 
-    user = _FlaskUser(user_dict)
-    login_user(user, remember=True)
-    app.logger.info(f"[AUTH-DIAG] login_user() called. remember=True. user_id={user.id} is_authenticated={current_user.is_authenticated}")
+    login_user(_FlaskUser(user_dict), remember=True)
     next_url = session.pop("auth_next", "/")
     # Prevent open redirect: only allow relative paths on this host.
     if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
@@ -4925,7 +4952,6 @@ def auth_logout():
 @login_required
 def my_reports():
     """Show the current user's evaluation history."""
-    app.logger.info(f"[AUTH-DIAG] /my-reports hit. is_authenticated={current_user.is_authenticated} user_id={current_user.id if current_user.is_authenticated else 'anon'}")
     snapshots = get_user_snapshots(current_user.id)
     return render_template(
         "my_reports.html",
