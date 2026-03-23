@@ -6,6 +6,7 @@ from models import (
     init_db, _get_db,
     create_subscription, get_subscription_by_stripe_id,
     update_subscription_status, is_subscription_active,
+    check_free_tier_available, record_free_tier_usage, decrement_free_tier_usage,
 )
 
 def test_subscriptions_table_exists():
@@ -86,3 +87,56 @@ def test_update_subscription_status():
     assert sub["status"] == "canceled"
     # canceled still counts as active until period_end
     assert is_subscription_active("cancel@example.com") is True
+
+
+# =========================================================================
+# Free tier counter model
+# =========================================================================
+
+def test_check_free_tier_available_no_record():
+    assert check_free_tier_available("hash_new_user") is True
+
+def test_free_tier_counter_increments():
+    email_hash = "hash_counter_test"
+    for i in range(10):
+        record_free_tier_usage(email_hash, "counter@test.com")
+    assert check_free_tier_available(email_hash) is False
+
+def test_free_tier_counter_nine_is_available():
+    email_hash = "hash_nine_test"
+    for i in range(9):
+        record_free_tier_usage(email_hash, "nine@test.com")
+    assert check_free_tier_available(email_hash) is True
+
+def test_decrement_free_tier_usage():
+    email_hash = "hash_decrement_test"
+    for i in range(10):
+        record_free_tier_usage(email_hash, "decrement@test.com")
+    assert check_free_tier_available(email_hash) is False
+    decrement_free_tier_usage(email_hash)
+    assert check_free_tier_available(email_hash) is True
+
+def test_free_tier_window_reset():
+    email_hash = "hash_window_reset"
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO free_tier_usage (email_hash, email_raw, created_at, "
+            "eval_count, window_start) VALUES (?, ?, datetime('now'), 10, "
+            "datetime('now', '-40 days'))",
+            (email_hash, "window@test.com"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    assert check_free_tier_available(email_hash) is True
+    record_free_tier_usage(email_hash, "window@test.com")
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT eval_count FROM free_tier_usage WHERE email_hash = ?",
+            (email_hash,),
+        ).fetchone()
+        assert row[0] == 1
+    finally:
+        conn.close()

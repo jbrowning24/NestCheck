@@ -1293,61 +1293,67 @@ def hash_email(email: str) -> str:
     return hashlib.sha256(normalised.encode()).hexdigest()
 
 
-def check_free_tier_used(email_hash: str) -> bool:
-    """Return True if the given email hash has already used its free evaluation."""
+_FREE_TIER_MAX_EVALS = 10
+_FREE_TIER_WINDOW_DAYS = 30
+
+
+def check_free_tier_available(email_hash: str) -> bool:
+    """Return True if the email has free evals remaining in the current window."""
     conn = _get_db()
     try:
         row = conn.execute(
-            "SELECT 1 FROM free_tier_usage WHERE email_hash = ?", (email_hash,)
+            "SELECT eval_count, window_start FROM free_tier_usage "
+            "WHERE email_hash = ?",
+            (email_hash,),
         ).fetchone()
-        return row is not None
+        if row is None:
+            return True
+        eval_count = row[0] or 0
+        window_start = row[1]
+        if window_start:
+            try:
+                ws = datetime.fromisoformat(window_start)
+                if datetime.utcnow() - ws > timedelta(days=_FREE_TIER_WINDOW_DAYS):
+                    return True
+            except (ValueError, TypeError):
+                return True
+        return eval_count < _FREE_TIER_MAX_EVALS
     finally:
         conn.close()
 
 
-def record_free_tier_usage(
-    email_hash: str, email_raw: str, job_id: str
-) -> bool:
-    """Record a free-tier evaluation claim. Returns True if inserted, False if duplicate."""
-    now = datetime.now(timezone.utc).isoformat()
+def record_free_tier_usage(email_hash: str, email_raw: str) -> None:
+    """Atomically increment the free tier counter for this email."""
     conn = _get_db()
     try:
         conn.execute(
-            """INSERT INTO free_tier_usage (email_hash, email_raw, job_id, created_at)
-               VALUES (?, ?, ?, ?)""",
-            (email_hash, email_raw, job_id, now),
+            "INSERT INTO free_tier_usage (email_hash, email_raw, created_at, "
+            "eval_count, window_start) "
+            "VALUES (?, ?, datetime('now'), 1, datetime('now')) "
+            "ON CONFLICT(email_hash) DO UPDATE SET "
+            "eval_count = CASE "
+            "  WHEN window_start < datetime('now', '-30 days') THEN 1 "
+            "  ELSE eval_count + 1 "
+            "END, "
+            "window_start = CASE "
+            "  WHEN window_start < datetime('now', '-30 days') THEN datetime('now') "
+            "  ELSE window_start "
+            "END",
+            (email_hash, email_raw),
         )
         conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False
     finally:
         conn.close()
 
 
-def delete_free_tier_usage(job_id: str) -> bool:
-    """Delete a free-tier claim by job_id (for reissue on failure).
-
-    Returns True if a row was deleted, False otherwise.
-    """
-    conn = _get_db()
-    try:
-        cur = conn.execute(
-            "DELETE FROM free_tier_usage WHERE job_id = ?", (job_id,)
-        )
-        conn.commit()
-        return cur.rowcount > 0
-    finally:
-        conn.close()
-
-
-def update_free_tier_snapshot(email_hash: str, snapshot_id: str) -> None:
-    """Backfill the snapshot_id on a free-tier usage row after evaluation completes."""
+def decrement_free_tier_usage(email_hash: str) -> None:
+    """Return one free tier credit (e.g., when a job fails)."""
     conn = _get_db()
     try:
         conn.execute(
-            "UPDATE free_tier_usage SET snapshot_id = ? WHERE email_hash = ?",
-            (snapshot_id, email_hash),
+            "UPDATE free_tier_usage SET eval_count = MAX(0, eval_count - 1) "
+            "WHERE email_hash = ?",
+            (email_hash,),
         )
         conn.commit()
     finally:

@@ -46,10 +46,9 @@ from models import (
     update_payment_job_id,
     get_payment_by_job_id,
     hash_email,
-    check_free_tier_used,
+    check_free_tier_available,
     record_free_tier_usage,
-    delete_free_tier_usage,
-    update_free_tier_snapshot,
+    decrement_free_tier_usage,
     get_user_by_stripe_customer,
     update_user_stripe_customer,
     get_or_create_user,
@@ -557,37 +556,30 @@ class TestHashEmail:
 class TestFreeTierUsage:
     def test_record_and_check(self):
         eh = hash_email("test@example.com")
-        assert check_free_tier_used(eh) is False
+        assert check_free_tier_available(eh) is True
 
-        assert record_free_tier_usage(eh, "test@example.com", "job1") is True
-        assert check_free_tier_used(eh) is True
+        record_free_tier_usage(eh, "test@example.com")
+        # Still available (1 of 10 used)
+        assert check_free_tier_available(eh) is True
 
-    def test_duplicate_rejected(self):
+    def test_counter_exhausts(self):
         eh = hash_email("test@example.com")
-        assert record_free_tier_usage(eh, "test@example.com", "job1") is True
-        assert record_free_tier_usage(eh, "test@example.com", "job2") is False
+        for _ in range(10):
+            record_free_tier_usage(eh, "test@example.com")
+        assert check_free_tier_available(eh) is False
 
-    def test_delete(self):
+    def test_decrement(self):
         eh = hash_email("test@example.com")
-        record_free_tier_usage(eh, "test@example.com", "job1")
+        for _ in range(10):
+            record_free_tier_usage(eh, "test@example.com")
+        assert check_free_tier_available(eh) is False
 
-        assert delete_free_tier_usage("job1") is True
-        assert check_free_tier_used(eh) is False
+        decrement_free_tier_usage(eh)
+        assert check_free_tier_available(eh) is True
 
-    def test_delete_nonexistent(self):
-        assert delete_free_tier_usage("nonexistent") is False
-
-    def test_update_snapshot(self):
-        eh = hash_email("test@example.com")
-        record_free_tier_usage(eh, "test@example.com", "job1")
-        update_free_tier_snapshot(eh, "snap1")
-
-        conn = _get_db()
-        row = conn.execute(
-            "SELECT snapshot_id FROM free_tier_usage WHERE email_hash = ?", (eh,)
-        ).fetchone()
-        _return_conn(conn)
-        assert row["snapshot_id"] == "snap1"
+    def test_decrement_nonexistent_is_noop(self):
+        # Should not raise
+        decrement_free_tier_usage("nonexistent_hash")
 
 
 # =========================================================================

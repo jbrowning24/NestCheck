@@ -20,7 +20,7 @@ from models import (
     get_payment_by_id,
     record_free_tier_usage,
     hash_email,
-    check_free_tier_used,
+    check_free_tier_available,
 )
 from worker import (
     _reissue_payment_if_needed,
@@ -70,19 +70,18 @@ class TestReissuePaymentIfNeeded:
 # =========================================================================
 
 class TestReissueFreeTierIfNeeded:
-    def test_deletes_free_tier_claim(self):
+    def test_decrements_free_tier_credit(self):
         eh = hash_email("test@example.com")
-        job_id = create_job("123 Main St")
-        record_free_tier_usage(eh, "test@example.com", job_id)
+        record_free_tier_usage(eh, "test@example.com")
 
-        _reissue_free_tier_if_needed(job_id)
+        _reissue_free_tier_if_needed(eh)
 
-        assert check_free_tier_used(eh) is False
+        # Should still be available (was 1, decremented to 0)
+        assert check_free_tier_available(eh) is True
 
-    def test_no_free_tier_is_noop(self):
-        job_id = create_job("123 Main St")
+    def test_none_email_hash_is_noop(self):
         # Should not raise
-        _reissue_free_tier_if_needed(job_id)
+        _reissue_free_tier_if_needed(None)
 
 
 # =========================================================================

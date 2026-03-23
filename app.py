@@ -51,7 +51,7 @@ from models import (
     get_user_snapshots, update_user_stripe_customer,
     create_payment, get_payment_by_id, get_payment_by_session,
     update_payment_status, redeem_payment, update_payment_job_id,
-    hash_email, check_free_tier_used, record_free_tier_usage,
+    hash_email, check_free_tier_available, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
     save_feedback, save_inline_feedback, has_inline_feedback,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
@@ -3476,7 +3476,7 @@ def index():
                         snapshot_id=snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                     )
-                if check_free_tier_used(email_h):
+                if not check_free_tier_available(email_h):
                     if _wants_json():
                         return jsonify({"error": "free_tier_exhausted"}), 402
                     error = "Free evaluation already used for this email."
@@ -3490,7 +3490,7 @@ def index():
             else:
                 # REQUIRE_PAYMENT=false — free tier still applies when email given
                 if email:
-                    if check_free_tier_used(email_h):
+                    if not check_free_tier_available(email_h):
                         if _wants_json():
                             return jsonify({"error": "free_tier_exhausted"}), 402
                         error = "Free evaluation already used for this email."
@@ -3559,7 +3559,7 @@ def index():
 
         # Record free tier usage (unpaid path with email)
         if not _payment_id_for_job and not g.is_builder and email:
-            record_free_tier_usage(email_h, email, job_id)
+            record_free_tier_usage(email_h, email)
 
         if _wants_json():
             return jsonify({"job_id": job_id})
