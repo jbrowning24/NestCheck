@@ -189,7 +189,7 @@ h1.narrative-summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-xs);
 }
 .dim-card__name {
@@ -215,7 +215,7 @@ h1.narrative-summary {
 .dim-card__band {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-xs);
 }
 .dim-card__band-label {
@@ -631,7 +631,7 @@ h1.narrative-summary {
 .section-summary-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 .summary-pill {
@@ -703,7 +703,7 @@ h1.narrative-summary {
 .health-stat-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 .health-stat-badge {
@@ -821,7 +821,7 @@ h1.narrative-summary {
 .data-row__right {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding-left: var(--space-base);
 }
 .data-row__value {
@@ -838,7 +838,7 @@ h1.narrative-summary {
 .data-row--dimension .data-row__name {
   color: var(--color-text-secondary);
   font-size: var(--font-size-body);
-  min-width: 160px;
+  min-width: 220px;
   flex-shrink: 0;
 }
 .data-row--dimension .data-row__detail {
@@ -846,7 +846,7 @@ h1.narrative-summary {
   font-size: var(--font-size-body);
   flex: 1;
 }
-.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-xs); }
+.data-row--no-border { border-bottom: none !important; padding-bottom: var(--space-2); }
 
 /* --- Confidence Badges (three-tier component system, NES-243) --- */
 
@@ -977,7 +977,7 @@ h1.narrative-summary {
 .dimension-indicator {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   min-width: 100px;
   flex-shrink: 0;
 }
@@ -1106,32 +1106,32 @@ h1.narrative-summary {
 }
 .chip--empty { opacity: 0.5; }
 
-/* Place cards — horizontal scroll */
-.place-cards {
+/* Venue cards — horizontal scroll with snap */
+.venue-scroll {
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: var(--space-base);
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   overflow-x: auto;
-  padding-bottom: var(--space-xs);
+  padding-bottom: var(--space-2);
   -webkit-overflow-scrolling: touch;
 }
-.place-card {
+.venue-card {
+  min-width: 220px;
+  max-width: 280px;
+  scroll-snap-align: start;
   flex: 0 0 auto;
-  width: 160px;
+  width: 220px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   padding: var(--space-base);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  gap: var(--space-3);
+  box-shadow: var(--shadow-card);
 }
-.place-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-.place-card .place-name {
+.venue-card .place-name {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-body);
   color: var(--color-text-primary);
@@ -1146,19 +1146,19 @@ h1.narrative-summary {
   text-decoration: none;
 }
 .place-name a:hover { text-decoration: underline; }
-.place-card .place-meta {
+.venue-card .place-meta {
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
 }
-.place-card .place-rating {
+.venue-card .place-rating {
   color: var(--color-amber);
   font-weight: var(--font-weight-semibold);
 }
-.place-card .place-reviews {
+.venue-card .place-reviews {
   color: var(--color-text-disabled);
   margin-left: var(--space-xs);
 }
-.place-card .place-time {
+.venue-card .place-time {
   font-family: var(--font-mono);
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-semibold);
@@ -1166,11 +1166,10 @@ h1.narrative-summary {
   margin-top: auto;
   padding-top: var(--space-xs);
 }
-.place-card--headline {
-  width: 240px;
-  border-color: var(--color-accent);
+.venue-card--headline {
+  border-left: 3px solid var(--color-accent);
 }
-.place-card--muted {
+.venue-card--muted {
   opacity: 0.75;
   border-style: dashed;
 }
@@ -1242,7 +1241,7 @@ h1.narrative-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 .walk-quality-title {
   font-weight: var(--font-weight-semibold);
@@ -1373,7 +1372,7 @@ h1.narrative-summary {
 .subscore-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-top: var(--space-md);
 }
 .subscore-card {
@@ -1446,7 +1445,7 @@ h1.narrative-summary {
 .school-district-header {
   display: flex;
   align-items: baseline;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-md);
 }
 .school-district-name {
@@ -1595,7 +1594,7 @@ h1.narrative-summary {
 .band-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding: var(--space-sm) var(--space-md);
   font-size: var(--font-size-body);
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
@@ -1631,7 +1630,7 @@ h1.narrative-summary {
 .share-bar__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   align-items: center;
   justify-content: flex-end;
 }
@@ -1718,7 +1717,7 @@ h1.narrative-summary {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   color: var(--color-text-faint);
   border-radius: var(--radius-md);
   font-size: var(--font-size-body);
@@ -1913,7 +1912,7 @@ h1.narrative-summary {
   display: flex;
   align-items: flex-start;
   padding: var(--space-sm) 0;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 .missing-bullet { color: var(--color-amber); font-weight: var(--font-weight-bold); flex-shrink: 0; }
 .missing-text { font-size: var(--font-size-body); color: var(--color-warning-text-dark); }
@@ -1948,11 +1947,11 @@ h1.narrative-summary {
 .mini-fill-bar__fill--not-scored { background: var(--color-border); }
 
 /* Place card quiet modifier — reduce name emphasis */
-.place-card.section-card--quiet .place-name {
+.venue-card.section-card--quiet .place-name {
   font-weight: var(--font-weight-medium);
 }
 /* Place card highlighted — keep base padding, don't let modifier reduce it */
-.place-card.section-card--highlighted {
+.venue-card.section-card--highlighted {
   padding-left: var(--space-base);
 }
 /* Park highlight with highlighted modifier */
@@ -2000,7 +1999,7 @@ h1.narrative-summary {
 .subscore-value-row {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-3);
 }
 /* Subscore fill bar layout */
 .subscore-card .mini-fill-bar {
@@ -2034,11 +2033,14 @@ h1.narrative-summary {
     gap: var(--space-xs);
   }
   /* .narrative-summary font-size now handled by clamp() in --type-verdict */
-  .place-card { width: 150px; padding: var(--space-md); }
-  .place-card--headline { width: 190px; }
-  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-sm); }
+  .venue-card {
+  min-width: 220px;
+  max-width: 280px;
+  scroll-snap-align: start; width: 150px; padding: var(--space-md); }
+  .venue-card--headline { width: 190px; }
+  .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
-  .place-card.section-card--highlighted { border-left-width: 2px; }
+  .venue-card.section-card--highlighted { border-left-width: 2px; }
   .park-highlight.section-card--highlighted { border-left-width: 2px; }
 }
 
@@ -2047,8 +2049,11 @@ h1.narrative-summary {
   .report-container { padding: var(--space-base); border-radius: var(--radius-md); }
   /* .narrative-summary and .card-band-label font-sizes now handled by clamp() in --type-verdict */
   .sidebar-card { padding: var(--space-base); }
-  .place-card { width: 140px; padding: var(--space-md); }
-  .place-card--headline { width: 180px; }
+  .venue-card {
+  min-width: 220px;
+  max-width: 280px;
+  scroll-snap-align: start; width: 140px; padding: var(--space-md); }
+  .venue-card--headline { width: 180px; }
   .stat-card { padding: var(--space-md); }
   .stat-card__value { font-size: var(--font-size-h3); }
   .data-row--hub { flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
@@ -2074,7 +2079,7 @@ h1.narrative-summary {
 .callout {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   padding: var(--space-base) var(--space-lg);
   border-left: 3px solid var(--color-border-strong);
   background: var(--color-surface-subtle);
@@ -2117,7 +2122,7 @@ h1.narrative-summary {
 
 .feedback-btn-group {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-3);
   margin-bottom: var(--space-base);
 }
 
@@ -2281,7 +2286,10 @@ h1.narrative-summary {
   .report-grid { display: block; }
   .report-sidebar { display: none; }
   .data-section { break-inside: avoid; }
-  .place-card { box-shadow: none; border: 1px solid var(--color-border-light); }
+  .venue-card {
+  min-width: 220px;
+  max-width: 280px;
+  scroll-snap-align: start; box-shadow: none; border: 1px solid var(--color-border-light); }
   .preview-upgrade-cta { display: none; }
   .disclaimer { break-inside: avoid; }
   .collapsible-body.collapsed { display: block !important; max-height: none !important; }
@@ -2292,7 +2300,7 @@ h1.narrative-summary {
   .summary-pill, .amenity-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .section-card--elevated, .section-card--highlighted { box-shadow: none; }
   .section-card--highlighted > .data-row { border-left: none; }
-  .place-card.section-card--highlighted,
+  .venue-card.section-card--highlighted,
   .park-highlight.section-card--highlighted { border-left: 2px solid var(--color-accent); }
   .section-card--quiet { color: var(--color-text-primary); }
   .mini-fill-bar__fill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

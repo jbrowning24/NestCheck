@@ -9,7 +9,7 @@ Selectors are derived from _result_sections.html and _macros.html:
   - .health-icon-badge--*   — individual health check icons
   - .dim-card               — dimension scorecard
   - #your-neighborhood      — neighborhood venues section
-  - .place-card             — individual venue card
+  - .venue-card             — individual venue card (horizontal scroll)
   - .summary-pill           — time/stat pills
   - .score-failed           — failed tier1 banner
 """
@@ -99,17 +99,17 @@ class TestHealthyReport:
         neighborhood = page.locator("#your-neighborhood")
         expect(neighborhood).to_be_visible()
 
-    def test_place_cards_present(self, page: Page, healthy_report_url):
-        """Place cards render for venues in neighborhood section."""
+    def test_venue_cards_present(self, page: Page, healthy_report_url):
+        """Venue cards render in horizontal scroll containers."""
         page.goto(healthy_report_url)
-        place_cards = page.locator(".place-card")
+        venue_cards = page.locator(".venue-card")
         # 3 coffee + 3 grocery + 3 fitness + 3 parks = 12
-        assert place_cards.count() >= 4
+        assert venue_cards.count() >= 4
 
     def test_walk_time_pills_show(self, page: Page, healthy_report_url):
         """Venue cards display walk/drive time pills inside .place-time."""
         page.goto(healthy_report_url)
-        # Time pills live inside .place-time within each .place-card
+        # Time pills live inside .place-time within each .venue-card
         time_pills = page.locator("#your-neighborhood .place-time .summary-pill")
         assert time_pills.count() >= 1
         first_pill_text = time_pills.first.text_content()

@@ -420,10 +420,10 @@
                 </div>
               {% endif %}
 
-              <div class="place-cards">
+              <div class="venue-scroll{% if normal_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
                 {% for place in normal_places %}
                 {% set is_headline = loop.first and place.review_snippet %}
-                <div class="place-card{% if is_headline %} place-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}">
+                <div class="venue-card{% if is_headline %} venue-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}" role="listitem">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
@@ -471,9 +471,9 @@
             <div class="neighborhood-category neighborhood-category--expanded">
               <div class="category-label">{{ label }}</div>
               <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
-              <div class="place-cards">
+              <div class="venue-scroll{% if normal_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
                 {% for place in expanded_places %}
-                <div class="place-card place-card--muted section-card--quiet">
+                <div class="venue-card venue-card--muted section-card--quiet" role="listitem">
                   <div class="place-name">
                     {% if place.place_id %}
                       <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
