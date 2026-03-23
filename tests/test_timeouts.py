@@ -1,5 +1,7 @@
 """Tests for per-API-call timeout configuration (NES-368)."""
 
+import logging
+
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -183,3 +185,39 @@ class TestF1SignalPath:
         )
         assert score.suppressed_reason == "Data temporarily unavailable"
         assert score.points is None
+
+
+class TestTimeoutLogging:
+    """Verify timeout events are logged with API name and elapsed time."""
+
+    def test_google_maps_timeout_logged(self, caplog):
+        """_traced_get logs timeout with endpoint name and elapsed time."""
+        import requests
+        from property_evaluator import GoogleMapsClient
+
+        client = GoogleMapsClient("fake-key")
+
+        with patch.object(
+            client.session, "get",
+            side_effect=requests.exceptions.Timeout("timed out"),
+        ):
+            with caplog.at_level(logging.WARNING):
+                with pytest.raises(requests.exceptions.Timeout):
+                    client._traced_get("geocode", "http://example.com", {})
+
+        assert any("geocode" in r.message and "timeout" in r.message.lower()
+                    for r in caplog.records)
+
+    @patch.dict("os.environ", {"WALKSCORE_API_KEY": "test-key"})
+    def test_walkscore_timeout_logged(self, caplog):
+        """WalkScore timeout logs API name."""
+        import requests
+        from property_evaluator import get_walk_scores
+
+        with patch("property_evaluator.requests.get",
+                    side_effect=requests.exceptions.Timeout("timed out")):
+            with caplog.at_level(logging.WARNING):
+                get_walk_scores("123 Main St", 41.0, -73.7)
+
+        assert any("walkscore" in r.message.lower()
+                    for r in caplog.records)

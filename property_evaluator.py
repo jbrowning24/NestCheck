@@ -744,7 +744,15 @@ class GoogleMapsClient:
         """GET request with automatic trace recording."""
         t0 = time.time()
         _timeout = self._ENDPOINT_TIMEOUTS.get(endpoint_name, self.DEFAULT_TIMEOUT)
-        response = self.session.get(url, params=params, timeout=_timeout)
+        try:
+            response = self.session.get(url, params=params, timeout=_timeout)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            elapsed_ms = int((time.time() - t0) * 1000)
+            logger.warning(
+                "API timeout: endpoint=%s elapsed_ms=%d timeout=%ds address=%s",
+                endpoint_name, elapsed_ms, _timeout, self._source_address,
+            )
+            raise
         elapsed_ms = int((time.time() - t0) * 1000)
         data = response.json()
         provider_status = data.get("status", "") if isinstance(data, dict) else ""
@@ -1380,7 +1388,11 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_bike elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
 
     bike_data = data.get("bike") if isinstance(data, dict) else None
@@ -1438,7 +1450,11 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_transit elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return default_response
 
     if data.get("status") != 1:
@@ -1522,7 +1538,11 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_walk elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return default_scores
 
     if data.get("status") != 1:
