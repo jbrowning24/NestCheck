@@ -1,6 +1,6 @@
 {% if style == 'square' %}
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="120" viewBox="0 0 120 120">
-  <a xlink:href="/s/{{ snapshot_id }}?utm_source=widget&amp;utm_medium=badge&amp;utm_content=square">
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <a href="/s/{{ snapshot_id }}?utm_source=widget&amp;utm_medium=badge&amp;utm_content=square">
     <rect width="120" height="120" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
 
     {# Score number #}
@@ -23,8 +23,8 @@
   </a>
 </svg>
 {% else %}
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="60" viewBox="0 0 200 60">
-  <a xlink:href="/s/{{ snapshot_id }}?utm_source=widget&amp;utm_medium=badge&amp;utm_content=banner">
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <a href="/s/{{ snapshot_id }}?utm_source=widget&amp;utm_medium=badge&amp;utm_content=banner">
     <rect width="200" height="60" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
 
     {# Logo mark — two skewed rectangles #}
