@@ -140,7 +140,8 @@ polling-based loading screen rather than a replacement.
 - `@keyframes pulse`
 
 **Modify:**
-- `.loading-text`: add `transition: opacity var(--transition-base)` (200ms ease)
+- `.loading-sub`: add `transition: opacity 200ms ease` (this is the element whose
+  text changes with stage updates — `.loading-text` is static)
 - `.loading-progress`: change `width: 200px` → `width: 100%; max-width: 480px`,
   change `height: 6px` → `height: 3px`, change `border-radius: 3px` →
   `border-radius: 2px`. Background stays `rgba(255, 255, 255, 0.15)`.
@@ -148,7 +149,7 @@ polling-based loading screen rather than a replacement.
 
 **Add:**
 - `@media (prefers-reduced-motion: reduce)` block for `.loading-progress-fill`,
-  `.loading-patience`, `.loading-text`
+  `.loading-patience`, `.loading-sub`
 
 ## What stays the same
 
