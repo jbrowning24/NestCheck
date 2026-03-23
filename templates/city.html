@@ -111,11 +111,16 @@
     <h2 class="city-section-heading">Evaluated Addresses</h2>
     <div class="city-address-list">
       {% for snap in snapshots %}
-      <a href="{{ url_for('view_snapshot', snapshot_id=snap.snapshot_id) }}" class="city-address-card">
+      <a href="{{ url_for('view_snapshot', snapshot_id=snap.snapshot_id) }}"
+         class="city-address-card{% if not snap.tier1_passed %} city-address-card--health-only{% endif %}">
         <span class="city-address-text">{{ snap.address_norm }}</span>
+        {% if snap.tier1_passed %}
         <span class="city-score-pill city-band--{{ snap.score_band|lower|replace(' ', '-') }}">
           {{ snap.final_score }}/100
         </span>
+        {% else %}
+        <span class="city-score-pill city-score-pill--health-only">Health check only</span>
+        {% endif %}
       </a>
       {% endfor %}
     </div>
