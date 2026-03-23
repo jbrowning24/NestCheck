@@ -41,7 +41,7 @@ from scoring_config import (
 from census import serialize_for_result as _serialize_census
 from coverage_config import COVERAGE_MANIFEST
 from models import (
-    init_db, save_snapshot, get_snapshot, increment_view_count,
+    _get_db, init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
     get_recent_events, get_recent_snapshots, get_sitemap_snapshots,
     get_snapshot_by_place_id, is_snapshot_fresh, save_snapshot_for_place,
@@ -52,7 +52,8 @@ from models import (
     create_payment, get_payment_by_id, get_payment_by_session,
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_available, record_free_tier_usage,
-    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED_REISSUED,
+    PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
+    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
     save_feedback, save_inline_feedback, has_inline_feedback,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
     get_city_name_by_slug,
@@ -3634,6 +3635,58 @@ def feedback_survey(snapshot_id):
                            graded_dims=graded_dims)
 
 
+def _check_full_access(snapshot_id: str, user_email: str | None = None) -> bool:
+    """Check if a snapshot should render with full detail.
+
+    Priority: builder > dev mode > payment (job join) >
+    payment (direct snapshot_id) > active sub > past sub.
+    """
+    if getattr(g, "is_builder", False):
+        return True
+    if not REQUIRE_PAYMENT:
+        return True
+    conn = _get_db()
+    try:
+        # Payment via job join (upfront purchase flow)
+        row = conn.execute(
+            "SELECT 1 FROM payments p JOIN evaluation_jobs j ON p.job_id = j.job_id "
+            "WHERE j.snapshot_id = ? AND p.status = ?",
+            (snapshot_id, PAYMENT_REDEEMED),
+        ).fetchone()
+        if row:
+            return True
+        # Payment via direct snapshot_id (unlock-existing-report flow)
+        row = conn.execute(
+            "SELECT 1 FROM payments WHERE snapshot_id = ? AND status = ?",
+            (snapshot_id, PAYMENT_REDEEMED),
+        ).fetchone()
+        if row:
+            return True
+        if user_email:
+            # Active subscription
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions "
+                "WHERE user_email = ? AND status IN (?, ?) "
+                "AND period_end > datetime('now') LIMIT 1",
+                (user_email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+            ).fetchone()
+            if row:
+                return True
+            # Past subscription covering this snapshot's creation time
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions s "
+                "JOIN snapshots snap ON snap.snapshot_id = ? "
+                "WHERE s.user_email = ? "
+                "AND snap.evaluated_at BETWEEN s.period_start AND s.period_end",
+                (snapshot_id, user_email),
+            ).fetchone()
+            if row:
+                return True
+    finally:
+        conn.close()
+    return False
+
+
 @app.route("/s/<snapshot_id>")
 def view_snapshot(snapshot_id):
     """Public, read-only snapshot page. No auth required."""
@@ -3648,6 +3701,28 @@ def view_snapshot(snapshot_id):
 
     result = {**snapshot["result"]}
     _prepare_snapshot_for_display(result)
+
+    # Content gating (NES-327)
+    user_email = None
+    try:
+        if current_user.is_authenticated:
+            user_email = current_user.email
+    except Exception:
+        pass
+    is_full_access = _check_full_access(snapshot_id, user_email=user_email)
+
+    if not is_full_access:
+        result = {**result}
+        result["dimension_summaries"] = [
+            {k: v for k, v in dim.items() if k in ("name", "points", "band")}
+            for dim in result.get("dimension_summaries", [])
+        ]
+        result["neighborhood_places"] = {}
+        result.pop("walkability_summary", None)
+        result.pop("green_escape", None)
+        result.pop("urban_access", None)
+        result.pop("census_demographics", None)
+        result.pop("school_district", None)
 
     # NES-257: demographics is not backfilled — old snapshots simply lack the
     # key and the template hides the section when result.demographics is
@@ -3687,6 +3762,7 @@ def view_snapshot(snapshot_id):
         result=result,
         snapshot_id=snapshot_id,
         is_builder=g.is_builder,
+        is_full_access=is_full_access,
         show_feedback_prompt=show_feedback_prompt,
         city_page_url=city_page_url,
         city_name_for_link=city_name_for_link,

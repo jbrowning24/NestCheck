@@ -7,7 +7,9 @@ from models import (
     create_subscription, get_subscription_by_stripe_id,
     update_subscription_status, is_subscription_active,
     check_free_tier_available, record_free_tier_usage, decrement_free_tier_usage,
+    PAYMENT_REDEEMED,
 )
+from app import app
 
 def test_subscriptions_table_exists():
     """Subscriptions table should be created by init_db()."""
@@ -140,3 +142,97 @@ def test_free_tier_window_reset():
         assert row[0] == 1
     finally:
         conn.close()
+
+
+# =========================================================================
+# _check_full_access() tests (NES-327 Task 4)
+# =========================================================================
+
+def test_check_full_access_builder_mode():
+    with app.test_request_context():
+        from flask import g
+        g.is_builder = True
+        from app import _check_full_access
+        assert _check_full_access("nonexistent_snapshot") is True
+
+def test_check_full_access_require_payment_false():
+    with app.test_request_context():
+        from flask import g
+        g.is_builder = False
+        from app import _check_full_access
+        import app as app_module
+        original = app_module.REQUIRE_PAYMENT
+        app_module.REQUIRE_PAYMENT = False
+        try:
+            assert _check_full_access("any_snapshot") is True
+        finally:
+            app_module.REQUIRE_PAYMENT = original
+
+def test_check_full_access_no_payment_no_subscription():
+    with app.test_request_context():
+        from flask import g
+        g.is_builder = False
+        from app import _check_full_access
+        import app as app_module
+        original = app_module.REQUIRE_PAYMENT
+        app_module.REQUIRE_PAYMENT = True
+        try:
+            assert _check_full_access("no_such_snapshot") is False
+        finally:
+            app_module.REQUIRE_PAYMENT = original
+
+def test_check_full_access_with_direct_snapshot_payment():
+    snapshot_id = f"snap_{uuid.uuid4().hex[:8]}"
+    payment_id = uuid.uuid4().hex
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO payments (id, status, snapshot_id, created_at) "
+            "VALUES (?, ?, ?, datetime('now'))",
+            (payment_id, PAYMENT_REDEEMED, snapshot_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    with app.test_request_context():
+        from flask import g
+        g.is_builder = False
+        from app import _check_full_access
+        import app as app_module
+        original = app_module.REQUIRE_PAYMENT
+        app_module.REQUIRE_PAYMENT = True
+        try:
+            assert _check_full_access(snapshot_id) is True
+        finally:
+            app_module.REQUIRE_PAYMENT = original
+
+def test_check_full_access_with_payment_via_job():
+    snapshot_id = f"snap_{uuid.uuid4().hex[:8]}"
+    job_id = f"job_{uuid.uuid4().hex[:8]}"
+    payment_id = uuid.uuid4().hex
+    conn = _get_db()
+    try:
+        conn.execute(
+            "INSERT INTO evaluation_jobs (job_id, address, status, snapshot_id, created_at) "
+            "VALUES (?, 'test addr', 'done', ?, datetime('now'))",
+            (job_id, snapshot_id),
+        )
+        conn.execute(
+            "INSERT INTO payments (id, job_id, status, created_at) "
+            "VALUES (?, ?, ?, datetime('now'))",
+            (payment_id, job_id, PAYMENT_REDEEMED),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    with app.test_request_context():
+        from flask import g
+        g.is_builder = False
+        from app import _check_full_access
+        import app as app_module
+        original = app_module.REQUIRE_PAYMENT
+        app_module.REQUIRE_PAYMENT = True
+        try:
+            assert _check_full_access(snapshot_id) is True
+        finally:
+            app_module.REQUIRE_PAYMENT = original
