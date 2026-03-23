@@ -701,6 +701,21 @@ class GoogleMapsClient:
     # the whole evaluation.  10 s is generous for Google Maps — p99 is < 2 s.
     DEFAULT_TIMEOUT = 10
 
+    # Per-endpoint timeouts (NES-368).  Looked up by _traced_get() via
+    # endpoint_name.  Falls back to DEFAULT_TIMEOUT for unlisted endpoints.
+    _ENDPOINT_TIMEOUTS: Dict[str, int] = {
+        "geocode": 5,
+        "reverse_geocode": 5,
+        "place_details": 5,
+        "places_nearby": 10,
+        "text_search": 10,
+        "walking_time": 8,
+        "driving_time": 8,
+        "transit_time": 8,
+        "distance_matrix_walking": 8,
+        "distance_matrix_driving": 8,
+    }
+
     def __init__(
         self,
         api_key: str,
@@ -728,7 +743,8 @@ class GoogleMapsClient:
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
         t0 = time.time()
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        _timeout = self._ENDPOINT_TIMEOUTS.get(endpoint_name, self.DEFAULT_TIMEOUT)
+        response = self.session.get(url, params=params, timeout=_timeout)
         elapsed_ms = int((time.time() - t0) * 1000)
         data = response.json()
         provider_status = data.get("status", "") if isinstance(data, dict) else ""
