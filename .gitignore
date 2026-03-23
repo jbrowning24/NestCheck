@@ -215,4 +215,4 @@ data/spatial.db-wal
 data/spatial.db-shm
 .env
 .DS_Store
- (Add .env example and ignore local env + macOS files)
+.worktrees/
