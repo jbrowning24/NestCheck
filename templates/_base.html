@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}NestCheck{% endblock %}</title>
   {% block meta_description %}<meta name="description" content="NestCheck evaluates any address for walkability, parks, transit, and safety — so families can make confident moving decisions.">{% endblock %}
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
   <link rel="canonical" href="{{ request.url.split('?')[0] }}">
   {% block og_tags %}
   <meta property="og:title" content="{{ self.title() }}">
