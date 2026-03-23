@@ -412,3 +412,37 @@
     width: 100%;
   }
 }
+
+/* NES-344: featured cities section */
+.hp-cities {
+  margin-top: var(--space-xl);
+}
+
+.hp-cities-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.hp-city-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-full, 999px);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.hp-city-pill:hover {
+  border-color: var(--color-border);
+}
+
+.hp-city-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

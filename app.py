@@ -3329,6 +3329,7 @@ def index():
     address = ""
     snapshot_id = None
     request_id = getattr(g, "request_id", "unknown")
+    featured_cities = []
 
     if request.method == "POST":
         address = request.form.get("address", "").strip()
@@ -3572,12 +3573,24 @@ def index():
             is_builder=g.is_builder, request_id=request_id,
         )
 
+    # NES-344: featured cities for homepage
+    try:
+        featured_cities = get_cities_with_snapshots(min_count=3)
+        featured_cities.sort(key=lambda c: c["snapshot_count"], reverse=True)
+        featured_cities = featured_cities[:5]
+        for c in featured_cities:
+            c["slug"] = _city_slug(c["city"])
+    except Exception:
+        logger.warning("Failed to load featured cities for homepage")
+        featured_cities = []
+
     return render_template(
         "index.html", result=result, error=error,
         error_detail=error_detail,
         address=address, snapshot_id=snapshot_id,
         job_id=None,
         is_builder=g.is_builder, request_id=request_id,
+        featured_cities=featured_cities,
     )
 
 

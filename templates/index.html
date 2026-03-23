@@ -365,6 +365,20 @@
     </form>
   </section>
 
+  {% if featured_cities is defined and featured_cities %}
+  <section class="hp-cities" id="evaluated-cities">
+    <h2 class="hp-section-label">Cities we've evaluated</h2>
+    <div class="hp-cities-pills">
+      {% for city in featured_cities %}
+      <a href="/city/{{ city.state_abbr|lower }}/{{ city.slug }}" class="hp-city-pill">
+        {{ city.city }}, {{ city.state_abbr }}
+        <span class="hp-city-count">{{ city.snapshot_count }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   {# ── LANDING FOOTER ──────────────────────────────────────── #}
   <footer class="landing-footer">
     © 2026 NestCheck. Powered by EPA, FEMA, FHWA, and OpenStreetMap data.
