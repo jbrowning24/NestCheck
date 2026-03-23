@@ -67,7 +67,7 @@ CTA: "Evaluate an address in [State]"
 **SEO elements:**
 - `<title>`: `"[State] Neighborhood Reports | NestCheck"`
 - `<meta name="description">`: `"Explore NestCheck property evaluations across N cities in [State]. Health checks, walkability scores, and livability data."`
-- JSON-LD: `State` schema with `BreadcrumbList` + `containsPlace` array of city page URLs
+- JSON-LD: `CollectionPage` with `mainEntity` of type `State` (mirrors `city.html` pattern of `CollectionPage` + `City`), `BreadcrumbList`, and `containsPlace` array of city page URLs
 - Canonical URL via existing `_base.html` pattern
 
 **CSS:** `static/css/state.css` — lightweight, follows `city.css` patterns. Token references for spacing/typography, minimal custom styling.
@@ -147,7 +147,7 @@ for c in featured_cities:
     c["slug"] = _city_slug(c["city"])
 ```
 
-Only computed on GET, not POST.
+Initialize `featured_cities = []` at the top of `index()` before the POST/GET branch. Compute the actual list only on GET. This prevents `UndefinedError` in the ~8 early-return `render_template("index.html", ...)` paths (validation errors, payment gate failures, etc.) that all render the homepage template.
 
 #### 2d. Snapshot Breadcrumbs
 
@@ -167,6 +167,7 @@ Pass `breadcrumbs` list to `render_template()` in `view_snapshot()` when `city_p
 
 ```python
 if city_page_url:
+    state_name = _STATE_FULL_NAMES.get(snap_state, snap_state)
     result["breadcrumbs"] = [
         {"name": state_name, "url": f"/state/{snap_state.lower()}"},
         {"name": snap_city, "url": city_page_url},
@@ -174,6 +175,8 @@ if city_page_url:
 ```
 
 The existing `snapshot.html` JSON-LD block already handles the optional `result.breadcrumbs` list (lines 113-122).
+
+**Note:** Breadcrumb URLs are relative paths. The `snapshot.html` template must prepend `request.host_url.rstrip('/')` when rendering the JSON-LD `item` field — matching the pattern already used in `city.html` line 24. Google requires absolute URLs in `BreadcrumbList` structured data; relative paths are silently ignored.
 
 ### 3. City Page Address Card Update
 
@@ -228,18 +231,11 @@ for st_abbr in _STATE_FULL_NAMES:
     lines.append("  </url>")
 ```
 
-Priority 0.6 (same as city pages). All states in `_STATE_FULL_NAMES` get sitemap entries regardless of snapshot count — state pages render for all coverage states.
+Priority 0.6 (same as city pages). Only include states that have at least one city with ≥3 snapshots (filter via the `get_cities_with_snapshots` call already present in the sitemap function). This avoids advertising expansion states (CA, TX, FL, IL) with zero evaluation content in the sitemap — the CMO was explicit about avoiding thin content pages.
 
-### State Slug Helper
+### State Slug Convention
 
-Reuse the pattern from city slugs. State slugs are simply the lowercase abbreviation:
-
-```python
-def _state_slug(state_abbr: str) -> str:
-    return state_abbr.lower()
-```
-
-This is trivial but keeps the URL construction consistent and greppable.
+State slugs are simply `state_abbr.lower()` — used inline (no helper function needed). This matches how the city sitemap block already handles it (`city_row["state_abbr"].lower()` at app.py line 4652).
 
 ## Files Modified
 
