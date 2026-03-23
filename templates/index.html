@@ -508,16 +508,6 @@
       saving:               { text: 'Saving your results...',                 pct: 97 }
     };
 
-    function stageDisplay(stage) {
-      var info = STAGE_DISPLAY[stage];
-      return info ? info.text : 'Working...';
-    }
-
-    function stagePercent(stage) {
-      var info = STAGE_DISPLAY[stage];
-      return info ? info.pct : 0;
-    }
-
     function setProgress(pct) {
       var fill = document.getElementById('progressFill');
       if (fill) fill.style.width = pct + '%';
