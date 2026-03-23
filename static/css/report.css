@@ -1929,7 +1929,7 @@ h1.narrative-summary {
 /* ================================================================
    Snapshot context: hide internal sidebar when external rail exists
    ================================================================ */
-@media (min-width: 1024px) {
+@media (min-width: 1072px) {
   .report-layout .report-sidebar {
     display: none;
   }
@@ -2138,7 +2138,7 @@ h1.narrative-summary {
 
 /* ================================================================
    Mobile Sticky Tab Bar (NES-323)
-   Scroll-synced section navigation for < 1024px.
+   Scroll-synced section navigation for < 1072px.
    Hidden on desktop where the rail sidebar nav is visible.
    ================================================================ */
 
@@ -2146,7 +2146,7 @@ h1.narrative-summary {
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1071px) {
   .mobile-tab-bar {
     display: block;
     position: sticky;
@@ -2416,7 +2416,7 @@ h1.narrative-summary {
 
 /* ================================================================
    Mobile Sticky Tab Bar (NES-323)
-   Scroll-synced section navigation for < 1024px.
+   Scroll-synced section navigation for < 1072px.
    Hidden on desktop where the rail sidebar nav is visible.
    ================================================================ */
 
@@ -2424,7 +2424,7 @@ h1.narrative-summary {
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1071px) {
   .mobile-tab-bar {
     display: block;
     position: sticky;
