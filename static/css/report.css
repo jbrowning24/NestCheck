@@ -1108,13 +1108,13 @@ h1.narrative-summary {
 
 /* Venue cards — horizontal scroll with snap */
 .venue-scroll {
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: var(--space-base);
   display: flex;
   gap: var(--space-3);
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-  scroll-padding-left: var(--space-base);
   padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
 }
 /* Thin scrollbar on desktop */
 .venue-scroll::-webkit-scrollbar { height: 6px; }
@@ -2043,6 +2043,7 @@ h1.narrative-summary {
   }
   /* .narrative-summary font-size now handled by clamp() in --type-verdict */
   .venue-card { width: 220px; }
+  .venue-card--headline { width: 190px; }
   .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
   .venue-card.section-card--highlighted { border-left-width: 2px; }
@@ -2055,6 +2056,7 @@ h1.narrative-summary {
   /* .narrative-summary and .card-band-label font-sizes now handled by clamp() in --type-verdict */
   .sidebar-card { padding: var(--space-base); }
   .venue-card { width: 220px; padding: var(--space-md); }
+  .venue-card--headline { width: 180px; }
   /* 1.5-card peek: bleed scroll container to right edge (skip static) */
   .venue-scroll:not(.venue-scroll--static) {
     margin-right: calc(-1 * var(--space-base));
@@ -2413,9 +2415,80 @@ h1.narrative-summary {
 }
 
 /* ================================================================
+   Mobile Sticky Tab Bar (NES-323)
+   Scroll-synced section navigation for < 1024px.
+   Hidden on desktop where the rail sidebar nav is visible.
+   ================================================================ */
+
+.mobile-tab-bar {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .mobile-tab-bar {
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 44px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-light);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    /* Stretch edge-to-edge past parent padding */
+    margin-left: calc(-1 * var(--space-lg));
+    margin-right: calc(-1 * var(--space-lg));
+    padding-left: var(--space-lg);
+    /* Hide scrollbar across browsers */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .mobile-tab-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-tab-bar__track {
+    display: inline-flex;
+    height: 44px;
+    align-items: stretch;
+  }
+
+  .mobile-tab__link {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-4);
+    height: 44px;
+    font-size: var(--type-caption);
+    font-weight: var(--weight-medium);
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color 100ms ease, border-color 100ms ease;
+    scroll-snap-align: start;
+  }
+
+  .mobile-tab__link:hover {
+    color: var(--color-text-secondary);
+  }
+
+  .mobile-tab__link--active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .mobile-tab__link:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+}
+
+/* ================================================================
    Print
    ================================================================ */
 @media print {
+  .mobile-tab-bar { display: none; }
   nav, .share-bar, .embed-overlay, footer { display: none; }
   .cookie-banner { display: none; }
   #feedback-prompt { display: none; }
