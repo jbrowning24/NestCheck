@@ -1948,3 +1948,29 @@ def is_subscription_active(email: str) -> bool:
         conn.close()
 
 
+def update_payment_snapshot_id(snapshot_id: str, job_id: str) -> None:
+    """Backfill snapshot_id on payments linked to this job."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE payments SET snapshot_id = ? WHERE job_id = ? AND snapshot_id IS NULL",
+            (snapshot_id, job_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def update_payment_snapshot_id_direct(payment_id: str, snapshot_id: str) -> None:
+    """Link a payment directly to a snapshot_id (unlock-existing-report flow)."""
+    conn = _get_db()
+    try:
+        conn.execute(
+            "UPDATE payments SET snapshot_id = ? WHERE id = ?",
+            (snapshot_id, payment_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+

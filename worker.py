@@ -165,6 +165,13 @@ def _run_job_impl(job_id: str, address: str, visitor_id: str = None, request_id:
         )
         complete_job(job_id, snapshot_id)
 
+        # Backfill snapshot_id on linked payment row (never blocks worker)
+        try:
+            from models import update_payment_snapshot_id
+            update_payment_snapshot_id(snapshot_id, job_id)
+        except Exception:
+            logger.warning("Failed to backfill payment snapshot_id for job %s", job_id)
+
         # Generate and store OG image (never blocks worker)
         try:
             from og_image import generate_og_image

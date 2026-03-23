@@ -53,7 +53,9 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_available, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
-    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED, SUBSCRIPTION_EXPIRED,
+    create_subscription, update_subscription_status, is_subscription_active,
+    update_payment_snapshot_id_direct,
     save_feedback, save_inline_feedback, has_inline_feedback,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
     get_city_name_by_slug,
@@ -227,6 +229,7 @@ def _is_builder(req):
 _STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 _STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
+_STRIPE_SUBSCRIPTION_PRICE_ID = os.environ.get("STRIPE_SUBSCRIPTION_PRICE_ID")
 REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
 
 try:
@@ -3389,6 +3392,7 @@ def index():
         payment_token = request.form.get("payment_token", "").strip() or None
         _payment_id_for_job = None  # set if a paid token is being redeemed
         email_h = hash_email(email) if email else None
+        _is_subscriber = email and is_subscription_active(email)
 
         if not g.is_builder:
             if REQUIRE_PAYMENT and payment_token:
@@ -3477,7 +3481,7 @@ def index():
                         snapshot_id=snapshot_id,
                         is_builder=g.is_builder, request_id=request_id,
                     )
-                if not check_free_tier_available(email_h):
+                if not _is_subscriber and not check_free_tier_available(email_h):
                     if _wants_json():
                         return jsonify({"error": "free_tier_exhausted"}), 402
                     error = "Free evaluation already used for this email."
@@ -3491,7 +3495,7 @@ def index():
             else:
                 # REQUIRE_PAYMENT=false — free tier still applies when email given
                 if email:
-                    if not check_free_tier_available(email_h):
+                    if not _is_subscriber and not check_free_tier_available(email_h):
                         if _wants_json():
                             return jsonify({"error": "free_tier_exhausted"}), 402
                         error = "Free evaluation already used for this email."
@@ -3558,8 +3562,8 @@ def index():
         if _payment_id_for_job:
             update_payment_job_id(_payment_id_for_job, job_id)
 
-        # Record free tier usage (unpaid path with email)
-        if not _payment_id_for_job and not g.is_builder and email:
+        # Record free tier usage (unpaid path with email, skip for subscribers)
+        if not _payment_id_for_job and not g.is_builder and email and not _is_subscriber:
             record_free_tier_usage(email_h, email)
 
         if _wants_json():
@@ -3701,6 +3705,22 @@ def view_snapshot(snapshot_id):
 
     result = {**snapshot["result"]}
     _prepare_snapshot_for_display(result)
+
+    # Payment redemption on snapshot view (NES-327)
+    payment_token = request.args.get("payment_token")
+    if payment_token and REQUIRE_PAYMENT:
+        payment = get_payment_by_id(payment_token)
+        if payment and payment["status"] in (PAYMENT_PENDING, PAYMENT_PAID):
+            if payment["status"] == PAYMENT_PENDING and STRIPE_AVAILABLE:
+                try:
+                    session = stripe.checkout.Session.retrieve(payment["stripe_session_id"])
+                    if session.payment_status == "paid":
+                        update_payment_status(payment_token, PAYMENT_PAID, expected_status=PAYMENT_PENDING)
+                except Exception:
+                    logger.warning("Stripe session check failed for %s", payment_token)
+            redeem_payment(payment_token)
+            # Link payment to this snapshot (unlock-existing-report flow)
+            update_payment_snapshot_id_direct(payment_token, snapshot_id)
 
     # Content gating (NES-327)
     user_email = None
@@ -4658,28 +4678,53 @@ def checkout_create():
     if not STRIPE_AVAILABLE:
         return jsonify({"error": "Payment system not configured"}), 503
 
-    address = (request.form.get("address") or "").strip()
-    if not address:
-        return jsonify({"error": "Address required"}), 400
-
-    place_id = request.form.get("place_id", "").strip() or ""
-    email_for_checkout = request.form.get("email", "").strip() or ""
+    data = request.get_json(silent=True) or {}
+    tier = data.get("tier", request.form.get("tier", "single"))
+    snapshot_id = data.get("snapshot_id", request.form.get("snapshot_id", "")).strip() or None
 
     payment_id = uuid.uuid4().hex
     base_url = request.url_root.rstrip("/")
     try:
-        session_kwargs = {
-            "mode": "payment",
-            "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
-            "success_url": (
-                f"{base_url}/?payment_token={payment_id}"
-                f"&address={quote(address, safe='')}"
-                f"&place_id={quote(place_id, safe='')}"
-                f"&email={quote(email_for_checkout, safe='')}"
-            ),
-            "cancel_url": f"{base_url}/",
-            "client_reference_id": payment_id,
-        }
+        if tier == "subscription":
+            if not _STRIPE_SUBSCRIPTION_PRICE_ID:
+                return jsonify({"error": "Subscription pricing not configured"}), 503
+            email_for_checkout = data.get("email", request.form.get("email", "")).strip()
+            if not email_for_checkout:
+                return jsonify({"error": "Email required for subscription"}), 400
+            session_kwargs = {
+                "mode": "subscription",
+                "line_items": [{"price": _STRIPE_SUBSCRIPTION_PRICE_ID, "quantity": 1}],
+                "success_url": f"{base_url}/my-reports?subscription=active",
+                "cancel_url": f"{base_url}/pricing",
+                "client_reference_id": payment_id,
+            }
+            address = ""
+        else:
+            # Single-payment flow
+            address = data.get("address", request.form.get("address", "")).strip()
+            if not address:
+                return jsonify({"error": "Address required"}), 400
+
+            place_id = data.get("place_id", request.form.get("place_id", "")).strip() or ""
+            email_for_checkout = data.get("email", request.form.get("email", "")).strip() or ""
+
+            if snapshot_id:
+                success_url = f"{base_url}/s/{snapshot_id}?payment_token={payment_id}"
+            else:
+                success_url = (
+                    f"{base_url}/?payment_token={payment_id}"
+                    f"&address={quote(address, safe='')}"
+                    f"&place_id={quote(place_id, safe='')}"
+                    f"&email={quote(email_for_checkout, safe='')}"
+                )
+
+            session_kwargs = {
+                "mode": "payment",
+                "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
+                "success_url": success_url,
+                "cancel_url": f"{base_url}/",
+                "client_reference_id": payment_id,
+            }
 
         # Wire Stripe Customer for logged-in users so payments are
         # associated with their account for receipts and history.
@@ -4698,11 +4743,62 @@ def checkout_create():
             stripe_session_id=checkout_session.id,
             visitor_id=g.visitor_id,
             address=address,
+            snapshot_id=snapshot_id,
         )
         return jsonify({"checkout_url": checkout_session.url, "payment_id": payment_id})
     except Exception:
         logger.exception("Stripe checkout session creation failed")
         return jsonify({"error": "Payment system error"}), 500
+
+
+def _resolve_email_from_stripe_customer(customer_id: str) -> str | None:
+    """Look up email for a Stripe customer: local DB first, then Stripe API."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT email FROM users WHERE stripe_customer_id = ?",
+            (customer_id,),
+        ).fetchone()
+        if row:
+            return row[0]
+    finally:
+        conn.close()
+    if STRIPE_AVAILABLE:
+        try:
+            customer = stripe.Customer.retrieve(customer_id)
+            return customer.get("email")
+        except Exception:
+            logger.warning("Failed to retrieve Stripe customer %s", customer_id)
+    return None
+
+
+def _handle_subscription_event(sub_obj: dict, event_type: str) -> None:
+    """Handle subscription lifecycle events from Stripe webhooks."""
+    if event_type == "created":
+        email = _resolve_email_from_stripe_customer(sub_obj["customer"])
+        if not email:
+            logger.warning("No email for subscription %s — skipping", sub_obj["id"])
+            return
+        create_subscription(
+            subscription_id=uuid.uuid4().hex,
+            user_email=email,
+            stripe_subscription_id=sub_obj["id"],
+            stripe_customer_id=sub_obj["customer"],
+            period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
+            period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+        )
+    elif event_type == "updated":
+        status = SUBSCRIPTION_ACTIVE
+        if sub_obj.get("cancel_at_period_end"):
+            status = SUBSCRIPTION_CANCELED
+        update_subscription_status(
+            sub_obj["id"],
+            status,
+            period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
+            period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+        )
+    elif event_type == "deleted":
+        update_subscription_status(sub_obj["id"], SUBSCRIPTION_EXPIRED)
 
 
 @app.route("/webhook/stripe", methods=["POST"])
@@ -4736,6 +4832,12 @@ def stripe_webhook():
                 payment["id"], PAYMENT_PAID, expected_status=PAYMENT_PENDING,
             )
             logger.info("Webhook: payment %s → paid", payment["id"])
+    elif event["type"] == "customer.subscription.created":
+        _handle_subscription_event(event["data"]["object"], "created")
+    elif event["type"] == "customer.subscription.updated":
+        _handle_subscription_event(event["data"]["object"], "updated")
+    elif event["type"] == "customer.subscription.deleted":
+        _handle_subscription_event(event["data"]["object"], "deleted")
 
     return jsonify({"status": "ok"}), 200
 
