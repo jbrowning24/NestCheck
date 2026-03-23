@@ -1,0 +1,89 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ state_name }} Neighborhood Reports | NestCheck{% endblock %}
+
+{% block meta_description %}Explore NestCheck property evaluations across {{ state_cities | length }} cities in {{ state_name }}. Health checks, walkability scores, and livability data.{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ state_name }} Neighborhood Reports",
+  "description": "NestCheck property evaluations in {{ state_name }}",
+  "url": "{{ request.url.split('?')[0] }}",
+  "mainEntity": {
+    "@type": "AdministrativeArea",
+    "name": "{{ state_name }}"{% if state_cities %},
+    "containsPlace": [
+      {% for city in state_cities %}
+      {
+        "@type": "City",
+        "name": "{{ city.city | e }}",
+        "url": "{{ request.host_url.rstrip('/') }}/city/{{ state_abbr | lower }}/{{ city.slug }}"
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+    {% endif %}
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {% for bc in breadcrumbs %}
+      {
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "name": "{{ bc.name }}"{% if bc.url %},
+        "item": "{{ request.host_url.rstrip('/') }}{{ bc.url }}"{% endif %}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/state.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="state-page">
+
+  <nav class="state-breadcrumbs" aria-label="Breadcrumb">
+    {% for bc in breadcrumbs %}
+      {% if bc.url %}
+        <a href="{{ bc.url }}">{{ bc.name }}</a>
+      {% else %}
+        <span>{{ bc.name }}</span>
+      {% endif %}
+      {% if not loop.last %}<span class="state-breadcrumb-sep">/</span>{% endif %}
+    {% endfor %}
+  </nav>
+
+  <h1 class="state-heading">{{ state_name }}</h1>
+
+  <div class="state-tier-pill">{{ coverage_tier }}</div>
+
+  {% if state_cities %}
+  <section class="state-cities">
+    <h2 class="state-section-heading">Evaluated Cities</h2>
+    <div class="state-city-list">
+      {% for city in state_cities %}
+      <a href="{{ url_for('view_city', state=state_abbr|lower, city_slug=city.slug) }}" class="state-city-card">
+        <span class="state-city-name">{{ city.city }}</span>
+        <span class="state-city-count">{{ city.snapshot_count }} evaluations</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <p class="state-no-cities">We're building evaluation coverage in {{ state_name }}. Check back soon.</p>
+  {% endif %}
+
+  <section class="state-cta">
+    <a href="/" class="state-cta-button">Evaluate an address in {{ state_name }}</a>
+  </section>
+
+</div>
+{% endblock %}

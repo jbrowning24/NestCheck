@@ -1,0 +1,121 @@
+/* State area page (NES-344) — page-scoped styles */
+
+.state-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-base);
+}
+
+.state-breadcrumbs {
+  font-size: var(--type-l5-size, 11px);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l5-tracking, 0.05em);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.state-breadcrumbs a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.state-breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.state-breadcrumb-sep {
+  margin: 0 var(--space-xs);
+}
+
+.state-heading {
+  font-size: var(--type-l1-size, 28px);
+  font-weight: var(--type-l1-weight, 600);
+  line-height: var(--type-l1-leading, 1.2);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.state-tier-pill {
+  display: inline-block;
+  font-size: var(--type-l5-size, 11px);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l5-tracking, 0.05em);
+  padding: 2px 10px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-surface-alt, #F1F5F9);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
+}
+
+.state-section-heading {
+  font-size: var(--type-l2-size, 14px);
+  font-weight: var(--type-l2-weight, 600);
+  text-transform: uppercase;
+  letter-spacing: var(--type-l2-tracking, 0.08em);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md) 0;
+}
+
+.state-city-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.state-city-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.state-city-card:hover {
+  border-color: var(--color-border);
+}
+
+.state-city-name {
+  font-size: 15px;
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.state-city-count {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.state-no-cities {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+.state-cta {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.state-cta-button {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: 15px;
+}
+
+.state-cta-button:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .state-page {
+    padding: var(--space-md) var(--space-sm);
+  }
+}
