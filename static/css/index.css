@@ -301,21 +301,6 @@ body:has(.landing-container) {
 
 .loading-overlay.active { display: flex; }
 
-.loading-brand {
-  color: var(--color-text-inverse);
-}
-
-.loading-mark {
-  width: 56px;
-  height: 56px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(0.95); opacity: 0.6; }
-  50%       { transform: scale(1.05); opacity: 1; }
-}
-
 .loading-text {
   margin-top: 20px;
   font-family: var(--font-heading);
@@ -325,11 +310,12 @@ body:has(.landing-container) {
 }
 
 .loading-progress {
-  width: 200px;
-  height: 6px;
+  width: 100%;
+  max-width: 480px;
+  height: 3px;
   margin-top: 16px;
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
@@ -337,7 +323,7 @@ body:has(.landing-container) {
   height: 100%;
   width: 0%;
   background: var(--color-accent);
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.4s ease;
 }
 
@@ -345,6 +331,7 @@ body:has(.landing-container) {
   margin-top: 12px;
   font-size: var(--font-size-body);
   color: rgba(255, 255, 255, 0.6);
+  transition: opacity 200ms ease;
 }
 
 .loading-patience {
@@ -485,6 +472,13 @@ body:has(.landing-container) {
 
   .search-box button:hover {
     transform: none;
+  }
+
+  /* Loading overlay — disable transitions */
+  .loading-sub,
+  .loading-patience,
+  .loading-progress-fill {
+    transition-duration: 0.01ms !important;
   }
 }
 

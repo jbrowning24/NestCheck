@@ -62,12 +62,6 @@
 
 <!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite" aria-hidden="true">
-  <div class="loading-brand">
-    <svg class="loading-mark" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M8 22 L24 8 L40 22 V40 A2 2 0 0 1 38 42 H10 A2 2 0 0 1 8 40 Z"/>
-      <rect x="18" y="28" width="12" height="14" rx="1"/>
-    </svg>
-  </div>
   <div class="loading-text">Evaluating this address...</div>
   <div class="loading-progress">
     <div class="loading-progress-fill" id="progressFill"></div>
@@ -485,6 +479,8 @@
 
   (function() {
     var POLL_INTERVAL_MS = 2000;
+    var patienceTimerId = null;
+    var escalationTimerId = null;
 
     // Stage names from backend -> user-facing progress text + approximate percentage
     var STAGE_DISPLAY = {
@@ -512,16 +508,6 @@
       saving:               { text: 'Saving your results...',                 pct: 97 }
     };
 
-    function stageDisplay(stage) {
-      var info = STAGE_DISPLAY[stage];
-      return info ? info.text : 'Working...';
-    }
-
-    function stagePercent(stage) {
-      var info = STAGE_DISPLAY[stage];
-      return info ? info.pct : 0;
-    }
-
     function setProgress(pct) {
       var fill = document.getElementById('progressFill');
       if (fill) fill.style.width = pct + '%';
@@ -532,6 +518,8 @@
       overlay.setAttribute('aria-hidden', 'true');
       var p = document.getElementById('loadingPatience');
       if (p) p.classList.remove('visible');
+      clearTimeout(patienceTimerId);
+      clearTimeout(escalationTimerId);
     }
 
     function showError(msg, overlay, btn, form) {
@@ -567,9 +555,18 @@
       setProgress(2);
 
       var patienceEl = document.getElementById('loadingPatience');
-      var patienceTimer = setTimeout(function() {
-        if (patienceEl) patienceEl.classList.add('visible');
-      }, 10000);
+      patienceTimerId = setTimeout(function() {
+        if (patienceEl) {
+          patienceEl.textContent = 'Detailed reports typically take 20\u201330 seconds.';
+          patienceEl.classList.add('visible');
+        }
+      }, 15000);
+
+      escalationTimerId = setTimeout(function() {
+        if (patienceEl) {
+          patienceEl.textContent = 'This is taking longer than usual. The report will appear automatically when ready.';
+        }
+      }, 45000);
 
       var notFoundRetries = 0;
       var MAX_NOT_FOUND_RETRIES = 5;
@@ -586,7 +583,8 @@
                   setTimeout(poll, POLL_INTERVAL_MS);
                   return null;
                 }
-                clearTimeout(patienceTimer);
+                clearTimeout(patienceTimerId);
+                clearTimeout(escalationTimerId);
                 showError('Job not found. The server may be busy — please try again.', overlay, btn, form);
               } else {
                 networkErrorRetries++;
@@ -594,7 +592,8 @@
                   setTimeout(poll, POLL_INTERVAL_MS * 2);
                   return null;
                 }
-                clearTimeout(patienceTimer);
+                clearTimeout(patienceTimerId);
+                clearTimeout(escalationTimerId);
                 showError('Server error (' + r.status + '). Please try again.', overlay, btn, form);
               }
               return null;
@@ -606,11 +605,31 @@
           .then(function(data) {
             if (!data) return;
             if (data.current_stage) {
-              loadingSub.textContent = stageDisplay(data.current_stage);
-              setProgress(stagePercent(data.current_stage));
+              var stageInfo = STAGE_DISPLAY[data.current_stage];
+              if (stageInfo) {
+                if (loadingSub.textContent !== stageInfo.text) {
+                  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                  if (reducedMotion) {
+                    loadingSub.textContent = stageInfo.text;
+                  } else {
+                    loadingSub.style.opacity = '0';
+                    var fallback = setTimeout(function() {
+                      loadingSub.textContent = stageInfo.text;
+                      loadingSub.style.opacity = '1';
+                    }, 250);
+                    loadingSub.addEventListener('transitionend', function() {
+                      clearTimeout(fallback);
+                      loadingSub.textContent = stageInfo.text;
+                      loadingSub.style.opacity = '1';
+                    }, { once: true });
+                  }
+                }
+                setProgress(stageInfo.pct);
+              }
             }
             if (data.status === 'done' && data.snapshot_id) {
-              clearTimeout(patienceTimer);
+              clearTimeout(patienceTimerId);
+              clearTimeout(escalationTimerId);
               setProgress(100);
               var addrInput = document.getElementById('address-input');
               if (addrInput && addrInput.value) {
@@ -620,7 +639,8 @@
               return;
             }
             if (data.status === 'failed') {
-              clearTimeout(patienceTimer);
+              clearTimeout(patienceTimerId);
+              clearTimeout(escalationTimerId);
               showError(data.error || 'Evaluation failed.', overlay, btn, form);
               return;
             }
@@ -632,7 +652,8 @@
               setTimeout(poll, POLL_INTERVAL_MS * 2);
               return;
             }
-            clearTimeout(patienceTimer);
+            clearTimeout(patienceTimerId);
+            clearTimeout(escalationTimerId);
             showError('Could not check job status. Please try again.', overlay, btn, form);
           });
       }
