@@ -25,7 +25,7 @@ Three components to enable third-party embedding of NestCheck scores:
 - Jinja2 SVG template: `templates/widget_badge.html`
 - Self-contained SVG with inline text and shapes — no Pillow, no external fonts, no external dependencies
 - System font stack via SVG `font-family` attribute (`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`)
-- Route passes `band_css_class` from `get_score_band()`. Template maps to hex colors using the same `{% if/elif %}` pattern as `widget_card.html`
+- Route maps `band["css_class"]` to hex color via a Python `band_colors` dict and passes `band_color` directly to the template (cleaner than the card widget's Jinja2 `{% if/elif %}` pattern — no logic duplication in the SVG template)
 
 **Banner layout (200×60):**
 - NestCheck logo mark (two skewed rectangles, simplified for SVG)
