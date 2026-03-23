@@ -2,11 +2,11 @@
 
 {% block title %}NestCheck — Pricing{% endblock %}
 
-{% block meta_description %}<meta name="description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, and safety for any address.">{% endblock %}
+{% block meta_description %}<meta name="description" content="NestCheck pricing — free health checks, $9 full evaluations, $39/mo unlimited. Evaluate what you can't renovate — the location.">{% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ self.title() }}">
-<meta property="og:description" content="NestCheck pricing — $9 per evaluation. Get detailed reports on walkability, parks, transit, and safety for any address.">
+<meta property="og:description" content="NestCheck pricing — free health checks, $9 full evaluations, $39/mo unlimited. Evaluate what you can't renovate — the location.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
@@ -20,42 +20,95 @@
 <div class="pricing-page">
 
   <div class="pricing-hero">
-    <h1 class="pricing-title">Simple pricing.</h1>
-    <p class="pricing-subtitle">One evaluation, one price. No subscriptions, no hidden fees.</p>
+    <p class="pricing-tagline">NestCheck evaluates what you can't renovate — the location.</p>
+    <h1 class="pricing-heading">Simple, transparent pricing</h1>
   </div>
 
-  <div class="price-card">
-    <div class="price-header">
-      <div class="price-amount">$9</div>
-      <div class="price-unit">per evaluation</div>
-      <p class="price-desc">Full NestCheck livability evaluation for any U.S. address.</p>
+  <div class="pricing-grid">
+
+    <!-- Health Check (Free) -->
+    <div class="pricing-card">
+      <div class="pricing-card-header">
+        <div class="pricing-card-price">Free</div>
+        <h2 class="pricing-card-name">Health Check</h2>
+        <p class="pricing-card-headline">Is this address safe to live at?</p>
+      </div>
+      <ul class="pricing-card-features">
+        <li>Environmental health screening</li>
+        <li>Hazard proximity analysis</li>
+        <li>Overall livability score</li>
+        <li>Up to 10 addresses/month</li>
+      </ul>
+      <a href="/" class="pricing-cta">Check an address</a>
     </div>
 
-    <ul class="price-features">
-      <li>Health &amp; safety screening (highways, gas stations, roads)</li>
-      <li>Green escape &amp; park quality analysis</li>
-      <li>Transit, walkability, and commute scoring</li>
-      <li>Daily essentials: grocery, cafes, fitness</li>
-      <li>Final livability score (0–100) with full breakdown</li>
-      <li>Shareable snapshot link</li>
-      <li>JSON &amp; CSV data export</li>
-      <li>Print-ready layout</li>
-    </ul>
-
-    <a href="/#evaluate" class="price-btn">Evaluate an Address</a>
-    <div class="cta-flow">Evaluate &rarr; Review results &rarr; Share or export</div>
-  </div>
-
-  <div class="coming-soon-section">
-    <div class="pricing-section-label">Coming Soon</div>
-    <div class="coming-soon-card">
-      <h3>Bundles &amp; Subscriptions</h3>
-      <p>Evaluating multiple addresses? We&rsquo;re building 5-packs and monthly plans for active movers and real estate professionals.</p>
+    <!-- Full Evaluation ($9) -->
+    <div class="pricing-card">
+      <div class="pricing-card-header">
+        <div class="pricing-card-price">$9</div>
+        <h2 class="pricing-card-name">Full Evaluation</h2>
+        <p class="pricing-card-headline">Everything about this location</p>
+      </div>
+      <ul class="pricing-card-features">
+        <li>All health checks, plus:</li>
+        <li>Nearby cafes, groceries, gyms with walk times</li>
+        <li>Park and green space access</li>
+        <li>Transit and walkability detail</li>
+        <li>School district context</li>
+      </ul>
+      <a href="/" class="pricing-cta">Evaluate an address</a>
     </div>
+
+    <!-- Active Search ($39/mo) — recommended -->
+    <div class="pricing-card pricing-card--recommended">
+      <div class="pricing-card-badge">Recommended</div>
+      <div class="pricing-card-header">
+        <div class="pricing-card-price">$39<span class="pricing-card-period">/mo</span></div>
+        <h2 class="pricing-card-name">Active Search</h2>
+        <p class="pricing-card-headline">Evaluate every address on your list</p>
+      </div>
+      <ul class="pricing-card-features">
+        <li>Unlimited full evaluations</li>
+        <li>Perfect for your 3–6 month home search</li>
+        <li>Cancel anytime</li>
+      </ul>
+      <form class="pricing-subscribe-form" onsubmit="return handleSubscribe(event)">
+        {% if current_user.is_authenticated %}
+        <input type="hidden" name="email" value="{{ current_user.email }}">
+        {% else %}
+        <input type="email" name="email" placeholder="Your email" required
+          autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+        {% endif %}
+        <button type="submit" class="pricing-cta pricing-cta--primary">Start searching</button>
+      </form>
+    </div>
+
   </div>
 
   <p class="pricing-note">Questions? Reach out on <a href="https://github.com/jbrowning24/NestCheck" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
 
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function handleSubscribe(event) {
+    event.preventDefault();
+    var form = event.target;
+    var email = form.querySelector('[name="email"]').value;
+    try {
+        var data = await csrfFetch('/checkout/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email: email, tier: 'subscription'})
+        });
+        if (data && data.checkout_url) {
+            window.location.href = data.checkout_url;
+        }
+    } catch (err) {
+        console.error('Subscription checkout failed:', err);
+    }
+}
+</script>
 {% endblock %}
