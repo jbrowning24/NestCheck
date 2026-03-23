@@ -1,0 +1,124 @@
+{
+  "address": "456 Industrial Ave, Newark, NJ 07105",
+  "coordinates": {"lat": 40.7245, "lng": -74.1489},
+  "walk_scores": {"walk_score": 42, "transit_score": 35, "bike_score": 28},
+  "child_schooling_snapshot": {"childcare": [], "schools_by_level": {}},
+  "urban_access": null,
+  "transit_access": null,
+  "green_escape": null,
+  "transit_score": null,
+  "passed_tier1": false,
+  "tier1_checks": [
+    {"name": "Gas station", "result": "FAIL", "details": "Gas station within 120 ft of address", "required": true, "value": 120, "show_detail": true},
+    {"name": "Flood zone", "result": "PASS", "details": "Not in a FEMA flood zone", "required": true, "value": null, "show_detail": false},
+    {"name": "hifld_power_lines", "result": "PASS", "details": "No transmission lines within 500 ft", "required": true, "value": null, "show_detail": true},
+    {"name": "hpms_high_traffic", "result": "FAIL", "details": "Route 21 (AADT 78,000) is 85 ft from address", "required": true, "value": 85, "show_detail": true},
+    {"name": "ust_proximity", "result": "WARNING", "details": "Underground storage tank 250 ft from address", "required": true, "value": 250, "show_detail": true},
+    {"name": "tri_proximity", "result": "PASS", "details": "No toxic release sites nearby", "required": true, "value": null, "show_detail": true},
+    {"name": "sems_proximity", "result": "PASS", "details": "No Superfund sites nearby", "required": true, "value": null, "show_detail": true},
+    {"name": "fra_rail_proximity", "result": "PASS", "details": "No active rail lines within 300 ft", "required": true, "value": null, "show_detail": true},
+    {"name": "ejscreen_pm25", "result": "PASS", "details": "PM2.5 at 72nd percentile", "required": true, "value": null, "show_detail": false},
+    {"name": "ejscreen_ozone", "result": "PASS", "details": "Ozone at 65th percentile", "required": true, "value": null, "show_detail": false}
+  ],
+  "presented_checks": [
+    {"name": "Gas station", "result": "FAIL", "category": "SAFETY", "result_type": "CONFIRMED_ISSUE", "proximity_band": "VERY_CLOSE", "headline": "Gas station very close to this address", "explanation": "Gas station within 120 ft of address", "health_context": ["Gas stations release benzene and volatile organic compounds that can affect respiratory health."], "citations": [{"label": "EPA — Benzene", "url": "https://www.epa.gov/benzene"}], "hazard_tier": 1},
+    {"name": "Flood zone", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Not in a flood zone", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "hifld_power_lines", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No high-voltage power lines nearby", "explanation": "No transmission lines within 500 ft", "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "hpms_high_traffic", "result": "FAIL", "category": "SAFETY", "result_type": "CONFIRMED_ISSUE", "proximity_band": "VERY_CLOSE", "headline": "High-traffic road very close to this address", "explanation": "Route 21 (AADT 78,000) is 85 ft from address", "health_context": ["High-traffic roads produce elevated levels of particulate matter and noise."], "citations": [], "hazard_tier": 1},
+    {"name": "ust_proximity", "result": "WARNING", "category": "SAFETY", "result_type": "WARNING_DETECTED", "proximity_band": "NOTABLE", "headline": "Underground storage tank in the vicinity", "explanation": "Underground storage tank 250 ft from address", "health_context": ["Leaking underground storage tanks can contaminate groundwater."], "citations": [], "hazard_tier": 1},
+    {"name": "tri_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No toxic release sites nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "sems_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No Superfund sites nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "fra_rail_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No active rail lines nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "ejscreen_pm25", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Air quality — PM2.5 levels within range", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 2},
+    {"name": "ejscreen_ozone", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Air quality — Ozone levels within range", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 2}
+  ],
+  "tier2_score": 18,
+  "tier2_max": 60,
+  "tier2_normalized": 30,
+  "tier2_scores": [
+    {"name": "Coffee & Social Spots", "points": 4, "max": 10, "details": "Nearest cafe is a 25-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Daily Essentials", "points": 3, "max": 10, "details": "Nearest grocery is a 28-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Fitness & Recreation", "points": 1, "max": 10, "details": "No quality gyms within walking distance", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Parks & Green Space", "points": 2, "max": 10, "details": "Limited park access — nearest qualifying park is a 35-minute walk", "data_confidence": "estimated", "data_confidence_note": "Limited green space data in this area", "suppressed_reason": null},
+    {"name": "Getting Around", "points": 5, "max": 10, "details": "Bus stop within 10-minute walk, infrequent service", "data_confidence": "estimated", "data_confidence_note": "Transit data estimated from schedules", "suppressed_reason": null},
+    {"name": "Road Noise", "points": 3, "max": 10, "details": "Significant road noise from Route 21", "data_confidence": "verified", "data_confidence_note": "Based on HPMS traffic data", "suppressed_reason": null}
+  ],
+  "tier3_bonus": 0,
+  "tier3_bonuses": [],
+  "tier3_bonus_reasons": [],
+  "final_score": 31,
+  "percentile_top": null,
+  "percentile_label": null,
+  "neighborhood_places": {
+    "coffee": [
+      {"name": "Dunkin'", "rating": 3.8, "user_ratings_total": 120, "walk_time_min": 25, "drive_time_min": 6, "website": null, "place_id": "coffee_c1", "lat": 40.7260, "lng": -74.1510, "review_count": 120, "review_snippet": null, "review_time": null}
+    ],
+    "grocery": [
+      {"name": "ShopRite", "rating": 3.5, "user_ratings_total": 200, "walk_time_min": 28, "drive_time_min": 7, "website": null, "place_id": "grocery_c1", "lat": 40.7230, "lng": -74.1520, "review_count": 200, "review_snippet": null, "review_time": null}
+    ],
+    "fitness": [],
+    "parks": [
+      {"name": "Riverbank Park", "rating": 3.9, "user_ratings_total": 45, "walk_time_min": 35, "drive_time_min": 8, "website": null, "place_id": "park_c1", "lat": 40.7200, "lng": -74.1450, "review_count": 45, "review_snippet": null, "review_time": null}
+    ]
+  },
+  "neighborhood_summary": {
+    "coffee_count": 1,
+    "grocery_count": 1,
+    "fitness_count": 0,
+    "parks_count": 1
+  },
+  "road_noise": {
+    "worst_road_name": "Route 21",
+    "worst_road_ref": "NJ 21",
+    "worst_road_type": "trunk",
+    "worst_road_lanes": 6,
+    "distance_ft": 85,
+    "estimated_dba": 78,
+    "severity": "VERY_LOUD",
+    "severity_label": "Very loud",
+    "methodology_note": "Estimated from road classification and distance",
+    "all_roads_assessed": true
+  },
+  "ejscreen_profile": null,
+  "school_district": null,
+  "nearby_schools": null,
+  "demographics": {
+    "place_name": "Newark",
+    "state_fips": "34",
+    "population": 311549,
+    "total_households": 100000,
+    "median_household_income": 38854,
+    "median_age": 33.1,
+    "owner_pct": 22.0,
+    "renter_pct": 78.0
+  },
+  "walk_quality": null,
+  "structured_summary": "This address has 2 confirmed health concerns (gas station proximity and high-traffic road) and 1 warning (underground storage tank). These must be reviewed before livability scoring can proceed.",
+  "verdict": "Health concerns identified — 2 issues and 1 warning detected",
+  "score_band": {"label": "Significant Gaps", "css_class": "band-significant-gaps"},
+  "dimension_summaries": [
+    {"name": "Coffee & Social Spots", "score": 4, "max_score": 10, "summary": "Nearest cafe is a 25-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "limited", "label": "Limited"}, "access_mode": "walk", "walk_time_min": 25, "drive_time_min": 6, "venue_name": "Dunkin'", "category_label": "coffee shops"},
+    {"name": "Daily Essentials", "score": 3, "max_score": 10, "summary": "Nearest grocery is a 28-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "limited", "label": "Limited"}, "access_mode": "drive", "walk_time_min": 28, "drive_time_min": 7, "venue_name": "ShopRite", "category_label": "grocery"},
+    {"name": "Fitness & Recreation", "score": 1, "max_score": 10, "summary": "No quality gyms within walking distance", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "limited", "label": "Limited"}, "access_mode": null, "walk_time_min": null, "drive_time_min": null, "venue_name": null, "category_label": "fitness"},
+    {"name": "Parks & Green Space", "score": 2, "max_score": 10, "summary": "Limited park access", "data_confidence": "estimated", "data_confidence_note": "Limited green space data in this area", "suppressed_reason": null, "band": {"key": "limited", "label": "Limited"}, "access_mode": "drive", "walk_time_min": 35, "drive_time_min": 8, "venue_name": "Riverbank Park", "category_label": "parks"},
+    {"name": "Getting Around", "score": 5, "max_score": 10, "summary": "Bus stop within 10-minute walk, infrequent service", "data_confidence": "estimated", "data_confidence_note": "Transit data estimated", "suppressed_reason": null, "band": {"key": "moderate", "label": "Moderate"}, "access_mode": null, "walk_time_min": null, "drive_time_min": null, "venue_name": null, "category_label": null},
+    {"name": "Road Noise", "score": 3, "max_score": 10, "summary": "Significant road noise from Route 21", "data_confidence": "verified", "data_confidence_note": "Based on HPMS traffic data", "suppressed_reason": null, "band": {"key": "limited", "label": "Limited"}, "access_mode": null, "walk_time_min": null, "drive_time_min": null, "venue_name": null, "category_label": null}
+  ],
+  "data_confidence_summary": {
+    "level": "estimated",
+    "note": "Some dimensions have limited data coverage",
+    "limited_dimensions": ["Parks & Green Space", "Getting Around"],
+    "sparse_dimensions": [],
+    "not_scored_dimensions": []
+  },
+  "insights": {
+    "proximity": "This address has 2 confirmed health concerns and 1 warning. A gas station is within 120 ft and Route 21 carries heavy traffic just 85 ft away.",
+    "your_neighborhood": "Most everyday amenities will likely require driving from this location.",
+    "getting_around": null,
+    "parks": null,
+    "community_profile": null
+  },
+  "summary_narrative": "<p><strong>456 Industrial Ave</strong> has health and safety concerns that need attention. A gas station sits within 120 ft and Route 21 carries 78,000 vehicles daily just 85 ft from the address. An underground storage tank is also in the vicinity.</p>",
+  "unknown_check_count": 0,
+  "show_numeric_score": true
+}

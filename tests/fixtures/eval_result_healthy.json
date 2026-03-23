@@ -1,0 +1,201 @@
+{
+  "address": "123 Oak Street, Brooklyn, NY 11201",
+  "coordinates": {"lat": 40.6892, "lng": -73.9857},
+  "walk_scores": {"walk_score": 89, "transit_score": 82, "bike_score": 72},
+  "child_schooling_snapshot": {"childcare": [], "schools_by_level": {}},
+  "urban_access": {
+    "primary_transit": {
+      "mode": "subway",
+      "name": "Borough Hall Station",
+      "walk_time_min": 8,
+      "drive_time_min": 3,
+      "parking_available": false,
+      "frequency_class": "High frequency",
+      "wheelchair_accessible_entrance": true,
+      "elevator_available": true,
+      "ada_accessibility_note": null,
+      "lat": 40.6921,
+      "lng": -73.9901
+    },
+    "major_hub": null
+  },
+  "transit_access": {
+    "primary_stop": "Borough Hall Station",
+    "walk_minutes": 8,
+    "mode": "subway",
+    "frequency_bucket": "High frequency",
+    "score_0_10": 8,
+    "reasons": ["Subway station within 10-minute walk", "High frequency service"]
+  },
+  "green_escape": {
+    "best_daily_park": {
+      "name": "Brooklyn Bridge Park",
+      "place_id": "ChIJOwg_06VPwokRYv534QaPC8g",
+      "rating": 4.8,
+      "user_ratings_total": 12500,
+      "walk_time_min": 12,
+      "drive_time_min": 4,
+      "types_display": "Park",
+      "daily_walk_value": 8,
+      "criteria_status": "qualifying",
+      "criteria_reasons": ["Large park with excellent rating and reviews"],
+      "subscores": [
+        {"name": "Walk Time", "score": 3, "max_score": 4, "reason": "12-minute walk", "is_estimate": false},
+        {"name": "Size & Amenities", "score": 3, "max_score": 3, "reason": "Large park with extensive amenities", "is_estimate": false},
+        {"name": "Quality", "score": 2, "max_score": 3, "reason": "4.8 stars with 12,500+ reviews", "is_estimate": false}
+      ],
+      "osm_enriched": true,
+      "osm_amenity_tags": ["playground", "bench", "drinking_water"],
+      "osm_area_sqm": 340000,
+      "osm_path_count": 15,
+      "osm_has_trail": true
+    },
+    "nearby_green_spaces": [
+      {
+        "name": "Brooklyn Bridge Park",
+        "place_id": "ChIJOwg_06VPwokRYv534QaPC8g",
+        "rating": 4.8,
+        "user_ratings_total": 12500,
+        "walk_time_min": 12,
+        "drive_time_min": 4,
+        "daily_walk_value": 8
+      },
+      {
+        "name": "Cadman Plaza Park",
+        "place_id": "ChIJd8KdGcVawokR456",
+        "rating": 4.5,
+        "user_ratings_total": 3200,
+        "walk_time_min": 6,
+        "drive_time_min": 2,
+        "daily_walk_value": 6
+      }
+    ],
+    "messages": [],
+    "total_green_space_count": 2
+  },
+  "transit_score": 8,
+  "passed_tier1": true,
+  "tier1_checks": [
+    {"name": "Gas station", "result": "PASS", "details": "Nearest gas station is 1,200 ft away", "required": true, "value": 1200, "show_detail": true},
+    {"name": "Flood zone", "result": "PASS", "details": "Not in a FEMA flood zone", "required": true, "value": null, "show_detail": false},
+    {"name": "hifld_power_lines", "result": "PASS", "details": "No transmission lines within 500 ft", "required": true, "value": null, "show_detail": true},
+    {"name": "hpms_high_traffic", "result": "PASS", "details": "No high-traffic roads within 300 ft", "required": true, "value": null, "show_detail": true},
+    {"name": "ust_proximity", "result": "PASS", "details": "No underground storage tanks nearby", "required": true, "value": null, "show_detail": true},
+    {"name": "tri_proximity", "result": "PASS", "details": "No toxic release sites nearby", "required": true, "value": null, "show_detail": true},
+    {"name": "sems_proximity", "result": "PASS", "details": "No Superfund sites nearby", "required": true, "value": null, "show_detail": true},
+    {"name": "fra_rail_proximity", "result": "PASS", "details": "No active rail lines within 300 ft", "required": true, "value": null, "show_detail": true},
+    {"name": "ejscreen_pm25", "result": "PASS", "details": "PM2.5 levels below the 80th percentile", "required": true, "value": null, "show_detail": false},
+    {"name": "ejscreen_ozone", "result": "PASS", "details": "Ozone levels below the 80th percentile", "required": true, "value": null, "show_detail": false}
+  ],
+  "presented_checks": [
+    {"name": "Gas station", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No gas stations nearby", "explanation": "Nearest gas station is 1,200 ft away", "health_context": ["Gas stations can release benzene and volatile organic compounds."], "citations": [], "hazard_tier": 1},
+    {"name": "Flood zone", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Not in a flood zone", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "hifld_power_lines", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No high-voltage power lines nearby", "explanation": "No transmission lines within 500 ft", "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "hpms_high_traffic", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No high-traffic roads nearby", "explanation": "No high-traffic roads within 300 ft", "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "ust_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No underground storage tanks nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "tri_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No toxic release sites nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "sems_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No Superfund sites nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "fra_rail_proximity", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "No active rail lines nearby", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 1},
+    {"name": "ejscreen_pm25", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Air quality — PM2.5 levels normal", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 2},
+    {"name": "ejscreen_ozone", "result": "PASS", "category": "SAFETY", "result_type": "CLEAR", "proximity_band": "NEUTRAL", "headline": "Air quality — Ozone levels normal", "explanation": null, "health_context": [], "citations": [], "hazard_tier": 2}
+  ],
+  "tier2_score": 42,
+  "tier2_max": 60,
+  "tier2_normalized": 70,
+  "tier2_scores": [
+    {"name": "Coffee & Social Spots", "points": 9, "max": 10, "details": "Excellent cafe access within 5-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Daily Essentials", "points": 8, "max": 10, "details": "Strong grocery access within 7-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Fitness & Recreation", "points": 7, "max": 10, "details": "Good gym access within 8-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null},
+    {"name": "Parks & Green Space", "points": 8, "max": 10, "details": "Brooklyn Bridge Park is a 12-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places and OSM data", "suppressed_reason": null},
+    {"name": "Getting Around", "points": 5, "max": 10, "details": "Subway within 8-minute walk, high frequency", "data_confidence": "estimated", "data_confidence_note": "Transit frequency estimated from schedules", "suppressed_reason": null},
+    {"name": "Road Noise", "points": 5, "max": 10, "details": "Moderate road noise from Atlantic Avenue", "data_confidence": "estimated", "data_confidence_note": "Based on road classification data", "suppressed_reason": null}
+  ],
+  "tier3_bonus": 0,
+  "tier3_bonuses": [],
+  "tier3_bonus_reasons": [],
+  "final_score": 74,
+  "percentile_top": null,
+  "percentile_label": null,
+  "neighborhood_places": {
+    "coffee": [
+      {"name": "Blue Bottle Coffee", "rating": 4.6, "user_ratings_total": 890, "walk_time_min": 5, "drive_time_min": 2, "website": null, "place_id": "coffee_1", "lat": 40.6895, "lng": -73.9862, "review_count": 890, "review_snippet": "Best cortado in downtown Brooklyn", "review_time": "3 months ago"},
+      {"name": "Stumptown Coffee Roasters", "rating": 4.5, "user_ratings_total": 650, "walk_time_min": 8, "drive_time_min": 3, "website": null, "place_id": "coffee_2", "lat": 40.6900, "lng": -73.9870, "review_count": 650, "review_snippet": null, "review_time": null},
+      {"name": "Cafe Grumpy", "rating": 4.4, "user_ratings_total": 420, "walk_time_min": 10, "drive_time_min": 4, "website": null, "place_id": "coffee_3", "lat": 40.6910, "lng": -73.9880, "review_count": 420, "review_snippet": null, "review_time": null}
+    ],
+    "grocery": [
+      {"name": "Trader Joe's", "rating": 4.5, "user_ratings_total": 2100, "walk_time_min": 10, "drive_time_min": 3, "website": null, "place_id": "grocery_1", "lat": 40.6888, "lng": -73.9840, "review_count": 2100, "review_snippet": null, "review_time": null},
+      {"name": "Key Food", "rating": 4.0, "user_ratings_total": 350, "walk_time_min": 7, "drive_time_min": 2, "website": null, "place_id": "grocery_2", "lat": 40.6880, "lng": -73.9830, "review_count": 350, "review_snippet": null, "review_time": null},
+      {"name": "Whole Foods Market", "rating": 4.3, "user_ratings_total": 1500, "walk_time_min": 15, "drive_time_min": 5, "website": null, "place_id": "grocery_3", "lat": 40.6870, "lng": -73.9820, "review_count": 1500, "review_snippet": null, "review_time": null}
+    ],
+    "fitness": [
+      {"name": "Equinox Brooklyn Heights", "rating": 4.5, "user_ratings_total": 280, "walk_time_min": 8, "drive_time_min": 3, "website": null, "place_id": "fitness_1", "lat": 40.6905, "lng": -73.9865, "review_count": 280, "review_snippet": null, "review_time": null},
+      {"name": "YMCA Downtown Brooklyn", "rating": 4.2, "user_ratings_total": 190, "walk_time_min": 12, "drive_time_min": 4, "website": null, "place_id": "fitness_2", "lat": 40.6915, "lng": -73.9875, "review_count": 190, "review_snippet": null, "review_time": null},
+      {"name": "CrossFit BK", "rating": 4.7, "user_ratings_total": 95, "walk_time_min": 18, "drive_time_min": 6, "website": null, "place_id": "fitness_3", "lat": 40.6925, "lng": -73.9885, "review_count": 95, "review_snippet": null, "review_time": null}
+    ],
+    "parks": [
+      {"name": "Brooklyn Bridge Park", "rating": 4.8, "user_ratings_total": 12500, "walk_time_min": 12, "drive_time_min": 4, "website": null, "place_id": "park_1", "lat": 40.7002, "lng": -73.9966, "review_count": 12500, "review_snippet": null, "review_time": null},
+      {"name": "Cadman Plaza Park", "rating": 4.5, "user_ratings_total": 3200, "walk_time_min": 6, "drive_time_min": 2, "website": null, "place_id": "park_2", "lat": 40.6961, "lng": -73.9917, "review_count": 3200, "review_snippet": null, "review_time": null},
+      {"name": "Columbus Park", "rating": 4.3, "user_ratings_total": 800, "walk_time_min": 15, "drive_time_min": 5, "website": null, "place_id": "park_3", "lat": 40.6950, "lng": -73.9900, "review_count": 800, "review_snippet": null, "review_time": null}
+    ]
+  },
+  "neighborhood_summary": {
+    "coffee_count": 3,
+    "grocery_count": 3,
+    "fitness_count": 3,
+    "parks_count": 3
+  },
+  "road_noise": {
+    "worst_road_name": "Atlantic Avenue",
+    "worst_road_ref": null,
+    "worst_road_type": "secondary",
+    "worst_road_lanes": 4,
+    "distance_ft": 450,
+    "estimated_dba": 62,
+    "severity": "MODERATE",
+    "severity_label": "Moderate",
+    "methodology_note": "Estimated from road classification and distance",
+    "all_roads_assessed": true
+  },
+  "ejscreen_profile": null,
+  "school_district": null,
+  "nearby_schools": null,
+  "demographics": {
+    "place_name": "Brooklyn",
+    "state_fips": "36",
+    "population": 2736074,
+    "total_households": 980000,
+    "median_household_income": 65850,
+    "median_age": 34.3,
+    "owner_pct": 28.5,
+    "renter_pct": 71.5
+  },
+  "walk_quality": null,
+  "structured_summary": "",
+  "verdict": "Strong for daily living — walkable to cafes, parks, and transit",
+  "score_band": {"label": "Strong Daily Fit", "css_class": "band-strong"},
+  "dimension_summaries": [
+    {"name": "Coffee & Social Spots", "score": 9, "max_score": 10, "summary": "Excellent cafe access within 5-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "strong", "label": "Strong"}, "access_mode": "walk", "walk_time_min": 5, "drive_time_min": 2, "venue_name": "Blue Bottle Coffee", "category_label": "coffee shops"},
+    {"name": "Daily Essentials", "score": 8, "max_score": 10, "summary": "Strong grocery access within 7-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "strong", "label": "Strong"}, "access_mode": "walk", "walk_time_min": 7, "drive_time_min": 2, "venue_name": "Key Food", "category_label": "grocery"},
+    {"name": "Fitness & Recreation", "score": 7, "max_score": 10, "summary": "Good gym access within 8-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places data", "suppressed_reason": null, "band": {"key": "moderate", "label": "Moderate"}, "access_mode": "walk", "walk_time_min": 8, "drive_time_min": 3, "venue_name": "Equinox Brooklyn Heights", "category_label": "fitness"},
+    {"name": "Parks & Green Space", "score": 8, "max_score": 10, "summary": "Brooklyn Bridge Park is a 12-minute walk", "data_confidence": "verified", "data_confidence_note": "Based on live Google Places and OSM data", "suppressed_reason": null, "band": {"key": "strong", "label": "Strong"}, "access_mode": "walk", "walk_time_min": 12, "drive_time_min": 4, "venue_name": "Brooklyn Bridge Park", "category_label": "parks"},
+    {"name": "Getting Around", "score": 5, "max_score": 10, "summary": "Subway within 8-minute walk, high frequency", "data_confidence": "estimated", "data_confidence_note": "Transit frequency estimated from schedules", "suppressed_reason": null, "band": {"key": "moderate", "label": "Moderate"}, "access_mode": null, "walk_time_min": null, "drive_time_min": null, "venue_name": null, "category_label": null},
+    {"name": "Road Noise", "score": 5, "max_score": 10, "summary": "Moderate road noise from Atlantic Avenue", "data_confidence": "estimated", "data_confidence_note": "Based on road classification data", "suppressed_reason": null, "band": {"key": "moderate", "label": "Moderate"}, "access_mode": null, "walk_time_min": null, "drive_time_min": null, "venue_name": null, "category_label": null}
+  ],
+  "data_confidence_summary": {
+    "level": "estimated",
+    "note": "Some dimensions have limited data coverage",
+    "limited_dimensions": ["Getting Around", "Road Noise"],
+    "sparse_dimensions": [],
+    "not_scored_dimensions": []
+  },
+  "insights": {
+    "proximity": "All 10 environmental and health checks are clear for this address.",
+    "your_neighborhood": "This block has strong walkable access to cafes, groceries, and fitness options, all within a short walk.",
+    "getting_around": "Borough Hall Station is an 8-minute walk with high frequency subway service.",
+    "parks": "Brooklyn Bridge Park is the anchor green space at a 12-minute walk.",
+    "community_profile": null
+  },
+  "summary_narrative": "<p><strong>123 Oak Street</strong> sits in a walkable Brooklyn Heights neighborhood with strong access to daily essentials. Coffee, groceries, and fitness are all within a short walk, and Brooklyn Bridge Park is just 12 minutes on foot. All health and safety checks are clear.</p>",
+  "unknown_check_count": 0,
+  "show_numeric_score": true
+}
