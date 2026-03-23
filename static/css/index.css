@@ -331,6 +331,7 @@ body:has(.landing-container) {
   margin-top: 12px;
   font-size: var(--font-size-body);
   color: rgba(255, 255, 255, 0.6);
+  transition: opacity 200ms ease;
 }
 
 .loading-patience {
@@ -471,6 +472,13 @@ body:has(.landing-container) {
 
   .search-box button:hover {
     transform: none;
+  }
+
+  /* Loading overlay — disable transitions */
+  .loading-sub,
+  .loading-patience,
+  .loading-progress-fill {
+    transition-duration: 0.01ms !important;
   }
 }
 
