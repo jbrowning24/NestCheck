@@ -84,3 +84,56 @@ class TestWidgetDataAPI:
         assert data["concern_count"] == 1
         assert "1 concern" in data["health_summary"]
         assert "concerns" not in data["health_summary"]
+
+
+class TestWidgetBadge:
+    def test_banner_returns_svg(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert resp.status_code == 200
+        assert resp.content_type == "image/svg+xml"
+        assert b"<svg" in resp.data
+        assert b"nestcheck" in resp.data.lower()
+
+    def test_square_returns_svg(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg?style=square")
+        assert resp.status_code == 200
+        assert b"<svg" in resp.data
+        # Square dimensions
+        assert b'width="120"' in resp.data
+        assert b'height="120"' in resp.data
+
+    def test_banner_dimensions(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert b'width="200"' in resp.data
+        assert b'height="60"' in resp.data
+
+    def test_cors_header(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert resp.headers.get("Access-Control-Allow-Origin") == "*"
+
+    def test_cache_header(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert "max-age=86400" in resp.headers.get("Cache-Control", "")
+
+    def test_csp_header(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert resp.headers.get("Content-Security-Policy") == "frame-ancestors *"
+
+    def test_404_for_missing_snapshot(self, client):
+        resp = client.get("/widget/badge/nonexistent.svg")
+        assert resp.status_code == 404
+
+    def test_contains_score(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        # Score 72 should appear in the SVG text
+        assert b"72" in resp.data
+
+    def test_contains_utm_link(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg")
+        assert b"utm_source=widget" in resp.data
+        assert b"utm_medium=badge" in resp.data
+
+    def test_invalid_style_defaults_to_banner(self, client, snapshot_id):
+        resp = client.get(f"/widget/badge/{snapshot_id}.svg?style=invalid")
+        assert resp.status_code == 200
+        assert b'width="200"' in resp.data
