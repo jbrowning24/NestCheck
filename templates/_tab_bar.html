@@ -1,0 +1,27 @@
+{# ================================================================== #}
+{# Mobile sticky tab bar — scroll-synced section navigation (NES-323) #}
+{# Visible below 1024px only. Shares IntersectionObserver with the   #}
+{# desktop rail nav in section-nav.js.                               #}
+{# Expects: result (same context as _result_sections.html).          #}
+{# ================================================================== #}
+
+<nav class="mobile-tab-bar" aria-label="Report sections">
+  <div class="mobile-tab-bar__track">
+    <a href="#verdict" class="mobile-tab__link" data-section="verdict">Verdict</a>
+    <a href="#health-safety" class="mobile-tab__link" data-section="health-safety">Health</a>
+    <a href="#section-dimensions" class="mobile-tab__link" data-section="section-dimensions">Dimensions</a>
+    <a href="#your-neighborhood" class="mobile-tab__link" data-section="your-neighborhood">Neighborhood</a>
+    <a href="#getting-around" class="mobile-tab__link" data-section="getting-around">Getting Around</a>
+    <a href="#parks-green-space" class="mobile-tab__link" data-section="parks-green-space">Parks</a>
+    {% if result.emergency_services is defined and result.emergency_services is not none %}
+    <a href="#emergency-services" class="mobile-tab__link" data-section="emergency-services">Emergency</a>
+    {% endif %}
+    {% if result.nearby_libraries is defined and result.nearby_libraries is not none %}
+    <a href="#libraries" class="mobile-tab__link" data-section="libraries">Libraries</a>
+    {% endif %}
+    {% if result.nearby_pharmacies is defined and result.nearby_pharmacies is not none %}
+    <a href="#pharmacies" class="mobile-tab__link" data-section="pharmacies">Pharmacies</a>
+    {% endif %}
+    <a href="#how-we-score" class="mobile-tab__link" data-section="how-we-score">Scoring</a>
+  </div>
+</nav>
