@@ -3773,16 +3773,27 @@ def find_primary_transit(
     ]
 
     raw_candidates: List[Tuple[int, Dict, str]] = []
+    _last_exc: Optional[Exception] = None
+    _searches_attempted = 0
+    _searches_failed = 0
     for place_type, mode, priority in search_types:
+        _searches_attempted += 1
         try:
             radius = TRANSIT_SEARCH_RADII[place_type]
             places = maps.places_nearby(lat, lng, place_type, radius_meters=radius)
-        except Exception:
+        except Exception as exc:
+            _searches_failed += 1
+            _last_exc = exc
             continue
         for place in places:
             raw_candidates.append((priority, place, mode))
 
     if not raw_candidates:
+        # If ALL searches failed with exceptions, propagate so the scorer's
+        # except handler returns points=None (F1 degradation) instead of
+        # points=0 (which would deflate the composite score).
+        if _searches_failed == _searches_attempted and _last_exc is not None:
+            raise _last_exc
         return None
 
     # Batch walking times — 1 API call per 25 candidates instead of 1 each
@@ -4771,13 +4782,15 @@ def score_park_access(
         )
 
     except Exception as e:
+        logger.warning("Park scoring failed: %s", e)
         return Tier2Score(
             name="Primary Green Escape",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         )
 
 
@@ -5005,15 +5018,17 @@ def score_third_place_access(
         ), neighborhood_places, category_counts, _details_data)
 
     except Exception as e:
+        logger.warning("Coffee scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Coffee & Social Spots",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}, _no_data)
 
 
@@ -5289,13 +5304,15 @@ def score_transit_access(
         )
 
     except Exception as e:
+        logger.warning("Transit scoring failed: %s", e)
         return Tier2Score(
             name="Urban access",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         )
 
 
@@ -5456,15 +5473,17 @@ def score_provisioning_access(
         ), neighborhood_places, _details_data)
 
     except Exception as e:
+        logger.warning("Provisioning scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Provisioning",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], _no_data)
 
 
@@ -5733,15 +5752,17 @@ def score_fitness_access(
         ), neighborhood_places, _fitness_details_data)
 
     except Exception as e:
+        logger.warning("Fitness scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Fitness access",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], _no_data)
 
 

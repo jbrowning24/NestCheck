@@ -1,7 +1,7 @@
 """Tests for per-API-call timeout configuration (NES-368)."""
 
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 
 class TestGoogleMapsTimeouts:
@@ -89,3 +89,60 @@ class TestOverpassTimeouts:
         from road_noise import fetch_all_roads
         source = inspect.getsource(fetch_all_roads)
         assert "timeout=10" in source
+
+
+class TestScorerGracefulDegradation:
+    """Verify scorers return points=None + suppressed_reason on exception."""
+
+    def test_park_access_returns_none_on_error(self):
+        from property_evaluator import score_park_access
+        maps = MagicMock()
+        maps.places_nearby.side_effect = Exception("timeout")
+        result = score_park_access(maps, 41.0, -73.7)
+        # score_park_access returns a single Tier2Score (not a tuple)
+        assert result.points is None
+        assert result.suppressed_reason is not None
+
+    def test_third_place_returns_none_on_error(self):
+        from property_evaluator import score_third_place_access
+        maps = MagicMock()
+        maps.places_nearby.side_effect = Exception("timeout")
+        score, places, counts, dd = score_third_place_access(maps, 41.0, -73.7)
+        assert score.points is None
+        assert score.suppressed_reason is not None
+
+    def test_provisioning_returns_none_on_error(self):
+        from property_evaluator import score_provisioning_access
+        maps = MagicMock()
+        maps.places_nearby.side_effect = Exception("timeout")
+        score, places, dd = score_provisioning_access(maps, 41.0, -73.7)
+        assert score.points is None
+        assert score.suppressed_reason is not None
+
+    def test_fitness_returns_none_on_error(self):
+        from property_evaluator import score_fitness_access
+        maps = MagicMock()
+        maps.places_nearby.side_effect = Exception("timeout")
+        score, places, dd = score_fitness_access(maps, 41.0, -73.7)
+        assert score.points is None
+        assert score.suppressed_reason is not None
+
+    def test_transit_returns_none_on_error(self):
+        from property_evaluator import score_transit_access
+        maps = MagicMock()
+        maps.places_nearby.side_effect = Exception("timeout")
+        result = score_transit_access(maps, 41.0, -73.7)
+        assert result.points is None
+        assert result.suppressed_reason is not None
+
+    def test_none_points_excluded_from_composite(self):
+        """Verify compute_composite_score excludes None-points dimensions."""
+        from property_evaluator import compute_composite_score
+        scores = [
+            (8, 10, "verified"),   # normal
+            (None, 10, "estimated"),  # timed out — should be excluded
+            (6, 10, "verified"),   # normal
+        ]
+        result = compute_composite_score(scores)
+        # Should be (8+6)/(10+10) * 100 = 70, NOT (8+0+6)/(10+10+10) * 100 = 47
+        assert result == 70
