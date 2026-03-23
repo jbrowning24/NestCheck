@@ -682,7 +682,7 @@ def _overpass_query(query: str) -> Optional[Dict]:
     )
 
     try:
-        result = _overpass_http_query(query, caller="green_escape", timeout=25)
+        result = _overpass_http_query(query, caller="green_escape", timeout=10)
         _cached_set(mem_key, result)
         return result
     except _HTTPRateLimitError:
@@ -715,7 +715,7 @@ def enrich_from_osm(place_lat: float, place_lng: float, place_name: str) -> Dict
 
     # Query 1: Find park/green polygons, footways, and amenity nodes within 300m
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       way["leisure"="park"](around:300,{place_lat},{place_lng});
       way["landuse"~"forest|meadow|grass|recreation_ground"](around:300,{place_lat},{place_lng});

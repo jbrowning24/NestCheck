@@ -105,3 +105,19 @@ seed-sprint-status:
 # Export results to CSV for content planning
 seed-sprint-export:
 	python3 scripts/seed_evaluation_sprint.py --export-csv
+
+# ---------------------------------------------------------------------------
+# Test B validation (tester-provided addresses)
+# ---------------------------------------------------------------------------
+
+# Run Test B evaluations and send report/survey emails to testers
+validation-test-b:
+	python3 scripts/run_validation_test_b.py
+
+# Run evaluations without sending emails
+validation-test-b-dry:
+	python3 scripts/run_validation_test_b.py --dry-run
+
+# Show Test B progress
+validation-test-b-status:
+	python3 scripts/run_validation_test_b.py --status

@@ -99,7 +99,7 @@ def _build_query(lat: float, lng: float, radius_m: int = 500) -> str:
     """Build Overpass QL query for sidewalk/cycleway data."""
     highway_regex = "|".join(ROAD_TYPES)
     return f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       way["highway"~"{highway_regex}"](around:{radius_m},{lat},{lng});
       way["highway"="footway"]["footway"="sidewalk"](around:{radius_m},{lat},{lng});
@@ -118,7 +118,7 @@ def _fetch_data(lat: float, lng: float, radius_m: int = 500) -> dict:
     from overpass_http import overpass_query
 
     query = _build_query(lat, lng, radius_m)
-    return overpass_query(query, caller="sidewalk_coverage", timeout=25)
+    return overpass_query(query, caller="sidewalk_coverage", timeout=10)
 
 
 # =============================================================================

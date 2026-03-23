@@ -701,6 +701,21 @@ class GoogleMapsClient:
     # the whole evaluation.  10 s is generous for Google Maps — p99 is < 2 s.
     DEFAULT_TIMEOUT = 10
 
+    # Per-endpoint timeouts (NES-368).  Looked up by _traced_get() via
+    # endpoint_name.  Falls back to DEFAULT_TIMEOUT for unlisted endpoints.
+    _ENDPOINT_TIMEOUTS: Dict[str, int] = {
+        "geocode": 5,
+        "reverse_geocode": 5,
+        "place_details": 5,
+        "places_nearby": 10,
+        "text_search": 10,
+        "walking_time": 8,
+        "driving_time": 8,
+        "transit_time": 8,
+        "distance_matrix_walking": 8,
+        "distance_matrix_driving": 8,
+    }
+
     def __init__(
         self,
         api_key: str,
@@ -728,7 +743,16 @@ class GoogleMapsClient:
     def _traced_get(self, endpoint_name: str, url: str, params: dict) -> dict:
         """GET request with automatic trace recording."""
         t0 = time.time()
-        response = self.session.get(url, params=params, timeout=self.DEFAULT_TIMEOUT)
+        _timeout = self._ENDPOINT_TIMEOUTS.get(endpoint_name, self.DEFAULT_TIMEOUT)
+        try:
+            response = self.session.get(url, params=params, timeout=_timeout)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            elapsed_ms = int((time.time() - t0) * 1000)
+            logger.warning(
+                "API timeout: endpoint=%s elapsed_ms=%d timeout=%ds address=%s",
+                endpoint_name, elapsed_ms, _timeout, self._source_address,
+            )
+            raise
         elapsed_ms = int((time.time() - t0) * 1000)
         data = response.json()
         provider_status = data.get("status", "") if isinstance(data, dict) else ""
@@ -1302,7 +1326,7 @@ class OverpassClient:
         # Retained temporarily for backward compatibility. Remove in future cleanup.
         """Get roads within radius of a point"""
         query = f"""
-        [out:json][timeout:25];
+        [out:json][timeout:10];
         (
           way["highway"~"motorway|trunk|primary|secondary"](around:{radius_meters},{lat},{lng});
         );
@@ -1316,7 +1340,7 @@ class OverpassClient:
                 OverpassRateLimitError as _HTTPRateLimitError,
                 overpass_query,
             )
-            data = overpass_query(query, caller="get_nearby_roads", timeout=25, ttl_days=30)
+            data = overpass_query(query, caller="get_nearby_roads", timeout=10, ttl_days=30)
         except (_HTTPRateLimitError, _HTTPQueryError) as e:
             raise OverpassUnavailableError(
                 "Road-data service temporarily unavailable"
@@ -1353,7 +1377,7 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=15)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -1364,7 +1388,11 @@ def get_bike_score(address: str, lat: float, lon: float) -> Dict[str, Optional[A
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_bike elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return {"bike_score": None, "bike_rating": None, "bike_metadata": None}
 
     bike_data = data.get("bike") if isinstance(data, dict) else None
@@ -1411,7 +1439,7 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -1422,7 +1450,11 @@ def get_transit_score(address: str, lat: float, lon: float) -> Dict[str, Any]:
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_transit elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return default_response
 
     if data.get("status") != 1:
@@ -1495,7 +1527,7 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
 
     try:
         _t0 = time.time()
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=8)
         response.raise_for_status()
         data = response.json()
         _elapsed = int((time.time() - _t0) * 1000)
@@ -1506,7 +1538,11 @@ def get_walk_scores(address: str, lat: float, lon: float) -> Dict[str, Optional[
                 elapsed_ms=_elapsed, status_code=response.status_code,
                 provider_status=str(data.get("status", "")),
             )
-    except (requests.RequestException, ValueError):
+    except (requests.RequestException, ValueError) as exc:
+        logger.warning(
+            "API timeout: endpoint=walkscore_walk elapsed_ms=%d address=%s error=%s",
+            int((time.time() - _t0) * 1000), address, type(exc).__name__,
+        )
         return default_scores
 
     if data.get("status") != 1:
@@ -2005,7 +2041,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
     Returns None on any failure so check functions can fall back to UNKNOWN.
     """
     query = f"""
-    [out:json][timeout:25];
+    [out:json][timeout:10];
     (
       way["power"="line"](around:200,{lat},{lng});
       node["power"="substation"](around:200,{lat},{lng});
@@ -2026,7 +2062,7 @@ def _query_environmental_hazards(lat: float, lng: float) -> Optional[Dict[str, L
             OverpassRateLimitError as _HTTPRateLimitError,
             overpass_query as _overpass_http_query,
         )
-        data = _overpass_http_query(query, caller="environmental_hazards", timeout=25, ttl_days=14)
+        data = _overpass_http_query(query, caller="environmental_hazards", timeout=10, ttl_days=14)
     except (ImportError, _HTTPQueryError, _HTTPRateLimitError) as e:
         logger.warning("Environmental hazard Overpass query failed: %s", e, exc_info=True)
         return None
@@ -3757,16 +3793,27 @@ def find_primary_transit(
     ]
 
     raw_candidates: List[Tuple[int, Dict, str]] = []
+    _last_exc: Optional[Exception] = None
+    _searches_attempted = 0
+    _searches_failed = 0
     for place_type, mode, priority in search_types:
+        _searches_attempted += 1
         try:
             radius = TRANSIT_SEARCH_RADII[place_type]
             places = maps.places_nearby(lat, lng, place_type, radius_meters=radius)
-        except Exception:
+        except Exception as exc:
+            _searches_failed += 1
+            _last_exc = exc
             continue
         for place in places:
             raw_candidates.append((priority, place, mode))
 
     if not raw_candidates:
+        # If ALL searches failed with exceptions, propagate so the scorer's
+        # except handler returns points=None (F1 degradation) instead of
+        # points=0 (which would deflate the composite score).
+        if _searches_failed == _searches_attempted and _last_exc is not None:
+            raise _last_exc
         return None
 
     # Batch walking times — 1 API call per 25 candidates instead of 1 each
@@ -4755,13 +4802,15 @@ def score_park_access(
         )
 
     except Exception as e:
+        logger.warning("Park scoring failed: %s", e)
         return Tier2Score(
             name="Primary Green Escape",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         )
 
 
@@ -4989,15 +5038,17 @@ def score_third_place_access(
         ), neighborhood_places, category_counts, _details_data)
 
     except Exception as e:
+        logger.warning("Coffee scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Coffee & Social Spots",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], {"cafe": 0, "bakery": 0, "coffee_shop": 0, "total": 0}, _no_data)
 
 
@@ -5273,13 +5324,15 @@ def score_transit_access(
         )
 
     except Exception as e:
+        logger.warning("Transit scoring failed: %s", e)
         return Tier2Score(
             name="Urban access",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         )
 
 
@@ -5440,15 +5493,17 @@ def score_provisioning_access(
         ), neighborhood_places, _details_data)
 
     except Exception as e:
+        logger.warning("Provisioning scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Provisioning",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], _no_data)
 
 
@@ -5717,15 +5772,17 @@ def score_fitness_access(
         ), neighborhood_places, _fitness_details_data)
 
     except Exception as e:
+        logger.warning("Fitness scoring failed: %s", e)
         _no_data = {"access_mode": None, "walk_time_min": None,
                     "drive_time_min": None, "venue_name": None}
         return (Tier2Score(
             name="Fitness access",
-            points=0,
+            points=None,
             max_points=10,
-            details=f"Error: {str(e)}",
+            details="Data temporarily unavailable",
             data_confidence=CONFIDENCE_ESTIMATED,
             data_confidence_note="Scoring failed due to an error",
+            suppressed_reason="Data temporarily unavailable",
         ), [], _no_data)
 
 

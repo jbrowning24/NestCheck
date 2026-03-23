@@ -181,6 +181,15 @@
   color: var(--color-text-muted);
 }
 
+.city-address-card--health-only {
+  opacity: 0.7;
+}
+
+.city-score-pill--health-only {
+  background: var(--color-surface-alt, #F1F5F9);
+  color: var(--color-text-muted);
+}
+
 .city-cta {
   margin-top: var(--space-xl);
   text-align: center;

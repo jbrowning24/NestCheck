@@ -2307,3 +2307,20 @@ h1.narrative-summary {
     margin-bottom: var(--space-base);
   }
 }
+
+/* NES-344: city page link on snapshot reports */
+.report-city-link-wrap {
+  text-align: center;
+  margin: var(--space-md) 0;
+}
+
+.report-city-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.report-city-link:hover {
+  text-decoration: underline;
+  color: var(--color-text-primary);
+}
