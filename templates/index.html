@@ -479,6 +479,8 @@
 
   (function() {
     var POLL_INTERVAL_MS = 2000;
+    var patienceTimerId = null;
+    var escalationTimerId = null;
 
     // Stage names from backend -> user-facing progress text + approximate percentage
     var STAGE_DISPLAY = {
@@ -526,6 +528,8 @@
       overlay.setAttribute('aria-hidden', 'true');
       var p = document.getElementById('loadingPatience');
       if (p) p.classList.remove('visible');
+      clearTimeout(patienceTimerId);
+      clearTimeout(escalationTimerId);
     }
 
     function showError(msg, overlay, btn, form) {
@@ -561,9 +565,18 @@
       setProgress(2);
 
       var patienceEl = document.getElementById('loadingPatience');
-      var patienceTimer = setTimeout(function() {
-        if (patienceEl) patienceEl.classList.add('visible');
-      }, 10000);
+      patienceTimerId = setTimeout(function() {
+        if (patienceEl) {
+          patienceEl.textContent = 'Detailed reports typically take 20\u201330 seconds.';
+          patienceEl.classList.add('visible');
+        }
+      }, 15000);
+
+      escalationTimerId = setTimeout(function() {
+        if (patienceEl) {
+          patienceEl.textContent = 'This is taking longer than usual. The report will appear automatically when ready.';
+        }
+      }, 45000);
 
       var notFoundRetries = 0;
       var MAX_NOT_FOUND_RETRIES = 5;
@@ -580,7 +593,8 @@
                   setTimeout(poll, POLL_INTERVAL_MS);
                   return null;
                 }
-                clearTimeout(patienceTimer);
+                clearTimeout(patienceTimerId);
+                clearTimeout(escalationTimerId);
                 showError('Job not found. The server may be busy — please try again.', overlay, btn, form);
               } else {
                 networkErrorRetries++;
@@ -588,7 +602,8 @@
                   setTimeout(poll, POLL_INTERVAL_MS * 2);
                   return null;
                 }
-                clearTimeout(patienceTimer);
+                clearTimeout(patienceTimerId);
+                clearTimeout(escalationTimerId);
                 showError('Server error (' + r.status + '). Please try again.', overlay, btn, form);
               }
               return null;
@@ -600,11 +615,26 @@
           .then(function(data) {
             if (!data) return;
             if (data.current_stage) {
-              loadingSub.textContent = stageDisplay(data.current_stage);
-              setProgress(stagePercent(data.current_stage));
+              var stageInfo = STAGE_DISPLAY[data.current_stage];
+              if (stageInfo) {
+                if (loadingSub.textContent !== stageInfo.text) {
+                  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                  if (reducedMotion) {
+                    loadingSub.textContent = stageInfo.text;
+                  } else {
+                    loadingSub.style.opacity = '0';
+                    loadingSub.addEventListener('transitionend', function() {
+                      loadingSub.textContent = stageInfo.text;
+                      loadingSub.style.opacity = '1';
+                    }, { once: true });
+                  }
+                }
+                setProgress(stageInfo.pct);
+              }
             }
             if (data.status === 'done' && data.snapshot_id) {
-              clearTimeout(patienceTimer);
+              clearTimeout(patienceTimerId);
+              clearTimeout(escalationTimerId);
               setProgress(100);
               var addrInput = document.getElementById('address-input');
               if (addrInput && addrInput.value) {
@@ -614,7 +644,8 @@
               return;
             }
             if (data.status === 'failed') {
-              clearTimeout(patienceTimer);
+              clearTimeout(patienceTimerId);
+              clearTimeout(escalationTimerId);
               showError(data.error || 'Evaluation failed.', overlay, btn, form);
               return;
             }
@@ -626,7 +657,8 @@
               setTimeout(poll, POLL_INTERVAL_MS * 2);
               return;
             }
-            clearTimeout(patienceTimer);
+            clearTimeout(patienceTimerId);
+            clearTimeout(escalationTimerId);
             showError('Could not check job status. Please try again.', overlay, btn, form);
           });
       }
