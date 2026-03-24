@@ -220,13 +220,26 @@ def init_db():
             status                TEXT NOT NULL DEFAULT 'active',
             period_start          TEXT NOT NULL,
             period_end            TEXT NOT NULL,
-            created_at            TEXT NOT NULL
+            created_at            TEXT NOT NULL,
+            updated_at            TEXT
         )
     """)
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_subscriptions_email
         ON subscriptions(user_email)
     """)
+
+    # Migration for subscriptions: add updated_at column (NES-340)
+    sub_cols = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(subscriptions)").fetchall()
+    }
+    if "updated_at" not in sub_cols:
+        conn.execute("ALTER TABLE subscriptions ADD COLUMN updated_at TEXT")
+        conn.execute(
+            "UPDATE subscriptions SET updated_at = created_at "
+            "WHERE updated_at IS NULL"
+        )
 
     # Free tier counter migration (NES-327)
     try:
@@ -1870,6 +1883,7 @@ def update_user_stripe_customer(user_id: str, stripe_customer_id: str) -> None:
 
 SUBSCRIPTION_ACTIVE = "active"
 SUBSCRIPTION_CANCELED = "canceled"
+SUBSCRIPTION_PAST_DUE = "past_due"
 SUBSCRIPTION_EXPIRED = "expired"
 
 
@@ -1884,14 +1898,15 @@ def create_subscription(
     """Create a new subscription record."""
     conn = _get_db()
     try:
+        now = datetime.now(timezone.utc).isoformat()
         conn.execute(
             "INSERT INTO subscriptions "
             "(id, user_email, stripe_subscription_id, stripe_customer_id, "
-            "status, period_start, period_end, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "status, period_start, period_end, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (subscription_id, user_email, stripe_subscription_id,
              stripe_customer_id, SUBSCRIPTION_ACTIVE, period_start,
-             period_end, datetime.now(timezone.utc).isoformat()),
+             period_end, now, now),
         )
         conn.commit()
     finally:
@@ -1922,16 +1937,18 @@ def update_subscription_status(
     """Update subscription status and optionally period dates."""
     conn = _get_db()
     try:
+        now = datetime.now(timezone.utc).isoformat()
         if period_start and period_end:
             conn.execute(
-                "UPDATE subscriptions SET status = ?, period_start = ?, period_end = ? "
-                "WHERE stripe_subscription_id = ?",
-                (status, period_start, period_end, stripe_subscription_id),
+                "UPDATE subscriptions SET status = ?, period_start = ?, period_end = ?, "
+                "updated_at = ? WHERE stripe_subscription_id = ?",
+                (status, period_start, period_end, now, stripe_subscription_id),
             )
         else:
             conn.execute(
-                "UPDATE subscriptions SET status = ? WHERE stripe_subscription_id = ?",
-                (status, stripe_subscription_id),
+                "UPDATE subscriptions SET status = ?, updated_at = ? "
+                "WHERE stripe_subscription_id = ?",
+                (status, now, stripe_subscription_id),
             )
         conn.commit()
     finally:
@@ -1944,11 +1961,31 @@ def is_subscription_active(email: str) -> bool:
     try:
         row = conn.execute(
             "SELECT 1 FROM subscriptions "
-            "WHERE user_email = ? AND status IN (?, ?) "
+            "WHERE user_email = ? AND status IN (?, ?, ?) "
             "AND period_end > datetime('now') LIMIT 1",
-            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+             SUBSCRIPTION_PAST_DUE),
         ).fetchone()
         return row is not None
+    finally:
+        conn.close()
+
+
+def get_active_subscription(email: str) -> dict | None:
+    """Return active subscription details for dashboard display, or None."""
+    conn = _get_db()
+    try:
+        row = conn.execute(
+            "SELECT * FROM subscriptions "
+            "WHERE user_email = ? AND status IN (?, ?, ?) "
+            "AND period_end > datetime('now') "
+            "ORDER BY period_end DESC LIMIT 1",
+            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+             SUBSCRIPTION_PAST_DUE),
+        ).fetchone()
+        if row is None:
+            return None
+        return dict(row)
     finally:
         conn.close()
 

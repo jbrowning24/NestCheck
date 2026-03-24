@@ -226,6 +226,9 @@ def test_init_db_against_oldest_schema():
         for col in ("eval_count", "window_start"):
             assert col in ft_cols, f"free_tier_usage.{col} missing after init_db() migration"
 
+        sub_cols = {row["name"] for row in conn.execute("PRAGMA table_info(subscriptions)").fetchall()}
+        assert "updated_at" in sub_cols, "subscriptions.updated_at missing after init_db() migration"
+
         conn.close()
 
     finally:
