@@ -424,6 +424,7 @@
                 </div>
               {% endif %}
 
+              <h3 class="sr-only">{{ label }} near this address</h3>
               <div class="venue-scroll{% if normal_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
                 {% for place in normal_places %}
                 {% set is_headline = loop.first and place.review_snippet %}
@@ -475,6 +476,7 @@
             <div class="neighborhood-category neighborhood-category--expanded">
               <div class="category-label">{{ label }}</div>
               <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
+              <h3 class="sr-only">{{ label }} by car</h3>
               <div class="venue-scroll{% if expanded_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} by car" tabindex="0">
                 {% for place in expanded_places %}
                 <div class="venue-card venue-card--muted section-card--quiet" role="listitem">
