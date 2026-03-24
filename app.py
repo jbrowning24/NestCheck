@@ -3830,10 +3830,30 @@ def view_snapshot(snapshot_id):
 
 @app.route("/widget/badge/<snapshot_id>.svg")
 def widget_badge(snapshot_id):
-    """Embeddable SVG badge — returns self-contained SVG for <img> embedding (NES-343)."""
+    """Embeddable SVG badge — returns self-contained SVG for <img> embedding (NES-348)."""
     snapshot = get_snapshot(snapshot_id)
-    if not snapshot:
-        abort(404)
+
+    # Fallback: missing or expired snapshot → generic "Evaluate on NestCheck" badge
+    is_fresh = False
+    if snapshot:
+        is_fresh = is_snapshot_fresh(
+            snapshot, _snapshot_ttl_days(), datetime.now(timezone.utc)
+        )
+
+    style = request.args.get("style", "banner")
+    if style not in ("banner", "square"):
+        style = "banner"
+
+    if not snapshot or not is_fresh:
+        resp = make_response(render_template(
+            "widget_badge_fallback.svg",
+            style=style,
+        ))
+        resp.headers["Content-Type"] = "image/svg+xml"
+        resp.headers["Content-Security-Policy"] = "frame-ancestors *"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Cache-Control"] = "public, max-age=3600"
+        return resp
 
     result = {**snapshot["result"]}
     _prepare_snapshot_for_display(result)
@@ -3858,12 +3878,8 @@ def widget_badge(snapshot_id):
     }
     band_color = band_colors.get(band["css_class"], "#DC2626")
 
-    style = request.args.get("style", "banner")
-    if style not in ("banner", "square"):
-        style = "banner"
-
     resp = make_response(render_template(
-        "widget_badge.html",
+        "widget_badge.svg",
         snapshot_id=snapshot_id,
         score=score,
         band_label=band["label"],
