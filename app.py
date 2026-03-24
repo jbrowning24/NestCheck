@@ -53,8 +53,10 @@ from models import (
     update_payment_status, redeem_payment, update_payment_job_id,
     hash_email, check_free_tier_available, record_free_tier_usage,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_REDEEMED, PAYMENT_FAILED_REISSUED,
-    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED, SUBSCRIPTION_EXPIRED,
+    SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED, SUBSCRIPTION_PAST_DUE,
+    SUBSCRIPTION_EXPIRED,
     create_subscription, update_subscription_status, is_subscription_active,
+    get_active_subscription,
     update_payment_snapshot_id_direct,
     save_feedback, save_inline_feedback, has_inline_feedback,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
@@ -3721,9 +3723,10 @@ def _check_full_access(snapshot_id: str, user_email: str | None = None) -> bool:
             # Active subscription
             row = conn.execute(
                 "SELECT 1 FROM subscriptions "
-                "WHERE user_email = ? AND status IN (?, ?) "
+                "WHERE user_email = ? AND status IN (?, ?, ?) "
                 "AND period_end > datetime('now') LIMIT 1",
-                (user_email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED),
+                (user_email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                 SUBSCRIPTION_PAST_DUE),
             ).fetchone()
             if row:
                 return True
@@ -4910,6 +4913,12 @@ def stripe_webhook():
         _handle_subscription_event(event["data"]["object"], "updated")
     elif event["type"] == "customer.subscription.deleted":
         _handle_subscription_event(event["data"]["object"], "deleted")
+    elif event["type"] == "invoice.payment_failed":
+        inv_obj = event["data"]["object"]
+        sub_id = inv_obj.get("subscription")
+        if sub_id:
+            update_subscription_status(sub_id, SUBSCRIPTION_PAST_DUE)
+            logger.warning("Webhook: subscription %s → past_due (payment failed)", sub_id)
 
     return jsonify({"status": "ok"}), 200
 
