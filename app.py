@@ -3583,6 +3583,31 @@ def index():
                         "request_id": request_id,
                     },
                 )
+                # Send report email on cached snapshot reuse (never blocks redirect)
+                if email:
+                    try:
+                        from email_service import send_report_email
+
+                        if send_report_email(email, snapshot_id, address):
+                            update_snapshot_email_sent(snapshot_id)
+                            log_event(
+                                "email_sent",
+                                snapshot_id=snapshot_id,
+                                visitor_id=g.visitor_id,
+                                metadata={"address": address},
+                            )
+                        else:
+                            log_event(
+                                "email_failed",
+                                snapshot_id=snapshot_id,
+                                visitor_id=g.visitor_id,
+                                metadata={"address": address},
+                            )
+                    except Exception:
+                        logger.exception(
+                            "[%s] Email send failed for cached snapshot %s",
+                            request_id, snapshot_id,
+                        )
                 if _wants_json():
                     return jsonify({
                         "snapshot_id": snapshot_id,
