@@ -3,10 +3,10 @@
 {% block title %}NestCheck — Know Before You Move{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/snapshot.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/snapshot.css') }}?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}?v={{ asset_v }}">
 {% endblock %}
 
 {% block head_extra %}
@@ -1081,6 +1081,6 @@
 </script>
 {% endif %}
 
-<script src="{{ url_for('static', filename='js/neighborhood-map.js') }}"></script>
-<script src="{{ url_for('static', filename='js/section-nav.js') }}"></script>
+<script src="{{ url_for('static', filename='js/neighborhood-map.js') }}?v={{ asset_v }}"></script>
+<script src="{{ url_for('static', filename='js/section-nav.js') }}?v={{ asset_v }}"></script>
 {% endblock %}

@@ -39,7 +39,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/city.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/city.css') }}?v={{ asset_v }}">
 {% endblock %}
 
 {% block content %}

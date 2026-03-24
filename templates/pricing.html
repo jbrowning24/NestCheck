@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pricing.css') }}?v={{ asset_v }}">
 {% endblock %}
 
 {% block content %}

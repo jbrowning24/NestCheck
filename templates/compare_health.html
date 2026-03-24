@@ -3,7 +3,7 @@
 {% block title %}Compare Health Risks — NestCheck{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/compare.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/compare.css') }}?v={{ asset_v }}">
 {% endblock %}
 
 {% block head_extra %}

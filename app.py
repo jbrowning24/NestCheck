@@ -92,6 +92,18 @@ _CANONICAL_DOMAIN = os.environ.get("CANONICAL_DOMAIN")  # e.g. "nestcheck.org"
 # Keep templates render-safe even if Flask-WTF is unavailable at runtime.
 app.jinja_env.globals.setdefault("csrf_token", lambda: "")
 
+# Static asset cache-busting: short git hash computed once at startup.
+# Appended to CSS/JS URLs as ?v=<hash> so CDN/browser caches bust on deploy.
+import subprocess as _sp
+try:
+    _ASSET_VERSION = _sp.check_output(
+        ["git", "rev-parse", "--short", "HEAD"],
+        stderr=_sp.DEVNULL, cwd=os.path.dirname(__file__) or "."
+    ).decode().strip()
+except Exception:
+    _ASSET_VERSION = str(int(__import__("time").time()))
+app.jinja_env.globals["asset_v"] = _ASSET_VERSION
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

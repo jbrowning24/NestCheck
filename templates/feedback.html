@@ -4,8 +4,8 @@
 {% block title %}Feedback — NestCheck{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/feedback.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}?v={{ asset_v }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/feedback.css') }}?v={{ asset_v }}">
 {% endblock %}
 
 {% block content %}
