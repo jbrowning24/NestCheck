@@ -34,8 +34,12 @@ test-schema:
 validate:
 	python3 scripts/validate_all_ground_truth.py
 
-# Full CI gate — both scoring tests and ground truth validation
-ci: test-scoring validate
+# Playwright browser tests (NES-378)
+test-browser:
+	python3 -m pytest tests/playwright/ -v --tb=short
+
+# Full CI gate — scoring tests, browser tests, and ground truth validation
+ci: test-scoring test-browser validate
 
 # ---------------------------------------------------------------------------
 # Regression baselines (monthly)

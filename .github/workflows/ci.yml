@@ -33,6 +33,30 @@ jobs:
           SECRET_KEY: ci-test-key
           GOOGLE_MAPS_API_KEY: fake-key-for-ci
 
+  browser-tests:
+    name: Playwright Browser Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: python -m pytest tests/playwright/ -v --tb=short
+        env:
+          SECRET_KEY: ci-test-key
+          GOOGLE_MAPS_API_KEY: fake-key-for-ci
+
   ground-truth-validation:
     name: Ground Truth Validation
     runs-on: ubuntu-latest
