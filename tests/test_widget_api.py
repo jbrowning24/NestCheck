@@ -119,9 +119,27 @@ class TestWidgetBadge:
         resp = client.get(f"/widget/badge/{snapshot_id}.svg")
         assert resp.headers.get("Content-Security-Policy") == "frame-ancestors *"
 
-    def test_404_for_missing_snapshot(self, client):
+    def test_fallback_for_missing_snapshot(self, client):
         resp = client.get("/widget/badge/nonexistent.svg")
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+        assert resp.content_type == "image/svg+xml"
+        assert b"Evaluate on" in resp.data
+        assert b"NestCheck" in resp.data
+        assert b"utm_content=fallback" in resp.data
+
+    def test_fallback_banner_dimensions(self, client):
+        resp = client.get("/widget/badge/nonexistent.svg")
+        assert b'width="200"' in resp.data
+        assert b'height="60"' in resp.data
+
+    def test_fallback_square_dimensions(self, client):
+        resp = client.get("/widget/badge/nonexistent.svg?style=square")
+        assert b'width="120"' in resp.data
+        assert b'height="120"' in resp.data
+
+    def test_fallback_cache_shorter(self, client):
+        resp = client.get("/widget/badge/nonexistent.svg")
+        assert "max-age=3600" in resp.headers.get("Cache-Control", "")
 
     def test_contains_score(self, client, snapshot_id):
         resp = client.get(f"/widget/badge/{snapshot_id}.svg")
