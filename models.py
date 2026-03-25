@@ -708,6 +708,127 @@ def save_inline_feedback(snapshot_id: str, user_id, visitor_id,
     raise last_err
 
 
+# ---------------------------------------------------------------------------
+# Feedback digest (NES-387)
+# ---------------------------------------------------------------------------
+
+def get_feedback_digest():
+    """Aggregate feedback data for the builder dashboard and CLI.
+
+    Returns a dict with:
+      - total_inline: count of inline_reaction submissions
+      - total_survey: count of detailed_survey submissions
+      - told_new_yes / told_new_no: inline reaction counts
+      - wtp: dict of willingness-to-pay response counts
+      - dim_accuracy: list of {name, avg, count} sorted by avg ascending
+      - overall_accuracy_avg: float or None
+      - recent_comments: list of {text, snapshot_id, created_at} (last 10)
+    """
+    conn = _get_db()
+    try:
+        # Inline reaction counts
+        row = conn.execute(
+            "SELECT COUNT(*) FROM feedback WHERE feedback_type = 'inline_reaction'"
+        ).fetchone()
+        total_inline = row[0] if row else 0
+
+        row = conn.execute(
+            "SELECT"
+            " SUM(CASE WHEN told_something_new = 1 THEN 1 ELSE 0 END),"
+            " SUM(CASE WHEN told_something_new = 0 THEN 1 ELSE 0 END)"
+            " FROM feedback WHERE feedback_type = 'inline_reaction'"
+        ).fetchone()
+        told_new_yes = row[0] or 0 if row else 0
+        told_new_no = row[1] or 0 if row else 0
+
+        # Survey counts
+        row = conn.execute(
+            "SELECT COUNT(*) FROM feedback WHERE feedback_type = 'detailed_survey'"
+        ).fetchone()
+        total_survey = row[0] if row else 0
+
+        # WTP + dimension accuracy + overall accuracy from survey response_json
+        wtp_counts = {}
+        dim_totals = {}  # {name: [sum, count]}
+        overall_scores = []
+
+        surveys = conn.execute(
+            "SELECT response_json FROM feedback"
+            " WHERE feedback_type = 'detailed_survey'"
+        ).fetchall()
+        for (rj,) in surveys:
+            try:
+                data = json.loads(rj)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            # WTP
+            wp = data.get("wtp_would_pay")
+            if wp:
+                wtp_counts[wp] = wtp_counts.get(wp, 0) + 1
+            # Overall accuracy
+            oa = data.get("overall_accuracy")
+            if oa is not None:
+                try:
+                    overall_scores.append(float(oa))
+                except (ValueError, TypeError):
+                    pass
+            # Dimension accuracy
+            dims = data.get("dimensions", {})
+            for dim_name, dim_data in dims.items():
+                acc = dim_data.get("accuracy") if isinstance(dim_data, dict) else None
+                if acc is not None:
+                    try:
+                        acc_f = float(acc)
+                    except (ValueError, TypeError):
+                        continue
+                    if dim_name not in dim_totals:
+                        dim_totals[dim_name] = [0.0, 0]
+                    dim_totals[dim_name][0] += acc_f
+                    dim_totals[dim_name][1] += 1
+
+        dim_accuracy = sorted(
+            [
+                {"name": name, "avg": round(s / c, 1), "count": c}
+                for name, (s, c) in dim_totals.items()
+                if c > 0
+            ],
+            key=lambda d: d["avg"],
+        )
+
+        overall_accuracy_avg = (
+            round(sum(overall_scores) / len(overall_scores), 1)
+            if overall_scores
+            else None
+        )
+
+        # Recent free-text comments (inline + survey)
+        comments = []
+        rows = conn.execute(
+            "SELECT free_text, snapshot_id, created_at FROM feedback"
+            " WHERE free_text IS NOT NULL AND free_text != ''"
+            " ORDER BY created_at DESC LIMIT 10"
+        ).fetchall()
+        for text, sid, created in rows:
+            comments.append({
+                "text": text,
+                "snapshot_id": sid,
+                "created_at": created,
+            })
+
+        return {
+            "total_inline": total_inline,
+            "total_survey": total_survey,
+            "told_new_yes": told_new_yes,
+            "told_new_no": told_new_no,
+            "wtp": wtp_counts,
+            "dim_accuracy": dim_accuracy,
+            "overall_accuracy_avg": overall_accuracy_avg,
+            "recent_comments": comments,
+        }
+    finally:
+        conn.close()
+
+
 def check_return_visit(visitor_id, days=7):
     """
     Check if this visitor created a snapshot within the last `days` days.

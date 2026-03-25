@@ -81,6 +81,56 @@ def _cmd_evaluate(args: argparse.Namespace) -> None:
         print(json.dumps(output, indent=2, default=str))
 
 
+def _cmd_feedback_digest(args: argparse.Namespace) -> None:
+    """Print aggregated feedback summary."""
+    from models import get_feedback_digest
+
+    d = get_feedback_digest()
+
+    total = d["total_inline"] + d["total_survey"]
+    print(f"=== Feedback Digest ({total} responses) ===\n")
+
+    # Inline reactions
+    told_total = d["told_new_yes"] + d["told_new_no"]
+    if told_total:
+        pct = round(100 * d["told_new_yes"] / told_total)
+        print(f"  Told something new:  {d['told_new_yes']}/{told_total} ({pct}%)")
+    else:
+        print("  Told something new:  no responses yet")
+
+    # WTP
+    if d["wtp"]:
+        print("\n  Willingness to pay:")
+        for label in ["definitely_yes", "probably_yes", "probably_no", "definitely_no"]:
+            count = d["wtp"].get(label, 0)
+            if count:
+                print(f"    {label.replace('_', ' '):20s} {count}")
+    else:
+        print("\n  Willingness to pay:  no survey responses yet")
+
+    # Overall accuracy
+    if d["overall_accuracy_avg"] is not None:
+        print(f"\n  Overall accuracy:    {d['overall_accuracy_avg']}/5")
+
+    # Dimension accuracy
+    if d["dim_accuracy"]:
+        print("\n  Dimension accuracy (sorted lowest first):")
+        for dim in d["dim_accuracy"]:
+            print(f"    {dim['name']:30s} {dim['avg']}/5  (n={dim['count']})")
+
+    # Recent comments
+    if d["recent_comments"]:
+        print(f"\n  Recent comments ({len(d['recent_comments'])}):")
+        for c in d["recent_comments"]:
+            snippet = c["text"][:80].replace("\n", " ")
+            if len(c["text"]) > 80:
+                snippet += "..."
+            print(f"    [{c['created_at'][:10]}] {snippet}")
+
+    if total == 0:
+        print("\n  No feedback collected yet.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="nestcheck",
@@ -148,6 +198,14 @@ def main() -> None:
         help="Human-readable output instead of JSON",
     )
     eval_parser.set_defaults(func=_cmd_evaluate)
+
+    # --- feedback-digest ---
+    digest_parser = subparsers.add_parser(
+        "feedback-digest",
+        help="Show aggregated feedback summary",
+        description="Display a summary of inline and survey feedback.",
+    )
+    digest_parser.set_defaults(func=_cmd_feedback_digest)
 
     args = parser.parse_args()
     if not args.command:
