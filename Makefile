@@ -82,6 +82,9 @@ spatial-health-email:
 evaluate:
 	python3 cli.py evaluate "$(ADDR)" $(ARGS)
 
+feedback-digest:
+	python3 cli.py feedback-digest
+
 # ---------------------------------------------------------------------------
 # Daily smoke test (evaluation pipeline)
 # ---------------------------------------------------------------------------

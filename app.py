@@ -59,6 +59,7 @@ from models import (
     get_active_subscription,
     update_payment_snapshot_id_direct,
     save_feedback, save_inline_feedback, has_inline_feedback,
+    get_feedback_digest,
     get_city_snapshots, get_city_stats, get_cities_with_snapshots,
     get_city_name_by_slug,
 )
@@ -4419,12 +4420,14 @@ def builder_dashboard():
     counts = get_event_counts()
     recent_events = get_recent_events(limit=50)
     recent_snapshots = get_recent_snapshots(limit=20)
+    feedback_digest = get_feedback_digest()
 
     return render_template(
         "builder_dashboard.html",
         counts=counts,
         recent_events=recent_events,
         recent_snapshots=recent_snapshots,
+        feedback=feedback_digest,
     )
 
 
@@ -4963,6 +4966,13 @@ def auth_login():
     if not _oauth_enabled:
         flash("Sign-in is not configured.", "warning")
         return redirect("/")
+    # Prevent session cookie growth from accumulated failed OAuth attempts.
+    # Authlib only cleans expired state entries during successful callbacks;
+    # if callbacks keep failing, stale entries accumulate until the session
+    # cookie exceeds ~4KB and the browser silently drops it.
+    stale_keys = [k for k in session.keys() if k.startswith("_state_google_")]
+    for k in stale_keys:
+        session.pop(k, None)
     session["auth_next"] = request.args.get("next", "/")
     redirect_uri = url_for("auth_callback", _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
@@ -4974,10 +4984,18 @@ def auth_callback():
     if not _oauth_enabled:
         flash("Sign-in is not configured.", "warning")
         return redirect("/")
+    # Log incoming callback state for diagnostics — helps identify session
+    # loss (state key missing) vs token exchange errors.
+    callback_state = request.args.get("state", "<missing>")
+    session_state_keys = [k for k in session.keys() if k.startswith("_state_google_")]
+    logger.info(
+        "OAuth callback: state=%s..., session_state_keys=%d, session_size_approx=%d",
+        callback_state[:16], len(session_state_keys), len(str(dict(session))),
+    )
     try:
         token = oauth.google.authorize_access_token()
-    except Exception:
-        logger.exception("OAuth callback failed")
+    except Exception as e:
+        logger.exception("OAuth callback failed: %s: %s", type(e).__name__, e)
         flash("Sign-in failed. Please try again.", "error")
         return redirect("/")
 
