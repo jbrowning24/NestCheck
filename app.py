@@ -4966,13 +4966,13 @@ def auth_login():
     if not _oauth_enabled:
         flash("Sign-in is not configured.", "warning")
         return redirect("/")
-    # Prevent session cookie growth from accumulated failed OAuth attempts.
-    # Authlib only cleans expired state entries during successful callbacks;
-    # if callbacks keep failing, stale entries accumulate until the session
-    # cookie exceeds ~4KB and the browser silently drops it.
-    stale_keys = [k for k in session.keys() if k.startswith("_state_google_")]
-    for k in stale_keys:
-        session.pop(k, None)
+    # Clear the entire session to force a fresh Set-Cookie on this response.
+    # This prevents dual-cookie conflicts: if the browser holds a stale
+    # session cookie (from an earlier visit or different path), it sends
+    # BOTH the stale and the new one.  Flask reads only the first (stale)
+    # cookie, which lacks the OAuth state — causing silent login failures.
+    # The fresh Set-Cookie overwrites the stale one (same name, path, domain).
+    session.clear()
     session["auth_next"] = request.args.get("next", "/")
     redirect_uri = url_for("auth_callback", _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
@@ -4988,14 +4988,17 @@ def auth_callback():
     # loss (state key missing) vs token exchange errors.
     callback_state = request.args.get("state", "<missing>")
     session_state_keys = [k for k in session.keys() if k.startswith("_state_google_")]
+    cookie_header = request.headers.get('Cookie', '')
     logger.info(
-        "OAuth callback: state=%s..., session_state_keys=%d, session_size_approx=%d",
+        "OAuth callback: state=%s..., session_state_keys=%d, session_size_approx=%d, cookie_header_len=%d",
         callback_state[:16], len(session_state_keys), len(str(dict(session))),
+        len(cookie_header),
     )
     try:
         token = oauth.google.authorize_access_token()
     except Exception as e:
         logger.exception("OAuth callback failed: %s: %s", type(e).__name__, e)
+        session.clear()
         flash("Sign-in failed. Please try again.", "error")
         return redirect("/")
 

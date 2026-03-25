@@ -471,12 +471,10 @@
     searches = searches.filter(function(s) {
       return s.address.toLowerCase() !== address.toLowerCase();
     });
-    searches.unshift({
-      address: address,
-      snapshot_id: snapshotId || null,
-      place_id: placeId || null
-    });
-    searches = searches.slice(0, 5);
+    var entry = { address: address, snapshot_id: snapshotId || null };
+    if (placeId) entry.place_id = placeId;
+    searches.unshift(entry);
+    searches = searches.slice(0, 3);
     setCookie('nestcheck_recent', JSON.stringify(searches), 30);
   }
 
