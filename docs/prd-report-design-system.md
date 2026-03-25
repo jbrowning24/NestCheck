@@ -204,7 +204,21 @@ On viewports above 1024px, the report renders as a two-column layout. The main c
 
 The sidebar is not a miniature version of the report. It holds exactly three things: geographic orientation (map), mobility summary (walkability), and navigation. Nothing else should be added to the sidebar without explicit CDO approval.
 
-**Architectural requirement (build-it-right-the-first-time):** Every report section must render its summary data in semantic markup with IDs (e.g., `id="health-summary"`, `id="walkability-verdict"`, `id="dimension-pills"`). The v1 sidebar does not use these IDs — but the v1.1 contextual sidebar will wire an IntersectionObserver to them. Building the sections with these IDs now avoids a retrofit later. This is a markup requirement, not a feature.
+**Architectural requirement (build-it-right-the-first-time):** Every report section must render its summary data in semantic markup with stable IDs that the `IntersectionObserver` can target. The following IDs are implemented and wired into both the desktop rail nav (`_report_rail.html`) and mobile tab bar (`_tab_bar.html`) via `data-section` attributes:
+
+* `#verdict` — verdict card
+* `#health-safety` — health & environment section
+* `#section-dimensions` — dimension scorecards grid
+* `#your-neighborhood` — venue lists (coffee, grocery, fitness)
+* `#getting-around` — transit + walkability
+* `#parks-green-space` — parks & green space
+* `#community-profile` — demographics / area context
+* `#school-district` — school district data
+* `#ejscreen-profile` — EJScreen environmental justice indicators
+* `#emergency-services`, `#libraries`, `#pharmacies` — local services
+* `#how-we-score` — scoring methodology
+
+All IDs have `scroll-margin-top: 52px` applied at all breakpoints (not media-query-scoped) in `report.css`.
 
 ### 3.3 Mobile Layout: Single Column
 

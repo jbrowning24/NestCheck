@@ -4995,7 +4995,7 @@ def auth_callback():
     try:
         token = oauth.google.authorize_access_token()
     except Exception as e:
-        logger.error("OAuth callback failed: %s: %s", type(e).__name__, e)
+        logger.exception("OAuth callback failed: %s: %s", type(e).__name__, e)
         flash("Sign-in failed. Please try again.", "error")
         return redirect("/")
 

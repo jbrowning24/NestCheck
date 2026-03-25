@@ -303,6 +303,21 @@ footer {
   color: var(--color-fail-text);
   border: 1px solid var(--color-danger-border);
 }
+.flash-msg--warning {
+  background: var(--color-warning-bg);
+  color: #92400e;
+  border: 1px solid var(--color-warning-border);
+}
+.flash-msg--success {
+  background: var(--color-pass-bg);
+  color: #166534;
+  border: 1px solid var(--color-pass-border);
+}
+.flash-msg--info {
+  background: var(--color-accent-light);
+  color: #1e40af;
+  border: 1px solid #BFDBFE;
+}
 
 /* ── Coverage badge (NES-288) ── */
 .cov-badge {
