@@ -122,6 +122,12 @@ NestCheck/
 - **`on_stage_complete` callback**: `evaluate_property()` accepts an optional `on_stage_complete(stage_name, elapsed_seconds)` callback that fires after each stage (success or failure). The CLI uses it for `--verbose` output. Distinct from `on_stage` (fires *before* stage, used by worker for DB updates).
 - **Old CLI deprecated**: `property_evaluator.py:main()` still works but has hand-rolled JSON serialization that drifts from `result_to_dict()`. Use `cli.py evaluate` for canonical output.
 - **Makefile**: `make evaluate ADDR="..." ARGS="--verbose"`.
+- **`feedback-digest` subcommand** (NES-387): `python cli.py feedback-digest` / `make feedback-digest`. Prints aggregated feedback summary (inline reactions + survey responses). Lazy-imports `get_feedback_digest` from `models.py` — no Flask dependency.
+
+### Feedback Digest (models.py + builder_dashboard.html, NES-387)
+- **`get_feedback_digest()`**: Aggregates inline reactions (`told_something_new` yes/no counts) and survey responses (WTP distribution, per-dimension accuracy averages, overall accuracy, recent free-text comments). Returns a single dict consumed by both CLI and builder dashboard.
+- **Survey `response_json` schema**: Survey submissions store a JSON blob with `wtp_would_pay` (string), `overall_accuracy` (1-5 int), and `dimensions` dict (`{dim_name: {accuracy: 1-5, comment: str}}`). The digest parses this in Python, not SQL, since `json_extract` aggregation across variable-key dicts is impractical in SQLite.
+- **Builder dashboard "Feedback Pulse"**: Renders only when `fb_total > 0` (hidden on empty). Shows total responses, % told something new, overall accuracy, and weakest dimension (flagged red if < 3.0/5). Uses existing `.dashboard-stat-grid` / `.dashboard-stat` CSS classes.
 
 ### Overflow Mode (overflow.py, NES-263)
 - **Presentation-layer truncation**: `overflow(items, limit, *, label, label_fn, dump_path, dump_fn) → OverflowResult`. Truncates large lists for display with a summary footer and optional JSON file dump. Zero Flask/DB dependencies — pure stdlib utility.

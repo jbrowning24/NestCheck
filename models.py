@@ -738,8 +738,8 @@ def get_feedback_digest():
             " SUM(CASE WHEN told_something_new = 0 THEN 1 ELSE 0 END)"
             " FROM feedback WHERE feedback_type = 'inline_reaction'"
         ).fetchone()
-        told_new_yes = row[0] or 0 if row else 0
-        told_new_no = row[1] or 0 if row else 0
+        told_new_yes = (row[0] or 0) if row else 0
+        told_new_no = (row[1] or 0) if row else 0
 
         # Survey counts
         row = conn.execute(
