@@ -1629,6 +1629,78 @@ h1.narrative-summary {
   min-width: 60px;
 }
 .band-label { color: var(--color-text-muted); }
+
+/* ── Scoring Key Card (NES-326) ─────────────────────────────────────── */
+.scoring-key {
+  background: var(--color-surface-alt);
+  border-top: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.scoring-key__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: var(--type-detail);
+}
+
+.scoring-key__row--active {
+  border-left: 2px solid;
+  padding-left: var(--space-2);
+}
+
+.scoring-key__row--active .scoring-key__label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.scoring-key__label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.scoring-key__range {
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  min-width: 48px;
+}
+
+.scoring-key__desc {
+  color: var(--color-text-muted);
+}
+
+.scoring-key__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  font-size: var(--type-detail);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.scoring-key__link svg {
+  color: var(--color-text-tertiary);
+  transition: color var(--transition-fast);
+}
+
+.scoring-key__link:hover svg {
+  color: var(--color-accent);
+}
+
+/* Mobile: stack description on second line */
+@media (max-width: 640px) {
+  .scoring-key__row {
+    flex-wrap: wrap;
+  }
+  .scoring-key__desc {
+    width: 100%;
+    padding-left: 22px; /* 10px dot + 12px gap */
+  }
+}
+
 .scoring-note {
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
