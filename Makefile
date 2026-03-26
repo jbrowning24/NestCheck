@@ -132,3 +132,11 @@ validation-test-b-dry:
 # Show Test B progress
 validation-test-b-status:
 	python3 scripts/run_validation_test_b.py --status
+
+# Send follow-up survey emails to testers who already have reports
+validation-followup:
+	python3 scripts/send_validation_followup.py
+
+# Preview follow-up emails without sending
+validation-followup-dry:
+	python3 scripts/send_validation_followup.py --dry-run
