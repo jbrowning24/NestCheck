@@ -11,7 +11,7 @@
 {# NES-327: Default is_full_access to true for backward compatibility #}
 {% set is_full_access = is_full_access if is_full_access is defined else true %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -77,6 +77,11 @@
           </div>
           {% endif %}
         </div>
+        {% endif %}
+
+        {# ── SCORING KEY (NES-326 §4.10) ── #}
+        {% if not is_preview and show_score %}
+        {{ scoring_key(score_bands, band_class) }}
         {% endif %}
 
         {# ── FAILED TIER 1 BANNER ── #}
@@ -1196,13 +1201,7 @@
             Bonus points (up to +15) may be added for parking, outdoor space, or extra bedrooms.
           </p>
 
-          <div class="band-table">
-            <div class="band-row"><span class="band-dot band-exceptional"></span><span class="band-range">85–100</span><span class="band-label">Exceptional Daily Fit</span></div>
-            <div class="band-row"><span class="band-dot band-strong"></span><span class="band-range">70–84</span><span class="band-label">Strong Daily Fit</span></div>
-            <div class="band-row"><span class="band-dot band-moderate"></span><span class="band-range">55–69</span><span class="band-label">Moderate — Some Trade-offs</span></div>
-            <div class="band-row"><span class="band-dot band-limited"></span><span class="band-range">40–54</span><span class="band-label">Limited — Car Likely Needed</span></div>
-            <div class="band-row"><span class="band-dot band-poor"></span><span class="band-range">0–39</span><span class="band-label">Significant Gaps</span></div>
-          </div>
+          {{ scoring_key(score_bands, show_link=False) }}
 
           <p class="scoring-note">
             Proximity checks for gas stations, highways, and TRI facilities are safety flags that don't affect your numerical score.
