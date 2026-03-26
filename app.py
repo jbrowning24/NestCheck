@@ -4657,6 +4657,7 @@ INGEST_REGISTRY = {
     "fra":         ("ingest_fra.py",         {"limit", "us_only", "verify"}),
     "ejscreen":    ("ingest_ejscreen.py",    {"state", "limit", "verify"}),
     "walkability": ("ingest_walkability.py", {"state", "limit", "verify"}),
+    "nlcd":        ("ingest_nlcd.py",        {"state", "limit", "verify"}),
     "parkserve":   ("ingest_parkserve.py",   {"state", "limit", "verify"}),
     "tiger":       ("ingest_tiger.py",       {"state", "county", "bbox", "limit", "verify"}),
     "census_acs":  ("ingest_census_acs.py",  {"state", "limit", "verify"}),
