@@ -332,3 +332,36 @@
 {%- set s = n | string -%}
 {%- if s[0] == '8' or s == '11' or s == '18' -%}an{%- else -%}a{%- endif -%}
 {%- endmacro -%}
+
+
+{# ── scoring_key ─────────────────────────────────────────────────────
+   Compact band reference card — "decoder ring" for score bands.
+   Renders below verdict (with active highlight) and in How We Score.
+
+   Args:
+     bands:              List of band dicts from _build_score_bands_context().
+     current_band_class: CSS class of the user's band (optional). Highlights
+                         the matching row with a left border + semibold label.
+     show_link:          Show "How we score" footer link (default True).
+                         Set False when rendering inside the How We Score section.
+#}
+{% macro scoring_key(bands, current_band_class=None, show_link=True) %}
+<div class="scoring-key">
+  {% for band in bands %}
+  <div class="scoring-key__row{% if current_band_class and band.css_class == current_band_class %} scoring-key__row--active{% endif %}">
+    <span class="band-dot {{ band.css_class }}"></span>
+    <span class="scoring-key__label">{{ band.label }}</span>
+    <span class="scoring-key__range">{{ band.threshold }}–{{ band.upper_bound }}</span>
+    <span class="scoring-key__desc">{{ band.description }}</span>
+  </div>
+  {% endfor %}
+  {% if show_link %}
+  <a href="#how-we-score" class="scoring-key__link">
+    How we score
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="M4.5 2.5L8.5 6L4.5 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+  {% endif %}
+</div>
+{% endmacro %}
