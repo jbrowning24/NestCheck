@@ -29,7 +29,7 @@ A standalone scoring key card placed directly below the verdict card (Tier 1), b
 - `upper_bound` computation: bands are iterated in descending threshold order. For band at index `i`, `upper_bound = bands[i-1].threshold - 1` when `i > 0`, or `100` when `i == 0`
 - `description` is editorial content keyed by `css_class` (see Band Descriptions table below)
 
-**Delivery mechanism:** Jinja2 context processor (`@app.context_processor`) that injects `score_bands` globally into all templates. This is static config, not per-evaluation data — it doesn't belong in snapshot JSON or individual route handlers. A context processor avoids wiring `score_bands` into every `render_template` call that includes `_result_sections.html` (view_snapshot, index, city pages, etc.).
+**Delivery mechanism:** `app.jinja_env.globals["score_bands"]` — injected once at module load time, matching the existing `oauth_enabled` pattern. This is static config, not per-evaluation data — it doesn't belong in snapshot JSON or individual route handlers. A global avoids wiring `score_bands` into every `render_template` call that includes `_result_sections.html` (view_snapshot, index, city pages, etc.).
 
 **Rationale (CTO):** Band definitions are static config. No changes to `result_to_dict()`, exports, or compare routes.
 
@@ -135,7 +135,7 @@ These are defined in `_build_score_bands_context()`, keyed by `css_class`, and i
 }
 .scoring-key__desc {
   width: 100%;
-  padding-left: 20px; /* dot width + gap alignment */
+  padding-left: 22px; /* 10px dot + 12px gap */
 }
 ```
 
