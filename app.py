@@ -32,6 +32,7 @@ from property_evaluator import (
     get_score_band, proximity_synthesis,
 )
 from scoring_config import (
+    SCORING_MODEL,
     TIER2_NAME_TO_DIMENSION,
     HEALTH_CHECK_CITATIONS,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
@@ -189,6 +190,39 @@ else:
 
 # Make oauth_enabled available in all templates for conditional nav rendering.
 app.jinja_env.globals["oauth_enabled"] = _oauth_enabled
+
+# ---------------------------------------------------------------------------
+# Scoring key context — static band definitions for template rendering
+# ---------------------------------------------------------------------------
+_BAND_DESCRIPTIONS = {
+    "band-exceptional": "Excellent across nearly all dimensions",
+    "band-strong": "Good daily fit with minor gaps",
+    "band-moderate": "Mixed — some strengths, some limitations",
+    "band-limited": "Significant gaps in daily livability",
+    "band-poor": "Major limitations across most dimensions",
+}
+
+
+def _build_score_bands_context():
+    """Build display-ready band dicts from SCORING_MODEL.score_bands.
+
+    Returns a list of dicts ordered descending by threshold (highest first).
+    Each dict has: threshold, upper_bound, label, css_class, description.
+    """
+    raw = SCORING_MODEL.score_bands  # tuple of ScoreBand, descending
+    bands = []
+    for i, sb in enumerate(raw):
+        bands.append({
+            "threshold": sb.threshold,
+            "upper_bound": 100 if i == 0 else raw[i - 1].threshold - 1,
+            "label": sb.label,
+            "css_class": sb.css_class,
+            "description": _BAND_DESCRIPTIONS.get(sb.css_class, ""),
+        })
+    return bands
+
+
+app.jinja_env.globals["score_bands"] = _build_score_bands_context()
 
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
@@ -4623,7 +4657,6 @@ INGEST_REGISTRY = {
     "fra":         ("ingest_fra.py",         {"limit", "us_only", "verify"}),
     "ejscreen":    ("ingest_ejscreen.py",    {"state", "limit", "verify"}),
     "walkability": ("ingest_walkability.py", {"state", "limit", "verify"}),
-    "nlcd":        ("ingest_nlcd.py",        {"state", "limit", "verify"}),
     "parkserve":   ("ingest_parkserve.py",   {"state", "limit", "verify"}),
     "tiger":       ("ingest_tiger.py",       {"state", "county", "bbox", "limit", "verify"}),
     "census_acs":  ("ingest_census_acs.py",  {"state", "limit", "verify"}),
