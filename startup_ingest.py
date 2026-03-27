@@ -2,7 +2,7 @@
 Startup spatial data ingestion for NestCheck.
 
 Called during gunicorn post_fork to ensure spatial datasets (SEMS, FEMA, HPMS,
-EJScreen, TRI, UST, HIFLD, FRA, School Districts, NYSED, NCES) are populated before
+EJScreen, TRI, UST, HIFLD, FRA, ParkServe, School Districts, NYSED, NCES) are populated before
 the evaluation worker starts processing jobs. Uses a
 file-based lock (fcntl) to prevent concurrent ingestion from multiple workers.
 
@@ -374,6 +374,20 @@ def _check_and_ingest_all(db_path: str) -> None:
         logger.info("Dataset fra: present for all %d states (%d records), skipping",
                      len(TARGET_STATES), count)
 
+    # --- ParkServe (Trust for Public Land park polygons, per-state) ---
+    parkserve_missing = _missing_states_abbr(db_path, "facilities_parkserve")
+    if parkserve_missing:
+        has_data, count = _table_has_data(db_path, "facilities_parkserve")
+        logger.info(
+            "Dataset parkserve: missing states %s (%d existing records), re-ingesting all states...",
+            parkserve_missing, count,
+        )
+        _run_ingest("parkserve", _ingest_parkserve)
+    else:
+        has_data, count = _table_has_data(db_path, "facilities_parkserve")
+        logger.info("Dataset parkserve: present for all %d states (%d records), skipping",
+                     len(TARGET_STATES), count)
+
     # --- School Districts (TIGER unified school district boundaries) ---
     sd_missing = _missing_states_fips(db_path, "facilities_school_districts", "geoid")
     if sd_missing:
@@ -512,6 +526,11 @@ def _ingest_hifld():
 def _ingest_fra():
     from scripts.ingest_fra import ingest as do_ingest
     do_ingest(states=list(TARGET_STATES.keys()))  # State filter via STATEAB (NES-285)
+
+
+def _ingest_parkserve():
+    from scripts.ingest_parkserve import ingest as do_ingest
+    do_ingest(states=list(TARGET_STATES.keys()))
 
 
 def _ingest_school_districts():
