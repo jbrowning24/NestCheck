@@ -365,7 +365,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.6.0",
+    version="1.6.1",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
