@@ -1601,97 +1601,181 @@ def _classify_gas_station_distance(
     )
 
 
+def _enrich_from_ust(
+    station_lat: float,
+    station_lng: float,
+    spatial_store,
+) -> Optional[dict]:
+    """Try to match a Places gas station against UST data for enrichment.
+
+    Searches for UST facilities within ~100 m of the Places result.
+    Returns a dict with facility_name, open_usts, closed_usts if found,
+    or None if no match.
+    """
+    if spatial_store is None or not spatial_store.is_available():
+        return None
+    try:
+        facilities = spatial_store.find_facilities_within(
+            station_lat, station_lng, 100, "ust"
+        )
+        if not facilities:
+            return None
+        nearest = facilities[0]
+        return {
+            "facility_name": nearest.name,
+            "open_usts": nearest.metadata.get("open_usts", 0),
+            "closed_usts": nearest.metadata.get("closed_usts", 0),
+        }
+    except Exception as e:
+        logger.warning("UST enrichment lookup failed: %s", e)
+        return None
+
+
 def check_gas_stations(
     lat: float,
     lng: float,
     spatial_store,
     maps: Optional[GoogleMapsClient] = None,
 ) -> Tier1Check:
-    """Check distance to nearest gas station / underground storage tank facility.
+    """Check distance to nearest gas station.
 
-    Primary: queries local SpatiaLite database for EPA UST Finder records
-    within 500 m.  Falls back to Google Places API when spatial data is
-    unavailable.
+    Primary: Google Places ``gas_station`` type (confirms an operating
+    retail gas station exists).  UST data is used for enrichment (tank
+    counts) and as a fallback caution signal when Places is unavailable
+    or returns no results but active underground tanks exist nearby.
 
-    Thresholds:
-      FAIL:    Nearest facility with active USTs < 300 ft  (CA setback)
-      WARNING: Nearest facility 300–499 ft                 (MD setback)
-      PASS:    No qualifying facilities within 500 ft
-      UNKNOWN: Neither spatial data nor Google Places available
+    Thresholds (Places-confirmed stations only):
+      FAIL:    Nearest station < 300 ft  (CA setback)
+      WARNING: Nearest station 300–499 ft (MD setback)
+      PASS:    No station within 500 ft
+
+    UST-only caution (no Places confirmation):
+      WARNING: Active underground tanks found but no operating gas
+               station confirmed — flagged as unverified.
     """
+    places_failed = False
+    places_stations = None
+
     # ------------------------------------------------------------------
-    # Primary path: local UST spatial data (zero API cost)
+    # Primary path: Google Places gas_station type
     # ------------------------------------------------------------------
+    if maps is not None:
+        try:
+            places_stations = maps.places_nearby(
+                lat, lng, "gas_station", radius_meters=500
+            )
+        except Exception as e:
+            logger.warning("Gas station Places lookup failed: %s", e)
+            places_failed = True
+
+    # ------------------------------------------------------------------
+    # If Places returned results, use them as the source of truth
+    # ------------------------------------------------------------------
+    if places_stations:
+        min_distance = float("inf")
+        closest_name = ""
+        closest_lat = 0.0
+        closest_lng = 0.0
+        for station in places_stations:
+            station_lat = station["geometry"]["location"]["lat"]
+            station_lng = station["geometry"]["location"]["lng"]
+            dist = _distance_feet(lat, lng, station_lat, station_lng)
+            if dist < min_distance:
+                min_distance = dist
+                closest_name = station.get("name", "Unknown")
+                closest_lat = station_lat
+                closest_lng = station_lng
+
+        # Enrich with UST data if available
+        ust_info = _enrich_from_ust(closest_lat, closest_lng, spatial_store)
+        if ust_info and ust_info.get("open_usts"):
+            closest_name = (
+                f"{closest_name} ({ust_info['open_usts']} active tank"
+                f"{'s' if ust_info['open_usts'] != 1 else ''})"
+            )
+
+        return _classify_gas_station_distance(round(min_distance), closest_name)
+
+    # ------------------------------------------------------------------
+    # No Places results (or Places unavailable).  Check UST data for
+    # active-tank facilities as a caution signal.
+    # ------------------------------------------------------------------
+    ust_caution = None
     if spatial_store is not None and spatial_store.is_available():
         try:
-            # Search 500 m (~1,640 ft) to match the old Google Places radius
             facilities = spatial_store.find_facilities_within(
                 lat, lng, 500, "ust"
             )
-
-            # Prefer facilities with active (open) USTs — closest first
             active = [
                 f for f in facilities
                 if (f.metadata.get("open_usts") or 0) > 0
             ]
-            candidates = active if active else facilities
-
-            if not candidates:
-                return Tier1Check(
+            if active:
+                nearest = active[0]
+                dist_ft = round(nearest.distance_feet)
+                open_count = nearest.metadata.get("open_usts", 0)
+                ust_caution = Tier1Check(
                     name="Gas station",
-                    result=CheckResult.PASS,
-                    details="No underground storage tank facilities within 500 ft",
-                    value=None,
+                    result=CheckResult.WARNING,
+                    details=(
+                        f"EPA records show active underground tanks at "
+                        f"{nearest.name} ({dist_ft:,} ft), but no operating "
+                        f"gas station was confirmed at this location. "
+                        f"{open_count} active tank"
+                        f"{'s' if open_count != 1 else ''}."
+                    ),
+                    value=dist_ft,
                 )
-
-            nearest = candidates[0]  # already sorted by distance ascending
-            min_distance = round(nearest.distance_feet)
-            closest_name = nearest.name
-
-            return _classify_gas_station_distance(min_distance, closest_name)
         except Exception as e:
-            logger.warning("UST spatial gas-station check failed: %s", e)
-            # Fall through to Google Places if available
+            logger.warning("UST fallback gas-station check failed: %s", e)
 
     # ------------------------------------------------------------------
-    # Fallback: Google Places API
+    # Determine final result
     # ------------------------------------------------------------------
-    if maps is None:
+    if places_failed:
+        # Places API failed — if we have a UST caution, return it with a
+        # note that Places could not be reached.  Otherwise fall back to
+        # UST-only spatial logic (old behavior) with a confidence note.
+        if ust_caution:
+            return ust_caution
+        # UST data available but found nothing active — likely clear, but
+        # we can't confirm via Places.
+        if spatial_store is not None and spatial_store.is_available():
+            return Tier1Check(
+                name="Gas station",
+                result=CheckResult.PASS,
+                details=(
+                    "No active underground storage tank facilities within "
+                    "500 ft (gas station locations could not be verified "
+                    "via Google Maps)"
+                ),
+                value=None,
+                show_detail=True,
+            )
+        return Tier1Check(
+            name="Gas station",
+            result=CheckResult.UNKNOWN,
+            details="Could not reach mapping service to verify this check",
+        )
+
+    # Places returned no stations AND no active UST facilities
+    if ust_caution:
+        return ust_caution
+
+    # No maps client at all and no UST caution
+    if maps is None and ust_caution is None:
         return Tier1Check(
             name="Gas station",
             result=CheckResult.UNKNOWN,
             details="Gas station data not available for this area",
         )
 
-    try:
-        stations = maps.places_nearby(lat, lng, "gas_station", radius_meters=500)
-
-        if not stations:
-            return Tier1Check(
-                name="Gas station",
-                result=CheckResult.PASS,
-                details="No gas stations within 500 feet",
-                value=None,
-            )
-
-        min_distance = float("inf")
-        closest_name = ""
-        for station in stations:
-            station_lat = station["geometry"]["location"]["lat"]
-            station_lng = station["geometry"]["location"]["lng"]
-            dist = maps.distance_feet((lat, lng), (station_lat, station_lng))
-            if dist < min_distance:
-                min_distance = dist
-                closest_name = station.get("name", "Unknown")
-
-        return _classify_gas_station_distance(round(min_distance), closest_name)
-    except Exception as e:
-        logger.warning("Gas station check failed: %s", e)
-        return Tier1Check(
-            name="Gas station",
-            result=CheckResult.UNKNOWN,
-            details="Could not reach mapping service to verify this check",
-        )
+    return Tier1Check(
+        name="Gas station",
+        result=CheckResult.PASS,
+        details="No gas stations within 500 feet",
+        value=None,
+    )
 
 
 # ---------------------------------------------------------------------------

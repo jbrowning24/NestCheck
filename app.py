@@ -1920,7 +1920,14 @@ def present_checks(tier1_checks):
         elif result == "WARNING":
             result_type = "WARNING_DETECTED"
             proximity_band = "NOTABLE"
-            headline = _WARNING_HEADLINES.get(name, f"{name} — Warning detected")
+            # UST-only gas station caution: no Places-confirmed station
+            if (name == "Gas station"
+                    and "no operating gas station was confirmed" in details):
+                headline = "Unverified fuel facility nearby"
+            else:
+                headline = _WARNING_HEADLINES.get(
+                    name, f"{name} — Warning detected"
+                )
             explanation = details
         else:
             result_type = "VERIFICATION_NEEDED"
