@@ -111,6 +111,51 @@ nav a.nav-link--cta:hover {
   background: rgba(37, 99, 235, 0.08);
   color: var(--color-accent);
 }
+nav > div {
+  display: flex;
+  align-items: center;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* --- Nav mobile --- */
+@media (max-width: 640px) {
+  nav {
+    padding: var(--space-sm) var(--space-base);
+    gap: var(--space-sm);
+  }
+  nav .logo-text {
+    font-size: var(--font-size-body);
+  }
+  nav .logo-icon {
+    width: 22px;
+    height: 22px;
+  }
+  nav .logo-icon span {
+    width: 9px;
+    height: 17px;
+  }
+  nav a.nav-link {
+    font-size: var(--font-size-small);
+    margin-left: var(--space-base);
+    white-space: nowrap;
+  }
+  nav a.nav-link--cta {
+    padding: 4px 10px;
+  }
+}
+@media (max-width: 380px) {
+  nav .logo-text {
+    font-size: var(--font-size-small);
+  }
+  nav a.nav-link {
+    font-size: 0.75rem;
+    margin-left: var(--space-sm);
+  }
+  nav a.nav-link--cta {
+    padding: 3px 8px;
+  }
+}
 
 /* --- Footer --- */
 footer {
