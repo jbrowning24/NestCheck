@@ -1,9 +1,9 @@
 {
   "_schema_version": "0.2.0",
-  "_generated_at": "2026-03-19T02:40:04.573445+00:00",
+  "_generated_at": "2026-03-27T23:10:59.322662+00:00",
   "_generator": "generate_ground_truth_parks.py",
-  "_scoring_model_version": "1.6.0",
-  "_test_count": 89,
+  "_scoring_model_version": "1.6.1",
+  "_test_count": 99,
   "_seed": 42,
   "_subscore_model": {
     "walk_time": {
@@ -746,6 +746,123 @@
       }
     },
     {
+      "id": "gt-parks-nf-12",
+      "test_type": "nature_feel",
+      "description": "parkserve Nature Preserve, no other signals",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Some Nature Area",
+        "types": [],
+        "parkserve_type": "Nature Preserve"
+      },
+      "expected": {
+        "nature_feel_score": 1.5
+      }
+    },
+    {
+      "id": "gt-parks-nf-13",
+      "test_type": "nature_feel",
+      "description": "parkserve Community Park, no other signals",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "City Park",
+        "types": [],
+        "parkserve_type": "Community Park"
+      },
+      "expected": {
+        "nature_feel_score": 0.3
+      }
+    },
+    {
+      "id": "gt-parks-nf-14",
+      "test_type": "nature_feel",
+      "description": "parkserve Mini Park (too small)",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Mini Green",
+        "types": [],
+        "parkserve_type": "Mini Park"
+      },
+      "expected": {
+        "nature_feel_score": 0.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-15",
+      "test_type": "nature_feel",
+      "description": "parkserve Regional Park",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Regional Open Space",
+        "types": [],
+        "parkserve_type": "Regional Park"
+      },
+      "expected": {
+        "nature_feel_score": 1.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-16",
+      "test_type": "nature_feel",
+      "description": "parkserve Greenway",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "River Trail",
+        "types": [],
+        "parkserve_type": "Greenway"
+      },
+      "expected": {
+        "nature_feel_score": 1.0
+      }
+    },
+    {
+      "id": "gt-parks-nf-17",
+      "test_type": "nature_feel",
+      "description": "parkserve Nature Preserve + OSM forest tag",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest"
+        ],
+        "name": "Forest Park",
+        "types": [],
+        "parkserve_type": "Nature Preserve"
+      },
+      "expected": {
+        "nature_feel_score": 1.5
+      }
+    },
+    {
+      "id": "gt-parks-nf-18",
+      "test_type": "nature_feel",
+      "description": "parkserve Community Park vs strong OSM (OSM wins at 1.5)",
+      "inputs": {
+        "osm_nature_tags": [
+          "forest",
+          "water"
+        ],
+        "name": "Lake Nature Preserve",
+        "types": [],
+        "parkserve_type": "Community Park"
+      },
+      "expected": {
+        "nature_feel_score": 1.8
+      }
+    },
+    {
+      "id": "gt-parks-nf-19",
+      "test_type": "nature_feel",
+      "description": "parkserve Trail vs trail name keyword",
+      "inputs": {
+        "osm_nature_tags": [],
+        "name": "Trail Path",
+        "types": [],
+        "parkserve_type": "Trail"
+      },
+      "expected": {
+        "nature_feel_score": 1.0
+      }
+    },
+    {
       "id": "gt-parks-comp-01",
       "test_type": "composite",
       "description": "excellent park: close, large, well-reviewed, natural",
@@ -923,6 +1040,49 @@
         "nature_feel_score": 1.3,
         "raw_total": 8.8,
         "final_score": 8.8
+      }
+    },
+    {
+      "id": "gt-parks-comp-09",
+      "test_type": "composite",
+      "description": "ParkServe Nature Preserve boosts nature_feel",
+      "inputs": {
+        "walk_time_min": 8,
+        "rating": 4.2,
+        "reviews": 150,
+        "name": "Riverside Park",
+        "park_acres": 15.0,
+        "parkserve_type": "Nature Preserve",
+        "osm_path_count": 3,
+        "osm_nature_tags": []
+      },
+      "expected": {
+        "walk_time_score": 3.0,
+        "size_loop_score": 2.5,
+        "quality_score": 1.3,
+        "nature_feel_score": 1.5,
+        "raw_total": 8.3,
+        "final_score": 8.3
+      }
+    },
+    {
+      "id": "gt-parks-comp-10",
+      "test_type": "composite",
+      "description": "ParkServe Pocket Park \u2014 no nature_feel boost",
+      "inputs": {
+        "walk_time_min": 12,
+        "rating": 3.8,
+        "reviews": 50,
+        "name": "Town Square",
+        "parkserve_type": "Pocket Park"
+      },
+      "expected": {
+        "walk_time_score": 2.8,
+        "size_loop_score": 0.5,
+        "quality_score": 1.3,
+        "nature_feel_score": 0.0,
+        "raw_total": 4.6,
+        "final_score": 4.6
       }
     },
     {
