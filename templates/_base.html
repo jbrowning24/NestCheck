@@ -43,7 +43,10 @@
       <span class="logo-icon"><span></span><span></span></span>
       <span class="logo-text">Nest<span>Check</span></span>
     </a>
-    <div>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+    </button>
+    <div class="nav-links">
       <a href="/pricing" class="nav-link"{% if request.path == '/pricing' %} aria-current="page"{% endif %}>Pricing</a>
       {% if current_user.is_authenticated %}
         <a href="/my-reports" class="nav-link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px; margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>My Reports</a>
@@ -52,9 +55,28 @@
         <a href="/auth/login" class="nav-link nav-link--cta">Sign In</a>
       {% endif %}
       {% block nav_links %}{% endblock %}
-    </div>
+    </div><!-- .nav-links -->
   {% endblock %}
 </nav>
+
+<script>
+(function() {
+  var btn = document.querySelector('.nav-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    var links = document.querySelector('.nav-links');
+    var open = links.classList.toggle('nav-links--open');
+    btn.setAttribute('aria-expanded', open);
+  });
+  document.addEventListener('click', function(e) {
+    var links = document.querySelector('.nav-links');
+    if (links.classList.contains('nav-links--open') && !e.target.closest('nav')) {
+      links.classList.remove('nav-links--open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
+</script>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
