@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # Prevents SQL injection via facility_type parameter.
 _VALID_FACILITY_TYPES = frozenset({
     "sems", "fema_nfhl", "hpms", "ejscreen", "tri", "ust",
-    "hifld", "fra", "school_districts", "nces_schools",
+    "hifld", "fra", "school_districts", "nces_schools", "parkserve",
 })
 
 
