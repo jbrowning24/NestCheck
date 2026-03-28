@@ -787,11 +787,17 @@ class GoogleMapsClient:
 
         first = data["results"][0]
         location = first["geometry"]["location"]
+        locality = None
+        for component in first.get("address_components", []):
+            if "locality" in component.get("types", []):
+                locality = component["long_name"]
+                break
         return {
             "lat": location["lat"],
             "lng": location["lng"],
             "place_id": first.get("place_id"),
             "formatted_address": first.get("formatted_address", address),
+            "locality": locality,
         }
 
     def reverse_geocode_locality(self, lat: float, lng: float) -> Optional[str]:
@@ -6022,12 +6028,17 @@ def evaluate_property(
 
     # Geocode is the one stage that MUST succeed — without coords nothing
     # else can run. The app route may pre-geocode for dedupe.
+    geocode_locality = None
     if pre_geocode is not None:
         _notify("geocode")
         lat = pre_geocode["lat"]
         lng = pre_geocode["lng"]
+        geocode_locality = pre_geocode.get("locality")
     else:
-        lat, lng = _staged("geocode", maps.geocode, listing.address)
+        _geo = _staged("geocode", maps.geocode_details, listing.address)
+        lat = _geo["lat"]
+        lng = _geo["lng"]
+        geocode_locality = _geo.get("locality")
 
     result = EvaluationResult(
         listing=listing,
@@ -6076,6 +6087,12 @@ def evaluate_property(
             "demographics", get_demographics, lat, lng)
     except Exception:
         pass
+
+    # NES-318: Prefer Google geocode locality over Census place name.
+    # Census returns geography names like "Heathcote" for Princeton NJ;
+    # the geocode locality field returns "Princeton" which users recognize.
+    if result.demographics and geocode_locality:
+        result.demographics.place_name = geocode_locality
 
     try:
         result.urban_access = _staged(
