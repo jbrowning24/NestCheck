@@ -129,6 +129,7 @@ Track important architectural decisions here:
 |------|----------|-----------|
 | 2025-01-15 | Chose Zustand over Redux | Simpler API, less boilerplate for our needs |
 | 2025-01-20 | Using RLS for auth | Row-level security at database layer |
+| 2026-03 | Section freshness from dataset_registry (NES-355) | `get_section_freshness()` in `coverage_config.py` queries `dataset_registry` for `ingested_at` timestamps, groups by report section (health_tier1: oldest of 7 sources, health_tier2: EJScreen, area_context: ACS vintage year). 1-hour module-level cache. Wired into `_prepare_snapshot_for_display()` as `result["section_freshness"]` — available in all 8 deserialization paths. Parks omitted until ParkServe ingested. Getting Around omitted (real-time APIs) |
 
 ## Known Issues / Tech Debt
 
