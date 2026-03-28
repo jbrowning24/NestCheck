@@ -519,3 +519,53 @@ class TestSyncManifestFromDb:
         original_google = COVERAGE_MANIFEST["NY"].get("GOOGLE_PLACES_PARKS")
         sync_manifest_from_db()
         assert COVERAGE_MANIFEST["NY"]["GOOGLE_PLACES_PARKS"] == original_google
+
+
+# ---------------------------------------------------------------------------
+# Section freshness: stale field (NES-356)
+# ---------------------------------------------------------------------------
+
+class TestSectionFreshnessStale:
+    def test_section_freshness_stale_field_present(self):
+        """Every section_freshness entry has a 'stale' boolean."""
+        from coverage_config import get_section_freshness
+        get_section_freshness.cache_clear()
+        freshness = get_section_freshness()
+        for key, entry in freshness.items():
+            assert "stale" in entry, f"{key} missing 'stale'"
+            assert isinstance(entry["stale"], bool), f"{key} stale is not bool"
+
+    def test_section_freshness_stale_when_old(self):
+        """Entries >24 months old are stale."""
+        from datetime import datetime, timezone, timedelta
+        from coverage_config import get_section_freshness
+
+        old_date = (datetime.now(timezone.utc) - timedelta(days=800)).isoformat()
+        fake_registry = {
+            "ejscreen": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        }
+        get_section_freshness.cache_clear()
+        with patch("coverage_config.get_dataset_registry", return_value=fake_registry):
+            freshness = get_section_freshness()
+        assert freshness["health_tier2"]["stale"] is True
+
+    def test_section_freshness_not_stale_when_recent(self):
+        """Entries with recent dates are not stale."""
+        from datetime import datetime, timezone
+        from coverage_config import get_section_freshness
+
+        recent_date = datetime.now(timezone.utc).isoformat()
+        fake_registry = {
+            "ejscreen": {"ingested_at": recent_date, "source_url": "", "record_count": 1, "notes": ""},
+        }
+        get_section_freshness.cache_clear()
+        with patch("coverage_config.get_dataset_registry", return_value=fake_registry):
+            freshness = get_section_freshness()
+        assert freshness["health_tier2"]["stale"] is False
+
+    def test_section_freshness_area_context_never_stale(self):
+        """area_context is never stale (ACS vintage is pinned)."""
+        from coverage_config import get_section_freshness
+        get_section_freshness.cache_clear()
+        freshness = get_section_freshness()
+        assert freshness["area_context"]["stale"] is False

@@ -11,6 +11,9 @@
 {# NES-327: Default is_full_access to true for backward compatibility #}
 {% set is_full_access = is_full_access if is_full_access is defined else true %}
 
+{# Section freshness data (NES-345) #}
+{% set _sf = result.section_freshness | default({}) %}
+
 {% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key, freshness_caption %}
 
 {# ── Pre-compute sidebar data ── #}
@@ -810,6 +813,19 @@
             {% endif %}
           </div>
           {% endif %}
+
+          {%- if result.green_escape and result.green_escape.canopy_cover -%}
+            {% set _canopy = result.green_escape.canopy_cover %}
+            <div class="data-row">
+              <span class="data-row__label">Tree canopy cover</span>
+              <span class="data-row__value">{{ "%.0f"|format(_canopy.canopy_pct) }}% within {{ _canopy.buffer_m }}m</span>
+            </div>
+            {%- if _canopy.canopy_pct < 15 -%}
+            <div class="callout callout--caution">
+              Limited tree cover may mean less shade and higher summer temperatures
+            </div>
+            {%- endif -%}
+          {%- endif -%}
 
           {% if is_full_access %}
           {% if result.green_escape and result.green_escape.best_daily_park %}

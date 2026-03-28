@@ -195,15 +195,17 @@ class TestCoerceScore:
 # ============================================================================
 
 class TestCheckGasStations:
-    """Tests for check_gas_stations — two-tier thresholds (FAIL < 300 ft, WARNING 300–500 ft).
+    """Tests for check_gas_stations — Places-primary, UST-enrichment.
 
-    UST spatial data primary path, Google Places fallback.
+    Google Places gas_station type is the primary source.  UST data
+    enriches Places matches and provides a caution fallback when Places
+    returns no results but active underground tanks exist.
     """
 
-    def _make_maps(self, stations, distance):
+    def _make_maps(self, stations):
+        """Create a mock GoogleMapsClient that returns *stations* from places_nearby."""
         maps = MagicMock(spec=GoogleMapsClient)
         maps.places_nearby.return_value = stations
-        maps.distance_feet.return_value = distance
         return maps
 
     def _make_unavailable_store(self):
@@ -211,53 +213,50 @@ class TestCheckGasStations:
         store.is_available.return_value = False
         return store
 
-    # --- Google Places fallback (spatial unavailable) ---
+    def _make_store(self, facilities=None):
+        """Create a mock spatial store returning *facilities* (default empty)."""
+        store = MagicMock()
+        store.is_available.return_value = True
+        store.find_facilities_within.return_value = facilities or []
+        return store
+
+    @staticmethod
+    def _station(lat, lng, name="Shell"):
+        return {"geometry": {"location": {"lat": lat, "lng": lng}}, "name": name}
+
+    # --- Places-primary path ---
 
     def test_no_stations_pass(self):
-        maps = self._make_maps([], 0)
+        maps = self._make_maps([])
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
 
     def test_station_beyond_warn_threshold_pass(self):
-        station = {"geometry": {"location": {"lat": 40.01, "lng": -74.0}}, "name": "Shell"}
-        maps = self._make_maps([station], 600)
+        # Station at ~600 ft away (haversine)
+        station = self._station(40.0018, -74.0, "Shell")
+        maps = self._make_maps([station])
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.PASS
-        assert result.value == 600
 
     def test_station_within_fail_threshold_fail(self):
-        """Station at 250 ft — inside CA 300 ft setback → FAIL."""
-        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "BP"}
-        maps = self._make_maps([station], 250)
+        """Station very close — inside CA 300 ft setback → FAIL."""
+        # ~0.0007 degrees lat ≈ 255 ft
+        station = self._station(40.0007, -74.0, "BP")
+        maps = self._make_maps([station])
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.FAIL
-        assert result.value == 250
         assert "TOO CLOSE" in result.details
 
     def test_station_in_warning_band(self):
-        """Station at 350 ft — beyond CA setback, within MD 500 ft → WARNING."""
-        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Sunoco"}
-        maps = self._make_maps([station], 350)
+        """Station at ~350 ft — beyond CA setback, within MD 500 ft → WARNING."""
+        # ~0.001 degrees lat ≈ 364 ft
+        station = self._station(40.001, -74.0, "Sunoco")
+        maps = self._make_maps([station])
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
         assert result.result == CheckResult.WARNING
-        assert result.value == 350
         assert "NEARBY" in result.details
 
-    def test_boundary_at_fail_threshold_is_warning(self):
-        """Station at exactly 300 ft — boundary goes to WARNING (not FAIL)."""
-        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Mobil"}
-        maps = self._make_maps([station], GAS_STATION_FAIL_DISTANCE_FT)
-        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
-        assert result.result == CheckResult.WARNING
-
-    def test_boundary_at_warn_threshold_is_pass(self):
-        """Station at exactly 500 ft — boundary goes to PASS."""
-        station = {"geometry": {"location": {"lat": 40.001, "lng": -74.0}}, "name": "Exxon"}
-        maps = self._make_maps([station], GAS_STATION_WARN_DISTANCE_FT)
-        result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
-        assert result.result == CheckResult.PASS
-
-    def test_api_error_returns_unknown(self):
+    def test_api_error_with_no_ust_returns_unknown(self):
         maps = MagicMock(spec=GoogleMapsClient)
         maps.places_nearby.side_effect = ValueError("API error")
         result = check_gas_stations(40.0, -74.0, self._make_unavailable_store(), maps)
@@ -267,86 +266,86 @@ class TestCheckGasStations:
         result = check_gas_stations(40.0, -74.0, None, None)
         assert result.result == CheckResult.UNKNOWN
 
-    # --- UST spatial data path ---
+    # --- UST enrichment of Places results ---
 
-    def test_spatial_no_facilities_pass(self):
+    def test_places_result_enriched_with_ust_tank_count(self):
         from spatial_data import FacilityRecord
-        store = MagicMock()
-        store.is_available.return_value = True
-        store.find_facilities_within.return_value = []
-        result = check_gas_stations(40.0, -74.0, store)
-        assert result.result == CheckResult.PASS
-        store.find_facilities_within.assert_called_once_with(40.0, -74.0, 500, "ust")
-
-    def test_spatial_far_facility_pass(self):
-        from spatial_data import FacilityRecord
-        facility = FacilityRecord(
-            facility_type="ust", name="Shell Station",
-            lat=40.01, lng=-74.0,
-            distance_meters=200.0, distance_feet=656.0,
-            metadata={"open_usts": 3},
-        )
-        store = MagicMock()
-        store.is_available.return_value = True
-        store.find_facilities_within.return_value = [facility]
-        result = check_gas_stations(40.0, -74.0, store)
-        assert result.result == CheckResult.PASS
-        assert result.value == 656
-
-    def test_spatial_close_facility_fail(self):
-        """Spatial facility at 197 ft — inside 300 ft fail threshold."""
-        from spatial_data import FacilityRecord
-        facility = FacilityRecord(
-            facility_type="ust", name="BP Fuel",
+        station = self._station(40.001, -74.0, "Shell")
+        maps = self._make_maps([station])
+        ust_match = FacilityRecord(
+            facility_type="ust", name="Shell Oil",
             lat=40.001, lng=-74.0,
-            distance_meters=60.0, distance_feet=197.0,
-            metadata={"open_usts": 2},
+            distance_meters=10.0, distance_feet=33.0,
+            metadata={"open_usts": 3, "closed_usts": 1},
         )
-        store = MagicMock()
-        store.is_available.return_value = True
-        store.find_facilities_within.return_value = [facility]
-        result = check_gas_stations(40.0, -74.0, store)
-        assert result.result == CheckResult.FAIL
-        assert "TOO CLOSE" in result.details
+        store = self._make_store([ust_match])
+        result = check_gas_stations(40.0, -74.0, store, maps)
+        assert "3 active tanks" in result.details
 
-    def test_spatial_warning_band(self):
-        """Spatial facility at 400 ft — between 300 and 500 ft → WARNING."""
+    # --- UST-only caution (no Places match) ---
+
+    def test_ust_active_no_places_returns_warning(self):
+        """Active UST facility but no Places gas station → unverified WARNING."""
         from spatial_data import FacilityRecord
         facility = FacilityRecord(
-            facility_type="ust", name="Corner Gas",
-            lat=40.003, lng=-74.0,
-            distance_meters=122.0, distance_feet=400.0,
-            metadata={"open_usts": 1},
+            facility_type="ust", name="JSM SERVICE INC",
+            lat=40.001, lng=-74.0,
+            distance_meters=47.0, distance_feet=154.0,
+            metadata={"open_usts": 2, "closed_usts": 0},
         )
-        store = MagicMock()
-        store.is_available.return_value = True
-        store.find_facilities_within.return_value = [facility]
-        result = check_gas_stations(40.0, -74.0, store)
+        store = self._make_store([facility])
+        maps = self._make_maps([])  # Places returns nothing
+        result = check_gas_stations(40.0, -74.0, store, maps)
         assert result.result == CheckResult.WARNING
-        assert result.value == 400
-        assert "NEARBY" in result.details
+        assert "no operating gas station was confirmed" in result.details
+        assert "JSM SERVICE INC" in result.details
 
-    def test_spatial_prefers_active_usts(self):
+    def test_ust_closed_only_no_places_returns_pass(self):
+        """Closed-only UST facility, no Places gas station → PASS."""
         from spatial_data import FacilityRecord
-        closed_near = FacilityRecord(
+        facility = FacilityRecord(
             facility_type="ust", name="Old Tank",
-            lat=40.0, lng=-74.0,
+            lat=40.001, lng=-74.0,
             distance_meters=30.0, distance_feet=98.0,
             metadata={"open_usts": 0, "closed_usts": 3},
         )
-        active_far = FacilityRecord(
-            facility_type="ust", name="Active Station",
-            lat=40.01, lng=-74.0,
-            distance_meters=200.0, distance_feet=656.0,
-            metadata={"open_usts": 2},
-        )
-        store = MagicMock()
-        store.is_available.return_value = True
-        store.find_facilities_within.return_value = [closed_near, active_far]
-        result = check_gas_stations(40.0, -74.0, store)
-        # Should use active facility (656 ft), not the closed one (98 ft)
+        store = self._make_store([facility])
+        maps = self._make_maps([])
+        result = check_gas_stations(40.0, -74.0, store, maps)
         assert result.result == CheckResult.PASS
-        assert result.value == 656
+
+    def test_ust_no_facilities_no_places_pass(self):
+        store = self._make_store([])
+        maps = self._make_maps([])
+        result = check_gas_stations(40.0, -74.0, store, maps)
+        assert result.result == CheckResult.PASS
+
+    # --- Fallback when Places API fails ---
+
+    def test_places_error_ust_active_returns_warning(self):
+        """Places API fails, but UST data shows active tanks → WARNING caution."""
+        from spatial_data import FacilityRecord
+        facility = FacilityRecord(
+            facility_type="ust", name="Corner Fuel",
+            lat=40.001, lng=-74.0,
+            distance_meters=60.0, distance_feet=197.0,
+            metadata={"open_usts": 1},
+        )
+        store = self._make_store([facility])
+        maps = MagicMock(spec=GoogleMapsClient)
+        maps.places_nearby.side_effect = ValueError("API error")
+        result = check_gas_stations(40.0, -74.0, store, maps)
+        assert result.result == CheckResult.WARNING
+        assert "no operating gas station was confirmed" in result.details
+
+    def test_places_error_ust_empty_returns_pass_with_note(self):
+        """Places API fails, UST has no active tanks → PASS with confidence note."""
+        store = self._make_store([])
+        maps = MagicMock(spec=GoogleMapsClient)
+        maps.places_nearby.side_effect = ValueError("API error")
+        result = check_gas_stations(40.0, -74.0, store, maps)
+        assert result.result == CheckResult.PASS
+        assert "could not be verified" in result.details
 
 
 # ============================================================================

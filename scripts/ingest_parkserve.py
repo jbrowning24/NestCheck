@@ -13,12 +13,13 @@ This script:
 3. Loads into spatial.db as facilities_parkserve table
 4. Creates spatial index for point-in-polygon and proximity queries
 
-Idempotent: drops and recreates the table on each run.
+Idempotent: per-state DELETE + INSERT preserves other states' data.
 
 Usage:
     python scripts/ingest_parkserve.py --discover
     python scripts/ingest_parkserve.py --limit 5   # 5 pages = 5,000 records
     python scripts/ingest_parkserve.py --state NY
+    python scripts/ingest_parkserve.py --states NY,NJ,CT
 """
 
 import argparse
@@ -34,7 +35,7 @@ import requests
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from spatial_data import init_spatial_db, create_facility_table, _connect
+from spatial_data import init_spatial_db, _connect
 
 logging.basicConfig(
     level=logging.INFO,
@@ -71,6 +72,35 @@ def _rings_to_multipolygon_wkt(rings: list, decimals: int = 6) -> str | None:
         return None
 
 
+def _ensure_parkserve_table(conn) -> None:
+    """Create facilities_parkserve table if it doesn't exist.
+
+    Uses CREATE TABLE IF NOT EXISTS + SpatiaLite DDL wrapped in try/except,
+    same pattern as VenueCache._ensure_table() in spatial_data.py.
+    """
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS facilities_parkserve (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            metadata_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )"""
+    )
+    try:
+        conn.execute(
+            "SELECT AddGeometryColumn('facilities_parkserve', 'geometry', 4326, 'MULTIPOLYGON', 'XY')"
+        )
+    except Exception:
+        pass  # Column already exists
+    try:
+        conn.execute(
+            "SELECT CreateSpatialIndex('facilities_parkserve', 'geometry')"
+        )
+    except Exception:
+        pass  # Index already exists
+    conn.commit()
+
+
 def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
     """Fetch one page of ParkServe park records."""
     params = {
@@ -102,9 +132,152 @@ def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
                 raise
 
 
+def _process_features(conn, features: list) -> tuple[int, int]:
+    """Process a batch of ArcGIS features: extract name/metadata, build WKT, INSERT.
+
+    Returns (inserted_count, skipped_count).
+    """
+    inserted = 0
+    skipped = 0
+
+    for feat in features:
+        attrs = feat.get("attributes", {})
+        geom = feat.get("geometry") or {}
+
+        rings = geom.get("rings")
+        if not rings:
+            skipped += 1
+            continue
+
+        wkt = _rings_to_multipolygon_wkt(rings)
+        if not wkt:
+            skipped += 1
+            continue
+
+        name = (
+            attrs.get("Park_Name")
+            or attrs.get("ParkName")
+            or attrs.get("NAME")
+            or "Unknown Park"
+        )
+        if isinstance(name, str):
+            name = name.strip()
+        else:
+            name = str(name).strip()
+
+        metadata = {
+            "park_type": attrs.get("Park_Type", ""),
+            "acres": attrs.get("Acres") or attrs.get("ACRES"),
+            "city": attrs.get("City", ""),
+            "state": attrs.get("State", ""),
+            "agency": attrs.get("Agency", ""),
+            "park_id": attrs.get("Park_ID") or attrs.get("ParkID"),
+        }
+
+        try:
+            conn.execute(
+                """INSERT INTO facilities_parkserve (name, geometry, metadata_json)
+                   VALUES (?, GeomFromText(?, 4326), ?)""",
+                (name, wkt, json.dumps(metadata)),
+            )
+            inserted += 1
+        except Exception as e:
+            logger.warning("Insert failed for %s: %s", name[:50], e)
+            skipped += 1
+
+    conn.commit()
+    return inserted, skipped
+
+
+def _ingest_state(conn, st: str, limit_pages: int = 0) -> tuple[int, int]:
+    """Ingest records for a single state. Returns (inserted, skipped)."""
+    where = f"State = '{st}'"
+    logger.info("  Deleting existing rows for state %s...", st)
+    conn.execute(
+        "DELETE FROM facilities_parkserve WHERE json_extract(metadata_json, '$.state') = ?",
+        (st,),
+    )
+    conn.commit()
+
+    total_inserted = 0
+    total_skipped = 0
+    offset = 0
+    batch_num = 0
+
+    while True:
+        batch_num += 1
+        logger.info("  [%s] Fetching batch %d (offset %d)...", st, batch_num, offset)
+        data = fetch_page(offset, where)
+
+        features = data.get("features", [])
+        if not features:
+            logger.info("  [%s] No more features — done.", st)
+            break
+
+        inserted, skipped = _process_features(conn, features)
+        total_inserted += inserted
+        total_skipped += skipped
+        logger.info(
+            "  [%s] Batch %d: inserted %d, skipped so far: %d, total: %d",
+            st, batch_num, inserted, total_skipped, total_inserted,
+        )
+
+        if limit_pages and batch_num >= limit_pages:
+            logger.info("  [%s] Page limit reached (%d) — stopping.", st, limit_pages)
+            break
+
+        if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
+            logger.info("  [%s] Last page received — done.", st)
+            break
+
+        offset += PAGE_SIZE
+
+    return total_inserted, total_skipped
+
+
+def _ingest_all(conn, limit_pages: int = 0) -> tuple[int, int]:
+    """Ingest all records (no state filter). Returns (inserted, skipped)."""
+    where = "1=1"
+    total_inserted = 0
+    total_skipped = 0
+    offset = 0
+    batch_num = 0
+
+    while True:
+        batch_num += 1
+        logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
+        data = fetch_page(offset, where)
+
+        features = data.get("features", [])
+        if not features:
+            logger.info("No more features — done.")
+            break
+
+        inserted, skipped = _process_features(conn, features)
+        total_inserted += inserted
+        total_skipped += skipped
+        logger.info(
+            "  Batch %d: inserted %d, skipped so far: %d, total: %d",
+            batch_num, inserted, total_skipped, total_inserted,
+        )
+
+        if limit_pages and batch_num >= limit_pages:
+            logger.info("Page limit reached (%d) — stopping.", limit_pages)
+            break
+
+        if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
+            logger.info("Last page received — done.")
+            break
+
+        offset += PAGE_SIZE
+
+    return total_inserted, total_skipped
+
+
 def ingest(
     limit_pages: int = 0,
     state: str = "",
+    states: list[str] | None = None,
     discover: bool = False,
 ):
     """Main ingestion loop."""
@@ -139,102 +312,49 @@ def ingest(
                 logger.info("Ring count: %d", len(feat["geometry"]["rings"]))
         return
 
-    where = "1=1"
-    if state:
+    # Build state list from params
+    state_list: list[str] = []
+    if states:
+        for s in states:
+            st = s.strip().upper()
+            if len(st) == 2 and st.isalpha():
+                state_list.append(st)
+            else:
+                raise ValueError(f"Invalid state abbreviation: {s!r} (expected 2-letter code, e.g. NY)")
+    elif state:
         st = state.upper()
         if not (len(st) == 2 and st.isalpha()):
             raise ValueError(f"Invalid state abbreviation: {state!r} (expected 2-letter code, e.g. NY)")
-        where = f"State = '{st}'"
+        state_list.append(st)
 
     logger.info("Starting ParkServe park polygon ingestion")
-    logger.info("  WHERE: %s", where)
+    if state_list:
+        logger.info("  States: %s", ", ".join(state_list))
+    else:
+        logger.info("  States: ALL (no filter)")
     if limit_pages:
         logger.info("  LIMIT: %d pages (%d records)", limit_pages, limit_pages * PAGE_SIZE)
 
     init_spatial_db()
-    create_facility_table("parkserve", geometry_type="MULTIPOLYGON")
-    logger.info("Created facilities_parkserve table")
-
     conn = _connect()
+    _ensure_parkserve_table(conn)
+    logger.info("Ensured facilities_parkserve table exists")
+
     total_inserted = 0
     total_skipped = 0
-    offset = 0
-    batch_num = 0
 
     try:
-        while True:
-            batch_num += 1
-            logger.info("Fetching batch %d (offset %d)...", batch_num, offset)
-            data = fetch_page(offset, where)
+        if state_list:
+            for st in state_list:
+                logger.info("Ingesting state: %s", st)
+                inserted, skipped = _ingest_state(conn, st, limit_pages)
+                total_inserted += inserted
+                total_skipped += skipped
+                logger.info("  State %s: inserted %d, skipped %d", st, inserted, skipped)
+        else:
+            total_inserted, total_skipped = _ingest_all(conn, limit_pages)
 
-            features = data.get("features", [])
-            if not features:
-                logger.info("No more features — done.")
-                break
-
-            inserted_this_batch = 0
-            for feat in features:
-                attrs = feat.get("attributes", {})
-                geom = feat.get("geometry") or {}
-
-                rings = geom.get("rings")
-                if not rings:
-                    total_skipped += 1
-                    continue
-
-                wkt = _rings_to_multipolygon_wkt(rings)
-                if not wkt:
-                    total_skipped += 1
-                    continue
-
-                name = (
-                    attrs.get("Park_Name")
-                    or attrs.get("ParkName")
-                    or attrs.get("NAME")
-                    or "Unknown Park"
-                )
-                if isinstance(name, str):
-                    name = name.strip()
-                else:
-                    name = str(name).strip()
-
-                metadata = {
-                    "park_type": attrs.get("Park_Type", ""),
-                    "acres": attrs.get("Acres") or attrs.get("ACRES"),
-                    "city": attrs.get("City", ""),
-                    "state": attrs.get("State", ""),
-                    "agency": attrs.get("Agency", ""),
-                    "park_id": attrs.get("Park_ID") or attrs.get("ParkID"),
-                }
-
-                try:
-                    conn.execute(
-                        """INSERT INTO facilities_parkserve (name, geometry, metadata_json)
-                           VALUES (?, GeomFromText(?, 4326), ?)""",
-                        (name, wkt, json.dumps(metadata)),
-                    )
-                    inserted_this_batch += 1
-                    total_inserted += 1
-                except Exception as e:
-                    logger.warning("Insert failed for %s: %s", name[:50], e)
-                    total_skipped += 1
-
-            conn.commit()
-            logger.info(
-                "  Batch %d: inserted %d, skipped so far: %d, total: %d",
-                batch_num, inserted_this_batch, total_skipped, total_inserted,
-            )
-
-            if limit_pages and batch_num >= limit_pages:
-                logger.info("Page limit reached (%d) — stopping.", limit_pages)
-                break
-
-            if len(features) < PAGE_SIZE and not data.get("exceededTransferLimit", False):
-                logger.info("Last page received — done.")
-                break
-
-            offset += PAGE_SIZE
-
+        where_desc = ", ".join(state_list) if state_list else "1=1"
         conn.execute(
             """INSERT OR REPLACE INTO dataset_registry
                (facility_type, source_url, ingested_at, record_count, notes)
@@ -244,7 +364,7 @@ def ingest(
                 PARKSERVE_ENDPOINT,
                 datetime.now(timezone.utc).isoformat(),
                 total_inserted,
-                f"WHERE: {where}" + (f", LIMIT: {limit_pages} pages" if limit_pages else ""),
+                f"WHERE: {where_desc}" + (f", LIMIT: {limit_pages} pages" if limit_pages else ""),
             ),
         )
         conn.commit()
@@ -298,6 +418,10 @@ if __name__ == "__main__":
         help="Filter to a single state (e.g., NY, CA).",
     )
     parser.add_argument(
+        "--states", type=str, default="",
+        help="Comma-separated list of states (e.g., NY,NJ,CT).",
+    )
+    parser.add_argument(
         "--discover", action="store_true",
         help="Print sample record and exit.",
     )
@@ -310,6 +434,7 @@ if __name__ == "__main__":
     if args.discover:
         ingest(discover=True)
     else:
-        ingest(limit_pages=args.limit, state=args.state)
+        states_list = [s.strip() for s in args.states.split(",") if s.strip()] if args.states else None
+        ingest(limit_pages=args.limit, state=args.state, states=states_list)
         if args.verify:
             verify()

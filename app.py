@@ -1920,7 +1920,14 @@ def present_checks(tier1_checks):
         elif result == "WARNING":
             result_type = "WARNING_DETECTED"
             proximity_band = "NOTABLE"
-            headline = _WARNING_HEADLINES.get(name, f"{name} — Warning detected")
+            # UST-only gas station caution: no Places-confirmed station
+            if (name == "Gas station"
+                    and "no operating gas station was confirmed" in details):
+                headline = "Unverified fuel facility nearby"
+            else:
+                headline = _WARNING_HEADLINES.get(
+                    name, f"{name} — Warning detected"
+                )
             explanation = details
         else:
             result_type = "VERIFICATION_NEEDED"
@@ -2337,6 +2344,9 @@ _ANNOTATION_CATEGORY_LABELS = {
 
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
+    _ge = _serialize_green_escape(result.green_escape_evaluation)
+    if _ge and result.canopy_cover:
+        _ge["canopy_cover"] = result.canopy_cover
     output = {
         "address": result.listing.address,
         "coordinates": {"lat": result.lat, "lng": result.lng},
@@ -2379,7 +2389,7 @@ def result_to_dict(result):
             "score_0_10": result.transit_access.score_0_10,
             "reasons": result.transit_access.reasons,
         } if result.transit_access else None,
-        "green_escape": _serialize_green_escape(result.green_escape_evaluation),
+        "green_escape": _ge,
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
         "tier1_checks": [

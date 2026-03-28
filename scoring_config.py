@@ -340,6 +340,19 @@ _FITNESS_DRIVE_KNOTS = (
     PiecewiseKnot(30, 0),
 )
 
+# ---------------------------------------------------------------------------
+# Canopy cover → nature-feel subscore (0–2)
+# Replaces keyword-based _score_nature_feel when NLCD data is available.
+# ---------------------------------------------------------------------------
+
+CANOPY_NATURE_FEEL_KNOTS = (
+    PiecewiseKnot(5, 0.0),     # < 5% = barren/paved
+    PiecewiseKnot(15, 0.5),    # sparse canopy
+    PiecewiseKnot(25, 1.0),    # moderate urban canopy
+    PiecewiseKnot(40, 1.5),    # well-treed neighborhood
+    PiecewiseKnot(55, 2.0),    # heavily treed — subscore max
+)
+
 _FITNESS_QUALITY_MULTIPLIERS = (
     QualityMultiplier(min_rating=4.5, multiplier=1.0),
     QualityMultiplier(min_rating=4.2, multiplier=1.0),
@@ -365,7 +378,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.6.0",
+    version="1.7.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
