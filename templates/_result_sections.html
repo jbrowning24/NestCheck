@@ -1105,7 +1105,7 @@
             {% if sd.ela_proficiency_pct is not none %}
             <div class="stat-card">
               <div class="stat-card__value">{{ "%.0f"|format(sd.ela_proficiency_pct) }}%</div>
-              <div class="stat-card__label">ELA proficiency</div>
+              <div class="stat-card__label">Reading proficiency (ELA)</div>
             </div>
             {% endif %}
             {% if sd.math_proficiency_pct is not none %}
@@ -1118,6 +1118,7 @@
             <div class="stat-card">
               <div class="stat-card__value">{{ "%.0f"|format(sd.chronic_absenteeism_pct) }}%</div>
               <div class="stat-card__label">Chronic absenteeism</div>
+              <div class="stat-card__annotation">{{ term_glossary.chronic_absenteeism }}</div>
             </div>
             {% endif %}
             {% if sd.pupil_expenditure is not none %}
@@ -1132,6 +1133,7 @@
           {% if result.nearby_schools is defined and result.nearby_schools %}
           <div class="nearby-schools-section">
             <h3 class="nearby-schools-heading">Nearby Schools</h3>
+          <p class="stat-card__annotation">{{ term_glossary.free_reduced_lunch }}</p>
             <div class="nearby-schools-list">
               {% for school in result.nearby_schools %}
                 {{ school_card(school) }}
@@ -1144,7 +1146,7 @@
             Source: NYSED Report Card{{ " (" + sd.source_year + ")" if sd.source_year else "" }}
             &middot; Census TIGER Boundaries &middot; District {{ sd.geoid }}
             {% if result.nearby_schools is defined and result.nearby_schools %}
-              &middot; NCES 2022&ndash;23
+              &middot; U.S. Dept. of Education 2022&ndash;23
             {% endif %}
           </p>
         </div>
@@ -1154,18 +1156,18 @@
         {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
           {% set ej = result.ejscreen_profile %}
           {% set ej_indicators = [
-            ("PM25",   "PM2.5 Particulate Matter",    true),
-            ("OZONE",  "Ozone",                       false),
-            ("DSLPM",  "Diesel Particulate Matter",    true),
-            ("CANCER", "Air Toxics Cancer Risk",       true),
-            ("RESP",   "Air Toxics Respiratory HI",    false),
-            ("PTRAF",  "Traffic Proximity",            false),
-            ("PNPL",   "Superfund Proximity",          true),
-            ("PRMP",   "RMP Facility Proximity",       false),
-            ("PTSDF",  "Hazardous Waste Proximity",    true),
-            ("UST",    "Underground Storage Tanks",    false),
-            ("PWDIS",  "Wastewater Discharge",         false),
-            ("LEAD",   "Lead Paint (Pre-1960 Housing)",true),
+            ("PM25",   "Fine Particle Pollution (PM2.5)",  true),
+            ("OZONE",  "Ozone",                            false),
+            ("DSLPM",  "Diesel Particulate Matter",        true),
+            ("CANCER", "Air Toxics Cancer Risk",           true),
+            ("RESP",   "Air Toxics Respiratory Risk",      false),
+            ("PTRAF",  "Traffic Proximity",                false),
+            ("PNPL",   "Superfund Proximity",              true),
+            ("PRMP",   "RMP Facility Proximity",           false),
+            ("PTSDF",  "Hazardous Waste Proximity",        true),
+            ("UST",    "Underground Storage Tanks",        false),
+            ("PWDIS",  "Wastewater Discharge Proximity",   false),
+            ("LEAD",   "Lead Paint Risk",                  true),
           ] %}
         <div id="ejscreen-profile" class="data-section">
           <h2 class="section-title">EPA ENVIRONMENTAL PROFILE{% if result.coverage is defined and result.coverage.ejscreen is defined %}
@@ -1174,7 +1176,7 @@
           {% if result.section_freshness is defined and result.section_freshness.health_tier2 is defined %}
             {{ freshness_caption(result.section_freshness.health_tier2) }}
           {% endif %}
-          <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
+          <p class="area-context-note">Neighborhood-level environmental indicators from the EPA</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
             <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
             <span>View all indicators</span>
@@ -1197,14 +1199,21 @@
                     {% if pct >= 80 %}
                       <span class="ejscreen-indicator__badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
                     {% endif %}
+                    <span class="ejscreen-indicator__annotation">
+                      {%- if pct >= 80 -%}
+                        Higher than {{ "%.0f"|format(pct) }}% of U.S. neighborhoods &mdash; elevated concern
+                      {%- elif pct >= 50 -%}
+                        Higher than {{ "%.0f"|format(pct) }}% of U.S. neighborhoods
+                      {%- else -%}
+                        Lower than {{ "%.0f"|format(100 - pct) }}% of U.S. neighborhoods
+                      {%- endif -%}
+                    </span>
                   </div>
                 {% endif %}
               {% endfor %}
             </div>
             <div class="ejscreen-source">
-              Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener">EPA EJScreen 2024</a>
-              &bull; Block group {{ ej._block_group_id if ej._block_group_id else "N/A" }}
-              &bull; {{ "%.0f"|format(ej._distance_m) if ej._distance_m else "?" }} m from address
+              <span title="Census block group {{ ej._block_group_id if ej._block_group_id else 'N/A' }}">Source: <a href="https://www.epa.gov/ejscreen" target="_blank" rel="noopener noreferrer">U.S. Environmental Protection Agency</a></span>
             </div>
           </div>
         </div>

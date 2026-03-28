@@ -1456,6 +1456,12 @@ h1.narrative-summary {
   color: var(--color-text-faint);
   margin-top: var(--space-sm);
 }
+.stat-card__annotation {
+  font-size: var(--type-detail);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-normal);
+  margin-top: var(--space-xs);
+}
 .community-profile-source {
   font-size: var(--font-size-small);
   color: var(--color-text-disabled);
@@ -1571,6 +1577,14 @@ h1.narrative-summary {
   font-variant-numeric: tabular-nums;
 }
 .ejscreen-indicator__badge { margin-left: var(--space-xs); }
+.ejscreen-indicator__annotation {
+  display: block;
+  width: 100%;
+  font-size: var(--type-detail);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-normal);
+  margin-top: var(--space-xs);
+}
 .ejscreen-source {
   margin-top: var(--space-sm);
   font-size: var(--font-size-small);
