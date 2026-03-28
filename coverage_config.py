@@ -591,6 +591,7 @@ _HEALTH_TIER1_REGISTRY_KEYS = [
 ]
 
 _FRESHNESS_CACHE_TTL = 3600  # 1 hour
+_FRESHNESS_STALE_MONTHS = 24  # data older than this is flagged stale
 
 # Module-level cache: (result_dict, monotonic_timestamp)
 _freshness_cache: Optional[tuple] = None
@@ -620,6 +621,23 @@ def _oldest_date(registry: dict, keys: list) -> Optional[str]:
     if not timestamps:
         return None
     return min(timestamps)
+
+
+def _is_stale_iso(iso_ts: Optional[str]) -> bool:
+    """Return True if *iso_ts* is more than 24 months (730 days) ago.
+
+    Returns False when the timestamp is None or cannot be parsed.
+    """
+    if not iso_ts:
+        return False
+    try:
+        from datetime import timezone, timedelta
+        dt = datetime.fromisoformat(iso_ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt).days > 730
+    except (ValueError, TypeError):
+        return False
 
 
 def get_section_freshness() -> dict:
@@ -657,6 +675,7 @@ def get_section_freshness() -> dict:
         result["health_tier1"] = {
             "source": "EPA/FEMA/HIFLD/DOT",
             "date": formatted_t1,
+            "stale": _is_stale_iso(oldest_t1),
         }
 
     # Health Tier 2: EJScreen only
@@ -667,12 +686,14 @@ def get_section_freshness() -> dict:
             result["health_tier2"] = {
                 "source": "EPA EJScreen",
                 "date": formatted_ej,
+                "stale": _is_stale_iso(ej_entry.get("ingested_at")),
             }
 
     # Area Context: ACS vintage year (static, not from registry)
     result["area_context"] = {
         "source": "Census ACS",
         "date": ACS_VINTAGE_YEAR,
+        "stale": False,  # ACS vintage is intentionally pinned
     }
 
     # Parks: ParkServe (not yet ingested — omitted until it is)
@@ -683,6 +704,7 @@ def get_section_freshness() -> dict:
             result["parks"] = {
                 "source": "ParkServe",
                 "date": formatted_ps,
+                "stale": _is_stale_iso(ps_entry.get("ingested_at")),
             }
 
     # Getting Around: skip (real-time APIs)
