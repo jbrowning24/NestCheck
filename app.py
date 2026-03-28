@@ -40,7 +40,7 @@ from scoring_config import (
     WALK_DRIVE_BOTH_THRESHOLD, WALK_DRIVE_ONLY_THRESHOLD,
 )
 from census import serialize_for_result as _serialize_census
-from coverage_config import COVERAGE_MANIFEST
+from coverage_config import COVERAGE_MANIFEST, get_section_freshness
 from models import (
     _get_db, init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -2320,6 +2320,9 @@ def _prepare_snapshot_for_display(result):
 
     # NES-288: Backfill coverage metadata (display-time only).
     _add_coverage_metadata(result)
+
+    # NES-355: Section freshness metadata (display-time only).
+    result["section_freshness"] = get_section_freshness()
 
 
 # NES-315: Tier2Score.name → user-facing category label for annotations.
