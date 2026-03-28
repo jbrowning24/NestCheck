@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any, Tuple
 
 from nc_trace import get_trace
-from scoring_config import WALK_DRIVE_BOTH_THRESHOLD
+from scoring_config import WALK_DRIVE_BOTH_THRESHOLD, CANOPY_NATURE_FEEL_KNOTS, apply_piecewise
 
 try:
     from spatial_data import SpatialDataStore
@@ -1365,6 +1365,7 @@ def compute_park_score(
     osm_path_count: int = 0,
     osm_has_trail: bool = False,
     osm_nature_tags: Optional[List[str]] = None,
+    canopy_pct: Optional[float] = None,
 ) -> float:
     """Compute Daily Walk Value (0-10) from pre-computed scalar inputs.
 
@@ -1400,7 +1401,10 @@ def compute_park_score(
         parkserve_acres=park_acres,
     )
     q_score, _ = _score_quality(rating, reviews)
-    nf_score, _ = _score_nature_feel(osm_data, name, types)
+    if canopy_pct is not None:
+        nf_score = apply_piecewise(CANOPY_NATURE_FEEL_KNOTS, canopy_pct)
+    else:
+        nf_score, _ = _score_nature_feel(osm_data, name, types)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
     return min(10.0, total)
@@ -1411,6 +1415,7 @@ def score_green_space(
     lat: float,
     lng: float,
     osm_data: Optional[Dict[str, Any]] = None,
+    canopy_pct: Optional[float] = None,
 ) -> GreenSpaceResult:
     """
     Score a single green space for Daily Walk Value (0–10).
@@ -1439,7 +1444,11 @@ def score_green_space(
         osm_data, rating, reviews, name, parkserve_acres=parkserve_acres,
     )
     q_score, q_reason = _score_quality(rating, reviews)
-    nf_score, nf_reason = _score_nature_feel(osm_data, name, types)
+    if canopy_pct is not None:
+        nf_score = apply_piecewise(CANOPY_NATURE_FEEL_KNOTS, canopy_pct)
+        nf_reason = f"{canopy_pct:.0f}% tree canopy within 500m (NLCD)"
+    else:
+        nf_score, nf_reason = _score_nature_feel(osm_data, name, types)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
     total = min(10.0, total)
@@ -1550,6 +1559,7 @@ def evaluate_green_escape(
     lat: float,
     lng: float,
     enable_osm: bool = True,
+    canopy_pct: Optional[float] = None,
 ) -> GreenEscapeEvaluation:
     """
     Full green escape evaluation.
@@ -1609,7 +1619,7 @@ def evaluate_green_escape(
 
     scored: List[GreenSpaceResult] = []
     for place, osm_data in zip(places, osm_results):
-        result = score_green_space(place, lat, lng, osm_data)
+        result = score_green_space(place, lat, lng, osm_data, canopy_pct=canopy_pct)
         scored.append(result)
 
     # Step 3: Sort by daily walk value (descending), then review count, then walk time
