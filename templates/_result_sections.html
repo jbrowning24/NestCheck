@@ -11,7 +11,7 @@
 {# NES-327: Default is_full_access to true for backward compatibility #}
 {% set is_full_access = is_full_access if is_full_access is defined else true %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key, freshness_caption %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -204,6 +204,9 @@
           <h2 class="section-title">HEALTH &amp; ENVIRONMENT{% if result.coverage is defined and result.coverage.health is defined %}
             {{ coverage_badge(result.coverage.health, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.health_tier1 is defined %}
+            {{ freshness_caption(result.section_freshness.health_tier1) }}
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.proximity %}
             <p class="section-insight">{{ result.insights.proximity }}</p>
@@ -779,6 +782,9 @@
           <h2 class="section-title">PARKS &amp; GREEN SPACE{% if result.coverage is defined and result.coverage.parks is defined %}
             {{ coverage_badge(result.coverage.parks, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.parks is defined %}
+            {{ freshness_caption(result.section_freshness.parks) }}
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.parks %}
             <p class="section-insight">{{ result.insights.parks }}</p>
@@ -1016,6 +1022,9 @@
         {% set demo = result.demographics %}
         <div id="community-profile" class="data-section">
           <h2 class="section-title">ABOUT {{ demo.place_name|upper }}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.area_context is defined %}
+            {{ freshness_caption(result.section_freshness.area_context) }}
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.community_profile %}
             <p class="section-insight">{{ result.insights.community_profile }}</p>
@@ -1060,6 +1069,9 @@
           <h2 class="section-title">SCHOOL DISTRICT{% if result.coverage is defined and result.coverage.school_district is defined %}
             {{ coverage_badge(result.coverage.school_district, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.school_district is defined %}
+            {{ freshness_caption(result.section_freshness.school_district) }}
+          {% endif %}
 
           <div class="school-district-header">
             <span class="school-district-name">{{ sd.district_name }}</span>
@@ -1143,6 +1155,9 @@
           <h2 class="section-title">EPA ENVIRONMENTAL PROFILE{% if result.coverage is defined and result.coverage.ejscreen is defined %}
             {{ coverage_badge(result.coverage.ejscreen, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.health_tier2 is defined %}
+            {{ freshness_caption(result.section_freshness.health_tier2) }}
+          {% endif %}
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
             <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
