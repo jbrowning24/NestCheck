@@ -6,6 +6,7 @@ from models import (
     init_db, _get_db,
     create_subscription, get_subscription_by_stripe_id,
     update_subscription_status, is_subscription_active,
+    get_active_subscription, hash_email,
     check_free_tier_available, record_free_tier_usage, decrement_free_tier_usage,
     PAYMENT_REDEEMED,
 )
@@ -43,6 +44,7 @@ def test_create_and_retrieve_subscription():
     sub = get_subscription_by_stripe_id("sub_test123")
     assert sub is not None
     assert sub["user_email"] == "test@example.com"
+    assert sub["email_hash"] == hash_email("test@example.com")
     assert sub["status"] == "active"
 
 
@@ -58,6 +60,44 @@ def test_is_subscription_active_true():
         period_end=future,
     )
     assert is_subscription_active("active@example.com") is True
+
+
+def test_is_subscription_active_by_email_hash():
+    sub_id = uuid.uuid4().hex
+    future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    create_subscription(
+        subscription_id=sub_id,
+        user_email="hash_active@example.com",
+        stripe_subscription_id="sub_hash_active",
+        stripe_customer_id="cus_hash_active",
+        period_start="2026-03-01T00:00:00",
+        period_end=future,
+    )
+    eh = hash_email("hash_active@example.com")
+    assert is_subscription_active(email_hash=eh) is True
+    assert is_subscription_active(email_hash="wrong_hash") is False
+
+
+def test_get_active_subscription_by_email_hash():
+    sub_id = uuid.uuid4().hex
+    future = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+    create_subscription(
+        subscription_id=sub_id,
+        user_email="hash_get@example.com",
+        stripe_subscription_id="sub_hash_get",
+        stripe_customer_id="cus_hash_get",
+        period_start="2026-03-01T00:00:00",
+        period_end=future,
+    )
+    eh = hash_email("hash_get@example.com")
+    sub = get_active_subscription(email_hash=eh)
+    assert sub is not None
+    assert sub["user_email"] == "hash_get@example.com"
+    assert get_active_subscription(email_hash="wrong_hash") is None
+
+
+def test_is_subscription_active_no_args():
+    assert is_subscription_active() is False
 
 
 def test_is_subscription_active_expired():
