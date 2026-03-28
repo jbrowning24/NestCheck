@@ -13,6 +13,8 @@ import logging
 import os
 import re
 import sqlite3
+import time
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -596,6 +598,142 @@ def get_source_last_refreshed(source_key: str) -> Optional[str]:
     registry = get_dataset_registry()
     entry = registry.get(registry_key)
     return entry["ingested_at"] if entry else None
+
+
+# =============================================================================
+# Section freshness (NES-355)
+# =============================================================================
+
+# Registry keys for health Tier 1 sources (address-level proximity checks).
+_HEALTH_TIER1_REGISTRY_KEYS = [
+    "tri", "fema_nfhl", "hifld", "hpms", "ust", "sems", "fra",
+]
+
+_FRESHNESS_CACHE_TTL = 3600  # 1 hour
+_FRESHNESS_STALE_MONTHS = 24  # data older than this is flagged stale
+
+# Module-level cache: (result_dict, monotonic_timestamp)
+_freshness_cache: Optional[tuple] = None
+
+
+def _format_freshness_date(iso_ts: Optional[str]) -> Optional[str]:
+    """Convert ISO 8601 timestamp to 'Month YYYY', or None on failure."""
+    if not iso_ts:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_ts)
+        return dt.strftime("%B %Y")
+    except (ValueError, TypeError):
+        return None
+
+
+def _oldest_date(registry: dict, keys: list) -> Optional[str]:
+    """Return the oldest ingested_at ISO timestamp across given registry keys.
+
+    Skips keys missing from the registry. Returns None if no keys matched.
+    """
+    timestamps = []
+    for key in keys:
+        entry = registry.get(key)
+        if entry and entry.get("ingested_at"):
+            timestamps.append(entry["ingested_at"])
+    if not timestamps:
+        return None
+    return min(timestamps)
+
+
+def _is_stale_iso(iso_ts: Optional[str]) -> bool:
+    """Return True if *iso_ts* is more than 24 months (730 days) ago.
+
+    Returns False when the timestamp is None or cannot be parsed.
+    """
+    if not iso_ts:
+        return False
+    try:
+        from datetime import timezone, timedelta
+        dt = datetime.fromisoformat(iso_ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt).days > 730
+    except (ValueError, TypeError):
+        return False
+
+
+def get_section_freshness() -> dict:
+    """Build section_freshness dict from dataset_registry timestamps.
+
+    Returns: {
+        "health_tier1": {"source": "EPA/FEMA/HIFLD/DOT", "date": "January 2026"},
+        "health_tier2": {"source": "EPA EJScreen", "date": "March 2025"},
+        "area_context": {"source": "Census ACS", "date": "2022"},
+        ...
+    }
+
+    Sections are omitted when no data is available. ``area_context`` is
+    always present (ACS vintage year, not from registry). ``parks`` and
+    ``getting_around`` are omitted (real-time APIs).
+
+    Results are cached for 1 hour.
+    """
+    global _freshness_cache
+    now = time.monotonic()
+    if _freshness_cache is not None:
+        cached_result, cached_time = _freshness_cache
+        if now - cached_time < _FRESHNESS_CACHE_TTL:
+            return {k: dict(v) for k, v in cached_result.items()}
+
+    from census import ACS_VINTAGE_YEAR
+
+    registry = get_dataset_registry()
+    result = {}
+
+    # Health Tier 1: oldest across all address-level health sources
+    oldest_t1 = _oldest_date(registry, _HEALTH_TIER1_REGISTRY_KEYS)
+    formatted_t1 = _format_freshness_date(oldest_t1)
+    if formatted_t1:
+        result["health_tier1"] = {
+            "source": "EPA/FEMA/HIFLD/DOT",
+            "date": formatted_t1,
+            "stale": _is_stale_iso(oldest_t1),
+        }
+
+    # Health Tier 2: EJScreen only
+    ej_entry = registry.get("ejscreen")
+    if ej_entry:
+        formatted_ej = _format_freshness_date(ej_entry.get("ingested_at"))
+        if formatted_ej:
+            result["health_tier2"] = {
+                "source": "EPA EJScreen",
+                "date": formatted_ej,
+                "stale": _is_stale_iso(ej_entry.get("ingested_at")),
+            }
+
+    # Area Context: ACS vintage year (static, not from registry)
+    result["area_context"] = {
+        "source": "Census ACS",
+        "date": ACS_VINTAGE_YEAR,
+        "stale": False,  # ACS vintage is intentionally pinned
+    }
+
+    # Parks: ParkServe (not yet ingested — omitted until it is)
+    ps_entry = registry.get("parkserve")
+    if ps_entry:
+        formatted_ps = _format_freshness_date(ps_entry.get("ingested_at"))
+        if formatted_ps:
+            result["parks"] = {
+                "source": "ParkServe",
+                "date": formatted_ps,
+                "stale": _is_stale_iso(ps_entry.get("ingested_at")),
+            }
+
+    # Getting Around: skip (real-time APIs)
+
+    _freshness_cache = (result, now)
+    return result
+
+
+# Make cache clearable for tests
+get_section_freshness.cache_clear = lambda: globals().update(_freshness_cache=None)
 
 
 # =============================================================================

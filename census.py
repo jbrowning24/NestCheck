@@ -51,6 +51,7 @@ _CENSUS_GEOCODER = "https://geocoding.geo.census.gov/geocoder/geographies/coordi
 # Bump when Census releases the next vintage (typically late in the following
 # year), then verify all _ACS_PLACE_VARS still exist in the new schema.
 _ACS_BASE = "https://api.census.gov/data/2022/acs/acs5"
+ACS_VINTAGE_YEAR = "2022"
 
 # Timeouts (seconds)
 _CENSUS_GEO_TIMEOUT = 10
