@@ -453,7 +453,8 @@
                   </div>
                   <div class="place-meta">
                     {% if place.rating %}
-                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact">{{ "%.1f"|format(place.rating) }} ★</span>
+                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
+                            aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
                     {% endif %}
                     {% if place.review_count %}
                       <span class="place-reviews">({{ place.review_count }})</span>
@@ -504,7 +505,8 @@
                   </div>
                   <div class="place-meta">
                     {% if place.rating %}
-                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact">{{ "%.1f"|format(place.rating) }} ★</span>
+                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
+                            aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
                     {% endif %}
                   </div>
                   <div class="place-time">
