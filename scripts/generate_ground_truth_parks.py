@@ -153,10 +153,10 @@ def _compute_quality_score(rating, reviews):
     return min(2.0, round(score, 1))
 
 
-def _compute_nature_feel_score(osm_data, name, types):
+def _compute_nature_feel_score(osm_data, name, types, parkserve_type=None):
     """Mirror of _score_nature_feel, returns score only."""
     if _IMPORTS_OK:
-        score, _ = _score_nature_feel(osm_data, name, types)
+        score, _ = _score_nature_feel(osm_data, name, types, parkserve_type=parkserve_type)
         return score
     raise RuntimeError("Cannot compute nature_feel without imports")
 
@@ -398,22 +398,42 @@ def _generate_nature_feel_tests():
         (["forest"], "Forest Park", ["national_park"],
          "forest tag + national_park type"),
         ([], "Generic Playground", [], "no nature indicators at all"),
+        # ParkServe type classification (NES-359)
+        ([], "Some Nature Area", [], "parkserve Nature Preserve, no other signals", "Nature Preserve"),
+        ([], "City Park", [], "parkserve Community Park, no other signals", "Community Park"),
+        ([], "Mini Green", [], "parkserve Mini Park (too small)", "Mini Park"),
+        ([], "Regional Open Space", [], "parkserve Regional Park", "Regional Park"),
+        ([], "River Trail", [], "parkserve Greenway", "Greenway"),
+        (["forest"], "Forest Park", [], "parkserve Nature Preserve + OSM forest tag", "Nature Preserve"),
+        (["forest", "water"], "Lake Nature Preserve", [], "parkserve Community Park vs strong OSM (OSM wins at 1.5)", "Community Park"),
+        ([], "Trail Path", [], "parkserve Trail vs trail name keyword", "Trail"),
     ]
 
-    for i, (tags, name, types, desc) in enumerate(nature_tests, 1):
+    for i, test_data in enumerate(nature_tests, 1):
+        if len(test_data) == 5:
+            tags, name, types, desc, ps_type = test_data
+        else:
+            tags, name, types, desc = test_data
+            ps_type = None
+
         osm_data = {"enriched": len(tags) > 0, "area_sqm": None,
                      "path_count": 0, "has_trail": False,
                      "nature_tags": tags}
-        score = _compute_nature_feel_score(osm_data, name, types)
+        score = _compute_nature_feel_score(osm_data, name, types, parkserve_type=ps_type)
+
+        inputs = {
+            "osm_nature_tags": tags,
+            "name": name,
+            "types": types,
+        }
+        if ps_type is not None:
+            inputs["parkserve_type"] = ps_type
+
         cases.append({
             "id": f"gt-parks-nf-{i:02d}",
             "test_type": "nature_feel",
             "description": desc,
-            "inputs": {
-                "osm_nature_tags": tags,
-                "name": name,
-                "types": types,
-            },
+            "inputs": inputs,
             "expected": {"nature_feel_score": score},
         })
 
@@ -473,6 +493,18 @@ def _generate_composite_tests():
              "osm_nature_tags": ["water"]},
             "excellent walk + trail park with water",
         ),
+        (
+            {"walk_time_min": 8, "rating": 4.2, "reviews": 150,
+             "name": "Riverside Park", "park_acres": 15.0,
+             "parkserve_type": "Nature Preserve",
+             "osm_path_count": 3, "osm_nature_tags": []},
+            "ParkServe Nature Preserve boosts nature_feel",
+        ),
+        (
+            {"walk_time_min": 12, "rating": 3.8, "reviews": 50,
+             "name": "Town Square", "parkserve_type": "Pocket Park"},
+            "ParkServe Pocket Park — no nature_feel boost",
+        ),
     ]
 
     for i, (kwargs, desc) in enumerate(composite_tests, 1):
@@ -501,6 +533,7 @@ def _generate_composite_tests():
         q_score = _compute_quality_score(kwargs.get("rating"), kwargs.get("reviews", 0))
         nf_score = _compute_nature_feel_score(
             osm_data, kwargs.get("name", ""), kwargs.get("types", []),
+            parkserve_type=kwargs.get("parkserve_type"),
         )
 
         cases.append({

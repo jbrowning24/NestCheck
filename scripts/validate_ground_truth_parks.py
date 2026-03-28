@@ -146,7 +146,8 @@ def _validate_nature_feel(case):
         "nature_tags": inp.get("osm_nature_tags", []),
     }
     actual, _ = _score_nature_feel(
-        osm_data, inp.get("name", ""), inp.get("types", [])
+        osm_data, inp.get("name", ""), inp.get("types", []),
+        parkserve_type=inp.get("parkserve_type"),
     )
 
     if abs(actual - expected) < TOLERANCE:
@@ -167,6 +168,7 @@ def _validate_composite(case):
         "name": inp.get("name", ""),
         "types": inp.get("types"),
         "park_acres": inp.get("park_acres"),
+        "parkserve_type": inp.get("parkserve_type"),
         "osm_area_sqm": inp.get("osm_area_sqm"),
         "osm_path_count": inp.get("osm_path_count", 0),
         "osm_has_trail": inp.get("osm_has_trail", False),
@@ -228,7 +230,8 @@ def _validate_composite(case):
             "nature_tags": inp.get("osm_nature_tags", []),
         }
         nf_actual, _ = _score_nature_feel(
-            nf_osm, inp.get("name", ""), inp.get("types", [])
+            nf_osm, inp.get("name", ""), inp.get("types", []),
+            parkserve_type=inp.get("parkserve_type"),
         )
         actual_data["nature_feel_score"] = nf_actual
         if abs(nf_actual - expected["nature_feel_score"]) >= TOLERANCE:
@@ -259,6 +262,7 @@ def _validate_composite_cap(case):
         "name": inp.get("name", ""),
         "types": inp.get("types"),
         "park_acres": inp.get("park_acres"),
+        "parkserve_type": inp.get("parkserve_type"),
         "osm_area_sqm": inp.get("osm_area_sqm"),
         "osm_path_count": inp.get("osm_path_count", 0),
         "osm_has_trail": inp.get("osm_has_trail", False),

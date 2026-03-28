@@ -2084,6 +2084,18 @@ h1.narrative-summary {
   margin-top: var(--space-sm, 8px);
 }
 
+/* ── Section freshness caption (NES-356) ── */
+.section-freshness {
+  font-size: var(--type-caption);
+  color: var(--color-text-tertiary);
+  display: block;
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+.section-freshness--stale {
+  color: var(--color-health-caution);
+}
+
 /* ── Collapsible section title — no bottom margin ── */
 .section-title--collapsible {
   margin-bottom: 0;
@@ -2242,11 +2254,11 @@ h1.narrative-summary {
     border-bottom: 1px solid var(--color-border-light);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: x mandatory;
     /* Stretch edge-to-edge past parent padding */
     margin-left: calc(-1 * var(--space-lg));
     margin-right: calc(-1 * var(--space-lg));
-    padding-left: var(--space-lg);
+    padding-left: var(--space-base);
     /* Hide scrollbar across browsers */
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -2259,12 +2271,13 @@ h1.narrative-summary {
     display: inline-flex;
     height: 44px;
     align-items: stretch;
+    padding-right: var(--space-base);
   }
 
   .mobile-tab__link {
     display: flex;
     align-items: center;
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-md);
     height: 44px;
     font-size: var(--type-caption);
     font-weight: var(--weight-medium);
@@ -2520,11 +2533,11 @@ h1.narrative-summary {
     border-bottom: 1px solid var(--color-border-light);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    scroll-snap-type: x mandatory;
     /* Stretch edge-to-edge past parent padding */
     margin-left: calc(-1 * var(--space-lg));
     margin-right: calc(-1 * var(--space-lg));
-    padding-left: var(--space-lg);
+    padding-left: var(--space-base);
     /* Hide scrollbar across browsers */
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -2537,12 +2550,13 @@ h1.narrative-summary {
     display: inline-flex;
     height: 44px;
     align-items: stretch;
+    padding-right: var(--space-base);
   }
 
   .mobile-tab__link {
     display: flex;
     align-items: center;
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-md);
     height: 44px;
     font-size: var(--type-caption);
     font-weight: var(--weight-medium);

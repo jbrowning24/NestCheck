@@ -1298,7 +1298,50 @@ def _score_quality(rating: Optional[float], reviews: int) -> Tuple[float, str]:
     return min(2.0, round(score, 1)), "; ".join(parts)
 
 
-def _score_nature_feel(osm_data: Dict[str, Any], name: str, types: List[str]) -> Tuple[float, str]:
+# ParkServe Park_Type → nature_feel score mapping (NES-359).
+# Values from Trust for Public Land classification. "Can only help, never hurt"
+# pattern: max(parkserve_score, existing_keyword_score).
+_PARKSERVE_TYPE_NATURE_SCORES: Dict[str, Tuple[float, str]] = {
+    # Authoritative nature classification
+    "Nature Preserve": (1.5, "Nature preserve (ParkServe)"),
+    "Nature Area": (1.5, "Nature area (ParkServe)"),
+    # Trail/corridor — good nature feel, less immersive
+    "Greenway": (1.0, "Greenway (ParkServe)"),
+    "Trail": (1.0, "Trail (ParkServe)"),
+    "Linear Park": (1.0, "Linear park (ParkServe)"),
+    # Large parks with likely natural areas
+    "Regional Park": (1.0, "Regional park (ParkServe)"),
+    "State Park": (1.0, "State park (ParkServe)"),
+    # May have trees but primarily built amenities
+    "Community Park": (0.3, "Community park (ParkServe)"),
+    # Too small for meaningful nature feel
+    "Pocket Park": (0.0, ""),
+    "Mini Park": (0.0, ""),
+}
+
+
+def _parkserve_type_score(parkserve_type: Optional[str]) -> Tuple[float, str]:
+    """Look up nature_feel score for a ParkServe Park_Type value.
+
+    Uses substring matching: Park_Type "Regional Park and Open Space" matches
+    "Regional Park". Checks longer keys first to avoid partial matches.
+    Returns (0.0, "") if no match.
+    """
+    if not parkserve_type:
+        return 0.0, ""
+    # Check longest keys first to avoid "Park" matching before "Regional Park"
+    for key in sorted(_PARKSERVE_TYPE_NATURE_SCORES, key=len, reverse=True):
+        if key.lower() in parkserve_type.lower():
+            return _PARKSERVE_TYPE_NATURE_SCORES[key]
+    return 0.0, ""
+
+
+def _score_nature_feel(
+    osm_data: Dict[str, Any],
+    name: str,
+    types: List[str],
+    parkserve_type: Optional[str] = None,
+) -> Tuple[float, str]:
     """Nature feel proxy subscore (0–2). OSM nature tags + name keywords."""
     score = 0.0
     parts = []
@@ -1348,6 +1391,15 @@ def _score_nature_feel(osm_data: Dict[str, Any], name: str, types: List[str]) ->
         score += 0.3
         parts.append("campground area")
 
+    # ParkServe type classification — can only help, never hurt (NES-359)
+    ps_score, ps_reason = _parkserve_type_score(parkserve_type)
+    if ps_score > score:
+        score = ps_score
+        parts = [ps_reason] if ps_reason else parts
+    elif ps_score > 0 and ps_reason and ps_score == score:
+        # Same score but ParkServe provides a more authoritative reason
+        parts.append(ps_reason)
+
     if not parts:
         parts.append("no nature indicators found")
 
@@ -1361,6 +1413,7 @@ def compute_park_score(
     name: str = "",
     types: Optional[List[str]] = None,
     park_acres: Optional[float] = None,
+    parkserve_type: Optional[str] = None,
     osm_area_sqm: Optional[float] = None,
     osm_path_count: int = 0,
     osm_has_trail: bool = False,
@@ -1404,7 +1457,7 @@ def compute_park_score(
     if canopy_pct is not None:
         nf_score = apply_piecewise(CANOPY_NATURE_FEEL_KNOTS, canopy_pct)
     else:
-        nf_score, _ = _score_nature_feel(osm_data, name, types)
+        nf_score, _ = _score_nature_feel(osm_data, name, types, parkserve_type=parkserve_type)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
     return min(10.0, total)
@@ -1439,6 +1492,7 @@ def score_green_space(
 
     # Compute subscores
     parkserve_acres = place.get("_parkserve_acres")
+    parkserve_type = place.get("_parkserve_type")
     wt_score, wt_reason = _score_walk_time(walk_time)
     sz_score, sz_reason, sz_estimate = _score_size_loop(
         osm_data, rating, reviews, name, parkserve_acres=parkserve_acres,
@@ -1448,7 +1502,7 @@ def score_green_space(
         nf_score = apply_piecewise(CANOPY_NATURE_FEEL_KNOTS, canopy_pct)
         nf_reason = f"{canopy_pct:.0f}% tree canopy within 500m (NLCD)"
     else:
-        nf_score, nf_reason = _score_nature_feel(osm_data, name, types)
+        nf_score, nf_reason = _score_nature_feel(osm_data, name, types, parkserve_type=parkserve_type)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
     total = min(10.0, total)
