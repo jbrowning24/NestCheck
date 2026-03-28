@@ -240,7 +240,7 @@ class TestCheckoutSubscription:
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
-    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
     @patch("app.stripe")
     def test_happy_path(self, mock_stripe, client):
         mock_session = MagicMock()
@@ -248,53 +248,108 @@ class TestCheckoutSubscription:
         mock_session.url = "https://checkout.stripe.com/pay/cs_sub_001"
         mock_stripe.checkout.Session.create.return_value = mock_session
 
-        resp, body = _post_json(client, "/checkout-subscription", data={
+        resp, body = _post_json(client, "/checkout-subscription", json={
             "email": "buyer@example.com",
+            "plan": "60d",
         })
 
         assert resp.status_code == 200
         assert body["checkout_url"] == mock_session.url
-        # Subscription checkout should NOT create a payment record
         assert "payment_id" not in body
 
         call_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
         assert call_kwargs["mode"] == "subscription"
+        assert call_kwargs["line_items"] == [{"price": "price_60d", "quantity": 1}]
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
-    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
+    @patch("app.stripe")
+    def test_all_plan_slugs(self, mock_stripe, client):
+        """Each valid plan slug routes to its price ID."""
+        mock_session = MagicMock()
+        mock_session.url = "https://checkout.stripe.com/pay/cs_test"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        for plan, expected_price in [("30d", "price_30d"), ("60d", "price_60d"), ("90d", "price_90d")]:
+            resp, body = _post_json(client, "/checkout-subscription", json={
+                "email": "buyer@example.com",
+                "plan": plan,
+            })
+            assert resp.status_code == 200, f"Plan {plan} failed"
+            call_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+            assert call_kwargs["line_items"] == [{"price": expected_price, "quantity": 1}]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
     def test_missing_email(self, client):
-        resp, body = _post_json(client, "/checkout-subscription", data={})
+        resp, body = _post_json(client, "/checkout-subscription", json={"plan": "30d"})
         assert resp.status_code == 400
         assert "Email required" in body["error"]
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
-    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", None)
-    def test_subscription_not_configured(self, client):
-        resp, body = _post_json(client, "/checkout-subscription", data={
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
+    def test_missing_plan(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", json={
             "email": "buyer@example.com",
+        })
+        assert resp.status_code == 400
+        assert "Invalid plan" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
+    def test_invalid_plan(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", json={
+            "email": "buyer@example.com",
+            "plan": "120d",
+        })
+        assert resp.status_code == 400
+        assert "Invalid plan" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": None})
+    def test_plan_not_configured(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", json={
+            "email": "buyer@example.com",
+            "plan": "90d",
+        })
+        assert resp.status_code == 503
+        assert "not configured" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": None, "60d": None, "90d": None})
+    def test_subscription_not_configured(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", json={
+            "email": "buyer@example.com",
+            "plan": "60d",
         })
         assert resp.status_code == 503
         assert "not configured" in body["error"]
 
     @patch("app.REQUIRE_PAYMENT", False)
     def test_payments_not_enabled(self, client):
-        resp, body = _post_json(client, "/checkout-subscription", data={
+        resp, body = _post_json(client, "/checkout-subscription", json={
             "email": "buyer@example.com",
+            "plan": "60d",
         })
         assert resp.status_code == 400
         assert "not enabled" in body["error"]
 
     @patch("app.REQUIRE_PAYMENT", True)
     @patch("app.STRIPE_AVAILABLE", True)
-    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    @patch("app._STRIPE_SUBSCRIPTION_PRICES", {"30d": "price_30d", "60d": "price_60d", "90d": "price_90d"})
     @patch("app.stripe")
     def test_stripe_api_error(self, mock_stripe, client):
         mock_stripe.checkout.Session.create.side_effect = Exception("Stripe down")
 
-        resp, body = _post_json(client, "/checkout-subscription", data={
+        resp, body = _post_json(client, "/checkout-subscription", json={
             "email": "buyer@example.com",
+            "plan": "60d",
         })
         assert resp.status_code == 500
         assert "Payment system error" in body["error"]
