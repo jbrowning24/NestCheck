@@ -15,6 +15,7 @@ from coverage_config import (
     SourceStatus,
     _SOURCE_METADATA,
     _SOURCE_TO_REGISTRY_KEY,
+    build_section_freshness,
     extract_state_from_address,
     get_all_states,
     get_dimension_coverage,
@@ -519,3 +520,72 @@ class TestSyncManifestFromDb:
         original_google = COVERAGE_MANIFEST["NY"].get("GOOGLE_PLACES_PARKS")
         sync_manifest_from_db()
         assert COVERAGE_MANIFEST["NY"]["GOOGLE_PLACES_PARKS"] == original_google
+
+
+# ---------------------------------------------------------------------------
+# build_section_freshness (NES-356)
+# ---------------------------------------------------------------------------
+
+def test_build_section_freshness_returns_expected_keys():
+    """Freshness dict contains exactly the 4 annotated sections."""
+    freshness = build_section_freshness()
+    assert set(freshness.keys()) == {"health_tier1", "health_tier2", "census", "parks"}
+
+
+def test_build_section_freshness_structure():
+    """Each entry has source, date, and stale fields."""
+    freshness = build_section_freshness()
+    for key, entry in freshness.items():
+        assert "source" in entry, f"{key} missing 'source'"
+        assert "date" in entry, f"{key} missing 'date'"
+        assert "stale" in entry, f"{key} missing 'stale'"
+        assert isinstance(entry["stale"], bool), f"{key} stale is not bool"
+
+
+def test_build_section_freshness_census_from_acs_base():
+    """Census entry derives its date from the _ACS_BASE vintage year."""
+    from unittest.mock import patch
+    import types
+    fake_census = types.ModuleType("census")
+    fake_census._ACS_BASE = "https://api.census.gov/data/2022/acs/acs5"
+    with patch.dict("sys.modules", {"census": fake_census}):
+        freshness = build_section_freshness()
+    census = freshness["census"]
+    assert census["source"] == "Census ACS 5-Year"
+    assert census["date"] == "2022"
+
+
+def test_build_section_freshness_stale_threshold():
+    """Entries with ingested_at > 24 months ago are marked stale."""
+    from unittest.mock import patch
+    from datetime import datetime, timezone, timedelta
+
+    old_date = (datetime.now(timezone.utc) - timedelta(days=800)).strftime("%Y-%m-%d")
+    fake_registry = {
+        "sems": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "ejscreen": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "tri": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "ust": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "hpms": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "hifld": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "fra": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+        "fema_nfhl": {"ingested_at": old_date, "source_url": "", "record_count": 1, "notes": ""},
+    }
+    with patch("coverage_config.get_dataset_registry", return_value=fake_registry):
+        freshness = build_section_freshness()
+    assert freshness["health_tier1"]["stale"] is True
+    assert freshness["health_tier2"]["stale"] is True
+
+
+def test_build_section_freshness_not_stale_when_recent():
+    """Entries with recent ingested_at are not stale."""
+    from unittest.mock import patch
+    from datetime import datetime, timezone
+
+    recent_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    fake_registry = {
+        "ejscreen": {"ingested_at": recent_date, "source_url": "", "record_count": 1, "notes": ""},
+    }
+    with patch("coverage_config.get_dataset_registry", return_value=fake_registry):
+        freshness = build_section_freshness()
+    assert freshness["health_tier2"]["stale"] is False
