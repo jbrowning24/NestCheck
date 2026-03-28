@@ -661,7 +661,7 @@ def get_section_freshness() -> dict:
     if _freshness_cache is not None:
         cached_result, cached_time = _freshness_cache
         if now - cached_time < _FRESHNESS_CACHE_TTL:
-            return cached_result
+            return {k: dict(v) for k, v in cached_result.items()}
 
     from census import ACS_VINTAGE_YEAR
 
