@@ -227,7 +227,8 @@ def init_db():
             period_start          TEXT NOT NULL,
             period_end            TEXT NOT NULL,
             created_at            TEXT NOT NULL,
-            updated_at            TEXT
+            updated_at            TEXT,
+            plan                  TEXT
         )
     """)
     conn.execute("""
@@ -246,6 +247,8 @@ def init_db():
             "UPDATE subscriptions SET updated_at = created_at "
             "WHERE updated_at IS NULL"
         )
+    if "plan" not in sub_cols:
+        conn.execute("ALTER TABLE subscriptions ADD COLUMN plan TEXT")
 
     # Migration for subscriptions: add email_hash column (NES-383)
     if "email_hash" not in sub_cols:
@@ -2093,6 +2096,7 @@ def create_subscription(
     stripe_customer_id: str | None,
     period_start: str,
     period_end: str,
+    plan: str | None = None,
 ) -> None:
     """Create a new subscription record."""
     conn = _get_db()
@@ -2103,11 +2107,12 @@ def create_subscription(
             "INSERT INTO subscriptions "
             "(id, user_email, email_hash, stripe_subscription_id, "
             "stripe_customer_id, status, period_start, period_end, "
-            "created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "created_at, updated_at, plan) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (subscription_id, user_email, email_h,
              stripe_subscription_id, stripe_customer_id,
-             SUBSCRIPTION_ACTIVE, period_start, period_end, now, now),
+             SUBSCRIPTION_ACTIVE, period_start, period_end, now, now,
+             plan),
         )
         conn.commit()
     finally:
@@ -2134,17 +2139,29 @@ def update_subscription_status(
     status: str,
     period_start: str | None = None,
     period_end: str | None = None,
+    plan: str | None = None,
 ) -> None:
-    """Update subscription status and optionally period dates."""
+    """Update subscription status and optionally period dates and plan."""
     conn = _get_db()
     try:
         now = datetime.now(timezone.utc).isoformat()
         if period_start and period_end:
-            conn.execute(
-                "UPDATE subscriptions SET status = ?, period_start = ?, period_end = ?, "
-                "updated_at = ? WHERE stripe_subscription_id = ?",
-                (status, period_start, period_end, now, stripe_subscription_id),
-            )
+            if plan is not None:
+                conn.execute(
+                    "UPDATE subscriptions SET status = ?, period_start = ?, "
+                    "period_end = ?, plan = ?, updated_at = ? "
+                    "WHERE stripe_subscription_id = ?",
+                    (status, period_start, period_end, plan, now,
+                     stripe_subscription_id),
+                )
+            else:
+                conn.execute(
+                    "UPDATE subscriptions SET status = ?, period_start = ?, "
+                    "period_end = ?, updated_at = ? "
+                    "WHERE stripe_subscription_id = ?",
+                    (status, period_start, period_end, now,
+                     stripe_subscription_id),
+                )
         else:
             conn.execute(
                 "UPDATE subscriptions SET status = ?, updated_at = ? "

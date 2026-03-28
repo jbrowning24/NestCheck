@@ -304,6 +304,11 @@ _STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
 _STRIPE_SUBSCRIPTION_PRICE_ID = os.environ.get("STRIPE_SUBSCRIPTION_PRICE_ID")
 REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
 
+# Map Stripe price IDs to plan names for subscription tier tracking (NES-384).
+_STRIPE_PLAN_MAP: dict[str, str] = {}
+if _STRIPE_SUBSCRIPTION_PRICE_ID:
+    _STRIPE_PLAN_MAP[_STRIPE_SUBSCRIPTION_PRICE_ID] = "30d"
+
 try:
     import stripe
     stripe.api_key = _STRIPE_SECRET_KEY
@@ -4950,6 +4955,14 @@ def _resolve_email_from_stripe_customer(customer_id: str) -> str | None:
     return None
 
 
+def _extract_subscription_plan(sub_obj: dict) -> str | None:
+    """Extract plan name from Stripe subscription object via price ID mapping."""
+    price_id = (
+        sub_obj.get("items", {}).get("data", [{}])[0].get("price", {}).get("id")
+    )
+    return _STRIPE_PLAN_MAP.get(price_id) if price_id else None
+
+
 def _handle_subscription_event(sub_obj: dict, event_type: str) -> None:
     """Handle subscription lifecycle events from Stripe webhooks."""
     if event_type == "created":
@@ -4957,6 +4970,7 @@ def _handle_subscription_event(sub_obj: dict, event_type: str) -> None:
         if not email:
             logger.warning("No email for subscription %s — skipping", sub_obj["id"])
             return
+        plan = _extract_subscription_plan(sub_obj)
         create_subscription(
             subscription_id=uuid.uuid4().hex,
             user_email=email,
@@ -4964,16 +4978,19 @@ def _handle_subscription_event(sub_obj: dict, event_type: str) -> None:
             stripe_customer_id=sub_obj["customer"],
             period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
             period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+            plan=plan,
         )
     elif event_type == "updated":
         status = SUBSCRIPTION_ACTIVE
         if sub_obj.get("cancel_at_period_end"):
             status = SUBSCRIPTION_CANCELED
+        plan = _extract_subscription_plan(sub_obj)
         update_subscription_status(
             sub_obj["id"],
             status,
             period_start=datetime.utcfromtimestamp(sub_obj["current_period_start"]).isoformat(),
             period_end=datetime.utcfromtimestamp(sub_obj["current_period_end"]).isoformat(),
+            plan=plan,
         )
     elif event_type == "deleted":
         update_subscription_status(sub_obj["id"], SUBSCRIPTION_EXPIRED)
