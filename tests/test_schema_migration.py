@@ -177,6 +177,19 @@ _OLDEST_SCHEMA = """
         ON feedback(snapshot_id);
     CREATE INDEX IF NOT EXISTS idx_feedback_type
         ON feedback(feedback_type);
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+        id                    TEXT PRIMARY KEY,
+        user_email            TEXT NOT NULL,
+        stripe_subscription_id TEXT UNIQUE,
+        stripe_customer_id    TEXT,
+        status                TEXT NOT NULL DEFAULT 'active',
+        period_start          TEXT NOT NULL,
+        period_end            TEXT NOT NULL,
+        created_at            TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_email
+        ON subscriptions(user_email);
 """
 
 
@@ -233,6 +246,7 @@ def test_init_db_against_oldest_schema():
 
         sub_cols = {row["name"] for row in conn.execute("PRAGMA table_info(subscriptions)").fetchall()}
         assert "updated_at" in sub_cols, "subscriptions.updated_at missing after init_db() migration"
+        assert "email_hash" in sub_cols, "subscriptions.email_hash missing after init_db() migration"
 
         conn.close()
 

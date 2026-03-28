@@ -220,6 +220,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS subscriptions (
             id                    TEXT PRIMARY KEY,
             user_email            TEXT NOT NULL,
+            email_hash            TEXT,
             stripe_subscription_id TEXT UNIQUE,
             stripe_customer_id    TEXT,
             status                TEXT NOT NULL DEFAULT 'active',
@@ -245,6 +246,24 @@ def init_db():
             "UPDATE subscriptions SET updated_at = created_at "
             "WHERE updated_at IS NULL"
         )
+
+    # Migration for subscriptions: add email_hash column (NES-383)
+    if "email_hash" not in sub_cols:
+        conn.execute("ALTER TABLE subscriptions ADD COLUMN email_hash TEXT")
+        # Backfill cannot use hash_email() in SQL — do it in Python
+        rows = conn.execute(
+            "SELECT id, user_email FROM subscriptions WHERE email_hash IS NULL"
+        ).fetchall()
+        for row in rows:
+            conn.execute(
+                "UPDATE subscriptions SET email_hash = ? WHERE id = ?",
+                (hash_email(row["user_email"]), row["id"]),
+            )
+        conn.commit()
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_subscriptions_email_hash
+        ON subscriptions(email_hash)
+    """)
 
     # Free tier counter migration (NES-327)
     try:
@@ -2079,14 +2098,16 @@ def create_subscription(
     conn = _get_db()
     try:
         now = datetime.now(timezone.utc).isoformat()
+        email_h = hash_email(user_email)
         conn.execute(
             "INSERT INTO subscriptions "
-            "(id, user_email, stripe_subscription_id, stripe_customer_id, "
-            "status, period_start, period_end, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (subscription_id, user_email, stripe_subscription_id,
-             stripe_customer_id, SUBSCRIPTION_ACTIVE, period_start,
-             period_end, now, now),
+            "(id, user_email, email_hash, stripe_subscription_id, "
+            "stripe_customer_id, status, period_start, period_end, "
+            "created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (subscription_id, user_email, email_h,
+             stripe_subscription_id, stripe_customer_id,
+             SUBSCRIPTION_ACTIVE, period_start, period_end, now, now),
         )
         conn.commit()
     finally:
@@ -2135,34 +2156,63 @@ def update_subscription_status(
         conn.close()
 
 
-def is_subscription_active(email: str) -> bool:
-    """Check if email has an active (or canceled-but-not-expired) subscription."""
+def is_subscription_active(email: str = None, *, email_hash: str = None) -> bool:
+    """Check if email has an active (or canceled-but-not-expired) subscription.
+
+    Accepts either email (legacy) or email_hash for consistent indexing.
+    """
+    if not email and not email_hash:
+        return False
     conn = _get_db()
     try:
-        row = conn.execute(
-            "SELECT 1 FROM subscriptions "
-            "WHERE user_email = ? AND status IN (?, ?, ?) "
-            "AND period_end > datetime('now') LIMIT 1",
-            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
-             SUBSCRIPTION_PAST_DUE),
-        ).fetchone()
+        if email_hash:
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions "
+                "WHERE email_hash = ? AND status IN (?, ?, ?) "
+                "AND period_end > datetime('now') LIMIT 1",
+                (email_hash, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                 SUBSCRIPTION_PAST_DUE),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT 1 FROM subscriptions "
+                "WHERE user_email = ? AND status IN (?, ?, ?) "
+                "AND period_end > datetime('now') LIMIT 1",
+                (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                 SUBSCRIPTION_PAST_DUE),
+            ).fetchone()
         return row is not None
     finally:
         conn.close()
 
 
-def get_active_subscription(email: str) -> dict | None:
-    """Return active subscription details for dashboard display, or None."""
+def get_active_subscription(email: str = None, *, email_hash: str = None) -> dict | None:
+    """Return active subscription details for dashboard display, or None.
+
+    Accepts either email (legacy) or email_hash for consistent indexing.
+    """
+    if not email and not email_hash:
+        return None
     conn = _get_db()
     try:
-        row = conn.execute(
-            "SELECT * FROM subscriptions "
-            "WHERE user_email = ? AND status IN (?, ?, ?) "
-            "AND period_end > datetime('now') "
-            "ORDER BY period_end DESC LIMIT 1",
-            (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
-             SUBSCRIPTION_PAST_DUE),
-        ).fetchone()
+        if email_hash:
+            row = conn.execute(
+                "SELECT * FROM subscriptions "
+                "WHERE email_hash = ? AND status IN (?, ?, ?) "
+                "AND period_end > datetime('now') "
+                "ORDER BY period_end DESC LIMIT 1",
+                (email_hash, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                 SUBSCRIPTION_PAST_DUE),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT * FROM subscriptions "
+                "WHERE user_email = ? AND status IN (?, ?, ?) "
+                "AND period_end > datetime('now') "
+                "ORDER BY period_end DESC LIMIT 1",
+                (email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                 SUBSCRIPTION_PAST_DUE),
+            ).fetchone()
         if row is None:
             return None
         return dict(row)

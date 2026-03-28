@@ -3501,7 +3501,7 @@ def index():
         payment_token = request.form.get("payment_token", "").strip() or None
         _payment_id_for_job = None  # set if a paid token is being redeemed
         email_h = hash_email(email) if email else None
-        _is_subscriber = email and is_subscription_active(email)
+        _is_subscriber = email_h and is_subscription_active(email_hash=email_h)
 
         if not g.is_builder:
             if REQUIRE_PAYMENT and payment_token:
@@ -3801,12 +3801,13 @@ def _check_full_access(snapshot_id: str, user_email: str | None = None) -> bool:
         if row:
             return True
         if user_email:
-            # Active subscription
+            # Active subscription (prefer email_hash for index consistency)
+            email_h = hash_email(user_email)
             row = conn.execute(
                 "SELECT 1 FROM subscriptions "
-                "WHERE user_email = ? AND status IN (?, ?, ?) "
+                "WHERE email_hash = ? AND status IN (?, ?, ?) "
                 "AND period_end > datetime('now') LIMIT 1",
-                (user_email, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
+                (email_h, SUBSCRIPTION_ACTIVE, SUBSCRIPTION_CANCELED,
                  SUBSCRIPTION_PAST_DUE),
             ).fetchone()
             if row:
@@ -3815,9 +3816,9 @@ def _check_full_access(snapshot_id: str, user_email: str | None = None) -> bool:
             row = conn.execute(
                 "SELECT 1 FROM subscriptions s "
                 "JOIN snapshots snap ON snap.snapshot_id = ? "
-                "WHERE s.user_email = ? "
+                "WHERE s.email_hash = ? "
                 "AND snap.evaluated_at BETWEEN s.period_start AND s.period_end",
-                (snapshot_id, user_email),
+                (snapshot_id, email_h),
             ).fetchone()
             if row:
                 return True
