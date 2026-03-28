@@ -2084,6 +2084,18 @@ h1.narrative-summary {
   margin-top: var(--space-sm, 8px);
 }
 
+/* ── Section freshness caption (NES-356) ── */
+.section-freshness {
+  font-size: var(--type-caption);
+  color: var(--color-text-tertiary);
+  display: block;
+  margin-top: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+.section-freshness--stale {
+  color: var(--color-health-caution);
+}
+
 /* ── Collapsible section title — no bottom margin ── */
 .section-title--collapsible {
   margin-bottom: 0;
