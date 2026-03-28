@@ -232,6 +232,75 @@ class TestCheckoutCreate:
 
 
 # ===========================================================================
+# Step 4b: Subscription checkout route tests (NES-385)
+# ===========================================================================
+
+class TestCheckoutSubscription:
+    """Tests for POST /checkout-subscription."""
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    @patch("app.stripe")
+    def test_happy_path(self, mock_stripe, client):
+        mock_session = MagicMock()
+        mock_session.id = "cs_sub_001"
+        mock_session.url = "https://checkout.stripe.com/pay/cs_sub_001"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+
+        resp, body = _post_json(client, "/checkout-subscription", data={
+            "email": "buyer@example.com",
+        })
+
+        assert resp.status_code == 200
+        assert body["checkout_url"] == mock_session.url
+        # Subscription checkout should NOT create a payment record
+        assert "payment_id" not in body
+
+        call_kwargs = mock_stripe.checkout.Session.create.call_args.kwargs
+        assert call_kwargs["mode"] == "subscription"
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    def test_missing_email(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", data={})
+        assert resp.status_code == 400
+        assert "Email required" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", None)
+    def test_subscription_not_configured(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", data={
+            "email": "buyer@example.com",
+        })
+        assert resp.status_code == 503
+        assert "not configured" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", False)
+    def test_payments_not_enabled(self, client):
+        resp, body = _post_json(client, "/checkout-subscription", data={
+            "email": "buyer@example.com",
+        })
+        assert resp.status_code == 400
+        assert "not enabled" in body["error"]
+
+    @patch("app.REQUIRE_PAYMENT", True)
+    @patch("app.STRIPE_AVAILABLE", True)
+    @patch("app._STRIPE_SUBSCRIPTION_PRICE_ID", "price_sub_test")
+    @patch("app.stripe")
+    def test_stripe_api_error(self, mock_stripe, client):
+        mock_stripe.checkout.Session.create.side_effect = Exception("Stripe down")
+
+        resp, body = _post_json(client, "/checkout-subscription", data={
+            "email": "buyer@example.com",
+        })
+        assert resp.status_code == 500
+        assert "Payment system error" in body["error"]
+
+
+# ===========================================================================
 # Step 5: Webhook handler tests
 # ===========================================================================
 

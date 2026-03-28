@@ -99,10 +99,10 @@ async function handleSubscribe(event) {
     var form = event.target;
     var email = form.querySelector('[name="email"]').value;
     try {
-        var data = await csrfFetch('/checkout/create', {
+        var data = await csrfFetch('/checkout-subscription', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({email: email, tier: 'subscription'})
+            body: JSON.stringify({email: email})
         });
         if (data && data.checkout_url) {
             window.location.href = data.checkout_url;
