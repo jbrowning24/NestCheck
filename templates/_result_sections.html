@@ -805,6 +805,19 @@
           </div>
           {% endif %}
 
+          {%- if result.green_escape and result.green_escape.canopy_cover -%}
+            {% set _canopy = result.green_escape.canopy_cover %}
+            <div class="data-row">
+              <span class="data-row__label">Tree canopy cover</span>
+              <span class="data-row__value">{{ "%.0f"|format(_canopy.canopy_pct) }}% within {{ _canopy.buffer_m }}m</span>
+            </div>
+            {%- if _canopy.canopy_pct < 15 -%}
+            <div class="callout callout--caution">
+              Limited tree cover may mean less shade and higher summer temperatures
+            </div>
+            {%- endif -%}
+          {%- endif -%}
+
           {% if is_full_access %}
           {% if result.green_escape and result.green_escape.best_daily_park %}
             {% set park = result.green_escape.best_daily_park %}
