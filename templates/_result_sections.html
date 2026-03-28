@@ -11,6 +11,9 @@
 {# NES-327: Default is_full_access to true for backward compatibility #}
 {% set is_full_access = is_full_access if is_full_access is defined else true %}
 
+{# Section freshness data (NES-356) #}
+{% set _sf = result.section_freshness | default({}) %}
+
 {% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key %}
 
 {# ── Pre-compute sidebar data ── #}
@@ -204,6 +207,11 @@
           <h2 class="section-title">HEALTH &amp; ENVIRONMENT{% if result.coverage is defined and result.coverage.health is defined %}
             {{ coverage_badge(result.coverage.health, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if _sf.get('health_tier1') %}
+          <span class="section-freshness{% if _sf.health_tier1.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.health_tier1.source }}, last updated {{ _sf.health_tier1.date }}.">
+            Data from {{ _sf.health_tier1.source }}, last updated {{ _sf.health_tier1.date }}
+          </span>
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.proximity %}
             <p class="section-insight">{{ result.insights.proximity }}</p>
@@ -779,6 +787,11 @@
           <h2 class="section-title">PARKS &amp; GREEN SPACE{% if result.coverage is defined and result.coverage.parks is defined %}
             {{ coverage_badge(result.coverage.parks, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if _sf.get('parks') %}
+          <span class="section-freshness{% if _sf.parks.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.parks.source }}, last updated {{ _sf.parks.date }}.">
+            Data from {{ _sf.parks.source }}, last updated {{ _sf.parks.date }}
+          </span>
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.parks %}
             <p class="section-insight">{{ result.insights.parks }}</p>
@@ -1016,6 +1029,11 @@
         {% set demo = result.demographics %}
         <div id="community-profile" class="data-section">
           <h2 class="section-title">ABOUT {{ demo.place_name|upper }}</h2>
+          {% if _sf.get('area_context') %}
+          <span class="section-freshness" aria-label="Data source: {{ _sf.area_context.source }}, {{ _sf.area_context.date }} vintage.">
+            Data from {{ _sf.area_context.source }}, {{ _sf.area_context.date }} vintage
+          </span>
+          {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.community_profile %}
             <p class="section-insight">{{ result.insights.community_profile }}</p>
@@ -1143,6 +1161,11 @@
           <h2 class="section-title">EPA ENVIRONMENTAL PROFILE{% if result.coverage is defined and result.coverage.ejscreen is defined %}
             {{ coverage_badge(result.coverage.ejscreen, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if _sf.get('health_tier2') %}
+          <span class="section-freshness{% if _sf.health_tier2.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.health_tier2.source }}, last updated {{ _sf.health_tier2.date }}.">
+            Data from {{ _sf.health_tier2.source }}, last updated {{ _sf.health_tier2.date }}
+          </span>
+          {% endif %}
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">
             <span class="collapse-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></span>
