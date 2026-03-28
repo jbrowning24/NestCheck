@@ -379,10 +379,10 @@ def _check_and_ingest_all(db_path: str) -> None:
     if parkserve_missing:
         has_data, count = _table_has_data(db_path, "facilities_parkserve")
         logger.info(
-            "Dataset parkserve: missing states %s (%d existing records), re-ingesting all states...",
+            "Dataset parkserve: missing states %s (%d existing records), ingesting missing states...",
             parkserve_missing, count,
         )
-        _run_ingest("parkserve", _ingest_parkserve)
+        _run_ingest("parkserve", lambda: _ingest_parkserve_states(parkserve_missing))
     else:
         has_data, count = _table_has_data(db_path, "facilities_parkserve")
         logger.info("Dataset parkserve: present for all %d states (%d records), skipping",
@@ -531,6 +531,12 @@ def _ingest_fra():
 def _ingest_parkserve():
     from scripts.ingest_parkserve import ingest as do_ingest
     do_ingest(states=list(TARGET_STATES.keys()))
+
+
+def _ingest_parkserve_states(states: list[str]):
+    """Ingest ParkServe for specific states only (incremental — per-state DELETE+INSERT)."""
+    from scripts.ingest_parkserve import ingest as do_ingest
+    do_ingest(states=states)
 
 
 def _ingest_school_districts():
