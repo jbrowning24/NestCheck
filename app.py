@@ -224,6 +224,14 @@ def _build_score_bands_context():
 
 app.jinja_env.globals["score_bands"] = _build_score_bands_context()
 
+# NES-321: Plain-language glossary for technical terms in report templates.
+# Static content — exposed as Jinja global following NES-326 score_bands pattern.
+TERM_GLOSSARY = {
+    "free_reduced_lunch": "Share of students from lower-income households",
+    "chronic_absenteeism": "Students missing 10% or more of school days",
+}
+app.jinja_env.globals["term_glossary"] = TERM_GLOSSARY
+
 # ---------------------------------------------------------------------------
 # Startup: warn immediately if required config is missing
 # ---------------------------------------------------------------------------
@@ -886,12 +894,12 @@ _SOURCE_GROUP_LABELS = {
         "explanation": "TRI facility data not available for this area",
     },
     "ejscreen": {
-        "label": "EPA EJScreen environmental indicators",
+        "label": "EPA environmental indicators",
         "checks": [
             "EJScreen PM2.5", "EJScreen cancer risk", "EJScreen diesel PM",
             "EJScreen lead paint", "EJScreen Superfund", "EJScreen hazardous waste",
         ],
-        "explanation": "EPA EJScreen data not available for this area",
+        "explanation": "EPA environmental data not available for this area",
     },
 }
 
@@ -941,8 +949,8 @@ _EJSCREEN_CROSS_REFS = [
         "ejscreen_field": "PNPL",
         "threshold": 80,
         "template": (
-            "Address clear, but this area ranks {pct}th percentile "
-            "nationally for Superfund proximity."
+            "Address clear, but this area scores higher than {pct}% "
+            "of U.S. neighborhoods for Superfund proximity."
         ),
     },
     {
@@ -950,8 +958,8 @@ _EJSCREEN_CROSS_REFS = [
         "ejscreen_field": "PTSDF",
         "threshold": 80,
         "template": (
-            "No facilities in our buffer, but this area ranks {pct}th "
-            "percentile nationally for hazardous waste proximity."
+            "No nearby facilities found, but this area scores higher "
+            "than {pct}% of U.S. neighborhoods for hazardous waste proximity."
         ),
     },
 ]
