@@ -87,7 +87,7 @@ def test_post_feedback_success(tmp_path):
         conn.close()
 
         with app.test_client() as client:
-            resp = client.post("/api/feedback", json={
+            resp = client.post("/api/feedback/survey", json={
                 "snapshot_id": "snap1234",
                 "feedback_type": "detailed_survey",
                 "response_json": json.dumps({"overall_accuracy": 4}),
@@ -115,13 +115,13 @@ def test_post_feedback_missing_fields(tmp_path):
         app.config["WTF_CSRF_ENABLED"] = False
 
         with app.test_client() as client:
-            resp = client.post("/api/feedback", json={
+            resp = client.post("/api/feedback/survey", json={
                 "feedback_type": "detailed_survey",
                 "response_json": "{}",
             })
             assert resp.status_code == 400
 
-            resp = client.post("/api/feedback", json={
+            resp = client.post("/api/feedback/survey", json={
                 "snapshot_id": "snap1234",
                 "feedback_type": "detailed_survey",
             })
@@ -140,7 +140,7 @@ def test_post_feedback_invalid_json(tmp_path):
         app.config["WTF_CSRF_ENABLED"] = False
 
         with app.test_client() as client:
-            resp = client.post("/api/feedback", json={
+            resp = client.post("/api/feedback/survey", json={
                 "snapshot_id": "snap1234",
                 "feedback_type": "detailed_survey",
                 "response_json": "not valid json{{{",
