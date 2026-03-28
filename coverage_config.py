@@ -9,6 +9,7 @@ Statuses are grounded in the actual spatial.db contents as of 2026-03-18.
 Update this file whenever a new state is onboarded or a dataset is ingested.
 """
 
+import functools
 import logging
 import os
 import re
@@ -1055,3 +1056,93 @@ def verify_coverage(state_code: str) -> Dict[str, dict]:
 
     conn.close()
     return results
+
+
+# =============================================================================
+# Section freshness (NES-345)
+# =============================================================================
+
+def _format_freshness_date(iso_string: Optional[str]) -> Optional[str]:
+    """Convert an ISO 8601 timestamp to 'Month YYYY' format.
+
+    Returns None for None input or malformed strings.
+    Assumes UTC for timezone-naive timestamps.
+    """
+    if iso_string is None:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_string)
+        return dt.strftime("%B %Y")
+    except (ValueError, TypeError):
+        return None
+
+
+# Section → registry key mapping for freshness lookups
+_FRESHNESS_SECTIONS = {
+    "health_tier1": {
+        "source": "Multiple federal sources",
+        "registry_keys": ["tri", "fema_nfhl", "hifld", "hpms", "ust", "sems", "fra"],
+    },
+    "health_tier2": {
+        "source": "EPA EJScreen",
+        "registry_keys": ["ejscreen"],
+    },
+    "parks": {
+        "source": "ParkServe",
+        "registry_keys": ["parkserve"],
+    },
+    "school_district": {
+        "source": "NCES",
+        "registry_keys": ["nces_schools"],
+    },
+}
+
+
+@functools.lru_cache(maxsize=1)
+def get_section_freshness() -> Dict[str, dict]:
+    """Return freshness metadata for each report section.
+
+    Returns {section_key: {"source": str, "date": str}} where date is
+    'Month YYYY' for spatial sources or the vintage year for ACS.
+
+    For multi-source sections (health_tier1), uses the OLDEST ingestion
+    date across all sources that have registry entries.
+
+    Sections with no registry entries are omitted. Getting Around and
+    Your Neighborhood are excluded (real-time APIs).
+
+    Decorated with lru_cache for process-level caching; call
+    get_section_freshness.cache_clear() to invalidate.
+    """
+    from census import ACS_VINTAGE_YEAR
+
+    registry = get_dataset_registry()
+    result: Dict[str, dict] = {}
+
+    for section_key, config in _FRESHNESS_SECTIONS.items():
+        # Collect ingestion timestamps for all registry keys that exist
+        timestamps = []
+        for key in config["registry_keys"]:
+            entry = registry.get(key)
+            if entry and entry.get("ingested_at"):
+                timestamps.append(entry["ingested_at"])
+
+        if not timestamps:
+            continue  # omit section if no registry entries
+
+        # For multi-source sections, use the oldest date
+        oldest = min(timestamps)
+        formatted = _format_freshness_date(oldest)
+        if formatted:
+            result[section_key] = {
+                "source": config["source"],
+                "date": formatted,
+            }
+
+    # ACS is always included (no registry lookup needed)
+    result["area_context"] = {
+        "source": "Census ACS",
+        "date": ACS_VINTAGE_YEAR,
+    }
+
+    return result

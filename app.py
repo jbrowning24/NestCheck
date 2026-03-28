@@ -2328,7 +2328,7 @@ def _prepare_snapshot_for_display(result):
     # NES-288: Backfill coverage metadata (display-time only).
     _add_coverage_metadata(result)
 
-    # NES-355: Section freshness metadata (display-time only).
+    # NES-345: Data freshness indicators (display-time only).
     result["section_freshness"] = get_section_freshness()
 
 

@@ -11,10 +11,10 @@
 {# NES-327: Default is_full_access to true for backward compatibility #}
 {% set is_full_access = is_full_access if is_full_access is defined else true %}
 
-{# Section freshness data (NES-356) #}
+{# Section freshness data (NES-345) #}
 {% set _sf = result.section_freshness | default({}) %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key, freshness_caption %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -207,10 +207,8 @@
           <h2 class="section-title">HEALTH &amp; ENVIRONMENT{% if result.coverage is defined and result.coverage.health is defined %}
             {{ coverage_badge(result.coverage.health, result.state_name | default('this state')) }}
           {% endif %}</h2>
-          {% if _sf.get('health_tier1') %}
-          <span class="section-freshness{% if _sf.health_tier1.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.health_tier1.source }}, last updated {{ _sf.health_tier1.date }}.">
-            Data from {{ _sf.health_tier1.source }}, last updated {{ _sf.health_tier1.date }}
-          </span>
+          {% if result.section_freshness is defined and result.section_freshness.health_tier1 is defined %}
+            {{ freshness_caption(result.section_freshness.health_tier1) }}
           {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.proximity %}
@@ -787,10 +785,8 @@
           <h2 class="section-title">PARKS &amp; GREEN SPACE{% if result.coverage is defined and result.coverage.parks is defined %}
             {{ coverage_badge(result.coverage.parks, result.state_name | default('this state')) }}
           {% endif %}</h2>
-          {% if _sf.get('parks') %}
-          <span class="section-freshness{% if _sf.parks.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.parks.source }}, last updated {{ _sf.parks.date }}.">
-            Data from {{ _sf.parks.source }}, last updated {{ _sf.parks.date }}
-          </span>
+          {% if result.section_freshness is defined and result.section_freshness.parks is defined %}
+            {{ freshness_caption(result.section_freshness.parks) }}
           {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.parks %}
@@ -1042,10 +1038,8 @@
         {% set demo = result.demographics %}
         <div id="community-profile" class="data-section">
           <h2 class="section-title">ABOUT {{ demo.place_name|upper }}</h2>
-          {% if _sf.get('area_context') %}
-          <span class="section-freshness" aria-label="Data source: {{ _sf.area_context.source }}, {{ _sf.area_context.date }} vintage.">
-            Data from {{ _sf.area_context.source }}, {{ _sf.area_context.date }} vintage
-          </span>
+          {% if result.section_freshness is defined and result.section_freshness.area_context is defined %}
+            {{ freshness_caption(result.section_freshness.area_context) }}
           {% endif %}
 
           {% if result.insights is defined and result.insights and result.insights.community_profile %}
@@ -1091,6 +1085,9 @@
           <h2 class="section-title">SCHOOL DISTRICT{% if result.coverage is defined and result.coverage.school_district is defined %}
             {{ coverage_badge(result.coverage.school_district, result.state_name | default('this state')) }}
           {% endif %}</h2>
+          {% if result.section_freshness is defined and result.section_freshness.school_district is defined %}
+            {{ freshness_caption(result.section_freshness.school_district) }}
+          {% endif %}
 
           <div class="school-district-header">
             <span class="school-district-name">{{ sd.district_name }}</span>
@@ -1174,10 +1171,8 @@
           <h2 class="section-title">EPA ENVIRONMENTAL PROFILE{% if result.coverage is defined and result.coverage.ejscreen is defined %}
             {{ coverage_badge(result.coverage.ejscreen, result.state_name | default('this state')) }}
           {% endif %}</h2>
-          {% if _sf.get('health_tier2') %}
-          <span class="section-freshness{% if _sf.health_tier2.stale %} section-freshness--stale{% endif %}" aria-label="Data source: {{ _sf.health_tier2.source }}, last updated {{ _sf.health_tier2.date }}.">
-            Data from {{ _sf.health_tier2.source }}, last updated {{ _sf.health_tier2.date }}
-          </span>
+          {% if result.section_freshness is defined and result.section_freshness.health_tier2 is defined %}
+            {{ freshness_caption(result.section_freshness.health_tier2) }}
           {% endif %}
           <p class="area-context-note">Census block group indicators from EPA EJScreen (national percentiles)</p>
           <div class="collapsible-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">

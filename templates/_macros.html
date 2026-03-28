@@ -365,3 +365,12 @@
   {% endif %}
 </div>
 {% endmacro %}
+
+{# ── NES-345: Data freshness indicator (F2 pattern) ── #}
+{% macro freshness_caption(freshness_entry) %}
+  {% if freshness_entry %}
+    <p class="section-freshness">
+      Data from {{ freshness_entry.source }}, last updated {{ freshness_entry.date }}
+    </p>
+  {% endif %}
+{% endmacro %}

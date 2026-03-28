@@ -1832,6 +1832,15 @@ h1.narrative-summary {
   color: var(--color-text-faint);
   margin-top: var(--space-sm);
 }
+
+/* NES-345: Data freshness indicators (F2 pattern).
+   Negative top margin pulls caption up against h2.section-title's bottom margin. */
+.section-freshness {
+  font-size: var(--type-caption);
+  color: var(--color-text-tertiary);
+  margin: calc(-1 * var(--space-xs)) 0 var(--space-sm) 0;
+  line-height: 1.4;
+}
 .park-highlight { margin-bottom: var(--space-base); }
 .text-right { text-align: right; }
 .park-daily-value {
