@@ -40,7 +40,7 @@ from scoring_config import (
     WALK_DRIVE_BOTH_THRESHOLD, WALK_DRIVE_ONLY_THRESHOLD,
 )
 from census import serialize_for_result as _serialize_census
-from coverage_config import COVERAGE_MANIFEST
+from coverage_config import COVERAGE_MANIFEST, get_section_freshness
 from models import (
     _get_db, init_db, save_snapshot, get_snapshot, increment_view_count,
     log_event, check_return_visit, get_event_counts,
@@ -2322,7 +2322,6 @@ def _prepare_snapshot_for_display(result):
     _add_coverage_metadata(result)
 
     # NES-345: Data freshness indicators (display-time only).
-    from coverage_config import get_section_freshness
     result["section_freshness"] = get_section_freshness()
 
 

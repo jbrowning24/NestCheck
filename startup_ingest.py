@@ -444,6 +444,9 @@ def _sync_coverage_manifest() -> None:
             )
         else:
             logger.info("Coverage manifest: already in sync with spatial.db")
+        # NES-345: Invalidate freshness cache so it picks up new ingestion dates.
+        from coverage_config import get_section_freshness
+        get_section_freshness.cache_clear()
     except Exception:
         logger.warning("Coverage manifest sync failed", exc_info=True)
 
