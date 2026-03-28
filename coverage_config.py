@@ -85,6 +85,7 @@ SOURCE_DISPLAY_LIST = [
     {"key": "FRA", "name": "Rail Lines", "dimension": "Health", "source_org": "FRA"},
     {"key": "FEMA_NFHL", "name": "Flood Zones", "dimension": "Health", "source_org": "FEMA"},
     {"key": "GOOGLE_PLACES_PARKS", "name": "Park & Green Space Venues", "dimension": "Parks", "source_org": "Google"},
+    {"key": "NLCD_CANOPY", "name": "Tree Canopy Cover", "dimension": "Parks", "source_org": "MRLC"},
     {"key": "GOOGLE_TRANSIT", "name": "Transit Stations & Routes", "dimension": "Transit", "source_org": "Google"},
     {"key": "OVERPASS_SIDEWALKS", "name": "Sidewalk & Pedestrian Data", "dimension": "Transit", "source_org": "OSM"},
     {"key": "SCHOOL_DISTRICTS", "name": "School Districts", "dimension": "Education", "source_org": "Census"},
@@ -215,6 +216,14 @@ _SOURCE_METADATA = {
         "state_filter": None,
         "notes": "Fetched live per-evaluation via Google Places API. No spatial.db table.",
     },
+    "NLCD_CANOPY": {
+        "description": "NLCD Tree Canopy Cover",
+        "table": None,  # Live WMS query, not bulk ingest
+        "dimension": "green_space",
+        "source_url": "https://www.mrlc.gov/geoserver/mrlc_display/nlcd_tcc_conus_2021_v2021-4/wms",
+        "state_filter": None,  # CONUS-wide via live API
+        "notes": "Queried live per-evaluation via MRLC WMS. CONUS-wide coverage. No spatial.db table.",
+    },
     "GOOGLE_TRANSIT": {
         "description": "Transit Stations & Routes (Google Maps)",
         "table": None,  # fetched live via Google Maps API
@@ -288,6 +297,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # bbox covers NY (9,832 total)
         "FEMA_NFHL": "active",      # bbox covers NY (17,907 total)
         "GOOGLE_PLACES_PARKS": "active",   # live API
+        "NLCD_CANOPY": "active",           # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 665 rows
@@ -306,6 +316,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # bbox covers NJ
         "FEMA_NFHL": "active",      # bbox covers NJ
         "GOOGLE_PLACES_PARKS": "active",   # live API
+        "NLCD_CANOPY": "active",           # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 342 rows
@@ -324,6 +335,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # bbox covers CT
         "FEMA_NFHL": "active",      # bbox covers CT
         "GOOGLE_PLACES_PARKS": "active",   # live API
+        "NLCD_CANOPY": "active",           # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",  # 114 rows
@@ -342,6 +354,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # Detroit metro bbox (NES-286)
         "GOOGLE_PLACES_PARKS": "active",   # live API
+        "NLCD_CANOPY": "active",           # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",        # live API
         "OVERPASS_SIDEWALKS": "active",    # live API
         "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
@@ -361,6 +374,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # SF + LA metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",         # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
         "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
@@ -379,6 +393,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # Houston + Dallas metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",         # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
         "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
@@ -397,6 +412,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # Miami + Tampa metro bboxes (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",         # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
         "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
@@ -415,6 +431,7 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "FRA": "active",            # state-filtered via STATEAB (NES-297)
         "FEMA_NFHL": "active",      # Chicago metro bbox (NES-310)
         "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",         # live WMS, CONUS-wide
         "GOOGLE_TRANSIT": "active",
         "OVERPASS_SIDEWALKS": "active",
         "SCHOOL_DISTRICTS": "active",    # per-state detection re-ingests (NES-297)
