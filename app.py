@@ -4820,71 +4820,55 @@ _register_ingest_command()
 # Stripe checkout & webhook routes
 # ---------------------------------------------------------------------------
 
+def _apply_stripe_customer(session_kwargs: dict) -> None:
+    """Wire Stripe Customer for logged-in users (receipts and history)."""
+    if current_user.is_authenticated:
+        cus_id = _get_or_create_stripe_customer(current_user)
+        if cus_id:
+            session_kwargs["customer"] = cus_id
+        else:
+            session_kwargs["customer_email"] = current_user.email
+
+
 @app.route("/checkout/create", methods=["POST"])
 def checkout_create():
-    """Create a Stripe Checkout Session and return the checkout URL."""
+    """Create a Stripe Checkout Session for a single-payment evaluation."""
     if not REQUIRE_PAYMENT:
         return jsonify({"error": "Payments not enabled"}), 400
     if not STRIPE_AVAILABLE:
         return jsonify({"error": "Payment system not configured"}), 503
 
     data = request.get_json(silent=True) or {}
-    tier = data.get("tier", request.form.get("tier", "single"))
     snapshot_id = data.get("snapshot_id", request.form.get("snapshot_id", "")).strip() or None
+
+    address = data.get("address", request.form.get("address", "")).strip()
+    if not address:
+        return jsonify({"error": "Address required"}), 400
+
+    place_id = data.get("place_id", request.form.get("place_id", "")).strip() or ""
+    email_for_checkout = data.get("email", request.form.get("email", "")).strip() or ""
 
     payment_id = uuid.uuid4().hex
     base_url = request.url_root.rstrip("/")
     try:
-        if tier == "subscription":
-            if not _STRIPE_SUBSCRIPTION_PRICE_ID:
-                return jsonify({"error": "Subscription pricing not configured"}), 503
-            email_for_checkout = data.get("email", request.form.get("email", "")).strip()
-            if not email_for_checkout:
-                return jsonify({"error": "Email required for subscription"}), 400
-            session_kwargs = {
-                "mode": "subscription",
-                "line_items": [{"price": _STRIPE_SUBSCRIPTION_PRICE_ID, "quantity": 1}],
-                "success_url": f"{base_url}/my-reports?subscription=active",
-                "cancel_url": f"{base_url}/pricing",
-                "client_reference_id": payment_id,
-            }
-            address = ""
+        if snapshot_id:
+            success_url = f"{base_url}/s/{snapshot_id}?payment_token={payment_id}"
         else:
-            # Single-payment flow
-            address = data.get("address", request.form.get("address", "")).strip()
-            if not address:
-                return jsonify({"error": "Address required"}), 400
+            success_url = (
+                f"{base_url}/?payment_token={payment_id}"
+                f"&address={quote(address, safe='')}"
+                f"&place_id={quote(place_id, safe='')}"
+                f"&email={quote(email_for_checkout, safe='')}"
+            )
 
-            place_id = data.get("place_id", request.form.get("place_id", "")).strip() or ""
-            email_for_checkout = data.get("email", request.form.get("email", "")).strip() or ""
-
-            if snapshot_id:
-                success_url = f"{base_url}/s/{snapshot_id}?payment_token={payment_id}"
-            else:
-                success_url = (
-                    f"{base_url}/?payment_token={payment_id}"
-                    f"&address={quote(address, safe='')}"
-                    f"&place_id={quote(place_id, safe='')}"
-                    f"&email={quote(email_for_checkout, safe='')}"
-                )
-
-            session_kwargs = {
-                "mode": "payment",
-                "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
-                "success_url": success_url,
-                "cancel_url": f"{base_url}/",
-                "client_reference_id": payment_id,
-            }
-
-        # Wire Stripe Customer for logged-in users so payments are
-        # associated with their account for receipts and history.
-        if current_user.is_authenticated:
-            cus_id = _get_or_create_stripe_customer(current_user)
-            if cus_id:
-                session_kwargs["customer"] = cus_id
-            else:
-                # Customer creation failed — fall back to pre-filling email
-                session_kwargs["customer_email"] = current_user.email
+        session_kwargs = {
+            "mode": "payment",
+            "line_items": [{"price": _STRIPE_PRICE_ID, "quantity": 1}],
+            "success_url": success_url,
+            "cancel_url": f"{base_url}/",
+            "client_reference_id": payment_id,
+        }
+        _apply_stripe_customer(session_kwargs)
 
         checkout_session = stripe.checkout.Session.create(**session_kwargs)
 
@@ -4898,6 +4882,41 @@ def checkout_create():
         return jsonify({"checkout_url": checkout_session.url, "payment_id": payment_id})
     except Exception:
         logger.exception("Stripe checkout session creation failed")
+        return jsonify({"error": "Payment system error"}), 500
+
+
+@app.route("/checkout-subscription", methods=["POST"])
+def checkout_subscription():
+    """Create a Stripe Checkout Session for a recurring subscription."""
+    if not REQUIRE_PAYMENT:
+        return jsonify({"error": "Payments not enabled"}), 400
+    if not STRIPE_AVAILABLE:
+        return jsonify({"error": "Payment system not configured"}), 503
+    if not _STRIPE_SUBSCRIPTION_PRICE_ID:
+        return jsonify({"error": "Subscription pricing not configured"}), 503
+
+    data = request.get_json(silent=True) or {}
+    email = data.get("email", request.form.get("email", "")).strip()
+    if not email:
+        return jsonify({"error": "Email required for subscription"}), 400
+
+    base_url = request.url_root.rstrip("/")
+    try:
+        session_kwargs = {
+            "mode": "subscription",
+            "line_items": [{"price": _STRIPE_SUBSCRIPTION_PRICE_ID, "quantity": 1}],
+            "success_url": f"{base_url}/my-reports?subscription=active",
+            "cancel_url": f"{base_url}/pricing",
+        }
+        _apply_stripe_customer(session_kwargs)
+        # Pre-fill email on Stripe checkout for non-authenticated users
+        if "customer" not in session_kwargs and "customer_email" not in session_kwargs:
+            session_kwargs["customer_email"] = email
+
+        checkout_session = stripe.checkout.Session.create(**session_kwargs)
+        return jsonify({"checkout_url": checkout_session.url})
+    except Exception:
+        logger.exception("Stripe subscription checkout creation failed")
         return jsonify({"error": "Payment system error"}), 500
 
 
