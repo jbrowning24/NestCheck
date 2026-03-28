@@ -9,10 +9,12 @@ Statuses are grounded in the actual spatial.db contents as of 2026-03-18.
 Update this file whenever a new state is onboarded or a dataset is ingested.
 """
 
+import functools
 import logging
 import os
 import re
 import sqlite3
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
@@ -887,10 +889,6 @@ def verify_coverage(state_code: str) -> Dict[str, dict]:
 # =============================================================================
 # Section freshness (NES-345)
 # =============================================================================
-
-import functools
-from datetime import datetime, timezone
-
 
 def _format_freshness_date(iso_string: Optional[str]) -> Optional[str]:
     """Convert an ISO 8601 timestamp to 'Month YYYY' format.
