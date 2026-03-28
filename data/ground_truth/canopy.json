@@ -1,0 +1,165 @@
+{
+  "dimension": "canopy",
+  "cases": [
+    {
+      "type": "knot_boundary",
+      "canopy_pct": 5,
+      "expected_score": 0.0
+    },
+    {
+      "type": "knot_boundary",
+      "canopy_pct": 15,
+      "expected_score": 0.5
+    },
+    {
+      "type": "knot_boundary",
+      "canopy_pct": 25,
+      "expected_score": 1.0
+    },
+    {
+      "type": "knot_boundary",
+      "canopy_pct": 40,
+      "expected_score": 1.5
+    },
+    {
+      "type": "knot_boundary",
+      "canopy_pct": 55,
+      "expected_score": 2.0
+    },
+    {
+      "type": "interpolation",
+      "canopy_pct": 10.0,
+      "expected_score": 0.25
+    },
+    {
+      "type": "interpolation",
+      "canopy_pct": 20.0,
+      "expected_score": 0.75
+    },
+    {
+      "type": "interpolation",
+      "canopy_pct": 32.5,
+      "expected_score": 1.25
+    },
+    {
+      "type": "interpolation",
+      "canopy_pct": 47.5,
+      "expected_score": 1.75
+    },
+    {
+      "type": "clamping_low",
+      "canopy_pct": 0,
+      "expected_score": 0.0
+    },
+    {
+      "type": "clamping_high",
+      "canopy_pct": 100,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 0,
+      "expected_score": 0.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 5,
+      "expected_score": 0.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 10,
+      "expected_score": 0.25
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 15,
+      "expected_score": 0.5
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 20,
+      "expected_score": 0.75
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 25,
+      "expected_score": 1.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 30,
+      "expected_score": 1.1667
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 35,
+      "expected_score": 1.3333
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 40,
+      "expected_score": 1.5
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 45,
+      "expected_score": 1.6667
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 50,
+      "expected_score": 1.8333
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 55,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 60,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 65,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 70,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 75,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 80,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 85,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 90,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 95,
+      "expected_score": 2.0
+    },
+    {
+      "type": "monotonicity",
+      "canopy_pct": 100,
+      "expected_score": 2.0
+    }
+  ]
+}
