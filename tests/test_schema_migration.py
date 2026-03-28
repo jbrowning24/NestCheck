@@ -247,6 +247,7 @@ def test_init_db_against_oldest_schema():
         sub_cols = {row["name"] for row in conn.execute("PRAGMA table_info(subscriptions)").fetchall()}
         assert "updated_at" in sub_cols, "subscriptions.updated_at missing after init_db() migration"
         assert "email_hash" in sub_cols, "subscriptions.email_hash missing after init_db() migration"
+        assert "plan" in sub_cols, "subscriptions.plan missing after init_db() migration"
 
         conn.close()
 
