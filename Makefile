@@ -24,7 +24,7 @@ smoke-tristate-local:
 
 # Scoring regression tests (fast, no external deps)
 test-scoring:
-	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py tests/test_schema_migration.py tests/test_scoring_key.py -v --tb=short
+	python3 -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py tests/test_schema_migration.py tests/test_scoring_key.py tests/test_section_freshness.py -v --tb=short
 
 # Schema migration test — verifies init_db() against oldest known schema (NES-379)
 test-schema:
