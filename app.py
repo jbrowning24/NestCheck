@@ -4416,7 +4416,7 @@ def track_event():
     return jsonify({"ok": True})
 
 
-@app.route("/api/feedback", methods=["POST"])
+@app.route("/api/feedback/survey", methods=["POST"])
 def submit_feedback():
     """Save user feedback from the detailed survey page."""
     data = request.get_json(silent=True) or {}
