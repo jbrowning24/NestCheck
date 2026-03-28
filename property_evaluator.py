@@ -409,6 +409,7 @@ class EvaluationResult:
     bike_score: Optional[int] = None
     bike_rating: Optional[str] = None
     bike_metadata: Optional[Dict[str, Any]] = None
+    canopy_cover: Optional[dict] = None  # CanopyCoverResult as dict
 
     tier1_checks: List[Tier1Check] = field(default_factory=list)
     tier2_scores: List[Tier2Score] = field(default_factory=list)
@@ -6094,9 +6095,25 @@ def evaluate_property(
     except Exception:
         pass
 
+    canopy_pct = None
+    try:
+        from canopy import get_canopy_cover
+        _canopy_result = _staged("canopy", get_canopy_cover, lat, lng)
+        if _canopy_result:
+            canopy_pct = _canopy_result.canopy_pct
+            result.canopy_cover = {
+                "canopy_pct": _canopy_result.canopy_pct,
+                "sample_count": _canopy_result.sample_count,
+                "buffer_m": _canopy_result.buffer_m,
+                "source": _canopy_result.source,
+            }
+    except Exception:
+        pass
+
     try:
         result.green_escape_evaluation = _staged(
-            "green_escape", evaluate_green_escape, maps, lat, lng)
+            "green_escape", evaluate_green_escape, maps, lat, lng,
+            canopy_pct=canopy_pct)
     except Exception:
         pass
 

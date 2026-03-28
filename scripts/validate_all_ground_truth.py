@@ -38,6 +38,7 @@ _DIMENSION_LABELS = {
     "tri": "TRI toxic release proximity",
     "fema": "FEMA flood zone containment",
     "sems": "SEMS Superfund NPL containment",
+    "canopy": "Canopy Nature Feel",
 }
 
 

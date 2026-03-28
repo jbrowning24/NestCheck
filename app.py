@@ -2344,6 +2344,9 @@ _ANNOTATION_CATEGORY_LABELS = {
 
 def result_to_dict(result):
     """Convert EvaluationResult to template-friendly dict."""
+    _ge = _serialize_green_escape(result.green_escape_evaluation)
+    if _ge and result.canopy_cover:
+        _ge["canopy_cover"] = result.canopy_cover
     output = {
         "address": result.listing.address,
         "coordinates": {"lat": result.lat, "lng": result.lng},
@@ -2386,7 +2389,7 @@ def result_to_dict(result):
             "score_0_10": result.transit_access.score_0_10,
             "reasons": result.transit_access.reasons,
         } if result.transit_access else None,
-        "green_escape": _serialize_green_escape(result.green_escape_evaluation),
+        "green_escape": _ge,
         "transit_score": result.transit_score,
         "passed_tier1": result.passed_tier1,
         "tier1_checks": [

@@ -67,6 +67,11 @@ _OLDEST_SCHEMA = """
         summary_json  TEXT NOT NULL,
         created_at    TEXT
     );
+    CREATE TABLE IF NOT EXISTS canopy_cache (
+        cache_key     TEXT PRIMARY KEY,
+        data_json     TEXT NOT NULL,
+        created_at    TEXT
+    );
     CREATE TABLE IF NOT EXISTS census_cache (
         cache_key     TEXT PRIMARY KEY,
         data_json     TEXT NOT NULL,
