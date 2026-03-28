@@ -1,5 +1,5 @@
 /* ================================================================
-   pricing.css — Three-tier pricing page (NES-327)
+   pricing.css — Three-tier pricing page (NES-327, NES-382)
    Loaded by pricing.html after base.css and tokens.css.
    Monochrome sub-palette: hardcoded palette colors for visual
    identity, structural tokens for spacing/weights/radii.
@@ -48,7 +48,7 @@ body:has(.pricing-page) {
 /* ── Pricing grid ────────────────────────────────────────── */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-lg);
   max-width: 960px;
   margin: 0 auto;
@@ -69,27 +69,6 @@ body:has(.pricing-page) {
   position: relative;
 }
 
-.pricing-card--recommended {
-  border: 2px solid var(--color-brand);
-}
-
-/* ── Recommended badge ───────────────────────────────────── */
-.pricing-card-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-brand);
-  color: var(--color-text-inverse);
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 4px var(--space-base);
-  border-radius: var(--radius-full);
-  white-space: nowrap;
-}
-
 /* ── Card header ─────────────────────────────────────────── */
 .pricing-card-header {
   display: flex;
@@ -105,12 +84,6 @@ body:has(.pricing-page) {
   color: #111111;
   line-height: var(--line-height-none);
   font-variant-numeric: tabular-nums;
-}
-
-.pricing-card-period {
-  font-size: 20px;
-  font-weight: var(--font-weight-medium);
-  color: #666666;
 }
 
 .pricing-card-name {
@@ -217,6 +190,82 @@ body:has(.pricing-page) {
   color: #B0B0B0;
 }
 
+/* ── Plan selector (NES-382) ─────────────────────────────── */
+.pricing-card--plans {
+  grid-column: 1 / -1;
+  border: 2px solid var(--color-brand);
+}
+
+.pricing-plan-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.pricing-plan-option {
+  cursor: pointer;
+  position: relative;
+}
+
+.pricing-plan-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pricing-plan-option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  text-align: center;
+}
+
+.pricing-plan-option input[type="radio"]:checked + .pricing-plan-option-content {
+  border-color: var(--color-brand);
+  background: rgba(11, 29, 58, 0.03);
+}
+
+.pricing-plan-option-badge {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-full);
+}
+
+.pricing-plan-option-badge--value {
+  background: #111111;
+}
+
+.pricing-plan-option-name {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: #111111;
+}
+
+.pricing-plan-option-price {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.03em;
+  color: #111111;
+  line-height: var(--line-height-none);
+}
+
+.pricing-plan-option-daily {
+  font-size: 13px;
+  color: #666666;
+}
+
 /* ── Footer note ─────────────────────────────────────────── */
 .pricing-note {
   font-size: var(--font-size-small);
@@ -239,6 +288,20 @@ body:has(.pricing-page) {
   .pricing-grid {
     grid-template-columns: 1fr;
     padding: 0;
+  }
+
+  .pricing-plan-options {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-plan-option-content {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-base) var(--space-lg);
+  }
+
+  .pricing-plan-option-price {
+    font-size: 24px;
   }
 }
 

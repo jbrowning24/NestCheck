@@ -300,8 +300,8 @@ def _is_builder(req):
 # ---------------------------------------------------------------------------
 _STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
-_STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
-_STRIPE_SUBSCRIPTION_PRICES = {
+_STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")  # Single-payment ($9)
+_STRIPE_SUBSCRIPTION_PRICES = {  # Active Search subscription tiers
     "30d": os.environ.get("STRIPE_PRICE_30D"),
     "60d": os.environ.get("STRIPE_PRICE_60D"),
     "90d": os.environ.get("STRIPE_PRICE_90D"),

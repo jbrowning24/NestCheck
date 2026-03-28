@@ -2,11 +2,11 @@
 
 {% block title %}NestCheck — Pricing{% endblock %}
 
-{% block meta_description %}<meta name="description" content="NestCheck pricing — free health checks, $9 full evaluations, $39/mo unlimited. Evaluate what you can't renovate — the location.">{% endblock %}
+{% block meta_description %}<meta name="description" content="NestCheck pricing — free health checks, $9 full evaluations, plans from $39. Evaluate what you can't renovate — the location.">{% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ self.title() }}">
-<meta property="og:description" content="NestCheck pricing — free health checks, $9 full evaluations, $39/mo unlimited. Evaluate what you can't renovate — the location.">
+<meta property="og:description" content="NestCheck pricing — free health checks, $9 full evaluations, plans from $39. Evaluate what you can't renovate — the location.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.url }}">
 {% endblock %}
@@ -59,20 +59,45 @@
       <a href="/" class="pricing-cta">Evaluate an address</a>
     </div>
 
-    <!-- Active Search ($39/mo) — recommended -->
-    <div class="pricing-card pricing-card--recommended">
-      <div class="pricing-card-badge">Recommended</div>
+    <!-- Active Search plans -->
+    <div class="pricing-card pricing-card--plans">
       <div class="pricing-card-header">
-        <div class="pricing-card-price">$39<span class="pricing-card-period">/mo</span></div>
         <h2 class="pricing-card-name">Active Search</h2>
-        <p class="pricing-card-headline">Evaluate every address on your list</p>
+        <p class="pricing-card-headline">Unlimited evaluations during your search. Compare every address you tour.</p>
       </div>
-      <ul class="pricing-card-features">
-        <li>Unlimited full evaluations</li>
-        <li>Perfect for your 3–6 month home search</li>
-        <li>Cancel anytime</li>
-      </ul>
+
       <form class="pricing-subscribe-form" onsubmit="return handleSubscribe(event)">
+        <div class="pricing-plan-options">
+          <label class="pricing-plan-option">
+            <input type="radio" name="plan" value="30d">
+            <div class="pricing-plan-option-content">
+              <span class="pricing-plan-option-name">30-Day Search</span>
+              <span class="pricing-plan-option-price">$39</span>
+              <span class="pricing-plan-option-daily">~$1.30/day</span>
+            </div>
+          </label>
+
+          <label class="pricing-plan-option">
+            <input type="radio" name="plan" value="60d" checked>
+            <div class="pricing-plan-option-content">
+              <span class="pricing-plan-option-badge">Most popular</span>
+              <span class="pricing-plan-option-name">60-Day Search</span>
+              <span class="pricing-plan-option-price">$59</span>
+              <span class="pricing-plan-option-daily">~$0.98/day</span>
+            </div>
+          </label>
+
+          <label class="pricing-plan-option">
+            <input type="radio" name="plan" value="90d">
+            <div class="pricing-plan-option-content">
+              <span class="pricing-plan-option-badge pricing-plan-option-badge--value">Best value</span>
+              <span class="pricing-plan-option-name">90-Day Search</span>
+              <span class="pricing-plan-option-price">$79</span>
+              <span class="pricing-plan-option-daily">~$0.88/day</span>
+            </div>
+          </label>
+        </div>
+
         {% if current_user.is_authenticated %}
         <input type="hidden" name="email" value="{{ current_user.email }}">
         {% else %}
@@ -98,11 +123,13 @@ async function handleSubscribe(event) {
     event.preventDefault();
     var form = event.target;
     var email = form.querySelector('[name="email"]').value;
+    var planInput = form.querySelector('input[name="plan"]:checked');
+    var plan = planInput ? planInput.value : '60d';
     try {
         var data = await csrfFetch('/checkout-subscription', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({email: email})
+            body: JSON.stringify({email: email, plan: plan})
         });
         if (data && data.checkout_url) {
             window.location.href = data.checkout_url;
