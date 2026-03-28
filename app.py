@@ -2321,6 +2321,10 @@ def _prepare_snapshot_for_display(result):
     # NES-288: Backfill coverage metadata (display-time only).
     _add_coverage_metadata(result)
 
+    # NES-345: Data freshness indicators (display-time only).
+    from coverage_config import get_section_freshness
+    result["section_freshness"] = get_section_freshness()
+
 
 # NES-315: Tier2Score.name → user-facing category label for annotations.
 # Only dimensions that participate in access-mode annotations are listed.
