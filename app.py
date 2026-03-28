@@ -301,13 +301,17 @@ def _is_builder(req):
 _STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 _STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID")
-_STRIPE_SUBSCRIPTION_PRICE_ID = os.environ.get("STRIPE_SUBSCRIPTION_PRICE_ID")
+_STRIPE_SUBSCRIPTION_PRICES = {
+    "30d": os.environ.get("STRIPE_PRICE_30D"),
+    "60d": os.environ.get("STRIPE_PRICE_60D"),
+    "90d": os.environ.get("STRIPE_PRICE_90D"),
+}
 REQUIRE_PAYMENT = os.environ.get("REQUIRE_PAYMENT", "").lower() == "true"
 
 # Map Stripe price IDs to plan names for subscription tier tracking (NES-384).
-_STRIPE_PLAN_MAP: dict[str, str] = {}
-if _STRIPE_SUBSCRIPTION_PRICE_ID:
-    _STRIPE_PLAN_MAP[_STRIPE_SUBSCRIPTION_PRICE_ID] = "30d"
+_STRIPE_PLAN_MAP: dict[str, str] = {
+    v: k for k, v in _STRIPE_SUBSCRIPTION_PRICES.items() if v
+}
 
 try:
     import stripe
@@ -4906,7 +4910,7 @@ def checkout_subscription():
         return jsonify({"error": "Payments not enabled"}), 400
     if not STRIPE_AVAILABLE:
         return jsonify({"error": "Payment system not configured"}), 503
-    if not _STRIPE_SUBSCRIPTION_PRICE_ID:
+    if not any(_STRIPE_SUBSCRIPTION_PRICES.values()):
         return jsonify({"error": "Subscription pricing not configured"}), 503
 
     data = request.get_json(silent=True) or {}
@@ -4914,16 +4918,23 @@ def checkout_subscription():
     if not email:
         return jsonify({"error": "Email required for subscription"}), 400
 
+    plan = data.get("plan", "").strip().lower()
+    if plan not in _STRIPE_SUBSCRIPTION_PRICES:
+        return jsonify({"error": "Invalid plan. Must be one of: 30d, 60d, 90d"}), 400
+
+    price_id = _STRIPE_SUBSCRIPTION_PRICES[plan]
+    if not price_id:
+        return jsonify({"error": "Plan not configured"}), 503
+
     base_url = request.url_root.rstrip("/")
     try:
         session_kwargs = {
             "mode": "subscription",
-            "line_items": [{"price": _STRIPE_SUBSCRIPTION_PRICE_ID, "quantity": 1}],
+            "line_items": [{"price": price_id, "quantity": 1}],
             "success_url": f"{base_url}/my-reports?subscription=active",
             "cancel_url": f"{base_url}/pricing",
         }
         _apply_stripe_customer(session_kwargs)
-        # Pre-fill email on Stripe checkout for non-authenticated users
         if "customer" not in session_kwargs and "customer_email" not in session_kwargs:
             session_kwargs["customer_email"] = email
 
