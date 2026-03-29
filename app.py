@@ -1966,8 +1966,15 @@ def present_checks(tier1_checks):
             else:
                 explanation = (
                     "The data source for this check was temporarily "
-                    "unavailable. You can use the satellite link below "
-                    "to check manually."
+                    "unavailable."
+                )
+            # Flood zone: always use FEMA guidance (NES-390)
+            if name == "Flood zone":
+                explanation = (
+                    "Flood zone status could not be verified for this "
+                    "address. Check your flood risk at the FEMA Flood Map "
+                    "Service Center (msc.fema.gov) or ask your home "
+                    "inspector to confirm flood zone designation."
                 )
 
         # Build expanded context for progressive disclosure

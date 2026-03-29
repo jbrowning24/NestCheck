@@ -24,6 +24,7 @@
 {% set clear_count = safety_checks | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
 {% set warning_count = safety_checks | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
 {% set issue_count = safety_checks | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+{% set unverified_count = safety_checks | selectattr('result_type', 'equalto', 'VERIFICATION_NEEDED') | list | length %}
 
 <div class="report">
   <div class="report-container">
@@ -223,8 +224,10 @@
             {% set si_clear = safety_items | selectattr('result_type', 'equalto', 'CLEAR') | list | length %}
             {% set si_warning = safety_items | selectattr('result_type', 'equalto', 'WARNING_DETECTED') | list | length %}
             {% set si_issue = safety_items | selectattr('result_type', 'equalto', 'CONFIRMED_ISSUE') | list | length %}
+            {% set si_unverified = safety_items | selectattr('result_type', 'equalto', 'VERIFICATION_NEEDED') | list | length %}
             <div class="section-summary-row health-stat-row">
               {% if si_clear %}<span class="summary-pill summary-pill--pass health-stat-badge health-stat-badge--clear">{{ si_clear }} Clear</span>{% endif %}
+              {% if si_unverified %}<span class="summary-pill summary-pill--neutral health-stat-badge health-stat-badge--unverified">{{ si_unverified }} Unverified</span>{% endif %}
               {% if si_warning %}<span class="summary-pill summary-pill--warning health-stat-badge health-stat-badge--warning">{{ si_warning }} Warning{{ 's' if si_warning != 1 }}</span>{% endif %}
               {% if si_issue %}<span class="summary-pill summary-pill--fail health-stat-badge health-stat-badge--issue">{{ si_issue }} Issue{{ 's' if si_issue != 1 }}</span>{% endif %}
             </div>
@@ -259,10 +262,16 @@
                 {% if pc.explanation %}
                   <div class="proximity-detail">{{ pc.explanation }}</div>
                 {% endif %}
-                {% if pc.result_type == "VERIFICATION_NEEDED" and result.coordinates is defined and result.coordinates %}
+                {% if pc.result_type == "VERIFICATION_NEEDED" %}
+                  {% if pc.name == "Flood zone" %}
+                  <a class="proximity-satellite-link"
+                     href="https://msc.fema.gov"
+                     target="_blank" rel="noopener noreferrer">Check FEMA Flood Map Service Center <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+                  {% elif result.coordinates is defined and result.coordinates %}
                   <a class="proximity-satellite-link"
                      href="https://www.google.com/maps/@{{ result.coordinates.lat }},{{ result.coordinates.lng }},18z/data=!3m1!1e1"
                      target="_blank" rel="noopener noreferrer">View satellite imagery <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align: -1px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>
+                  {% endif %}
                 {% endif %}
                 {% if pc.area_context_annotation is defined and pc.area_context_annotation %}
                   {{ annotation(pc.area_context_annotation) }}
@@ -1319,6 +1328,12 @@
               <span class="count-number">{{ clear_count }}</span>
               <span class="count-label">Clear</span>
             </div>
+            {% if unverified_count > 0 %}
+            <div class="health-count health-count--unverified">
+              <span class="count-number">{{ unverified_count }}</span>
+              <span class="count-label">Unverified</span>
+            </div>
+            {% endif %}
             {% if warning_count > 0 %}
             <div class="health-count health-count--warning">
               <span class="count-number">{{ warning_count }}</span>
