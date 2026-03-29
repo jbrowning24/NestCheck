@@ -1,9 +1,9 @@
 {
   "_schema_version": "0.2.0",
-  "_generated_at": "2026-03-27T23:10:59.322662+00:00",
+  "_generated_at": "2026-03-29T21:24:36.756090+00:00",
   "_generator": "generate_ground_truth_parks.py",
-  "_scoring_model_version": "1.6.1",
-  "_test_count": 99,
+  "_scoring_model_version": "1.8.0",
+  "_test_count": 109,
   "_seed": 42,
   "_subscore_model": {
     "walk_time": {
@@ -1112,6 +1112,276 @@
       }
     },
     {
+      "id": "gt-parks-ceil-01",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=10 \u2192 ceiling=None, final_score=10.0, capped=False",
+      "inputs": {
+        "walk_time_min": 10,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": null,
+        "final_score": 10.0,
+        "capped": false
+      }
+    },
+    {
+      "id": "gt-parks-ceil-02",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=15 \u2192 ceiling=None, final_score=9.5, capped=False",
+      "inputs": {
+        "walk_time_min": 15,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": null,
+        "final_score": 9.5,
+        "capped": false
+      }
+    },
+    {
+      "id": "gt-parks-ceil-03",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=16 \u2192 ceiling=8.0, final_score=8.0, capped=True",
+      "inputs": {
+        "walk_time_min": 16,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 8.0,
+        "final_score": 8.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-04",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=20 \u2192 ceiling=8.0, final_score=8.0, capped=True",
+      "inputs": {
+        "walk_time_min": 20,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 8.0,
+        "final_score": 8.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-05",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=21 \u2192 ceiling=6.0, final_score=6.0, capped=True",
+      "inputs": {
+        "walk_time_min": 21,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 6.0,
+        "final_score": 6.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-06",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=25 \u2192 ceiling=6.0, final_score=6.0, capped=True",
+      "inputs": {
+        "walk_time_min": 25,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 6.0,
+        "final_score": 6.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-07",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=26 \u2192 ceiling=5.0, final_score=5.0, capped=True",
+      "inputs": {
+        "walk_time_min": 26,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 5.0,
+        "final_score": 5.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-08",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=30 \u2192 ceiling=5.0, final_score=5.0, capped=True",
+      "inputs": {
+        "walk_time_min": 30,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 5.0,
+        "final_score": 5.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-09",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=31 \u2192 ceiling=3.0, final_score=3.0, capped=True",
+      "inputs": {
+        "walk_time_min": 31,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 3.0,
+        "final_score": 3.0,
+        "capped": true
+      }
+    },
+    {
+      "id": "gt-parks-ceil-10",
+      "test_type": "walk_time_ceiling",
+      "description": "walk_time=45 \u2192 ceiling=3.0, final_score=3.0, capped=True",
+      "inputs": {
+        "walk_time_min": 45,
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": [
+          "national_park"
+        ],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": true,
+        "osm_nature_tags": [
+          "forest",
+          "water",
+          "nature_reserve"
+        ]
+      },
+      "expected": {
+        "ceiling": 3.0,
+        "final_score": 3.0,
+        "capped": true
+      }
+    },
+    {
       "id": "gt-parks-mono-01",
       "test_type": "monotonicity",
       "description": "walk_time=0 (score=6.8) >= walk_time=1 (score=6.8)",
@@ -1387,7 +1657,7 @@
     {
       "id": "gt-parks-mono-14",
       "test_type": "monotonicity",
-      "description": "walk_time=30 (score=4.8) >= walk_time=35 (score=4.3)",
+      "description": "walk_time=30 (score=4.8) >= walk_time=35 (score=3.0)",
       "inputs": {
         "walk_time_a": 30,
         "walk_time_b": 35,
@@ -1402,13 +1672,13 @@
       "expected": {
         "score_a_gte_score_b": true,
         "score_a": 4.8,
-        "score_b": 4.3
+        "score_b": 3.0
       }
     },
     {
       "id": "gt-parks-mono-15",
       "test_type": "monotonicity",
-      "description": "walk_time=35 (score=4.3) >= walk_time=40 (score=4.3)",
+      "description": "walk_time=35 (score=3.0) >= walk_time=40 (score=3.0)",
       "inputs": {
         "walk_time_a": 35,
         "walk_time_b": 40,
@@ -1422,14 +1692,14 @@
       },
       "expected": {
         "score_a_gte_score_b": true,
-        "score_a": 4.3,
-        "score_b": 4.3
+        "score_a": 3.0,
+        "score_b": 3.0
       }
     },
     {
       "id": "gt-parks-mono-16",
       "test_type": "monotonicity",
-      "description": "walk_time=40 (score=4.3) >= walk_time=45 (score=4.3)",
+      "description": "walk_time=40 (score=3.0) >= walk_time=45 (score=3.0)",
       "inputs": {
         "walk_time_a": 40,
         "walk_time_b": 45,
@@ -1443,14 +1713,14 @@
       },
       "expected": {
         "score_a_gte_score_b": true,
-        "score_a": 4.3,
-        "score_b": 4.3
+        "score_a": 3.0,
+        "score_b": 3.0
       }
     },
     {
       "id": "gt-parks-mono-17",
       "test_type": "monotonicity",
-      "description": "walk_time=45 (score=4.3) >= walk_time=47 (score=4.3)",
+      "description": "walk_time=45 (score=3.0) >= walk_time=47 (score=3.0)",
       "inputs": {
         "walk_time_a": 45,
         "walk_time_b": 47,
@@ -1464,14 +1734,14 @@
       },
       "expected": {
         "score_a_gte_score_b": true,
-        "score_a": 4.3,
-        "score_b": 4.3
+        "score_a": 3.0,
+        "score_b": 3.0
       }
     },
     {
       "id": "gt-parks-mono-18",
       "test_type": "monotonicity",
-      "description": "walk_time=47 (score=4.3) >= walk_time=60 (score=4.3)",
+      "description": "walk_time=47 (score=3.0) >= walk_time=60 (score=3.0)",
       "inputs": {
         "walk_time_a": 47,
         "walk_time_b": 60,
@@ -1485,8 +1755,8 @@
       },
       "expected": {
         "score_a_gte_score_b": true,
-        "score_a": 4.3,
-        "score_b": 4.3
+        "score_a": 3.0,
+        "score_b": 3.0
       }
     },
     {

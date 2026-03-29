@@ -19,6 +19,7 @@ Test types:
   - nature_feel:        OSM tags, name keywords, type bonuses
   - composite:          end-to-end compute_park_score tests
   - composite_cap:      verify cap at 10.0
+  - walk_time_ceiling:  graduated walk-time ceiling on Daily Value
   - monotonicity:       walk time monotonicity (closer = higher)
   - criteria:           PASS/BORDERLINE/FAIL classification
 
@@ -586,6 +587,70 @@ def _generate_composite_cap_tests():
     return cases
 
 
+def _generate_walk_time_ceiling_tests():
+    """Test graduated walk-time ceiling on Daily Value.
+
+    Uses a max-quality park at varying walk times to verify
+    _apply_walk_time_ceiling() caps correctly.
+    """
+    cases = []
+
+    # Max-quality park inputs — subscores sum well above any ceiling
+    max_kwargs = {
+        "rating": 4.5,
+        "reviews": 500,
+        "name": "Forest Nature Preserve",
+        "types": ["national_park"],
+        "park_acres": 50.0,
+        "osm_path_count": 10,
+        "osm_has_trail": True,
+        "osm_nature_tags": ["forest", "water", "nature_reserve"],
+    }
+
+    walk_times = [10, 15, 16, 20, 21, 25, 26, 30, 31, 45]
+
+    for i, wt in enumerate(walk_times, 1):
+        score = _compute_full_score(walk_time_min=wt, **max_kwargs)
+
+        # Determine expected ceiling and capped flag
+        # <=15: uncapped, 16-20: 8, 21-25: 6, 26-30: 5, >30: 3
+        if wt <= 15:
+            ceiling = None
+            capped = False
+        elif wt <= 20:
+            ceiling = 8.0
+            capped = True
+        elif wt <= 25:
+            ceiling = 6.0
+            capped = True
+        elif wt <= 30:
+            ceiling = 5.0
+            capped = True
+        else:
+            ceiling = 3.0
+            capped = True
+
+        cases.append({
+            "id": f"gt-parks-ceil-{i:02d}",
+            "test_type": "walk_time_ceiling",
+            "description": (
+                f"walk_time={wt} → ceiling={ceiling}, "
+                f"final_score={score}, capped={capped}"
+            ),
+            "inputs": {
+                "walk_time_min": wt,
+                **max_kwargs,
+            },
+            "expected": {
+                "ceiling": ceiling,
+                "final_score": score,
+                "capped": capped,
+            },
+        })
+
+    return cases
+
+
 def _generate_monotonicity_tests(rng):
     """Walk time increases → score decreases (or stays flat)."""
     cases = []
@@ -740,6 +805,10 @@ def main():
     cap_cases = _generate_composite_cap_tests()
     all_cases.extend(cap_cases)
     print(f"Generated {len(cap_cases)} composite cap tests")
+
+    ceil_cases = _generate_walk_time_ceiling_tests()
+    all_cases.extend(ceil_cases)
+    print(f"Generated {len(ceil_cases)} walk time ceiling tests")
 
     mono_cases = _generate_monotonicity_tests(rng)
     all_cases.extend(mono_cases)
