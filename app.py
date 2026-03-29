@@ -956,19 +956,28 @@ _EJSCREEN_CROSS_REFS = [
     {
         "address_checks": ["Superfund (NPL)"],
         "ejscreen_field": "PNPL",
-        "threshold": 80,
+        "threshold": 60,
         "template": (
-            "Address clear, but this area scores higher than {pct}% "
-            "of U.S. neighborhoods for Superfund proximity."
+            "No direct Superfund impact here. The wider area ranks "
+            "higher than {pct}% nationally for proximity."
         ),
     },
     {
         "address_checks": ["TRI facility", "ust_proximity"],
         "ejscreen_field": "PTSDF",
-        "threshold": 80,
+        "threshold": 60,
         "template": (
-            "No nearby facilities found, but this area scores higher "
-            "than {pct}% of U.S. neighborhoods for hazardous waste proximity."
+            "No nearby facilities found. The area ranks higher "
+            "than {pct}% nationally for hazardous waste proximity."
+        ),
+    },
+    {
+        "address_checks": ["High-traffic road"],
+        "ejscreen_field": "PTRAF",
+        "threshold": 60,
+        "template": (
+            "No high-traffic roads nearby. The area ranks higher "
+            "than {pct}% nationally for traffic proximity."
         ),
     },
 ]
