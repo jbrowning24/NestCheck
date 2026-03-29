@@ -323,6 +323,58 @@ def _validate_criteria(case):
     )
 
 
+def _validate_walk_time_ceiling(case):
+    """Validate graduated walk-time ceiling on Daily Value."""
+    inp = case["inputs"]
+    expected = case["expected"]
+
+    kwargs = {
+        "walk_time_min": inp["walk_time_min"],
+        "rating": inp.get("rating"),
+        "reviews": inp.get("reviews", 0),
+        "name": inp.get("name", ""),
+        "types": inp.get("types"),
+        "park_acres": inp.get("park_acres"),
+        "osm_path_count": inp.get("osm_path_count", 0),
+        "osm_has_trail": inp.get("osm_has_trail", False),
+        "osm_nature_tags": inp.get("osm_nature_tags"),
+    }
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+    actual_score = compute_park_score(**kwargs)
+
+    errors = []
+
+    # Check final score
+    if abs(actual_score - expected["final_score"]) >= TOLERANCE:
+        errors.append(
+            f"final_score: expected={expected['final_score']}, actual={actual_score}"
+        )
+
+    # Check capped flag: if ceiling is not None, score should be <= ceiling
+    expected_capped = expected["capped"]
+    ceiling = expected["ceiling"]
+
+    if ceiling is not None:
+        actual_capped = actual_score <= ceiling + TOLERANCE
+    else:
+        actual_capped = False
+
+    # Verify capped flag matches
+    if expected_capped != actual_capped:
+        errors.append(
+            f"capped: expected={expected_capped}, actual={actual_capped}"
+        )
+
+    if not errors:
+        return "MATCH", {"final_score": actual_score, "capped": actual_capped}, None
+    return (
+        "MISMATCH",
+        {"final_score": actual_score, "capped": actual_capped},
+        "; ".join(errors),
+    )
+
+
 # Dispatch table
 _VALIDATORS = {
     "walk_time": lambda case, ctx: _validate_walk_time(case),
@@ -332,6 +384,7 @@ _VALIDATORS = {
     "nature_feel": lambda case, ctx: _validate_nature_feel(case),
     "composite": lambda case, ctx: _validate_composite(case),
     "composite_cap": lambda case, ctx: _validate_composite_cap(case),
+    "walk_time_ceiling": lambda case, ctx: _validate_walk_time_ceiling(case),
     "monotonicity": lambda case, ctx: _validate_monotonicity(case),
     "criteria": lambda case, ctx: _validate_criteria(case),
 }

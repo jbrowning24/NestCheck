@@ -59,6 +59,16 @@ WALK_TIME_EXCELLENT = 10
 WALK_TIME_GOOD = 20
 WALK_TIME_MARGINAL = 30
 
+# Walk-time ceiling thresholds for Daily Value (NES-391)
+# Quality subscores cannot push Daily Value above these caps.
+WALK_CEILING_TIERS = (
+    (15, None),  # <= 15 min: no ceiling
+    (20, 8.0),   # 16-20 min: cap at 8
+    (25, 6.0),   # 21-25 min: cap at 6
+    (30, 5.0),   # 26-30 min: cap at 5
+)
+WALK_CEILING_BEYOND_MARGINAL = 3.0  # > 30 min: cap at 3
+
 # Quality proxy thresholds
 QUALITY_HIGH_RATING = 4.3
 QUALITY_MID_RATING = 3.8
@@ -1406,6 +1416,14 @@ def _score_nature_feel(
     return min(2.0, round(score, 1)), "; ".join(parts)
 
 
+def _apply_walk_time_ceiling(total: float, walk_time_min: int) -> float:
+    """Cap Daily Value based on walk time so quality can't override accessibility."""
+    for threshold, ceiling in WALK_CEILING_TIERS:
+        if walk_time_min <= threshold:
+            return min(total, ceiling) if ceiling is not None else total
+    return min(total, WALK_CEILING_BEYOND_MARGINAL)
+
+
 def compute_park_score(
     walk_time_min: int,
     rating: Optional[float] = None,
@@ -1460,6 +1478,7 @@ def compute_park_score(
         nf_score, _ = _score_nature_feel(osm_data, name, types, parkserve_type=parkserve_type)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
+    total = _apply_walk_time_ceiling(total, walk_time_min)
     return min(10.0, total)
 
 
@@ -1505,6 +1524,7 @@ def score_green_space(
         nf_score, nf_reason = _score_nature_feel(osm_data, name, types, parkserve_type=parkserve_type)
 
     total = round(wt_score + sz_score + q_score + nf_score, 1)
+    total = _apply_walk_time_ceiling(total, walk_time)
     total = min(10.0, total)
 
     # Build subscores
