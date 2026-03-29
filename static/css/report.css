@@ -1276,7 +1276,7 @@ h1.narrative-summary {
 .venue-stack .venue-card .place-time .place-time__sep {
   display: none;
 }
-.venue-stack .venue-card .place-time .summary-pill:last-child {
+.venue-stack .venue-card .place-time .summary-pill:last-child:not(:first-child) {
   font-size: var(--type-caption);
   color: var(--color-text-tertiary);
 }
