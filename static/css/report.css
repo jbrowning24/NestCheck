@@ -1119,13 +1119,14 @@ h1.narrative-summary {
   border: 0;
 }
 
-/* Venue cards — horizontal scroll with snap */
+/* Venue cards — horizontal scroll with snap (3+ items) */
 .venue-scroll {
   scroll-snap-type: x mandatory;
   scroll-padding-left: var(--space-base);
   display: flex;
   gap: var(--space-3);
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: var(--space-2);
   -webkit-overflow-scrolling: touch;
 }
@@ -1133,10 +1134,47 @@ h1.narrative-summary {
 .venue-scroll::-webkit-scrollbar { height: 6px; }
 .venue-scroll::-webkit-scrollbar-track { background: var(--color-border-light); border-radius: 3px; }
 .venue-scroll::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 3px; }
-/* Short lists (≤2 items) — no scroll, no snap */
-.venue-scroll--static {
-  overflow-x: visible;
-  scroll-snap-type: none;
+/* Last-card right padding for scroll container */
+.venue-scroll::after {
+  content: '';
+  flex: 0 0 var(--space-4);
+}
+
+/* Venue stack — vertical layout for 1–2 items (mobile/tablet) */
+/* At desktop (≥1024px), reverts to horizontal scroll */
+.venue-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+@media (min-width: 1024px) {
+  .venue-stack {
+    flex-direction: row;
+    overflow-x: visible;
+  }
+  .venue-stack .venue-card {
+    width: 220px;
+    max-width: 280px;
+    min-width: 220px;
+    flex: 0 0 auto;
+    flex-direction: column;
+    padding: var(--space-base);
+  }
+  .venue-stack .venue-card__info {
+    display: contents;
+  }
+  .venue-stack .venue-card .place-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .venue-stack .venue-card .place-time {
+    margin-top: auto;
+    padding-top: var(--space-xs);
+    text-align: left;
+    margin-left: 0;
+  }
 }
 .venue-card {
   flex: 0 0 auto;
@@ -1187,6 +1225,60 @@ h1.narrative-summary {
   color: var(--color-accent);
   margin-top: auto;
   padding-top: var(--space-xs);
+}
+/* Time pill wrapping for long text in scroll cards */
+.venue-scroll .venue-card .place-time .summary-pill {
+  max-width: 120px;
+  white-space: normal;
+  text-align: center;
+}
+
+/* Info wrapper — transparent in scroll, structured in stack */
+.venue-card__info {
+  display: contents;
+}
+
+/* Vertical stack card layout (1–2 items) — row with name left, time right */
+.venue-stack .venue-card {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+}
+.venue-stack .venue-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.venue-stack .venue-card .place-name {
+  -webkit-line-clamp: unset;
+  display: block;
+  overflow: visible;
+  font-weight: var(--font-weight-medium);
+}
+.venue-stack .venue-card .place-time {
+  margin-top: 0;
+  padding-top: 0;
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.venue-stack .venue-card .place-time .place-time__sep {
+  display: none;
+}
+.venue-stack .venue-card .place-time .summary-pill:last-child {
+  font-size: var(--type-caption);
+  color: var(--color-text-tertiary);
 }
 .venue-card--headline {
   border-left: 3px solid var(--color-accent);
@@ -2162,8 +2254,8 @@ h1.narrative-summary {
     gap: var(--space-xs);
   }
   /* .narrative-summary font-size now handled by clamp() in --type-verdict */
-  .venue-card { width: 220px; }
-  .venue-card--headline { width: 190px; }
+  .venue-scroll .venue-card { width: 220px; }
+  .venue-scroll .venue-card--headline { width: 190px; }
   .stat-card-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .subscore-grid { grid-template-columns: repeat(3, 1fr); }
   .venue-card.section-card--highlighted { border-left-width: 2px; }
@@ -2175,15 +2267,22 @@ h1.narrative-summary {
   .report-container { padding: var(--space-base); border-radius: var(--radius-md); }
   /* .narrative-summary and .card-band-label font-sizes now handled by clamp() in --type-verdict */
   .sidebar-card { padding: var(--space-base); }
-  .venue-card { width: 220px; padding: var(--space-md); }
-  .venue-card--headline { width: 180px; }
-  /* 1.5-card peek: bleed scroll container to right edge (skip static) */
-  .venue-scroll:not(.venue-scroll--static) {
-    margin-right: calc(-1 * var(--space-base));
-    padding-right: 0;
+  .venue-scroll .venue-card { width: 220px; padding: var(--space-md); }
+  .venue-scroll .venue-card--headline { width: 180px; }
+  /* Horizontal scroll: bleed to viewport edges with 1.5-card peek */
+  .venue-scroll {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
     scrollbar-width: none;
   }
-  .venue-scroll:not(.venue-scroll--static)::-webkit-scrollbar { display: none; }
+  .venue-scroll::-webkit-scrollbar { display: none; }
+  .venue-scroll .venue-card {
+    flex: 0 0 calc(100vw - 80px);
+    max-width: 280px;
+    scroll-snap-align: start;
+  }
   .stat-card { padding: var(--space-md); }
   .stat-card__value { font-size: var(--font-size-h3); }
   .data-row--hub { flex-direction: column; align-items: flex-start; gap: var(--space-xs); }

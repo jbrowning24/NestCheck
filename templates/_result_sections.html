@@ -436,45 +436,51 @@
               {% endif %}
 
               <h3 class="sr-only">{{ label }} near this address</h3>
-              <div class="venue-scroll{% if normal_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
+              <div class="{% if normal_places | length <= 2 %}venue-stack{% else %}venue-scroll{% endif %}" role="list" aria-label="{{ label }} near this address" tabindex="0">
                 {% for place in normal_places %}
                 {% set is_headline = loop.first and place.review_snippet %}
                 <div class="venue-card{% if is_headline %} venue-card--headline section-card--highlighted{% else %} section-card--quiet{% endif %}" role="listitem">
-                  <div class="place-name">
-                    {% if place.place_id %}
-                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
-                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-                    {% elif place.lat and place.lng %}
-                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
-                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-                    {% else %}
-                      {{ place.name }}
+                  <div class="venue-card__info">
+                    <div class="place-name">
+                      {% if place.place_id %}
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
+                           target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                      {% elif place.lat and place.lng %}
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                           target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                      {% else %}
+                        {{ place.name }}
+                      {% endif %}
+                    </div>
+                    <div class="place-meta">
+                      {% if place.rating %}
+                        <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
+                              aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
+                      {% endif %}
+                      {% if place.review_count %}
+                        <span class="place-reviews">({{ place.review_count }})</span>
+                      {% endif %}
+                    </div>
+                    {% if place.review_snippet %}
+                    <div class="place-snippet">
+                      "{{ place.review_snippet }}"
+                      {% if place.review_time %}
+                        <span class="place-snippet-time">&mdash; {{ place.review_time }}</span>
+                      {% endif %}
+                    </div>
                     {% endif %}
                   </div>
-                  <div class="place-meta">
-                    {% if place.rating %}
-                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
-                            aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
-                    {% endif %}
-                    {% if place.review_count %}
-                      <span class="place-reviews">({{ place.review_count }})</span>
-                    {% endif %}
-                  </div>
-                  {% if place.review_snippet %}
-                  <div class="place-snippet">
-                    "{{ place.review_snippet }}"
-                    {% if place.review_time %}
-                      <span class="place-snippet-time">&mdash; {{ place.review_time }}</span>
-                    {% endif %}
-                  </div>
-                  {% endif %}
                   <div class="place-time">
                     {% if place.drive_time_min and (place.walk_time_min or 0) > 40 %}
                       <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% elif place.drive_time_min and (place.walk_time_min or 0) > 25 %}
-                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span> · <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
+                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
+                      <span class="place-time__sep"> · </span>
+                      <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
                     {% elif place.drive_time_min and (place.walk_time_min or 0) > 20 %}
-                      <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span> · <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
+                      <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
+                      <span class="place-time__sep"> · </span>
+                      <span class="summary-pill summary-pill--neutral summary-pill--compact">{{ fmt_time(place.drive_time_min, "drive") }}</span>
                     {% else %}
                       <span class="summary-pill summary-pill--accent summary-pill--compact">{{ fmt_time(place.walk_time_min, "walk") }}</span>
                     {% endif %}
@@ -489,25 +495,27 @@
               <div class="category-label">{{ label }}</div>
               <p class="expanded-search-note">None within walking distance &mdash; nearest by car:</p>
               <h3 class="sr-only">{{ label }} by car</h3>
-              <div class="venue-scroll{% if expanded_places | length <= 2 %} venue-scroll--static{% endif %}" role="list" aria-label="{{ label }} by car" tabindex="0">
+              <div class="{% if expanded_places | length <= 2 %}venue-stack{% else %}venue-scroll{% endif %}" role="list" aria-label="{{ label }} by car" tabindex="0">
                 {% for place in expanded_places %}
                 <div class="venue-card venue-card--muted section-card--quiet" role="listitem">
-                  <div class="place-name">
-                    {% if place.place_id %}
-                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
-                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-                    {% elif place.lat and place.lng %}
-                      <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
-                         target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
-                    {% else %}
-                      {{ place.name }}
-                    {% endif %}
-                  </div>
-                  <div class="place-meta">
-                    {% if place.rating %}
-                      <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
-                            aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
-                    {% endif %}
+                  <div class="venue-card__info">
+                    <div class="place-name">
+                      {% if place.place_id %}
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ place.name | urlencode }}&query_place_id={{ place.place_id }}"
+                           target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                      {% elif place.lat and place.lng %}
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ place.lat }},{{ place.lng }}"
+                           target="_blank" rel="noopener noreferrer">{{ place.name }}</a>
+                      {% else %}
+                        {{ place.name }}
+                      {% endif %}
+                    </div>
+                    <div class="place-meta">
+                      {% if place.rating %}
+                        <span class="place-rating summary-pill summary-pill--neutral summary-pill--compact"
+                              aria-label="{{ "%.1f"|format(place.rating) }} out of 5 stars{% if place.review_count %}, {{ place.review_count }} reviews{% endif %}">{{ "%.1f"|format(place.rating) }} ★</span>
+                      {% endif %}
+                    </div>
                   </div>
                   <div class="place-time">
                     {% if place.drive_time_min %}

@@ -73,16 +73,18 @@ class TestMobileViewport:
         page.set_viewport_size(MOBILE)
         page.goto(healthy_report_url)
         page.wait_for_load_state("networkidle")
-        scrollers = page.locator(".venue-scroll:not(.venue-scroll--static)")
-        if scrollers.count() == 0:
-            scrollers = page.locator(".venue-scroll")
-        assert scrollers.count() >= 1, "No venue-scroll containers found"
-        overflow_x = scrollers.first.evaluate(
-            "el => getComputedStyle(el).overflowX"
+        scrollers = page.locator(".venue-scroll")
+        stacks = page.locator(".venue-stack")
+        assert scrollers.count() + stacks.count() >= 1, (
+            "No venue-scroll or venue-stack containers found"
         )
-        assert overflow_x in ("auto", "scroll"), (
-            f"Expected overflow-x auto or scroll, got: {overflow_x}"
-        )
+        if scrollers.count() >= 1:
+            overflow_x = scrollers.first.evaluate(
+                "el => getComputedStyle(el).overflowX"
+            )
+            assert overflow_x in ("auto", "scroll"), (
+                f"Expected overflow-x auto or scroll, got: {overflow_x}"
+            )
 
     def test_screenshot_mobile_responsive(self, page: Page, healthy_report_url):
         """Capture mobile layout screenshot for visual baseline."""
