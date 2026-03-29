@@ -44,6 +44,8 @@ from scoring_config import (
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     VENUE_MIN_RATING, VENUE_MIN_REVIEWS,
     _FITNESS_DRIVE_KNOTS,
+    _COFFEE_DRIVE_KNOTS,
+    _GROCERY_DRIVE_KNOTS,
     WALK_DRIVE_BOTH_THRESHOLD,
     DRIVE_ONLY_CEILING,
 )
@@ -5051,6 +5053,30 @@ def score_third_place_access(
 
             scored_places.append((score, walk_time, place))
 
+        # -- Drive-time scoring for the best place (NES-322) --------
+        # Same pattern as fitness (NES-259) and grocery: single
+        # driving_time() call for the best walk-scored place when walk
+        # exceeds threshold.
+        best_drive_time = None
+        best_drive_score = 0
+        if best_place and best_walk_time > WALK_DRIVE_BOTH_THRESHOLD:
+            try:
+                best_drive_time = maps.driving_time(
+                    (lat, lng),
+                    (best_place["geometry"]["location"]["lat"],
+                     best_place["geometry"]["location"]["lng"]),
+                    place_id=best_place.get("place_id"),
+                )
+                if best_drive_time and best_drive_time != 9999:
+                    best_drive_score = apply_piecewise(
+                        _COFFEE_DRIVE_KNOTS, best_drive_time)
+                else:
+                    best_drive_time = None
+            except Exception:
+                logger.warning("Coffee drive time lookup failed",
+                               exc_info=True)
+                best_drive_time = None
+
         # Sort by score desc, then walk time asc; take top 5
         scored_places.sort(key=lambda x: (-x[0], x[1]))
         neighborhood_places = [
@@ -5067,6 +5093,14 @@ def score_third_place_access(
             for _sc, wt, p in scored_places[:5]
         ]
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
+
+        # Attach drive time to the best place's neighborhood entry
+        if best_drive_time and best_place:
+            _best_pid = best_place.get("place_id")
+            for np in neighborhood_places:
+                if np.get("place_id") == _best_pid:
+                    np["drive_time_min"] = best_drive_time
+                    break
 
         # NES-210: Category gap analysis — count eligible places by sub-type.
         # Uses the full eligible set (not just top 5) for accurate coverage.
@@ -5090,33 +5124,53 @@ def score_third_place_access(
         name = best_place.get("name", "Coffee spot")
         rating = best_place.get("rating", 0)
         reviews = best_place.get("user_ratings_total", 0)
-        details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
 
         # Data confidence (NES-189)
         conf, conf_note = _classify_places_confidence(
             len(eligible_places), reviews,
         )
 
-        # Quality ceiling: cap score based on venue diversity and review depth.
-        # Applied before confidence cap so both constraints compose.
+        # --- Quality ceiling (applied to walk score only) ---
+        # CTO guidance: quality ceiling measures venue diversity around
+        # the address — irrelevant when driving. Apply to walk score
+        # before the walk/drive comparison, not after.
+        best_walk_score = best_score  # capture before ceiling
         ceiling_config = SCORING_MODEL.coffee.quality_ceiling
         if ceiling_config is not None:
             quality_ceiling = _compute_quality_ceiling(
                 eligible_places, ceiling_config,
                 social_bucket_count=len(_all_buckets),
             )
-            best_score = min(best_score, quality_ceiling)
+            best_walk_score = min(best_walk_score, quality_ceiling)
+
+        # Use the better of walk (post-ceiling) and drive scores
+        final_score = best_walk_score
+        if best_drive_score > best_walk_score:
+            final_score = min(best_drive_score, DRIVE_ONLY_CEILING)
 
         # Cap score when data confidence is low (NES-sparse-data)
-        capped_score = _apply_confidence_cap(best_score, conf)
+        capped_score = _apply_confidence_cap(final_score, conf)
 
         # Round to int for Tier2Score.points (piecewise returns float)
         points = int(max(SCORING_MODEL.coffee.floor, capped_score) + 0.5)
 
+        if best_drive_score > best_walk_score and best_drive_time:
+            details = (
+                f"{name} ({rating}★, {reviews} reviews)"
+                f" — {best_drive_time} min drive"
+            )
+        else:
+            details = (
+                f"{name} ({rating}★, {reviews} reviews)"
+                f" — {best_walk_time} min walk"
+            )
+
         _details_data = {
-            "access_mode": "walk",
+            "access_mode": (
+                "drive" if best_drive_score > best_walk_score else "walk"
+            ) if best_place else None,
             "walk_time_min": best_walk_time if best_walk_time != 9999 else None,
-            "drive_time_min": None,
+            "drive_time_min": best_drive_time,
             "venue_name": best_place.get("name", "Coffee spot") if best_place else None,
         }
         return (Tier2Score(
@@ -5535,6 +5589,32 @@ def score_provisioning_access(
 
             scored_stores.append((score, walk_time, store))
 
+        # Capture walk score before drive comparison
+        best_walk_score = best_score
+
+        # -- Drive-time scoring for the best store (NES-322) --------
+        # Same pattern as fitness (NES-259): single driving_time() call
+        # for the best walk-scored store when walk exceeds threshold.
+        best_drive_time = None
+        best_drive_score = 0
+        if best_store and best_walk_time > WALK_DRIVE_BOTH_THRESHOLD:
+            try:
+                best_drive_time = maps.driving_time(
+                    (lat, lng),
+                    (best_store["geometry"]["location"]["lat"],
+                     best_store["geometry"]["location"]["lng"]),
+                    place_id=best_store.get("place_id"),
+                )
+                if best_drive_time and best_drive_time != 9999:
+                    best_drive_score = apply_piecewise(
+                        _GROCERY_DRIVE_KNOTS, best_drive_time)
+                else:
+                    best_drive_time = None
+            except Exception:
+                logger.warning("Grocery drive time lookup failed",
+                               exc_info=True)
+                best_drive_time = None
+
         # Sort by score desc, then walk time asc; take top 5
         scored_stores.sort(key=lambda x: (-x[0], x[1]))
         neighborhood_places = [
@@ -5551,16 +5631,37 @@ def score_provisioning_access(
         ]
         neighborhood_places.sort(key=lambda p: p.get("walk_time_min") or 9999)
 
+        # Attach drive time to the best store's neighborhood entry
+        if best_drive_time and best_store:
+            _best_pid = best_store.get("place_id")
+            for np in neighborhood_places:
+                if np.get("place_id") == _best_pid:
+                    np["drive_time_min"] = best_drive_time
+                    break
+
         # Format details
         name = best_store.get("name", "Provisioning store")
         rating = best_store.get("rating", 0)
         reviews = best_store.get("user_ratings_total", 0)
-        details = f"{name} ({rating}★, {reviews} reviews) — {best_walk_time} min walk"
+        if best_drive_score > best_walk_score and best_drive_time:
+            details = (
+                f"{name} ({rating}★, {reviews} reviews)"
+                f" — {best_drive_time} min drive"
+            )
+        else:
+            details = (
+                f"{name} ({rating}★, {reviews} reviews)"
+                f" — {best_walk_time} min walk"
+            )
 
         # Data confidence (NES-189)
         conf, conf_note = _classify_places_confidence(
             len(eligible_stores), reviews,
         )
+
+        # Use the better of walk and drive scores
+        if best_drive_score > best_walk_score:
+            best_score = min(best_drive_score, DRIVE_ONLY_CEILING)
 
         # Cap score when data confidence is low (NES-sparse-data)
         capped_score = _apply_confidence_cap(best_score, conf)
@@ -5569,9 +5670,11 @@ def score_provisioning_access(
         points = int(max(SCORING_MODEL.grocery.floor, capped_score) + 0.5)
 
         _details_data = {
-            "access_mode": "walk",
+            "access_mode": (
+                "drive" if best_drive_score > best_walk_score else "walk"
+            ) if best_store else None,
             "walk_time_min": best_walk_time if best_walk_time != 9999 else None,
-            "drive_time_min": None,
+            "drive_time_min": best_drive_time,
             "venue_name": best_store.get("name", "Provisioning store") if best_store else None,
         }
         return (Tier2Score(
