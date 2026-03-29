@@ -360,9 +360,8 @@ def _validate_walk_time_ceiling(case):
     else:
         actual_capped = False
 
-    # For the capped flag, we verify the score matches (above) and
-    # that the expected capped status is consistent
-    if expected_capped != expected.get("capped"):
+    # Verify capped flag matches
+    if expected_capped != actual_capped:
         errors.append(
             f"capped: expected={expected_capped}, actual={actual_capped}"
         )
