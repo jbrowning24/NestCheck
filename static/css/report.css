@@ -425,6 +425,7 @@ h1.narrative-summary {
   letter-spacing: var(--type-l5-tracking);
 }
 .health-count--clear .count-number { color: var(--color-text-primary); }
+.health-count--unverified .count-number { color: var(--color-text-secondary); }
 .health-count--warning .count-number { color: var(--color-orange, #d97706); }
 .health-count--issue .count-number { color: var(--color-fail); }
 
@@ -724,6 +725,11 @@ h1.narrative-summary {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   border: 1px solid var(--color-warning-border);
+}
+.health-stat-badge--unverified {
+  background: var(--color-surface-alt, #f1f5f9);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-light, #e2e8f0);
 }
 .health-stat-badge--issue {
   background: var(--color-fail-bg);

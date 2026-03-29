@@ -6664,11 +6664,19 @@ def proximity_synthesis(presented_checks: List[Dict]) -> Optional[str]:
     # Unverified items
     if unverified:
         if len(unverified) >= 3 and not confirmed:
-            parts.append("Several proximity checks could not be verified with available data. Use the satellite link to check manually.")
+            parts.append("Several proximity checks could not be verified with available data.")
         elif len(unverified) == 1 and not confirmed:
             # Single unverified: use name/display_name for specificity
             label = _display_label(unverified[0])
-            parts.append(f"Proximity to {label} could not be verified \u2014 use the satellite link to check manually.")
+            if label == "Flood zone":
+                parts.append(
+                    "Flood zone status could not be verified for this address. "
+                    "Check your flood risk at the FEMA Flood Map Service Center "
+                    "(msc.fema.gov) or ask your home inspector to confirm "
+                    "flood zone designation."
+                )
+            else:
+                parts.append(f"Proximity to {label} could not be verified.")
         else:
             labels = [_label_with_article(c) for c in unverified]
             items = _join_and(labels)
