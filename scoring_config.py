@@ -278,12 +278,12 @@ _COFFEE_KNOTS = (
 # ≤5 min neighborhood-adjacent, 10 min comfortable errand, 15 min a trip,
 # 20 min inconvenient, 25+ effectively inaccessible for routine use.
 _COFFEE_DRIVE_KNOTS = (
-    PiecewiseKnot(0, 10),
-    PiecewiseKnot(5, 10),
-    PiecewiseKnot(10, 8),
-    PiecewiseKnot(15, 6),
-    PiecewiseKnot(20, 3),
-    PiecewiseKnot(25, 1),
+    PiecewiseKnot(0, 6),
+    PiecewiseKnot(5, 6),
+    PiecewiseKnot(10, 5),
+    PiecewiseKnot(15, 3),
+    PiecewiseKnot(20, 1),
+    PiecewiseKnot(25, 0),
     PiecewiseKnot(30, 0),
 )
 
@@ -300,12 +300,12 @@ _GROCERY_KNOTS = (
 # Car-friendly mode: drive time in minutes → score.
 # Same breakpoints as coffee — driving normalizes the experience.
 _GROCERY_DRIVE_KNOTS = (
-    PiecewiseKnot(0, 10),
-    PiecewiseKnot(5, 10),
-    PiecewiseKnot(10, 8),
-    PiecewiseKnot(15, 6),
-    PiecewiseKnot(20, 3),
-    PiecewiseKnot(25, 1),
+    PiecewiseKnot(0, 6),
+    PiecewiseKnot(5, 6),
+    PiecewiseKnot(10, 5),
+    PiecewiseKnot(15, 3),
+    PiecewiseKnot(20, 1),
+    PiecewiseKnot(25, 0),
     PiecewiseKnot(30, 0),
 )
 
@@ -378,7 +378,7 @@ _ROAD_NOISE_KNOTS = (
 
 
 SCORING_MODEL = ScoringModel(
-    version="1.7.0",
+    version="1.8.0",
 
     coffee=DimensionConfig(
         knots=_COFFEE_KNOTS,
