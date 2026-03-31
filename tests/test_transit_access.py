@@ -63,6 +63,25 @@ class TestClassifyMode(unittest.TestCase):
         place = _make_place("Union Station", "h", ["transit_station"], 34.05, -118.23)
         self.assertEqual(_classify_mode(place), "Train")
 
+    def test_commuter_rail_keyword_on_transit_station_type(self):
+        """Metro-North station typed as transit_station (not train_station) → Commuter Rail."""
+        place = _make_place(
+            "Dobbs Ferry Metro-North Station", "df1",
+            ["transit_station", "point_of_interest"],
+            41.0042, -73.8799,
+        )
+        self.assertEqual(_classify_mode(place), "Commuter Rail")
+
+    def test_metro_north_name_not_misclassified_as_subway(self):
+        """'Metro-North' in name should NOT trigger the 'metro' → Subway branch."""
+        place = _make_place(
+            "Hastings-on-Hudson Metro-North", "hoh1",
+            ["transit_station"],
+            41.0015, -73.8835,
+        )
+        self.assertNotEqual(_classify_mode(place), "Subway")
+        self.assertEqual(_classify_mode(place), "Commuter Rail")
+
 
 class TestScoreFromThresholds(unittest.TestCase):
     """Test the generic threshold scoring helper."""

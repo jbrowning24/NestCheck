@@ -4210,7 +4210,7 @@ def _classify_mode(place: Dict) -> str:
 
     # Check commuter rail keywords first (before generic subway/metro match)
     commuter_kw = ("commuter", "metra", "caltrain", "lirr", "metro-north", "nj transit")
-    if "train_station" in types and any(kw in name for kw in commuter_kw):
+    if ("train_station" in types or "transit_station" in types) and any(kw in name for kw in commuter_kw):
         return "Commuter Rail"
     if "subway_station" in types or "subway" in name:
         return "Subway"
