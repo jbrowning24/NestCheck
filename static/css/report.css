@@ -106,6 +106,7 @@
   color: var(--type-l1-color);
   margin: 0 0 var(--space-xl);
   overflow-wrap: break-word;
+  text-wrap: pretty;
 }
 .narrative-summary strong {
   color: var(--color-text-primary);
@@ -113,6 +114,7 @@
 }
 h1.narrative-summary {
   font-weight: var(--type-l1-weight);
+  text-wrap: balance;
 }
 
 /* --- L2: Section Title (Uppercase) --- */
@@ -127,6 +129,7 @@ h1.narrative-summary {
   margin: 0 0 var(--space-base);
   padding: 0;
   border: none;
+  text-wrap: balance;
 }
 
 /* --- Data Section --- */
@@ -199,6 +202,7 @@ h1.narrative-summary {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  text-wrap: balance;
 }
 .dim-card__score {
   font-size: var(--font-size-body);
@@ -207,6 +211,7 @@ h1.narrative-summary {
   border-radius: var(--radius-full);
   line-height: var(--line-height-tight);
   white-space: nowrap;
+  font-variant-numeric: var(--font-numeric);
 }
 .dim-card__score--strong   { background: transparent; color: var(--color-pass-text);    border: 1px solid var(--color-border-light); }
 .dim-card__score--moderate { background: transparent; color: var(--color-warning-text); border: 1px solid var(--color-border-light); }
@@ -223,6 +228,7 @@ h1.narrative-summary {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-wide);
+  text-wrap: balance;
 }
 .dim-card__detail {
   font-size: var(--font-size-small);
@@ -237,6 +243,7 @@ h1.narrative-summary {
   margin-left: 4px;
   max-width: 120ch;
   line-height: 1.4;
+  text-wrap: pretty;
 }
 .dim-card--not-scored .dim-card__name,
 .dim-card--suppressed .dim-card__name {
@@ -258,6 +265,7 @@ h1.narrative-summary {
   background: var(--color-bg-subtle);
   border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-sm);
+  text-wrap: pretty;
 }
 
 /* --- Verdict Score Badge (§4.1) --- */
@@ -276,6 +284,7 @@ h1.narrative-summary {
   font-weight: var(--weight-semibold);
   color: var(--color-band-limited);
   line-height: 1;
+  font-variant-numeric: var(--font-numeric);
 }
 .verdict-badge--exceptional .verdict-badge__score,
 .verdict-badge--strong .verdict-badge__score {
@@ -356,6 +365,7 @@ h1.narrative-summary {
   line-height: 1.1;
   letter-spacing: var(--tracking-tight);
   margin-bottom: 0;
+  text-wrap: balance;
 }
 .verdict-score-row {
   display: flex;
@@ -416,6 +426,7 @@ h1.narrative-summary {
   font-size: var(--type-verdict);
   font-weight: var(--font-weight-semibold);
   line-height: 1;
+  font-variant-numeric: var(--font-numeric);
 }
 /* --- L5: Count Label --- */
 .count-label {
@@ -483,6 +494,7 @@ h1.narrative-summary {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  text-wrap: pretty;
 }
 .proximity-detail {
   color: var(--color-text-muted);
@@ -647,6 +659,7 @@ h1.narrative-summary {
   background: var(--color-bg-subtle, #F1F3F6);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
+  font-variant-numeric: var(--font-numeric);
 }
 /* Semantic pill variants — reuse existing status color tokens */
 .summary-pill--pass    { background: var(--color-pass-bg);    color: var(--color-pass-text);    border-color: var(--color-pass-border); }
@@ -824,6 +837,7 @@ h1.narrative-summary {
   font-size: var(--font-size-small);
   color: var(--color-text-muted);
   margin-top: var(--space-xs);
+  text-wrap: pretty;
 }
 .data-row__right {
   display: flex;
@@ -837,7 +851,7 @@ h1.narrative-summary {
   color: var(--color-text-primary);
   font-size: var(--font-size-body);
   white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--font-numeric);
 }
 .data-row--place { padding: var(--space-md) 0; align-items: flex-start; }
 .data-row--hub { align-items: center; }
@@ -1036,6 +1050,7 @@ h1.narrative-summary {
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   line-height: 1;
+  font-variant-numeric: var(--font-numeric);
 }
 .score-band {
   font-family: var(--font-heading);
@@ -1096,6 +1111,7 @@ h1.narrative-summary {
   letter-spacing: var(--tracking-section);
   margin-bottom: var(--space-sm);
   font-weight: var(--font-weight-semibold);
+  text-wrap: balance;
 }
 .category-chips {
   display: flex;
@@ -1220,10 +1236,12 @@ h1.narrative-summary {
 .venue-card .place-rating {
   color: var(--color-amber);
   font-weight: var(--font-weight-semibold);
+  font-variant-numeric: var(--font-numeric);
 }
 .venue-card .place-reviews {
   color: var(--color-text-disabled);
   margin-left: var(--space-xs);
+  font-variant-numeric: var(--font-numeric);
 }
 .venue-card .place-time {
   font-family: var(--font-mono);
@@ -1232,6 +1250,7 @@ h1.narrative-summary {
   color: var(--color-accent);
   margin-top: auto;
   padding-top: var(--space-xs);
+  font-variant-numeric: var(--font-numeric);
 }
 /* Time pill wrapping for long text in scroll cards */
 .venue-scroll .venue-card .place-time .summary-pill {
@@ -1514,12 +1533,13 @@ h1.narrative-summary {
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   font-size: var(--font-size-h3);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--font-numeric);
 }
 .subscore-reason {
   font-size: var(--font-size-small);
   color: var(--color-text-faint);
   margin-top: var(--space-xs);
+  text-wrap: pretty;
 }
 
 /* --- Community Profile: Stat Card Grid --- */
@@ -1543,7 +1563,7 @@ h1.narrative-summary {
   color: var(--color-accent);
   line-height: 1.2;
   margin-bottom: var(--space-xs);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--font-numeric);
 }
 .stat-card__label {
   font-size: var(--font-size-small);
@@ -1623,6 +1643,7 @@ h1.narrative-summary {
   color: var(--color-text-faint);
   white-space: nowrap;
   margin-left: var(--space-sm);
+  font-variant-numeric: var(--font-numeric);
 }
 .nearby-school-card__details {
   display: flex;
@@ -1630,6 +1651,7 @@ h1.narrative-summary {
   gap: 4px var(--space-sm);
   font-size: var(--font-size-small);
   color: var(--color-text-secondary);
+  font-variant-numeric: var(--font-numeric);
 }
 .nearby-school-card__level { font-weight: var(--font-weight-medium); }
 .nearby-school-card__charter {
@@ -1673,7 +1695,7 @@ h1.narrative-summary {
 .ejscreen-indicator__value {
   min-width: 3em;
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--font-numeric);
 }
 .ejscreen-indicator__badge { margin-left: var(--space-xs); }
 .ejscreen-indicator__annotation {
@@ -1778,6 +1800,7 @@ h1.narrative-summary {
   font-family: var(--font-mono);
   color: var(--color-text-secondary);
   min-width: 48px;
+  font-variant-numeric: var(--font-numeric);
 }
 
 .scoring-key__desc {
@@ -2339,6 +2362,7 @@ h1.narrative-summary {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   line-height: var(--leading-relaxed);
+  text-wrap: pretty;
 }
 
 /* ── Feedback prompt (NES-362) ────────────────────────────────────── */

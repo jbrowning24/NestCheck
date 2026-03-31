@@ -231,6 +231,9 @@
   --line-height-relaxed: 1.65;
   --line-height-loose: 1.7;
 
+  /* Numeric rendering — tabular figures prevent layout shift */
+  --font-numeric: tabular-nums;
+
   /* Letter spacing */
   --letter-spacing-tight: -0.02em;
   --letter-spacing-wide: 0.03em;
@@ -356,6 +359,10 @@
 }
 
 /* ---- Accessibility Utilities ---------------------------------- */
+
+/* ---- Numeric Utility ------------------------------------------ */
+
+.tabular-nums { font-variant-numeric: tabular-nums; }
 
 .sr-only {
   position: absolute;
