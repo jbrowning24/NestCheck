@@ -20,6 +20,7 @@
   line-height: var(--type-l2-leading);
   margin: 0 0 var(--space-6) 0;
   text-align: center;
+  text-wrap: balance;
 }
 
 /* ── Expectation-setter below address input ──────────────── */
