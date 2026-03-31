@@ -3436,6 +3436,24 @@ def get_neighborhood_snapshot(
                 places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
                 # Keyword-supplemented search for chain coverage (NES-279)
                 places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
+                # Haversine post-filter — enforce 3000m (NES-393)
+                _coffee_max_ft = int(3000 * 3.28084)
+                places = [
+                    p for p in places
+                    if _distance_feet(
+                        lat, lng,
+                        p["geometry"]["location"]["lat"],
+                        p["geometry"]["location"]["lng"],
+                    ) <= _coffee_max_ft
+                ]
+                # Supplemental text search (NES-393)
+                try:
+                    places.extend(
+                        maps.text_search("coffee", lat, lng, radius_meters=8000))
+                except Exception:
+                    logger.warning(
+                        "Text Search supplemental coffee query failed",
+                        exc_info=True)
             # Supplemental text search for Provisioning (NES-258) — catches
             # major chains missed by the 20-result Nearby Search cap.
             if category == "Provisioning":
@@ -4987,6 +5005,31 @@ def score_third_place_access(
 
         # Keyword-supplemented search for chain coverage (NES-279)
         all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
+
+        # -- Haversine post-filter (NES-393) --------------------------------
+        # Google radius is a bias, not a hard filter. Enforce 3000m to
+        # prevent prominently-ranked out-of-radius places from dominating.
+        _coffee_max_radius_ft = int(3000 * 3.28084)  # 3000m ≈ 9843 ft
+        all_places = [
+            p for p in all_places
+            if _distance_feet(
+                lat, lng,
+                p["geometry"]["location"]["lat"],
+                p["geometry"]["location"]["lng"],
+            ) <= _coffee_max_radius_ft
+        ]
+
+        # -- Supplemental text search (NES-393) ----------------------------
+        # Same pattern as NES-258 (grocery) and NES-259 (fitness). Text
+        # Search uses relevance ranking, surfacing local village cafes that
+        # the 20-result Nearby Search prominence cap drops.
+        try:
+            all_places.extend(
+                maps.text_search("coffee", lat, lng, radius_meters=8000))
+        except Exception:
+            logger.warning(
+                "Text Search supplemental coffee query failed",
+                exc_info=True)
 
         all_places = _dedupe_by_place_id(all_places)
 
