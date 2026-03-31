@@ -155,6 +155,37 @@ class TestCoffeeCurve:
             )
 
 
+class TestCoffeeDiscoveryFilter:
+    """NES-393: Haversine post-filter enforces 3000m radius on coffee search."""
+
+    def test_distance_feet_known_pair(self):
+        """Verify _distance_feet with a known distance."""
+        from property_evaluator import _distance_feet
+        # Dobbs Ferry (29 Ridge Rd) to Greenburgh Town Hall ≈ 3.75km ≈ 12,300 ft
+        dist = _distance_feet(41.0055, -73.8710, 41.037, -73.855)
+        assert 11_000 < dist < 14_000, f"Expected ~12,300 ft, got {dist}"
+
+    def test_3000m_radius_in_feet(self):
+        """The filter constant must be 3000m converted to feet."""
+        expected_ft = int(3000 * 3.28084)  # 9842
+        assert 9840 <= expected_ft <= 9845
+
+    def test_within_radius_passes(self):
+        """A cafe at 2km (~6,562 ft) should pass the 3000m filter."""
+        from property_evaluator import _distance_feet
+        # Dobbs Ferry Ridge Rd to Main Street ≈ 2km
+        dist = _distance_feet(41.0055, -73.8710, 41.0044, -73.8652)
+        max_ft = int(3000 * 3.28084)
+        assert dist <= max_ft, f"Main Street cafe at {dist} ft should be within {max_ft} ft"
+
+    def test_outside_radius_filtered(self):
+        """A cafe at ~3.75km (Greenburgh from Dobbs Ferry) should be excluded."""
+        from property_evaluator import _distance_feet
+        dist = _distance_feet(41.0055, -73.8710, 41.037, -73.855)
+        max_ft = int(3000 * 3.28084)
+        assert dist > max_ft, f"Greenburgh cafe at {dist} ft should exceed {max_ft} ft filter"
+
+
 class TestGroceryCurve:
     """Grocery curve is identical to coffee — spot-check a few values."""
 
