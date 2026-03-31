@@ -2326,6 +2326,7 @@ def _prepare_snapshot_for_display(result):
                     pc["area_context_annotation"] = xref["template"].format(
                         pct=int(pct)
                     )
+                    pc["icon_override"] = "info"
 
     # NES-210: Migrate legacy dimension names (on the shallow copy).
     _migrate_dimension_names(result)
