@@ -14,7 +14,7 @@
 {# Section freshness data (NES-345) #}
 {% set _sf = result.section_freshness | default({}) %}
 
-{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, access_mode_annotation, scoring_key, freshness_caption %}
+{% from "_macros.html" import fmt_time, data_row, score_ring, verdict_badge, school_card, health_check_icon, confidence_badge, coverage_badge, annotation, callout, access_mode_annotation, scoring_key, freshness_caption %}
 
 {# ── Pre-compute sidebar data ── #}
 {% set show_score = result.show_score if result.show_score is defined else result.passed_tier1 %}
@@ -255,8 +255,8 @@
               {% set _modifier = "health-check--quiet" if pc.result_type == "CLEAR" else ("health-check--elevated" if pc.result_type in ("CONFIRMED_ISSUE", "WARNING_DETECTED") else "") %}
               <div class="proximity-item {{ band_css }} {{ _modifier }}" id="check-{{ pc.name | lower | replace(' ', '-') | replace('/', '-') }}">
                 <div class="proximity-name">
-                  {% set _icon = {"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified") %}
-                  {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR')) }}
+                  {% set _icon = pc.icon_override | default({"CLEAR":"clear","CONFIRMED_ISSUE":"issue","WARNING_DETECTED":"warning"}.get(pc.result_type, "unverified")) %}
+                  {{ health_check_icon(_icon, quiet=(pc.result_type == 'CLEAR' and _icon == 'clear')) }}
                   {{ pc.headline }}
                 </div>
                 {% if pc.explanation %}
@@ -274,7 +274,7 @@
                   {% endif %}
                 {% endif %}
                 {% if pc.area_context_annotation is defined and pc.area_context_annotation %}
-                  {{ annotation(pc.area_context_annotation) }}
+                  {{ callout(variant='caution', icon='<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><line x1="10" y1="9" x2="10" y2="14"/><circle cx="10" cy="6.5" r="0.8" fill="currentColor" stroke="none"/></svg>', text=pc.area_context_annotation) }}
                 {% endif %}
                 {% if pc.health_context is defined and pc.health_context %}
                   <div class="collapsible-toggle health-context-toggle" onclick="toggleSection(this)" role="button" tabindex="0" aria-expanded="false">

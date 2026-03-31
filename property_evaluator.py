@@ -3436,6 +3436,24 @@ def get_neighborhood_snapshot(
                 places.extend(maps.places_nearby(lat, lng, "coffee_shop", radius_meters=3000))
                 # Keyword-supplemented search for chain coverage (NES-279)
                 places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
+                # Haversine post-filter — enforce 3000m (NES-393)
+                _coffee_max_ft = int(3000 * 3.28084)
+                places = [
+                    p for p in places
+                    if _distance_feet(
+                        lat, lng,
+                        p["geometry"]["location"]["lat"],
+                        p["geometry"]["location"]["lng"],
+                    ) <= _coffee_max_ft
+                ]
+                # Supplemental text search (NES-393)
+                try:
+                    places.extend(
+                        maps.text_search("coffee", lat, lng, radius_meters=8000))
+                except Exception:
+                    logger.warning(
+                        "Text Search supplemental coffee query failed",
+                        exc_info=True)
             # Supplemental text search for Provisioning (NES-258) — catches
             # major chains missed by the 20-result Nearby Search cap.
             if category == "Provisioning":
@@ -3870,6 +3888,7 @@ TRANSIT_SEARCH_RADII = {
     "train_station": 16000,        # ~10 mi — commuter rail (drive-to)
     "subway_station": 5000,        # ~3 mi — urban subway (walk-to)
     "light_rail_station": 5000,    # ~3 mi — light rail (walk-to)
+    "transit_station": 16000,      # catch rail stations Google doesn't type as train_station
 }
 
 
@@ -3883,9 +3902,13 @@ def find_primary_transit(
         ("train_station", "Train", 1),
         ("subway_station", "Subway", 1),
         ("light_rail_station", "Light Rail", 1),
+        ("transit_station", None, 2),      # catch rail stations mis-typed by Google
     ]
 
+    _RAIL_MODES = {"Train", "Subway", "Light Rail", "Commuter Rail"}
+
     raw_candidates: List[Tuple[int, Dict, str]] = []
+    _seen_place_ids: set = set()
     _last_exc: Optional[Exception] = None
     _searches_attempted = 0
     _searches_failed = 0
@@ -3899,7 +3922,20 @@ def find_primary_transit(
             _last_exc = exc
             continue
         for place in places:
-            raw_candidates.append((priority, place, mode))
+            pid = place.get("place_id")
+            if pid and pid in _seen_place_ids:
+                continue  # dedup across search types
+            if pid:
+                _seen_place_ids.add(pid)
+
+            if mode is None:
+                # Classify individually; keep only rail modes
+                classified = _classify_mode(place)
+                if classified not in _RAIL_MODES:
+                    continue
+                raw_candidates.append((priority, place, classified))
+            else:
+                raw_candidates.append((priority, place, mode))
 
     if not raw_candidates:
         # If ALL searches failed with exceptions, propagate so the scorer's
@@ -4210,7 +4246,7 @@ def _classify_mode(place: Dict) -> str:
 
     # Check commuter rail keywords first (before generic subway/metro match)
     commuter_kw = ("commuter", "metra", "caltrain", "lirr", "metro-north", "nj transit")
-    if "train_station" in types and any(kw in name for kw in commuter_kw):
+    if ("train_station" in types or "transit_station" in types) and any(kw in name for kw in commuter_kw):
         return "Commuter Rail"
     if "subway_station" in types or "subway" in name:
         return "Subway"
@@ -4969,6 +5005,31 @@ def score_third_place_access(
 
         # Keyword-supplemented search for chain coverage (NES-279)
         all_places.extend(maps.places_nearby(lat, lng, "cafe", radius_meters=3000, keyword="coffee"))
+
+        # -- Haversine post-filter (NES-393) --------------------------------
+        # Google radius is a bias, not a hard filter. Enforce 3000m to
+        # prevent prominently-ranked out-of-radius places from dominating.
+        _coffee_max_radius_ft = int(3000 * 3.28084)  # 3000m ≈ 9843 ft
+        all_places = [
+            p for p in all_places
+            if _distance_feet(
+                lat, lng,
+                p["geometry"]["location"]["lat"],
+                p["geometry"]["location"]["lng"],
+            ) <= _coffee_max_radius_ft
+        ]
+
+        # -- Supplemental text search (NES-393) ----------------------------
+        # Same pattern as NES-258 (grocery) and NES-259 (fitness). Text
+        # Search uses relevance ranking, surfacing local village cafes that
+        # the 20-result Nearby Search prominence cap drops.
+        try:
+            all_places.extend(
+                maps.text_search("coffee", lat, lng, radius_meters=8000))
+        except Exception:
+            logger.warning(
+                "Text Search supplemental coffee query failed",
+                exc_info=True)
 
         all_places = _dedupe_by_place_id(all_places)
 

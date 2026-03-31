@@ -562,6 +562,7 @@ class TestEJScreenCrossRef:
         )
         assert "area_context_annotation" in pc
         assert "94th percentile" in pc["area_context_annotation"]
+        assert pc.get("icon_override") == "info"
 
     def test_superfund_fail_high_pnpl_no_annotation(self):
         """Failing Superfund check → no annotation even with high PNPL."""
@@ -575,6 +576,7 @@ class TestEJScreenCrossRef:
             if p["name"] == "Superfund (NPL)"
         )
         assert "area_context_annotation" not in pc
+        assert "icon_override" not in pc
 
     def test_tri_and_ust_both_get_ptsdf_annotation(self):
         """Both TRI and UST pass + high PTSDF → both get annotations."""
@@ -591,6 +593,8 @@ class TestEJScreenCrossRef:
         assert "area_context_annotation" in tri
         assert "area_context_annotation" in ust
         assert "85th percentile" in tri["area_context_annotation"]
+        assert tri.get("icon_override") == "info"
+        assert ust.get("icon_override") == "info"
 
     def test_below_threshold_no_annotation(self):
         """PNPL below 80 → no annotation even on passing check."""
@@ -604,6 +608,7 @@ class TestEJScreenCrossRef:
             if p["name"] == "Superfund (NPL)"
         )
         assert "area_context_annotation" not in pc
+        assert "icon_override" not in pc
 
     def test_no_ejscreen_data_no_annotation(self):
         """Missing ejscreen_profile → no annotation, no error."""
@@ -617,12 +622,13 @@ class TestEJScreenCrossRef:
             if p["name"] == "Superfund (NPL)"
         )
         assert "area_context_annotation" not in pc
+        assert "icon_override" not in pc
 
     def test_threshold_boundary_fires(self):
-        """Exactly 80th percentile → annotation fires (>= threshold)."""
+        """Exactly 60th percentile → annotation fires (>= threshold)."""
         result = self._result_with_checks(
             [("Superfund (NPL)", "PASS", "Clear")],
-            ejscreen_profile={"PNPL": 80.0},
+            ejscreen_profile={"PNPL": 60.0},
         )
         _prepare_snapshot_for_display(result)
         pc = next(
@@ -630,7 +636,8 @@ class TestEJScreenCrossRef:
             if p["name"] == "Superfund (NPL)"
         )
         assert "area_context_annotation" in pc
-        assert "80th percentile" in pc["area_context_annotation"]
+        assert "60th percentile" in pc["area_context_annotation"]
+        assert pc.get("icon_override") == "info"
 
     def test_old_snapshot_without_presented_checks(self):
         """Old snapshot missing presented_checks → backfill + annotation."""
@@ -651,3 +658,32 @@ class TestEJScreenCrossRef:
         )
         assert "area_context_annotation" in pc
         assert "90th percentile" in pc["area_context_annotation"]
+        assert pc.get("icon_override") == "info"
+
+    def test_moderate_percentile_still_fires(self):
+        """PNPL at 72 (above 60 threshold) -> annotation + icon_override."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "PASS", "Clear")],
+            ejscreen_profile={"PNPL": 72.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "area_context_annotation" in pc
+        assert "72th percentile" in pc["area_context_annotation"]
+        assert pc.get("icon_override") == "info"
+
+    def test_fail_check_no_icon_override(self):
+        """Failing check -> no icon_override even with high PNPL."""
+        result = self._result_with_checks(
+            [("Superfund (NPL)", "FAIL", "Within Superfund site")],
+            ejscreen_profile={"PNPL": 94.0},
+        )
+        _prepare_snapshot_for_display(result)
+        pc = next(
+            p for p in result["presented_checks"]
+            if p["name"] == "Superfund (NPL)"
+        )
+        assert "icon_override" not in pc

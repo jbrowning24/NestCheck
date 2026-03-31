@@ -958,8 +958,9 @@ _EJSCREEN_CROSS_REFS = [
         "ejscreen_field": "PNPL",
         "threshold": 60,
         "template": (
-            "No direct Superfund impact here. The wider area ranks "
-            "higher than {pct}% nationally for proximity."
+            "This address is not inside a Superfund cleanup boundary. "
+            "The wider census area ranks in the {pct}th percentile "
+            "nationally for proximity to listed sites."
         ),
     },
     {
@@ -967,8 +968,9 @@ _EJSCREEN_CROSS_REFS = [
         "ejscreen_field": "PTSDF",
         "threshold": 60,
         "template": (
-            "No nearby facilities found. The area ranks higher "
-            "than {pct}% nationally for hazardous waste proximity."
+            "No hazardous facilities found at this address. "
+            "The wider census area ranks in the {pct}th percentile "
+            "nationally for hazardous waste proximity."
         ),
     },
     {
@@ -976,8 +978,9 @@ _EJSCREEN_CROSS_REFS = [
         "ejscreen_field": "PTRAF",
         "threshold": 60,
         "template": (
-            "No high-traffic roads nearby. The area ranks higher "
-            "than {pct}% nationally for traffic proximity."
+            "No high-traffic roads found near this address. "
+            "The wider census area ranks in the {pct}th percentile "
+            "nationally for traffic proximity."
         ),
     },
 ]
@@ -2326,6 +2329,7 @@ def _prepare_snapshot_for_display(result):
                     pc["area_context_annotation"] = xref["template"].format(
                         pct=int(pct)
                     )
+                    pc["icon_override"] = "info"
 
     # NES-210: Migrate legacy dimension names (on the shallow copy).
     _migrate_dimension_names(result)

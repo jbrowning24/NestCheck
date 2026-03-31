@@ -300,6 +300,8 @@
       <line x1="6" y1="6" x2="14" y2="14" /><line x1="14" y1="6" x2="6" y2="14" />
     {%- elif icon_type == "warning" -%}
       <path d="M10 3 L18 16 H2 Z" stroke-linejoin="round" /><line x1="10" y1="9" x2="10" y2="12" /><circle cx="10" cy="14.5" r="1" fill="white" stroke="none" />
+    {%- elif icon_type == "info" -%}
+      <circle cx="10" cy="10" r="7" /><line x1="10" y1="9" x2="10" y2="14" /><circle cx="10" cy="6.5" r="0.8" fill="white" stroke="none" />
     {%- else -%}
       <text x="10" y="15" text-anchor="middle" fill="white" stroke="none" font-size="14" font-weight="700">?</text>
     {%- endif %}
