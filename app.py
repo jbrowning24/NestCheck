@@ -1996,6 +1996,7 @@ def present_checks(tier1_checks):
             "health_context": health_context,
             "citations": citations,
             "hazard_tier": hazard_tier,
+            "required": check.get("required", False),
         })
 
     # --- Collapse groups where ALL checks are VERIFICATION_NEEDED ---
@@ -2042,11 +2043,16 @@ def suppress_unknown_safety_checks(presented_checks):
     Returns (filtered_list, suppressed_count).  Listing-specific UNKNOWN
     checks (LIFESTYLE category) are kept — they represent missing listing
     data, not missing database coverage.
+
+    Required checks (``required=True``) are never suppressed — they must
+    always render in one of the defined UI states (NES-395).
     """
     filtered = []
     suppressed = 0
     for pc in presented_checks:
-        if pc.get("result_type") == "VERIFICATION_NEEDED" and pc.get("category") == "SAFETY":
+        if (pc.get("result_type") == "VERIFICATION_NEEDED"
+                and pc.get("category") == "SAFETY"
+                and not pc.get("required")):
             suppressed += 1
         else:
             filtered.append(pc)
