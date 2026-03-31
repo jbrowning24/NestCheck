@@ -3870,6 +3870,7 @@ TRANSIT_SEARCH_RADII = {
     "train_station": 16000,        # ~10 mi — commuter rail (drive-to)
     "subway_station": 5000,        # ~3 mi — urban subway (walk-to)
     "light_rail_station": 5000,    # ~3 mi — light rail (walk-to)
+    "transit_station": 16000,      # catch rail stations Google doesn't type as train_station
 }
 
 
@@ -3883,9 +3884,13 @@ def find_primary_transit(
         ("train_station", "Train", 1),
         ("subway_station", "Subway", 1),
         ("light_rail_station", "Light Rail", 1),
+        ("transit_station", None, 2),      # catch rail stations mis-typed by Google
     ]
 
+    _RAIL_MODES = {"Train", "Subway", "Light Rail", "Commuter Rail"}
+
     raw_candidates: List[Tuple[int, Dict, str]] = []
+    _seen_place_ids: set = set()
     _last_exc: Optional[Exception] = None
     _searches_attempted = 0
     _searches_failed = 0
@@ -3899,7 +3904,20 @@ def find_primary_transit(
             _last_exc = exc
             continue
         for place in places:
-            raw_candidates.append((priority, place, mode))
+            pid = place.get("place_id")
+            if pid and pid in _seen_place_ids:
+                continue  # dedup across search types
+            if pid:
+                _seen_place_ids.add(pid)
+
+            if mode is None:
+                # Classify individually; keep only rail modes
+                classified = _classify_mode(place)
+                if classified not in _RAIL_MODES:
+                    continue
+                raw_candidates.append((priority, place, classified))
+            else:
+                raw_candidates.append((priority, place, mode))
 
     if not raw_candidates:
         # If ALL searches failed with exceptions, propagate so the scorer's
