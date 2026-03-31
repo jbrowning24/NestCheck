@@ -3914,6 +3914,27 @@ def view_snapshot(snapshot_id):
         result.pop("urban_access", None)
         result.pop("census_demographics", None)
         result.pop("school_district", None)
+        result.pop("demographics", None)
+        result.pop("ejscreen_profile", None)
+        result.pop("road_noise", None)
+        result.pop("insights", None)
+        # Strip presented_checks to headline + status only
+        _GATED_CHECK_FIELDS = {
+            "headline", "result_type", "name", "hazard_tier",
+            "category", "proximity_band", "result", "required",
+            "is_grouped", "grouped_checks", "icon_override",
+        }
+        result["presented_checks"] = [
+            {k: v for k, v in pc.items() if k in _GATED_CHECK_FIELDS}
+            for pc in result.get("presented_checks", [])
+        ]
+        # Strip transit_access to summary fields only
+        _ta = result.get("transit_access")
+        if _ta:
+            result["transit_access"] = {
+                "primary_stop": _ta.get("primary_stop"),
+                "walk_minutes": _ta.get("walk_minutes"),
+            }
 
     # NES-257: demographics is not backfilled — old snapshots simply lack the
     # key and the template hides the section when result.demographics is
