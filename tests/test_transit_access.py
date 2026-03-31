@@ -8,12 +8,14 @@ from unittest.mock import MagicMock, patch
 
 from property_evaluator import (
     evaluate_transit_access,
+    find_primary_transit,
     _classify_mode,
     _score_from_thresholds,
     GoogleMapsClient,
     DENSITY_THRESHOLDS,
     WALK_NODE_THRESHOLDS,
     REVIEW_THRESHOLDS,
+    TRANSIT_SEARCH_RADII,
 )
 
 
@@ -185,6 +187,109 @@ class TestEvaluateTransitAccess(unittest.TestCase):
         self.assertIn("Density:", reasons_text)
         self.assertIn("Walk-reachable:", reasons_text)
         self.assertIn("Foot traffic proxy:", reasons_text)
+
+
+class TestFindPrimaryTransit(unittest.TestCase):
+    """Tests for find_primary_transit() rail station discovery."""
+
+    def _mock_client(self, places_by_type, walk_times=None):
+        """Return a GoogleMapsClient mock that returns different results per place type."""
+        client = MagicMock(spec=GoogleMapsClient)
+
+        def _places_nearby(lat, lng, place_type, radius_meters=2000):
+            return places_by_type.get(place_type, [])
+
+        client.places_nearby.side_effect = _places_nearby
+        default_walk = walk_times or [10]
+        client.walking_times_batch.side_effect = (
+            lambda origin, destinations, place_ids=None: default_walk[:len(destinations)]
+        )
+        client.driving_time.return_value = 9999
+        client.walking_time.return_value = default_walk[0] if default_walk else 10
+        client.place_details.return_value = {}
+        return client
+
+    def test_transit_station_typed_metro_north_found(self):
+        """Metro-North station typed as transit_station (not train_station) should be found."""
+        dobbs_ferry_station = _make_place(
+            "Dobbs Ferry Metro-North Station", "df1",
+            ["transit_station", "point_of_interest"],
+            41.0042, -73.8799,
+            user_ratings_total=200,
+        )
+        client = self._mock_client(
+            places_by_type={
+                "train_station": [],
+                "subway_station": [],
+                "light_rail_station": [],
+                "transit_station": [dobbs_ferry_station],
+            },
+            walk_times=[12],
+        )
+        result = find_primary_transit(client, 41.0043, -73.8726)
+        self.assertIsNotNone(result)
+        self.assertIn("Dobbs Ferry", result.name)
+        self.assertEqual(result.mode, "Commuter Rail")
+
+    def test_transit_station_bus_stops_filtered_out(self):
+        """Bus stops typed as transit_station should be excluded from primary transit."""
+        bus_stop = _make_place(
+            "Ashford Ave @ Storm St", "bus1",
+            ["transit_station", "bus_station"],
+            41.0050, -73.8710,
+            user_ratings_total=10,
+        )
+        client = self._mock_client(
+            places_by_type={
+                "train_station": [],
+                "subway_station": [],
+                "light_rail_station": [],
+                "transit_station": [bus_stop],
+            },
+            walk_times=[5],
+        )
+        result = find_primary_transit(client, 41.0043, -73.8726)
+        self.assertIsNone(result)
+
+    def test_train_station_preferred_over_transit_station_duplicate(self):
+        """Same station in both train_station and transit_station: deduped, train_station wins."""
+        station_as_train = _make_place(
+            "Scarsdale Metro-North", "sc1",
+            ["train_station", "transit_station"],
+            40.9901, -73.7735,
+            user_ratings_total=500,
+        )
+        station_as_transit = _make_place(
+            "Scarsdale Metro-North", "sc1",
+            ["transit_station", "point_of_interest"],
+            40.9901, -73.7735,
+            user_ratings_total=500,
+        )
+        client = self._mock_client(
+            places_by_type={
+                "train_station": [station_as_train],
+                "subway_station": [],
+                "light_rail_station": [],
+                "transit_station": [station_as_transit],
+            },
+            walk_times=[8],
+        )
+        result = find_primary_transit(client, 40.9901, -73.7735)
+        self.assertIsNotNone(result)
+        self.assertIn("Scarsdale", result.name)
+        # train_station search (priority 1) wins over transit_station (priority 2);
+        # train_station uses fixed mode "Train" rather than per-result classification.
+        self.assertEqual(result.mode, "Train")
+        # Verify dedup: walking_times_batch called with exactly 1 destination, not 2
+        call_args = client.walking_times_batch.call_args
+        self.assertEqual(len(call_args[0][1]), 1)
+
+    def test_transit_station_search_uses_train_radius(self):
+        """transit_station search should use the same 16km radius as train_station."""
+        self.assertEqual(
+            TRANSIT_SEARCH_RADII["transit_station"],
+            TRANSIT_SEARCH_RADII["train_station"],
+        )
 
 
 if __name__ == "__main__":
