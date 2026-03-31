@@ -15,6 +15,7 @@ body {
   background-color: var(--color-bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   /* Sticky footer: flex column so <main> grows to push footer down */
   display: flex;
   flex-direction: column;

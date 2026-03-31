@@ -57,7 +57,7 @@
   color: var(--color-accent);
   line-height: 1.2;
   margin-bottom: var(--space-xs);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--font-numeric);
 }
 
 .dashboard-stat .stat-lbl {
