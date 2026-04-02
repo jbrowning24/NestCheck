@@ -67,6 +67,19 @@
         </div>
         {% endif %}
 
+        {# ── NES-394: Excluded-dimension annotation ── #}
+        {% set _dcs = result.data_confidence_summary | default({}) %}
+        {% set _excluded = _dcs.excluded_dimensions | default([]) %}
+        {% if not is_preview and show_score and _excluded | length > 0 %}
+        <div class="verdict-dimension-note">
+          Score based on {{ _dcs.scored_dimension_count }} of {{ _dcs.total_dimension_count }} dimensions —
+          {%- if _excluded | length == 1 %} {{ _excluded[0] }} data was unavailable
+          {%- elif _excluded | length == 2 %} {{ _excluded[0] }} and {{ _excluded[1] }} data were unavailable
+          {%- else %} {{ _excluded[:-1] | join(', ') }}, and {{ _excluded[-1] }} data were unavailable
+          {%- endif %}
+        </div>
+        {% endif %}
+
         {# ── PREVIEW: Health status banner ── #}
         {% if is_preview %}
         <div class="preview-health-banner">
@@ -1184,6 +1197,7 @@
         {# ── EPA ENVIRONMENTAL PROFILE (EJScreen) ── #}
         {% if result.ejscreen_profile is defined and result.ejscreen_profile %}
           {% set ej = result.ejscreen_profile %}
+          {% set ejctx = result.ejscreen_context if result.ejscreen_context is defined else {} %}
           {% set ej_indicators = [
             ("PM25",   "Fine Particle Pollution (PM2.5)",  true),
             ("OZONE",  "Ozone",                            false),
@@ -1237,6 +1251,9 @@
                         Lower than {{ "%.0f"|format(100 - pct) }}% of U.S. neighborhoods
                       {%- endif -%}
                     </span>
+                    {% if ejctx[field_key] is defined %}
+                      <span class="ejscreen-indicator__context">{{ ejctx[field_key] }}</span>
+                    {% endif %}
                   </div>
                 {% endif %}
               {% endfor %}
@@ -1335,6 +1352,12 @@
               <div class="card-band-label">{{ band_label }}</div>
             </div>
           </div>
+          {# NES-394: Compact excluded-dimension annotation #}
+          {% if _excluded | length > 0 %}
+          <div class="sidebar-dimension-note">
+            Based on {{ _dcs.scored_dimension_count }} of {{ _dcs.total_dimension_count }} dimensions
+          </div>
+          {% endif %}
         </div>
         {% endif %}
 

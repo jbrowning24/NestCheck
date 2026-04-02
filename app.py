@@ -33,7 +33,7 @@ from property_evaluator import (
 )
 from scoring_config import (
     SCORING_MODEL,
-    TIER2_NAME_TO_DIMENSION,
+    TIER2_NAME_TO_DIMENSION, TIER2_DIMENSION_COUNT,
     HEALTH_CHECK_CITATIONS,
     CONFIDENCE_VERIFIED, CONFIDENCE_ESTIMATED, CONFIDENCE_SPARSE, CONFIDENCE_NOT_SCORED,
     _LEGACY_CONFIDENCE_MAP,
@@ -984,6 +984,77 @@ _EJSCREEN_CROSS_REFS = [
         ),
     },
 ]
+
+# ---------------------------------------------------------------------------
+# EJScreen practical context: indicator-specific annotations for >= 50th pctl
+# (NES-396).  Two bands per indicator — "high" (>= 75th) and "moderate"
+# (50-74th).  Copy must be factual, non-editorializing, and <= 120 chars.
+# CANCER maps to RSEI_AIR in EJScreen V2.32 (chemical release risk).
+# RESP may return None in V2.32; the None guard handles this gracefully.
+# ---------------------------------------------------------------------------
+
+_EJSCREEN_CONTEXT: Dict[str, Dict[str, str]] = {
+    "PM25": {
+        "high":     "Often seen near urban corridors or areas downwind of industry",
+        "moderate": "Common in suburban areas near commuter routes",
+    },
+    "OZONE": {
+        "high":     "Typical of areas in ozone-prone regions or near urban sprawl",
+        "moderate": "Common in suburban areas during warm months",
+    },
+    "DSLPM": {
+        "high":     "Typical near truck routes, freight corridors, or bus depots",
+        "moderate": "Common near moderate commercial or delivery traffic",
+    },
+    "CANCER": {
+        "high":     "Often near facilities with chemical releases tracked by EPA",
+        "moderate": "Common in areas with some industrial or commercial activity nearby",
+    },
+    "RESP": {
+        "high":     "Often near industrial operations or chemical manufacturing",
+        "moderate": "Common in areas with nearby commercial or light-industrial use",
+    },
+    "PTRAF": {
+        "high":     "Typical within a few blocks of highways or high-volume intersections",
+        "moderate": "Common near arterial roads or moderate commuter corridors",
+    },
+    "PNPL": {
+        "high":     "Usually indicates a Superfund site within a few miles",
+        "moderate": "More distant Superfund presence in the wider area",
+    },
+    "PRMP": {
+        "high":     "Indicates a facility handling hazardous chemicals nearby",
+        "moderate": "Facility with risk management plan in the wider area",
+    },
+    "PTSDF": {
+        "high":     "Usually indicates a treatment or disposal facility nearby",
+        "moderate": "Hazardous waste handling facility in the wider area",
+    },
+    "UST": {
+        "high":     "Higher density of underground fuel tanks nearby, often gas stations",
+        "moderate": "Some underground storage tanks in the surrounding area",
+    },
+    "PWDIS": {
+        "high":     "Usually near a wastewater outfall or treatment plant discharge",
+        "moderate": "Wastewater discharge points in the wider area",
+    },
+    "LEAD": {
+        "high":     "Most housing stock built before 1960 when lead paint was standard",
+        "moderate": "Mix of pre- and post-1960 housing in the area",
+    },
+}
+
+
+def _ejscreen_band(pct: float) -> Optional[str]:
+    """Classify an EJScreen percentile into a context annotation band.
+
+    Returns "high" (>= 75th), "moderate" (50-74th), or None (< 50th).
+    """
+    if pct >= 75:
+        return "high"
+    if pct >= 50:
+        return "moderate"
+    return None
 
 
 def _build_comparison_data(
@@ -2331,10 +2402,38 @@ def _prepare_snapshot_for_display(result):
                     )
                     pc["icon_override"] = "info"
 
+    # NES-396: Add practical context annotations to EJScreen indicators.
+    if _ejscreen:
+        ejscreen_context: Dict[str, str] = {}
+        for field_key, bands in _EJSCREEN_CONTEXT.items():
+            pct = _ejscreen.get(field_key)
+            if pct is None:
+                continue
+            band = _ejscreen_band(pct)
+            if band:
+                ejscreen_context[field_key] = bands[band]
+        result["ejscreen_context"] = ejscreen_context
+
     # NES-210: Migrate legacy dimension names (on the shallow copy).
     _migrate_dimension_names(result)
     _migrate_confidence_tiers(result)
     _backfill_dimension_bands(result)
+
+    # NES-394: Backfill excluded_dimensions for pre-NES-394 snapshots.
+    # Must run after _migrate_confidence_tiers() so confidence values are
+    # normalized to current constants.
+    _dcs = result.get("data_confidence_summary")
+    if _dcs and "excluded_dimensions" not in _dcs:
+        _excl = []
+        for s in result.get("tier2_scores", []):
+            _name = TIER2_NAME_TO_DIMENSION.get(s.get("name", ""), s.get("name", ""))
+            if s.get("data_confidence") == CONFIDENCE_NOT_SCORED:
+                _excl.append(_name)
+            elif s.get("points") is None:
+                _excl.append(_name)
+        _dcs["excluded_dimensions"] = _excl
+        _dcs["scored_dimension_count"] = TIER2_DIMENSION_COUNT - len(_excl)
+        _dcs["total_dimension_count"] = TIER2_DIMENSION_COUNT
 
     # Backfill total green space count for old snapshots.
     _ge = result.get("green_escape") or {}
@@ -2626,10 +2725,21 @@ def result_to_dict(result):
     _limited_dims = []
     _sparse_dims = []
     _not_scored_dims = []
+    # NES-394: dimensions excluded from composite (not_scored OR suppressed).
+    # Both types cause compute_composite_score() to skip the dimension;
+    # the annotation tells users the score is based on fewer dimensions.
+    _excluded_dims = []
     for s in output.get("tier2_scores", []):
         conf = s.get("data_confidence")
+        _display_name = TIER2_NAME_TO_DIMENSION.get(s["name"], s["name"])
         if conf == CONFIDENCE_NOT_SCORED:
             _not_scored_dims.append(s["name"])
+            _excluded_dims.append(_display_name)
+        elif s.get("points") is None:
+            # Suppressed dimension (e.g. API failure) — points=None but
+            # data_confidence may not be "not_scored".  Still excluded
+            # from composite by compute_composite_score().
+            _excluded_dims.append(_display_name)
         elif conf == CONFIDENCE_SPARSE:
             _confidence_levels.append(conf)
             _sparse_dims.append(s["name"])
@@ -2639,7 +2749,8 @@ def result_to_dict(result):
             _limited_dims.append(s["name"])
         elif conf:
             _confidence_levels.append(conf)
-    if _confidence_levels:
+    _scored_count = TIER2_DIMENSION_COUNT - len(_excluded_dims)
+    if _confidence_levels or _excluded_dims:
         _has_sparse = CONFIDENCE_SPARSE in _confidence_levels
         _has_estimated = CONFIDENCE_ESTIMATED in _confidence_levels
         if _has_sparse:
@@ -2660,6 +2771,10 @@ def result_to_dict(result):
             "limited_dimensions": _limited_dims,
             "sparse_dimensions": _sparse_dims,
             "not_scored_dimensions": _not_scored_dims,
+            # NES-394: composite annotation fields.
+            "excluded_dimensions": _excluded_dims,
+            "scored_dimension_count": _scored_count,
+            "total_dimension_count": TIER2_DIMENSION_COUNT,
         }
     # Section-level narrative insights (NES-191)
     output["insights"] = generate_insights(output)

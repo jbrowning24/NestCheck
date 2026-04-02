@@ -322,6 +322,16 @@ h1.narrative-summary {
   margin-bottom: var(--space-base);
 }
 
+/* NES-394: "Score based on N of M dimensions" annotation */
+.verdict-dimension-note {
+  font-size: var(--type-detail);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-top: calc(-1 * var(--space-sm));
+  margin-bottom: var(--space-base);
+  line-height: var(--line-height-normal);
+}
+
 /* --- Sidebar Verdict Card --- */
 .sidebar-verdict-card {
   border-radius: var(--radius-md);
@@ -367,6 +377,14 @@ h1.narrative-summary {
   margin-bottom: 0;
   text-wrap: balance;
 }
+/* NES-394: Compact annotation for sidebar verdict card */
+.sidebar-dimension-note {
+  font-size: var(--type-caption);
+  color: var(--color-text-faint);
+  margin-top: var(--space-sm);
+  line-height: var(--line-height-normal);
+}
+
 .verdict-score-row {
   display: flex;
   align-items: center;
@@ -1705,6 +1723,16 @@ h1.narrative-summary {
   color: var(--color-text-secondary);
   font-weight: var(--weight-normal);
   margin-top: var(--space-xs);
+}
+/* NES-396: Practical context annotation below the percentile explanation */
+.ejscreen-indicator__context {
+  display: block;
+  width: 100%;
+  font-size: var(--type-detail);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-normal);
+  font-style: italic;
+  margin-top: 2px;
 }
 .ejscreen-source {
   margin-top: var(--space-sm);
