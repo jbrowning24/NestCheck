@@ -952,6 +952,27 @@
             </div>
           {% endif %}
 
+          {# NES-397: Destination parks — notable parks beyond walk radius #}
+          {% if result.green_escape and result.green_escape.destination_parks %}
+            <div class="subsection-divider">
+              <div class="section-label">Parks worth the drive</div>
+              {% for park in result.green_escape.destination_parks %}
+                {% if park.place_id %}
+                  {% set park_name %}<a href="https://www.google.com/maps/place/?q=place_id:{{ park.place_id }}" target="_blank" rel="noopener noreferrer" class="park-maps-link place-name--light">{{ park.name }}</a>{% endset %}
+                {% else %}
+                  {% set park_name %}<span class="place-name--light">{{ park.name }}</span>{% endset %}
+                {% endif %}
+                {% set park_meta %}{% if park.rating %}{{ "%.1f"|format(park.rating) }} stars{% endif %}{% if park.user_ratings_total %} ({{ park.user_ratings_total }} reviews){% endif %}{% endset %}
+                {{ data_row(
+                    name=park_name,
+                    detail=park_meta,
+                    value=fmt_time(park.drive_time_min, "drive"),
+                    variant="place"
+                ) }}
+              {% endfor %}
+            </div>
+          {% endif %}
+
         </div>
 
         {# ── LOCAL SERVICES (Emergency + Libraries + Pharmacies) ── #}

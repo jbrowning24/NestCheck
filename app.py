@@ -2119,9 +2119,23 @@ def _serialize_green_escape(evaluation):
             "osm_amenity_tags": s.osm_amenity_tags,
         })
 
+    # NES-397: Destination parks — minimal shape, display-only
+    destination = []
+    for dp in getattr(evaluation, "destination_parks", []):
+        destination.append({
+            "name": dp.name,
+            "place_id": dp.place_id,
+            "rating": dp.rating,
+            "user_ratings_total": dp.user_ratings_total,
+            "drive_time_min": dp.drive_time_min,
+            "lat": dp.lat,
+            "lng": dp.lng,
+        })
+
     return {
         "best_daily_park": best_park,
         "nearby_green_spaces": nearby,
+        "destination_parks": destination,
         "total_green_space_count": len(nearby),
         "green_escape_score_0_10": evaluation.green_escape_score_0_10,
         "messages": evaluation.messages,
