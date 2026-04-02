@@ -27,7 +27,7 @@ import hashlib
 import json
 import threading
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Set, Tuple
 
 from nc_trace import get_trace
 from scoring_config import WALK_DRIVE_BOTH_THRESHOLD, CANOPY_NATURE_FEEL_KNOTS, apply_piecewise
@@ -289,6 +289,7 @@ class GreenEscapeEvaluation:
     search_radius_used: int = DEFAULT_RADIUS_M
     messages: List[str] = field(default_factory=list)
     osm_failed_count: int = 0  # Places that got empty OSM enrichment due to errors (Phase 3)
+    destination_parks: List[GreenSpaceResult] = field(default_factory=list)  # NES-397: notable parks beyond walk radius
 
 
 # =============================================================================
@@ -1625,6 +1626,77 @@ def _evaluate_criteria(total: float, wt_score: float, sz_score: float, walk_time
 
 
 # =============================================================================
+# DESTINATION PARKS — NES-397
+# =============================================================================
+
+# Wider search radius for notable parks beyond walking distance
+DESTINATION_PARK_RADIUS_M = 8000
+
+# Minimum Google review count to qualify as a "destination" park
+DESTINATION_PARK_MIN_REVIEWS = 50
+
+# Maximum destination parks to return
+DESTINATION_PARK_MAX = 3
+
+
+def _find_destination_parks(
+    maps_client,
+    lat: float,
+    lng: float,
+    primary_place_ids: Set[str],
+) -> List[GreenSpaceResult]:
+    """
+    Find notable parks beyond walk radius that are worth driving to.
+
+    Searches at a wider radius (8km) and filters to parks with significant
+    review counts, excluding any already found in the primary search.
+    Returns at most DESTINATION_PARK_MAX parks, sorted by review count.
+
+    These parks are display-only — they do not influence scoring.
+    """
+    try:
+        results = maps_client.places_nearby(
+            lat, lng, "park", radius_meters=DESTINATION_PARK_RADIUS_M
+        )
+    except Exception:
+        logger.debug("Destination parks search failed", exc_info=True)
+        return []
+
+    destination = []
+    for place in results:
+        pid = place.get("place_id")
+        reviews = place.get("user_ratings_total", 0) or 0
+
+        # Skip parks already in the primary results or below review threshold
+        if not pid or pid in primary_place_ids:
+            continue
+        if reviews < DESTINATION_PARK_MIN_REVIEWS:
+            continue
+
+        # Filter garbage the same way the primary search does
+        if _is_garbage(place):
+            continue
+        if not _is_green_space(place):
+            continue
+
+        destination.append(GreenSpaceResult(
+            place_id=pid,
+            name=place.get("name", "Unknown"),
+            rating=place.get("rating"),
+            user_ratings_total=reviews,
+            walk_time_min=0,  # Sentinel — these are drive-only
+            types=place.get("types", []),
+            types_display=_format_types(place.get("types", [])),
+            lat=place.get("geometry", {}).get("location", {}).get("lat", 0.0),
+            lng=place.get("geometry", {}).get("location", {}).get("lng", 0.0),
+        ))
+
+    # Sort by review count descending, cap at max
+    destination.sort(key=lambda p: -p.user_ratings_total)
+    return destination[:DESTINATION_PARK_MAX]
+
+
+# =============================================================================
 # MAIN ENGINE
 # =============================================================================
 
@@ -1761,6 +1833,33 @@ def evaluate_green_escape(
     else:
         evaluation.green_escape_score_0_10 = 0.0
 
+    # Step 7: NES-397 — Find destination parks beyond walk radius.
+    # Collect place IDs from the primary pipeline for deduplication.
+    primary_ids: Set[str] = set()
+    if evaluation.best_daily_park:
+        primary_ids.add(evaluation.best_daily_park.place_id)
+    for s in scored:
+        primary_ids.add(s.place_id)
+
+    dest_parks = _find_destination_parks(maps_client, lat, lng, primary_ids)
+
+    # Fetch drive times for destination parks (separate batch)
+    if dest_parks and hasattr(maps_client, "driving_times_batch"):
+        origin = (lat, lng)
+        dest_coords = [(p.lat, p.lng) for p in dest_parks]
+        try:
+            dest_drive_times = maps_client.driving_times_batch(origin, dest_coords)
+            if len(dest_drive_times) == len(dest_parks):
+                for park, dt in zip(dest_parks, dest_drive_times):
+                    park.drive_time_min = dt if dt != 9999 else None
+            # Drop parks with no reachable drive time
+            dest_parks = [p for p in dest_parks if p.drive_time_min is not None]
+        except Exception:
+            logger.debug("Drive time fetch for destination parks failed", exc_info=True)
+            dest_parks = []  # Can't show drive-only parks without drive times
+
+    evaluation.destination_parks = dest_parks
+
     return evaluation
 
 
@@ -1806,9 +1905,22 @@ def green_escape_to_dict(evaluation: GreenEscapeEvaluation) -> Dict[str, Any]:
             "osm_amenity_tags": s.osm_amenity_tags,
         }
 
+    def _dest_park_dict(s: GreenSpaceResult) -> Dict[str, Any]:
+        """Minimal shape for destination parks — display-only, no scores."""
+        return {
+            "place_id": s.place_id,
+            "name": s.name,
+            "rating": s.rating,
+            "user_ratings_total": s.user_ratings_total,
+            "drive_time_min": s.drive_time_min,
+            "lat": s.lat,
+            "lng": s.lng,
+        }
+
     return {
         "best_daily_park": _space_dict(evaluation.best_daily_park) if evaluation.best_daily_park else None,
         "nearby_green_spaces": [_space_dict(s) for s in evaluation.nearby_green_spaces],
+        "destination_parks": [_dest_park_dict(p) for p in evaluation.destination_parks],
         "green_escape_score_0_10": evaluation.green_escape_score_0_10,
         "criteria": evaluation.criteria,
         "search_radius_used": evaluation.search_radius_used,
