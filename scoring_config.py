@@ -434,6 +434,11 @@ TIER2_NAME_TO_DIMENSION: Dict[str, str] = {
     "Road Noise": "Road Noise",
 }
 
+# Total number of Tier 2 dimensions used in composite scoring.
+# Referenced by the "Score based on N of M dimensions" annotation (NES-394).
+# Update when adding or removing a scoring dimension.
+TIER2_DIMENSION_COUNT: int = len(TIER2_NAME_TO_DIMENSION)
+
 
 # =============================================================================
 # Walk / drive time display thresholds (minutes)
