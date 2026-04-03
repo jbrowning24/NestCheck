@@ -46,6 +46,9 @@ TARGET_STATES = {
     "TX": {"fips": "48", "full_name": "Texas"},
     "FL": {"fips": "12", "full_name": "Florida"},
     "IL": {"fips": "17", "full_name": "Illinois"},
+    "MD": {"fips": "24", "full_name": "Maryland"},
+    "DC": {"fips": "11", "full_name": "District of Columbia"},
+    "VA": {"fips": "51", "full_name": "Virginia"},
 }
 
 
