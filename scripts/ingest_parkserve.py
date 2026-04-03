@@ -50,6 +50,22 @@ PARKSERVE_ENDPOINT = (
 
 PAGE_SIZE = 1000  # This endpoint's max record count
 
+# State FIPS → 2-letter code for deriving state from park_place_fips.
+# The API removed the "State" field; park_place_fips first 2 digits = state FIPS.
+_FIPS_TO_STATE = {
+    "09": "CT", "10": "DE", "11": "DC", "12": "FL", "13": "GA",
+    "17": "IL", "24": "MD", "25": "MA", "26": "MI", "34": "NJ",
+    "36": "NY", "42": "PA", "48": "TX", "51": "VA", "06": "CA",
+    "53": "WA", "01": "AL", "02": "AK", "04": "AZ", "05": "AR",
+    "08": "CO", "15": "HI", "16": "ID", "18": "IN", "19": "IA",
+    "20": "KS", "21": "KY", "22": "LA", "23": "ME", "27": "MN",
+    "28": "MS", "29": "MO", "30": "MT", "31": "NE", "32": "NV",
+    "33": "NH", "35": "NM", "37": "NC", "38": "ND", "39": "OH",
+    "40": "OK", "41": "OR", "44": "RI", "45": "SC", "46": "SD",
+    "47": "TN", "49": "UT", "50": "VT", "54": "WV", "55": "WI",
+    "56": "WY",
+}
+
 
 def _rings_to_multipolygon_wkt(rings: list, decimals: int = 6) -> str | None:
     """Convert ArcGIS rings array to MULTIPOLYGON WKT."""
@@ -155,7 +171,8 @@ def _process_features(conn, features: list) -> tuple[int, int]:
             continue
 
         name = (
-            attrs.get("Park_Name")
+            attrs.get("park_name")
+            or attrs.get("Park_Name")
             or attrs.get("ParkName")
             or attrs.get("NAME")
             or "Unknown Park"
@@ -165,13 +182,19 @@ def _process_features(conn, features: list) -> tuple[int, int]:
         else:
             name = str(name).strip()
 
+        # Derive state from park_place_fips (first 2 digits = state FIPS)
+        place_fips = attrs.get("park_place_fips") or ""
+        state_from_fips = _FIPS_TO_STATE.get(place_fips[:2], "") if len(place_fips) >= 2 else ""
+        # Fall back to old field names for backwards compatibility
+        state_val = state_from_fips or attrs.get("State", "")
+
         metadata = {
-            "park_type": attrs.get("Park_Type", ""),
-            "acres": attrs.get("Acres") or attrs.get("ACRES"),
-            "city": attrs.get("City", ""),
-            "state": attrs.get("State", ""),
-            "agency": attrs.get("Agency", ""),
-            "park_id": attrs.get("Park_ID") or attrs.get("ParkID"),
+            "park_type": attrs.get("park_designation") or attrs.get("Park_Type", ""),
+            "acres": attrs.get("park_size_acres") or attrs.get("Acres") or attrs.get("ACRES"),
+            "city": attrs.get("park_place") or attrs.get("City", ""),
+            "state": state_val,
+            "agency": attrs.get("park_local_owner") or attrs.get("Agency", ""),
+            "park_id": attrs.get("parkid") or attrs.get("Park_ID") or attrs.get("ParkID"),
         }
 
         try:
@@ -189,9 +212,19 @@ def _process_features(conn, features: list) -> tuple[int, int]:
     return inserted, skipped
 
 
+_STATE_TO_FIPS = {v: k for k, v in _FIPS_TO_STATE.items()}
+
+
 def _ingest_state(conn, st: str, limit_pages: int = 0) -> tuple[int, int]:
     """Ingest records for a single state. Returns (inserted, skipped)."""
-    where = f"State = '{st}'"
+    fips = _STATE_TO_FIPS.get(st)
+    if fips:
+        # API removed "State" field (ArcGIS field drift, NES-401).
+        # Filter by park_place_fips prefix (first 2 digits = state FIPS).
+        where = f"park_place_fips LIKE '{fips}%'"
+    else:
+        # Fallback for unknown states
+        where = f"park_urbanarea LIKE '%, {st}'"
     logger.info("  Deleting existing rows for state %s...", st)
     conn.execute(
         "DELETE FROM facilities_parkserve WHERE json_extract(metadata_json, '$.state') = ?",

@@ -70,6 +70,12 @@ OUT_FIELDS = [
 
 PAGE_SIZE = 2000  # ArcGIS default max is usually 1000-2000
 
+# The UST endpoint stores DC as "Washington DC", not "District of Columbia".
+# Map our canonical full_name to all known API variants.
+_UST_STATE_ALIASES: dict[str, list[str]] = {
+    "District of Columbia": ["Washington DC"],
+}
+
 
 def fetch_page(offset: int, where_clause: str = "1=1") -> dict:
     """Fetch one page of UST records from the ArcGIS REST API."""
@@ -156,6 +162,9 @@ def _build_state_normalizer(states: list[str] | None, state: str) -> dict[str, s
         stripped = name.replace(" ", "")
         if stripped != name:
             normalizer[stripped] = name
+        # Map known aliases (e.g., "Washington DC" → "District of Columbia")
+        for alias in _UST_STATE_ALIASES.get(name, []):
+            normalizer[alias] = name
     return normalizer
 
 
@@ -180,21 +189,30 @@ def ingest(
         for s in states:
             if not s.replace(" ", "").isalpha():
                 raise ValueError(f"Invalid state name: {s!r} (expected full name, e.g. 'New York')")
-        # Include both "New York" and "NewYork" variants for multi-word names
+        # Include both "New York" and "NewYork" variants for multi-word names,
+        # plus known aliases (e.g., "District of Columbia" → "Washington DC").
         all_variants = set()
         for s in states:
             all_variants.add(s)
             no_space = s.replace(" ", "")
             if no_space != s:
                 all_variants.add(no_space)
+            for alias in _UST_STATE_ALIASES.get(s, []):
+                all_variants.add(alias)
         in_list = ", ".join(f"'{s}'" for s in sorted(all_variants))
         where = f"State IN ({in_list})"
     elif state:
         if not state.replace(" ", "").isalpha():
             raise ValueError(f"Invalid state name: {state!r} (expected full name, e.g. 'New York')")
+        variants = {state}
         no_space = state.replace(" ", "")
         if no_space != state:
-            where = f"State IN ('{state}', '{no_space}')"
+            variants.add(no_space)
+        for alias in _UST_STATE_ALIASES.get(state, []):
+            variants.add(alias)
+        if len(variants) > 1:
+            in_list = ", ".join(f"'{v}'" for v in sorted(variants))
+            where = f"State IN ({in_list})"
         else:
             where = f"State = '{state}'"
 

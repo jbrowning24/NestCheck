@@ -153,7 +153,7 @@ Full-length versions: `docs/CLAUDE-DECISION-ARCHIVE.md`
 ### Spatial Ingest (startup_ingest.py + scripts/ingest_*.py)
 - `startup_ingest.py` calls `ingest()` with kwargs. Scripts must accept kwargs, not just argparse.
 - State filter format varies: 2-letter (EJScreen/TRI), full name (UST), FIPS (TIGER), STABR (NCES). Check upstream field.
-- **UST state name inconsistency**: `"NewYork"` vs `"New Jersey"`. `ingest_ust.py` handles both; `_build_state_normalizer()` fixes at insert.
+- **UST state name inconsistency**: `"NewYork"` vs `"New Jersey"`. `ingest_ust.py` handles both; `_build_state_normalizer()` fixes at insert. DC is stored as `"Washington DC"` (not `"District of Columbia"`) — handled via `_UST_STATE_ALIASES`.
 - **Per-state missing detection required**: Use `_missing_states_abbr()`/`_missing_states_fips()` for multi-state tables. `_table_has_data()` is insufficient.
 - **Normalizing stored data → update all downstream readers in same commit**: Grep old value pattern across entire project.
 - **ArcGIS bbox is an AND filter with WHERE**: State-filtered startup wrappers must NOT pass bbox.
@@ -164,7 +164,7 @@ Full-length versions: `docs/CLAUDE-DECISION-ARCHIVE.md`
 - **Two-table join**: Spatial polygon → GEOID → lookup table. GEOIDs unique across states.
 - **Bundled CSV**: For data without stable APIs. Flag as `MANUAL REFRESH` in `dataset_registry`.
 - **Point geometry**: Use `MakePoint(lon, lat, 4326)` not `GeomFromText`. Fall back to attribute fields if geometry missing.
-- **ArcGIS field name drift**: Fields rename between releases. Check with `outFields=*&resultRecordCount=1` before hardcoding.
+- **ArcGIS field name drift**: Fields rename between releases. Check with `outFields=*&resultRecordCount=1` before hardcoding. ParkServe removed `State` field entirely — now derive from `park_place_fips` (first 2 digits = state FIPS).
 - **NCES suppression codes**: Negative integers (`-1`, `-2`) in numeric fields. Filter `< 0` before arithmetic.
 - **Derived percentages**: Cap at 100%, filter negatives.
 - Extract duplicated template components into Jinja macros immediately. Inline HTML strings in macros need `| safe`.
@@ -175,11 +175,12 @@ Full-length versions: `docs/CLAUDE-DECISION-ARCHIVE.md`
 - **Bundled CSV GEOIDs must match TIGER exactly**: Verify with `crosswalk_geoids.py`.
 - **EJScreen**: EPA endpoint removed Feb 2025. PEDP fallback at `services2.arcgis.com`. V2.32: CANCER/RESP → RSEI_AIR.
 - **ArcGIS WHERE clauses fail silently on value mismatches**: Verify with `returnCountOnly=true` first.
-- **FEMA NFHL**: Chunk bboxes to ≤0.5°. Per-metro ingestion via `METRO_TO_STATES`. Version-based re-ingestion.
+- **FEMA NFHL**: Chunk bboxes to ≤0.5°. Per-metro ingestion via `METRO_TO_STATES`. Version-based re-ingestion. DMV area is much denser than NYC — even 0.1° cells with 100-record pages fail; may need smaller cells or bulk download instead of REST API.
 - **`TARGET_STATES` is single source of truth**: One dict entry to add a new state. FEMA uses per-metro bboxes.
 - **`json_extract()` is expensive**: Never in page-rendering paths. Use static config for display, DB queries for admin only.
 - **Don't declare planned-but-not-started sources in `_SOURCE_METADATA`**: Phantom coverage penalties.
 - **Never run `create_facility_table()` concurrently**: Serialized via `startup_ingest.py`.
+- **`create_facility_table()` drops the existing table**: Never use `flask ingest -d <X> --state <S>` for per-state ingestion of multi-state tables (TRI, UST, EJScreen, etc.) — it will destroy all other states' data. Use `startup_ingest` wrappers which pass all `TARGET_STATES` at once.
 - **Coverage manifest auto-sync**: `sync_manifest_from_db()` after ingestion. Skips national/FEMA datasets.
 
 ### Quality Ceiling (scoring_config.py + property_evaluator.py)
