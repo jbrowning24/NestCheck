@@ -52,7 +52,7 @@ PAGE_SIZE = 2000
 
 # Bump this to force re-ingestion when metro bboxes change.
 # startup_ingest.py compares this against the version stored in dataset_registry.
-FEMA_INGEST_VERSION = 2
+FEMA_INGEST_VERSION = 3
 
 # PRD launch metro bounding boxes (lng_min, lat_min, lng_max, lat_max)
 METRO_BBOXES = {
@@ -74,6 +74,8 @@ METRO_BBOXES = {
     "miami": (-80.50, 25.60, -80.05, 26.25),
     # Tampa + St. Petersburg + Clearwater
     "tampa": (-82.80, 27.70, -82.35, 28.15),
+    # DC-Baltimore-NoVA: DC proper, Arlington, Alexandria, Fairfax, Bethesda, Silver Spring, Columbia, Baltimore
+    "dmv": (-77.55, 38.55, -76.50, 39.50),
 }
 
 METRO_TO_STATES = {
@@ -87,6 +89,7 @@ METRO_TO_STATES = {
     "dallas": ["TX"],
     "miami": ["FL"],
     "tampa": ["FL"],
+    "dmv": ["MD", "DC", "VA"],
 }
 
 _GRID_CELL_SIZE = 0.5
