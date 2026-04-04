@@ -1,0 +1,133 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+5100060,Accomack County Public Schools,Accomack,86,,,,12110,2019-20
+5100090,Albemarle County Public Schools,Charlottesville city,93,,,,13856,2019-20
+5100120,Alexandria City Public Schools,Alexandria city,76,,,,19050,2019-20
+5100152,Alleghany Highlands Public Schools,Alleghany,97,,,,8825,2019-20
+5100180,Amelia County Public Schools,Amelia,92,,,,12286,2019-20
+5100210,Amherst County Public Schools,Amherst,93,,,,11899,2019-20
+5100240,Appomattox County Public Schools,Appomattox,92,,,,10739,2019-20
+5100270,Arlington County Public Schools,Arlington,86,,,,19492,2019-20
+5100300,Augusta County Public Schools,Augusta,92,,,,12304,2019-20
+5100330,Bath County Public Schools,Bath,95,,,,19986,2019-20
+5100360,Bedford County Public Schools,Bedford,89,,,,11975,2019-20
+5100390,Bland County Public Schools,Bland,95,,,,11613,2019-20
+5100420,Botetourt County Public Schools,Botetourt,95,,,,12629,2019-20
+5100450,Bristol City Public Schools,Bristol city,82,,,,14103,2019-20
+5100480,Brunswick County Public Schools,Brunswick,92,,,,16134,2019-20
+5100510,Buchanan County Public Schools,Buchanan,88,,,,14059,2019-20
+5100540,Buckingham County Public Schools,Buckingham,92,,,,12838,2019-20
+5100560,Buena Vista City Public Schools,Buena Vista city,82,,,,12450,2019-20
+5100600,Campbell County Public Schools,Campbell,93,,,,11277,2019-20
+5100660,Caroline County Public Schools,Caroline,88,,,,10852,2019-20
+5100690,Carroll County Public Schools,Carroll,92,,,,12453,2019-20
+5100720,Charles City County Public Schools,Charles City,84,,,,19032,2019-20
+5100750,Charlotte County Public Schools,Charlotte,87,,,,12364,2019-20
+5100780,Charlottesville City Public Schools,Charlottesville city,87,,,,18333,2019-20
+5100810,Chesapeake City Public Schools,Chesapeake city,90,,,,12581,2019-20
+5100840,Chesterfield County Public Schools,Chesterfield,89,,,,10362,2019-20
+5100870,Clarke County Public Schools,Clarke,97,,,,12221,2019-20
+5100930,Colonial Beach Public Schools,Westmoreland,95,,,,14477,2019-20
+5100960,Colonial Heights City Public Schools,Colonial Heights city,84,,,,13817,2019-20
+5100990,Covington City Public Schools,Covington city,77,,,,,2019-20
+5101020,Craig County Public Schools,Craig,84,,,,14742,2019-20
+5101050,Culpeper County Public Schools,Culpeper,89,,,,10691,2019-20
+5101080,Cumberland County Public Schools,Cumberland,92,,,,13688,2019-20
+5101110,Danville City Public Schools,Danville city,76,,,,14682,2019-20
+5101140,Dickenson County Public Schools,Dickenson,92,,,,13465,2019-20
+5101170,Dinwiddie County Public Schools,Dinwiddie,87,,,,12126,2019-20
+5101200,Essex County Public Schools,Essex,92,,,,14916,2019-20
+5101260,Fairfax County Public Schools,Fairfax,88,,,,16992,2019-20
+5101290,Falls Church City Public Schools,Falls Church city,97,,,,20324,2019-20
+5101320,Fauquier County Public Schools,Fauquier,91,,,,14027,2019-20
+5101350,Floyd County Public Schools,Floyd,97,,,,13190,2019-20
+5101380,Fluvanna County Public Schools,Fluvanna,91,,,,11917,2019-20
+5101410,Franklin City Public Schools,Franklin city,87,,,,15750,2019-20
+5101440,Franklin County Public Schools,Franklin,91,,,,13283,2019-20
+5101470,Frederick County Public Schools,Winchester city,91,,,,13083,2019-20
+5101510,Fredericksburg City Public Schools,Fredericksburg city,77,,,,13321,2019-20
+5101560,Galax City Public Schools,Galax city,92,,,,12856,2019-20
+5101590,Giles County Public Schools,Giles,87,,,,8061,2019-20
+5101620,Gloucester County Public Schools,Gloucester,90,,,,12654,2019-20
+5101650,Goochland County Public Schools,Goochland,93,,,,13073,2019-20
+5101690,Grayson County Public Schools,Grayson,97,,,,13512,2019-20
+5101710,Greene County Public Schools,Greene,91,,,,12163,2019-20
+5101740,Greensville County Public Schools,Emporia city,92,,,,15394,2019-20
+5101770,Halifax County Public Schools,Halifax,87,,,,12423,2019-20
+5101800,Hampton City Public Schools,Hampton city,90,,,,11872,2019-20
+5101830,Hanover County Public Schools,Hanover,95,,,,11399,2019-20
+5101860,Harrisonburg City Public Schools,Harrisonburg city,82,,,,13481,2019-20
+5101890,Henrico County Public Schools,Henrico,87,,,,11027,2019-20
+5101920,Henry County Public Schools,Henry,86,,,,11856,2019-20
+5101950,Highland County Public Schools,Highland,75,,,,20795,2019-20
+5101980,Hopewell City Public Schools,Hopewell city,77,,,,13246,2019-20
+5102010,Isle of Wight County Public Schools,Isle of Wight,91,,,,11392,2019-20
+5102070,King and Queen County Public Schools,King and Queen,95,,,,13956,2019-20
+5102100,King George County Public Schools,King George,92,,,,11004,2019-20
+5102120,King William County Public Schools,King William,87,,,,12238,2019-20
+5102160,Lancaster County Public Schools,Lancaster,87,,,,16032,2019-20
+5102190,Lee County Public Schools,Lee,84,,,,13170,2019-20
+5102220,Lexington City Public Schools,Lexington city,,,,,12565,2019-20
+5102250,Loudoun County Public Schools,Loudoun,95,,,,17263,2019-20
+5102280,Louisa County Public Schools,Louisa,89,,,,13236,2019-20
+5102310,Lunenburg County Public Schools,Lunenburg,82,,,,12389,2019-20
+5102340,Lynchburg City Public Schools,Lynchburg city,81,,,,14217,2019-20
+5102360,Manassas City Public Schools,Manassas city,72,,,,15161,2019-20
+5102370,Madison County Public Schools,Madison,92,,,,13057,2019-20
+5102390,Manassas Park City Public Schools,Manassas Park city,81,,,,13024,2019-20
+5102400,Martinsville City Public Schools,Martinsville city,92,,,,14874,2019-20
+5102430,Mathews County Public Schools,Mathews,87,,,,16685,2019-20
+5102460,Mecklenburg County Public Schools,Mecklenburg,87,,,,12323,2019-20
+5102490,Middlesex County Public Schools,Middlesex,87,,,,13201,2019-20
+5102520,Montgomery County Public Schools,Montgomery,90,,,,13416,2019-20
+5102580,Nelson County Public Schools,Nelson,87,,,,17157,2019-20
+5102610,New Kent County Public Schools,New Kent,92,,,,10289,2019-20
+5102640,Newport News City Public Schools,Newport News city,89,,,,12930,2019-20
+5102670,Norfolk City Public Schools,Norfolk city,82,,,,13690,2019-20
+5102710,Northampton County Public Schools,Northampton,92,,,,14513,2019-20
+5102730,Northumberland County Public Schools,Northumberland,97,,,,15216,2019-20
+5102760,Norton City Public Schools,Norton city,95,,,,11251,2019-20
+5102790,Nottoway County Public Schools,Nottoway,87,,,,13129,2019-20
+5102820,Orange County Public Schools,Orange,93,,,,11276,2019-20
+5102850,Page County Public Schools,Page,97,,,,12453,2019-20
+5102880,Patrick County Public Schools,Patrick,92,,,,10928,2019-20
+5102910,Petersburg City Public Schools,Petersburg city,81,,,,13651,2019-20
+5102940,Pittsylvania County Public Schools,Pittsylvania,87,,,,12056,2019-20
+5102980,Poquoson City Public Schools,Poquoson city,92,,,,11867,2019-20
+5103000,Portsmouth City Public Schools,Portsmouth city,86,,,,13374,2019-20
+5103030,Powhatan County Public Schools,Powhatan,92,,,,11892,2019-20
+5103060,Prince Edward County Public Schools,Prince Edward,82,,,,13371,2019-20
+5103090,Prince George County Public Schools,Prince George,92,,,,11664,2019-20
+5103130,Prince William County Public Schools,Prince William,89,,,,12798,2019-20
+5103150,Pulaski County Public Schools,Pulaski,91,,,,12011,2019-20
+5103180,Radford City Public Schools,Radford city,92,,,,5878,2019-20
+5103210,Rappahannock County Public Schools,Rappahannock,95,,,,18652,2019-20
+5103240,Richmond City Public Schools,Richmond city,67,,,,18826,2019-20
+5103270,Richmond County Public Schools,Richmond,97,,,,12438,2019-20
+5103300,Roanoke City Public Schools,Roanoke city,79,,,,14076,2019-20
+5103330,Roanoke County Public Schools,Roanoke,92,,,,11592,2019-20
+5103370,Rockbridge County Public Schools,Rockbridge,88,,,,13382,2019-20
+5103390,Rockingham County Public Schools,Harrisonburg city,93,,,,12608,2019-20
+5103420,Russell County Public Schools,Russell,92,,,,13321,2019-20
+5103460,Salem City Public Schools,Salem city,88,,,,12319,2019-20
+5103480,Scott County Public Schools,Scott,89,,,,10107,2019-20
+5103510,Shenandoah County Public Schools,Shenandoah,93,,,,12670,2019-20
+5103520,Smyth County Public Schools,Smyth,91,,,,12568,2019-20
+5103600,Southampton County Public Schools,Southampton,92,,,,13973,2019-20
+5103640,Spotsylvania County Public Schools,Spotsylvania,88,,,,12022,2019-20
+5103660,Stafford County Public Schools,Stafford,93,,,,11136,2019-20
+5103690,Staunton City Public Schools,Staunton city,91,,,,13677,2019-20
+5103710,Suffolk City Public Schools,Suffolk city,83,,,,11712,2019-20
+5103750,Surry County Public Schools,Surry,95,,,,22709,2019-20
+5103780,Sussex County Public Schools,Sussex,82,,,,19818,2019-20
+5103810,Tazewell County Public Schools,Tazewell,88,,,,10986,2019-20
+5103840,Virginia Beach City Public Schools,Virginia Beach city,91,,,,12900,2019-20
+5103870,Warren County Public Schools,Warren,93,,,,12266,2019-20
+5103900,Washington County Public Schools,Washington,93,,,,12049,2019-20
+5103930,Waynesboro City Public Schools,Waynesboro city,82,,,,12942,2019-20
+5103950,West Point Public Schools,King William,92,,,,13135,2019-20
+5103980,Westmoreland County Public Schools,Westmoreland,97,,,,15339,2019-20
+5104020,Williamsburg-James City County Public Schools,Williamsburg city,88,,,,13097,2019-20
+5104050,Winchester City Public Schools,Winchester city,84,,,,14620,2019-20
+5104080,Wise County Public Schools,Wise,95,,,,10503,2019-20
+5104110,Wythe County Public Schools,Wythe,92,,,,11732,2019-20
+5104150,York County Public Schools,York,95,,,,11875,2019-20

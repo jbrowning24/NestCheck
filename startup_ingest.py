@@ -590,6 +590,21 @@ def _ingest_il_performance():
     do_ingest()
 
 
+def _ingest_md_performance():
+    from scripts.ingest_md_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_dc_performance():
+    from scripts.ingest_dc_performance import ingest as do_ingest
+    do_ingest()
+
+
+def _ingest_va_performance():
+    from scripts.ingest_va_performance import ingest as do_ingest
+    do_ingest()
+
+
 def _ingest_nces_schools():
     from scripts.ingest_nces_schools import ingest as do_ingest
     from spatial_data import init_spatial_db, create_facility_table
@@ -613,4 +628,7 @@ _STATE_EDUCATION_INGEST = {
     "TX": _ingest_tx_performance,
     "FL": _ingest_fl_performance,
     "IL": _ingest_il_performance,
+    "MD": _ingest_md_performance,
+    "DC": _ingest_dc_performance,
+    "VA": _ingest_va_performance,
 }
