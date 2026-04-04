@@ -119,6 +119,13 @@
     <p class="expectation-setter">Available in NY, NJ, CT, and MI. <em>Outside these states? You'll get a health hazard report. Full evaluations coming soon.</em></p>
   </section>
 
+  {# ── DEMO REPORT CTA (NES-320) ──────────────────────────── #}
+  {% if demo_snapshot_id %}
+  <div class="hp-demo-cta">
+    <a href="/s/{{ demo_snapshot_id }}" class="hp-demo-cta__link">See what NestCheck found at a Greenwich, CT address &rarr;</a>
+  </div>
+  {% endif %}
+
   {# ── AUTH CALLOUT (unauthenticated only) ──────────────────── #}
   {% if not current_user.is_authenticated and oauth_enabled %}
   <div class="auth-callout">

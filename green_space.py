@@ -1674,7 +1674,7 @@ def _find_destination_parks(
             continue
 
         # Filter garbage the same way the primary search does
-        if _is_garbage(place):
+        if _is_garbage(place.get("name", ""), place.get("types", [])):
             continue
         if not _is_green_space(place):
             continue
