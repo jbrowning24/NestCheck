@@ -2,26 +2,23 @@
 """
 Ingest FEMA NFHL (National Flood Hazard Layer) flood zone polygons into the NestCheck spatial database.
 
-Data source: FEMA NFHL Flood Hazard Zones (ArcGIS MapServer, Layer 28)
-URL: https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28
-Format: ArcGIS REST API with JSON pagination
-Records: Millions nationally — ingest by state/bounding box
+Two ingestion methods:
+  1. REST API — ArcGIS MapServer Layer 28, paginated with spatial bbox queries.
+     Works for most metros but fails for dense areas (DMV) due to query complexity limits.
+  2. Bulk NDJSON — Pre-converted from state-level FEMA GDB downloads (NES-404).
+     Used for metros where REST is unreliable. See scripts/prepare_fema_bulk.sh.
 
-This script:
-1. Queries the NFHL MapServer with spatial/attribute pagination
-2. Converts polygon rings to WKT MULTIPOLYGON
-3. Loads into spatial.db as facilities_fema_nfhl table
-4. Stores FLD_ZONE for health disqualifier logic (Zone A/V = hard fail)
-
-Idempotent: drops and recreates the table on each run.
+Per-metro routing: ingest_metros() checks for bulk files first, falls back to REST.
 
 Usage:
     python scripts/ingest_fema.py --discover
     python scripts/ingest_fema.py --bbox -74.05,40.68,-73.90,40.82  # Manhattan
-    python scripts/ingest_fema.py --bbox -74.3,40.5,-73.7,40.9      # NYC area
+    python scripts/ingest_fema.py --metros --states MD,DC,VA         # DMV via bulk
+    python scripts/ingest_fema.py --verify                           # Verify test points
 """
 
 import argparse
+import gzip
 import json
 import logging
 import math
@@ -50,9 +47,10 @@ FEMA_ENDPOINT = (
 
 PAGE_SIZE = 2000
 
-# Bump this to force re-ingestion when metro bboxes change.
+# Bump this to force re-ingestion when metro bboxes change or
+# new ingestion methods are added (e.g., bulk download for dense metros).
 # startup_ingest.py compares this against the version stored in dataset_registry.
-FEMA_INGEST_VERSION = 3
+FEMA_INGEST_VERSION = 4
 
 # PRD launch metro bounding boxes (lng_min, lat_min, lng_max, lat_max)
 METRO_BBOXES = {
@@ -152,6 +150,50 @@ def _rings_to_multipolygon_wkt(rings: list, decimals: int = 6) -> str | None:
             return None
         inner = "), (".join(coord_strings)
         return f"MULTIPOLYGON((({inner})))"
+    except (TypeError, IndexError, KeyError):
+        return None
+
+
+def _geojson_to_multipolygon_wkt(geom: dict, decimals: int = 6) -> str | None:
+    """Convert a GeoJSON geometry dict to MULTIPOLYGON WKT.
+
+    Handles both "Polygon" and "MultiPolygon" geometry types.
+    GeoJSON coordinates are [lng, lat] — same order as ArcGIS rings,
+    so no coordinate swapping is needed.
+    """
+    if not geom or not isinstance(geom, dict):
+        return None
+    geom_type = geom.get("type")
+    coords = geom.get("coordinates")
+    if not coords:
+        return None
+
+    try:
+        # Normalize Polygon → list-of-one-polygon for uniform handling
+        if geom_type == "Polygon":
+            polygons = [coords]
+        elif geom_type == "MultiPolygon":
+            polygons = coords
+        else:
+            return None
+
+        polygon_strs = []
+        for polygon in polygons:
+            ring_strs = []
+            for ring in polygon:
+                if not ring or len(ring) < 3:
+                    continue
+                pts = ", ".join(
+                    f"{round(p[0], decimals)} {round(p[1], decimals)}"
+                    for p in ring
+                )
+                ring_strs.append(f"({pts})")
+            if ring_strs:
+                polygon_strs.append(f"({', '.join(ring_strs)})")
+
+        if not polygon_strs:
+            return None
+        return f"MULTIPOLYGON({', '.join(polygon_strs)})"
     except (TypeError, IndexError, KeyError):
         return None
 
@@ -273,6 +315,106 @@ def _ingest_bbox(conn, bbox, limit_pages=0):
     return total_inserted, total_skipped
 
 
+# -- Bulk ingestion (NES-404) -------------------------------------------------
+# FEMA REST API fails for dense metros (DMV). Pre-converted NDJSON files
+# (from state-level GDB via ogr2ogr) provide a reliable alternative.
+# See scripts/prepare_fema_bulk.sh for the conversion recipe.
+
+# Sentinel value used in FEMA GDB for null numeric fields
+_FEMA_NULL_SENTINEL = -9999.0
+
+# GDB uses T/F for SFHA_TF; REST API uses Y/N. Normalize to Y/N.
+_SFHA_NORMALIZE = {"T": "Y", "F": "N"}
+
+# Metros with pre-converted bulk NDJSON files.
+# Files live in data/fema_nfhl/ (gitignored, like spatial.db).
+METRO_BULK_FILES = {
+    "dmv": ["dc_dmv.ndjson.gz", "md_dmv.ndjson.gz", "va_dmv.ndjson.gz"],
+}
+
+_BULK_COMMIT_BATCH = 500
+
+
+def _bulk_data_dir() -> str:
+    """Return the directory containing FEMA bulk NDJSON files."""
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(project_root, "data", "fema_nfhl")
+
+
+def _ingest_bulk(conn, filepath: str) -> tuple[int, int]:
+    """Ingest flood zones from a gzipped NDJSON (GeoJSONSeq) file.
+
+    Produces identical (name, geometry, metadata_json) rows to the REST path.
+    Returns (total_inserted, total_skipped).
+    """
+    total_inserted = 0
+    total_skipped = 0
+    basename = os.path.basename(filepath)
+
+    with gzip.open(filepath, "rt", encoding="utf-8") as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                feat = json.loads(line)
+            except json.JSONDecodeError:
+                logger.warning("[%s] line %d: invalid JSON, skipping", basename, line_num)
+                total_skipped += 1
+                continue
+
+            props = feat.get("properties") or {}
+            geom = feat.get("geometry")
+
+            wkt = _geojson_to_multipolygon_wkt(geom)
+            if not wkt:
+                total_skipped += 1
+                continue
+
+            fld_zone = props.get("FLD_ZONE") or "Unknown"
+            zone_subty = props.get("ZONE_SUBTY") or ""
+            name = f"Flood Zone {fld_zone}"
+            if zone_subty:
+                name = f"{name} - {zone_subty}"
+
+            # Normalize GDB field differences to match REST output
+            raw_sfha = props.get("SFHA_TF") or ""
+            static_bfe = props.get("STATIC_BFE")
+            depth = props.get("DEPTH")
+
+            metadata = {
+                "fld_zone": fld_zone,
+                "zone_subtype": zone_subty,
+                "sfha_tf": _SFHA_NORMALIZE.get(raw_sfha, raw_sfha),
+                "static_bfe": None if static_bfe == _FEMA_NULL_SENTINEL else static_bfe,
+                "depth": None if depth == _FEMA_NULL_SENTINEL else depth,
+                "dfirm_id": props.get("DFIRM_ID") or "",
+                "object_id": None,  # GDB OBJECTID is the FID, not a regular field
+            }
+
+            try:
+                conn.execute(
+                    """INSERT INTO facilities_fema_nfhl (name, geometry, metadata_json)
+                       VALUES (?, GeomFromText(?, 4326), ?)""",
+                    (name, wkt, json.dumps(metadata)),
+                )
+                total_inserted += 1
+            except Exception as e:
+                logger.warning("[%s] line %d insert failed: %s", basename, line_num, e)
+                total_skipped += 1
+
+            if total_inserted % _BULK_COMMIT_BATCH == 0:
+                conn.commit()
+
+    conn.commit()  # Final batch
+    logger.info(
+        "[%s] bulk ingest: %d inserted, %d skipped",
+        basename, total_inserted, total_skipped,
+    )
+    return total_inserted, total_skipped
+
+
 def _log_db_size():
     db_path = (
         os.path.join(os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", ""), "spatial.db")
@@ -377,11 +519,65 @@ def ingest(
     logger.info("=" * 50)
 
 
+def _metro_has_bulk_files(metro_key: str) -> list[str] | None:
+    """Check if all bulk NDJSON files exist for a metro.
+
+    Returns list of absolute file paths if all files are present,
+    None otherwise (triggers REST fallback).
+    """
+    filenames = METRO_BULK_FILES.get(metro_key)
+    if not filenames:
+        return None
+    bulk_dir = _bulk_data_dir()
+    paths = [os.path.join(bulk_dir, f) for f in filenames]
+    if all(os.path.exists(p) for p in paths):
+        return paths
+    return None
+
+
+def _ingest_metro_bulk(conn, metro_key: str, bulk_paths: list[str]) -> tuple[int, int]:
+    """Ingest a metro via bulk NDJSON files. Returns (inserted, skipped)."""
+    total_inserted = 0
+    total_skipped = 0
+    logger.info("[%s] using BULK ingestion (%d files)", metro_key, len(bulk_paths))
+    for path in bulk_paths:
+        inserted, skipped = _ingest_bulk(conn, path)
+        total_inserted += inserted
+        total_skipped += skipped
+    return total_inserted, total_skipped
+
+
+def _ingest_metro_rest(conn, metro_key: str) -> tuple[int, int, int, int]:
+    """Ingest a metro via REST API grid cells. Returns (inserted, skipped, ok, failed)."""
+    metro_bbox = METRO_BBOXES[metro_key]
+    cells = list(_generate_grid_cells(metro_bbox))
+    logger.info("[%s] using REST API (%d grid cells from bbox %s)", metro_key, len(cells), metro_bbox)
+
+    total_inserted = 0
+    total_skipped = 0
+    chunks_ok = 0
+    chunks_fail = 0
+
+    for i, cell in enumerate(cells, 1):
+        try:
+            logger.info("  [%s] chunk %d/%d: %s", metro_key, i, len(cells), cell)
+            inserted, skipped = _ingest_bbox(conn, cell)
+            total_inserted += inserted
+            total_skipped += skipped
+            chunks_ok += 1
+            logger.info("  [%s] chunk %d: inserted %d, skipped %d", metro_key, i, inserted, skipped)
+        except Exception:
+            chunks_fail += 1
+            logger.warning("  [%s] chunk %d FAILED", metro_key, i, exc_info=True)
+
+    return total_inserted, total_skipped, chunks_ok, chunks_fail
+
+
 def ingest_metros(target_states=None):
     """Ingest FEMA NFHL for all metros matching target_states.
 
-    Filters METRO_BBOXES by METRO_TO_STATES overlap with target_states,
-    then subdivides each metro bbox into grid cells for chunked ingestion.
+    Per-metro routing: uses bulk NDJSON files when available (e.g., DMV
+    where REST API fails due to polygon density), REST API otherwise.
     """
     if target_states:
         state_set = set(target_states)
@@ -397,28 +593,40 @@ def ingest_metros(target_states=None):
 
     conn = _connect()
     total_features = 0
-    chunks_success = 0
-    chunks_failed = 0
+    rest_chunks_ok = 0
+    rest_chunks_fail = 0
+    metro_methods = []  # e.g., ["nyc(rest)", "dmv(bulk)"]
 
     try:
         for metro_key in metros:
-            metro_bbox = METRO_BBOXES[metro_key]
-            cells = list(_generate_grid_cells(metro_bbox))
-            logger.info("Metro %s: %d grid cells from bbox %s", metro_key, len(cells), metro_bbox)
+            bulk_paths = _metro_has_bulk_files(metro_key)
 
-            for i, cell in enumerate(cells, 1):
+            if bulk_paths:
                 try:
-                    logger.info("  [%s] chunk %d/%d: %s", metro_key, i, len(cells), cell)
-                    inserted, skipped = _ingest_bbox(conn, cell)
+                    inserted, _skipped = _ingest_metro_bulk(conn, metro_key, bulk_paths)
                     total_features += inserted
-                    chunks_success += 1
-                    logger.info("  [%s] chunk %d: inserted %d, skipped %d", metro_key, i, inserted, skipped)
+                    metro_methods.append(f"{metro_key}(bulk)")
                 except Exception:
-                    chunks_failed += 1
-                    logger.warning("  [%s] chunk %d FAILED", metro_key, i, exc_info=True)
+                    logger.warning(
+                        "[%s] bulk ingestion failed, falling back to REST API",
+                        metro_key, exc_info=True,
+                    )
+                    # Fall through to REST on corrupt/invalid bulk files
+                    bulk_paths = None
 
-        # Write dataset_registry with metro summary and version
-        metro_note = f"v={FEMA_INGEST_VERSION}, metros: {','.join(metros)}, chunks: {chunks_success} ok / {chunks_failed} failed"
+            if not bulk_paths:
+                inserted, _skipped, ok, fail = _ingest_metro_rest(conn, metro_key)
+                total_features += inserted
+                rest_chunks_ok += ok
+                rest_chunks_fail += fail
+                metro_methods.append(f"{metro_key}(rest)")
+
+        # Write dataset_registry with per-metro method summary
+        metro_note = (
+            f"v={FEMA_INGEST_VERSION}, "
+            f"metros: {','.join(metro_methods)}, "
+            f"rest_chunks: {rest_chunks_ok} ok / {rest_chunks_fail} failed"
+        )
         conn.execute(
             """INSERT OR REPLACE INTO dataset_registry
                (facility_type, source_url, ingested_at, record_count, notes)
@@ -438,23 +646,25 @@ def ingest_metros(target_states=None):
 
     logger.info("=" * 50)
     logger.info("FEMA NFHL METRO INGESTION COMPLETE")
-    logger.info("  Metros processed: %s", metros)
+    logger.info("  Metros processed: %s", metro_methods)
     logger.info("  Total features:   %d", total_features)
-    logger.info("  Chunks success:   %d", chunks_success)
-    logger.info("  Chunks failed:    %d", chunks_failed)
+    logger.info("  REST chunks:      %d ok / %d failed", rest_chunks_ok, rest_chunks_fail)
     _log_db_size()
     logger.info("=" * 50)
 
     return {
-        "metros_processed": metros,
+        "metros_processed": metro_methods,
         "total_features": total_features,
-        "chunks_success": chunks_success,
-        "chunks_failed": chunks_failed,
+        "rest_chunks_ok": rest_chunks_ok,
+        "rest_chunks_failed": rest_chunks_fail,
     }
 
 
 def verify():
-    """Quick verification: point-in-polygon at a known flood zone location."""
+    """Quick verification: point-in-polygon at known flood zone locations.
+
+    Tests both NYC (REST-ingested) and DMV (bulk-ingested) metros.
+    """
     from spatial_data import SpatialDataStore
 
     store = SpatialDataStore()
@@ -462,18 +672,59 @@ def verify():
         logger.error("Spatial DB not available")
         return
 
-    # Lower Manhattan — known flood zone area
-    results = store.point_in_polygons(40.7025, -74.0150, "fema_nfhl")
-    logger.info("Verification: %d flood zones at Battery Park (40.7025, -74.0150)", len(results))
-    for r in results[:5]:
-        logger.info(
-            "  %s — zone: %s, sfha: %s",
-            r.name, r.metadata.get("fld_zone", ""), r.metadata.get("sfha_tf", ""),
-        )
+    # Test points: (label, lat, lng, expected_zone_prefix_or_None)
+    # Zone prefix: "A" or "V" = high-risk SFHA, "X" = minimal, None = no polygon expected.
+    # Note: Battery Park requires NYC REST data to be ingested.
+    test_points = [
+        # NYC metro (REST API) — only passes if NYC was ingested
+        ("Battery Park, Manhattan", 40.7025, -74.0150, "AE"),
+        ("Midtown, Manhattan", 40.7580, -73.9855, None),
+        # DMV metro (bulk ingestion, NES-404)
+        ("Georgetown waterfront, DC", 38.9025, -77.0597, "AE"),
+        ("Old Town Alexandria waterfront, VA", 38.8048, -77.0469, "X"),
+        ("Arlington inland, VA", 38.8816, -77.0910, "X"),
+    ]
 
-    # Negative test: inland midtown
-    results_neg = store.point_in_polygons(40.7580, -73.9855, "fema_nfhl")
-    logger.info("Negative test: %d flood zones at Midtown (40.7580, -73.9855) — expected 0", len(results_neg))
+    passed = 0
+    skipped = 0
+    failed = 0
+
+    for label, lat, lng, expected_zone in test_points:
+        results = store.point_in_polygons(lat, lng, "fema_nfhl")
+        actual_zone = results[0].metadata.get("fld_zone", "") if results else None
+
+        if expected_zone is None:
+            # Expect no polygon match
+            status = "PASS" if not results else "FAIL"
+        elif not results:
+            # Expected a zone but got nothing — data may not be ingested
+            status = "SKIP"
+        else:
+            status = "PASS" if actual_zone == expected_zone else "FAIL"
+
+        if status == "PASS":
+            passed += 1
+        elif status == "SKIP":
+            skipped += 1
+        else:
+            failed += 1
+
+        logger.info(
+            "[%s] %s (%.4f, %.4f): zone=%s (expected %s)",
+            status, label, lat, lng,
+            actual_zone or "none",
+            expected_zone or "none",
+        )
+        for r in results[:3]:
+            logger.info(
+                "  %s — zone: %s, sfha: %s",
+                r.name, r.metadata.get("fld_zone", ""), r.metadata.get("sfha_tf", ""),
+            )
+
+    logger.info(
+        "Verification: %d passed, %d skipped (data not ingested), %d failed",
+        passed, skipped, failed,
+    )
 
 
 if __name__ == "__main__":
@@ -518,6 +769,9 @@ if __name__ == "__main__":
 
     if args.discover:
         ingest(discover=True)
+    elif args.verify and not args.metros and not args.bbox and not args.metro:
+        # Standalone --verify: just run verification on existing data
+        verify()
     elif args.metros:
         target = [s.strip() for s in args.states.split(",") if s.strip()] if args.states else None
         ingest_metros(target_states=target)
