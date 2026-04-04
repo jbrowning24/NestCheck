@@ -47,7 +47,7 @@ Four new tables in `models.py`, following existing migration patterns (PRAGMA ta
 | id | INTEGER PK | Auto-increment |
 | partner_id | INTEGER FK | References partners.id |
 | key_hash | TEXT NOT NULL UNIQUE | SHA-256 of full key |
-| key_prefix | TEXT NOT NULL | First 8 chars for identification (e.g., `nc_live_a1b2c3d4`) |
+| key_prefix | TEXT NOT NULL | Prefix + first 8 hex chars, 16 chars total (e.g., `nc_live_a1b2c3d4`) for log identification |
 | environment | TEXT NOT NULL | `test` or `live` |
 | revoked_at | TIMESTAMP | NULL = active |
 | created_at | TIMESTAMP | Default CURRENT_TIMESTAMP |
@@ -83,6 +83,23 @@ Detailed log for analytics and debugging. NOT used for quota enforcement.
 
 Index: `partner_usage_log(key_id, created_at)` for monthly usage queries.
 
+### Existing table migration: `evaluation_jobs`
+
+Add `partner_id` column for B2B job ownership enforcement:
+```sql
+ALTER TABLE evaluation_jobs ADD COLUMN partner_id INTEGER
+```
+Follow existing PRAGMA table_info pattern. NULL for consumer-initiated jobs; populated for B2B API jobs. Enables `GET /api/v1/b2b/jobs/{id}` to verify the requesting partner owns the job.
+
+### SQLite concurrency note
+
+Quota increment uses SQLite upsert to avoid race conditions between gunicorn workers:
+```sql
+INSERT INTO partner_quota_usage (partner_id, period, request_count)
+VALUES (?, ?, 1)
+ON CONFLICT(partner_id, period) DO UPDATE SET request_count = request_count + 1
+```
+
 ---
 
 ## 2. Blueprint Structure
@@ -91,7 +108,7 @@ Index: `partner_usage_log(key_id, created_at)` for monthly usage queries.
 b2b/
 ├── __init__.py          # Flask Blueprint registration
 ├── auth.py              # API key validation decorator
-├── routes.py            # /api/v1/evaluate, /api/v1/jobs/<id>
+├── routes.py            # /api/v1/b2b/evaluate, /api/v1/b2b/jobs/<id>
 ├── schema.py            # Curated response builder (subset of result_to_dict)
 ├── quota.py             # Rate limiting + quota enforcement
 └── cli.py               # flask partner create/revoke/list/usage commands
@@ -106,7 +123,21 @@ app.register_blueprint(b2b_bp)
 Blueprint defined in `b2b/__init__.py`:
 ```python
 from flask import Blueprint
-b2b_bp = Blueprint('b2b', __name__, url_prefix='/api/v1')
+b2b_bp = Blueprint('b2b', __name__, url_prefix='/api/v1/b2b')
+```
+
+**URL prefix is `/api/v1/b2b/`** (not bare `/api/v1/`) to avoid prefix overlap with existing routes like `/api/v1/widget-data/<id>` in `app.py`. This ensures the Blueprint's `before_request` hooks (auth, rate limiting) never intercept consumer API routes.
+
+File structure includes `sandbox.py` for sandbox dispatch logic (kept separate from `schema.py` response transformation):
+```
+b2b/
+├── __init__.py          # Flask Blueprint registration
+├── auth.py              # API key validation decorator
+├── routes.py            # /api/v1/b2b/evaluate, /api/v1/b2b/jobs/<id>
+├── schema.py            # Curated response builder (subset of result_to_dict)
+├── sandbox.py           # Sandbox address mapping + snapshot replay
+├── quota.py             # Rate limiting + quota enforcement
+└── cli.py               # flask partner create/revoke/list/usage commands
 ```
 
 ---
@@ -135,11 +166,27 @@ b2b_bp = Blueprint('b2b', __name__, url_prefix='/api/v1')
 
 ## 4. Rate Limiting & Quota (`b2b/quota.py`)
 
+### Flask-Limiter initialization
+
+Instantiate `Limiter` in `b2b/__init__.py`:
+```python
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    key_func=get_remote_address,  # default fallback for unauthenticated requests
+    storage_uri="memory://",       # acceptable for single-process Railway deployment; resets on deploy
+)
+```
+Call `limiter.init_app(app)` from `app.py` after Blueprint registration.
+
 ### Two-tier limiting
 
-1. **Burst rate limit**: 100 requests/hour via Flask-Limiter, keyed to `g.api_key.id` (per-key, not per-IP)
+1. **Burst rate limit**: 100 requests/hour via Flask-Limiter
+   - **Pre-auth (brute-force protection):** Keyed by IP via default `get_remote_address`. Applies to all B2B routes including invalid auth attempts.
+   - **Post-auth (per-partner):** Individual route decorators use `key_func=lambda: str(g.api_key.id)` to limit per API key, not per IP. Partners behind load balancers get correct limits.
    - IMPORTANT: Flask-Limiter 4.x — use `@limiter.request_filter` decorator, NOT constructor argument (NES-58 lesson)
-2. **Monthly quota**: Checked against `partner_quota_usage` counter table, enforced per `partners.monthly_quota`
+2. **Monthly quota**: Checked against `partner_quota_usage` counter table post-auth, enforced per `partners.monthly_quota`. This is application-level logic in the `@require_api_key` decorator, not Flask-Limiter.
 
 ### Response headers (every request)
 
@@ -170,7 +217,7 @@ Separate error code for quota: `quota_exceeded` with monthly reset date.
 
 ## 5. API Endpoints (`b2b/routes.py`)
 
-### `POST /api/v1/evaluate`
+### `POST /api/v1/b2b/evaluate`
 
 **Auth:** `@require_api_key` (live keys only)
 
@@ -187,18 +234,19 @@ Separate error code for quota: `quota_exceeded` with monthly reset date.
 {
   "job_id": "uuid",
   "status": "queued",
-  "poll_url": "/api/v1/jobs/<job_id>"
+  "poll_url": "/api/v1/b2b/jobs/<job_id>"
 }
 ```
 
 **Behavior:**
 - Validates address is within coverage area (422 if not)
-- Increments `partner_quota_usage` counter
+- Increments `partner_quota_usage` counter (upsert pattern)
 - Creates job via existing `models.py` job queue
-- Tags job with `partner_id` for ownership enforcement
+- Passes `place_id` (if provided) to `create_job()` to skip redundant geocoding
+- Tags job with `partner_id` for ownership enforcement (new column on `evaluation_jobs`)
 - Logs to `partner_usage_log` (snapshot_id populated on completion)
 
-### `GET /api/v1/jobs/{job_id}`
+### `GET /api/v1/b2b/jobs/{job_id}`
 
 **Auth:** `@require_api_key` (same partner must own the job)
 
@@ -243,7 +291,7 @@ Separate error code for quota: `quota_exceeded` with monthly reset date.
       "provisioning": {"score": 7, "band": "Strong"}
     },
     "data_confidence": "verified",
-    "snapshot_id": "abc123",
+    "snapshot_id": "a1b2c3d4e5f6",
     "snapshot_url": "https://nestcheck.com/s/abc123",
     "evaluated_at": "2026-04-04T14:30:00Z"
   }
@@ -260,7 +308,7 @@ Separate error code for quota: `quota_exceeded` with monthly reset date.
 ```
 Error messages use `_sanitize_error()` — never expose raw exceptions.
 
-### `POST /api/v1/evaluate` (test keys — sandbox)
+### `POST /api/v1/b2b/evaluate` (test keys — sandbox)
 
 Same request interface. Returns immediately (no job queue).
 
@@ -302,7 +350,7 @@ Same request interface. Returns immediately (no job queue).
 
 `build_b2b_response(snapshot_result: dict) -> dict`
 
-Transforms the internal `result_to_dict()` output into the curated B2B schema.
+Receives the already-serialized dict (output of `result_to_dict()` called from the route handler). Does NOT import `result_to_dict` directly — avoids circular imports with `app.py`.
 
 ### Included
 
@@ -343,7 +391,7 @@ Pre-compute evaluations for 10-15 addresses spanning the coverage area and evalu
 - 1-2 addresses with suppressed dimensions (limited data)
 - 1 address that would be out-of-coverage (for testing error handling)
 
-Store snapshot IDs in a `SANDBOX_ADDRESSES` dict in `b2b/schema.py`:
+Store snapshot IDs in a `SANDBOX_ADDRESSES` dict in `b2b/sandbox.py`:
 ```python
 SANDBOX_ADDRESSES = {
     "10 Main Street, White Plains, NY 10601": "snapshot_id_1",
@@ -445,9 +493,9 @@ Publishable markdown document for partners. Sections:
 
 ## 11. Existing Endpoint Conflicts
 
-The codebase already has `/api/snapshot/<id>/json` and `/api/v1/widget-data/<id>`. The new B2B endpoints live under `/api/v1/evaluate` and `/api/v1/jobs/<id>` — no URL conflicts. The Blueprint's `url_prefix='/api/v1'` means routes are registered as `/api/v1/evaluate` and `/api/v1/jobs/<job_id>`.
+The codebase already has `/api/snapshot/<id>/json` and `/api/v1/widget-data/<id>`. The new B2B endpoints live under `/api/v1/b2b/evaluate` and `/api/v1/b2b/jobs/<id>` — no URL conflicts. The Blueprint's `url_prefix='/api/v1/b2b'` isolates B2B routes from existing consumer API routes, ensuring Blueprint-level `before_request` hooks (auth, rate limiting) never intercept consumer traffic.
 
-**Check before implementation:** Grep `@app.route` for any existing `/api/v1/evaluate` or `/api/v1/jobs` to confirm no conflicts (per CLAUDE.md: "Duplicate Flask route URLs shadow silently").
+**Check before implementation:** Grep `@app.route` for any existing `/api/v1/b2b/evaluate` or `/api/v1/b2b/jobs` to confirm no conflicts (per CLAUDE.md: "Duplicate Flask route URLs shadow silently").
 
 ---
 
