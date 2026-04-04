@@ -458,6 +458,67 @@ COVERAGE_MANIFEST: Dict[str, Dict[str, str]] = {
         "NCES_SCHOOLS": "active",        # per-state detection re-ingests (NES-297)
         "CENSUS_ACS": "active",
     },
+    # --- DMV expansion (NES-399, NES-404, NES-405) ---
+    "MD": {
+        "name": "Maryland",
+        "SEMS": "active",
+        "EJSCREEN": "active",
+        "TRI": "active",
+        "UST": "active",
+        "HPMS": "active",
+        "HIFLD": "active",
+        "FRA": "active",
+        "FEMA_NFHL": "active",          # DMV bulk download (NES-404)
+        "PARKSERVE": "active",
+        "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "active",
+        "STATE_EDUCATION": "active",     # MSDE (NES-405)
+        "NCES_SCHOOLS": "active",
+        "CENSUS_ACS": "active",
+    },
+    "DC": {
+        "name": "District of Columbia",
+        "SEMS": "active",
+        "EJSCREEN": "active",
+        "TRI": "active",
+        "UST": "active",
+        "HPMS": "active",
+        "HIFLD": "active",
+        "FRA": "active",
+        "FEMA_NFHL": "active",          # DMV bulk download (NES-404)
+        "PARKSERVE": "active",
+        "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "active",
+        "STATE_EDUCATION": "active",     # OSSE (NES-405)
+        "NCES_SCHOOLS": "active",
+        "CENSUS_ACS": "active",
+    },
+    "VA": {
+        "name": "Virginia",
+        "SEMS": "active",
+        "EJSCREEN": "active",
+        "TRI": "active",
+        "UST": "active",
+        "HPMS": "active",
+        "HIFLD": "active",
+        "FRA": "active",
+        "FEMA_NFHL": "active",          # DMV bulk download (NES-404)
+        "PARKSERVE": "active",
+        "GOOGLE_PLACES_PARKS": "active",
+        "NLCD_CANOPY": "active",
+        "GOOGLE_TRANSIT": "active",
+        "OVERPASS_SIDEWALKS": "active",
+        "SCHOOL_DISTRICTS": "active",
+        "STATE_EDUCATION": "active",     # VDOE (NES-405)
+        "NCES_SCHOOLS": "active",
+        "CENSUS_ACS": "active",
+    },
 }
 
 # Sources that every state gets an entry for (used to fill "planned" for
