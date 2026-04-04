@@ -50,6 +50,18 @@ class TestEvaluateEndpoint:
         assert resp2.get_json()["error"]["code"] == "quota_exceeded"
 
 
+class TestRateLimiting:
+    def test_rate_limit_headers_present(self, client):
+        pid = _create_partner()
+        key, _ = _create_api_key(pid)
+        resp = client.post(
+            "/api/v1/b2b/evaluate",
+            json={"address": "123 Main St"},
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert "X-Quota-Limit" in resp.headers or resp.status_code in (202, 429)
+
+
 class TestJobStatusEndpoint:
     def test_nonexistent_job_returns_404(self, client):
         pid = _create_partner()

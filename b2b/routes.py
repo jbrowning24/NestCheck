@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 from flask import g, jsonify, request
 
-from b2b import b2b_bp
+from b2b import b2b_bp, limiter
 from b2b.auth import require_api_key
 from b2b.quota import check_quota, increment_quota
 from b2b.sandbox import get_sandbox_snapshot_id
@@ -33,8 +33,20 @@ def _log_usage(key_id: int, address: str, status_code: int,
         conn.close()
 
 
+@b2b_bp.after_request
+def add_quota_headers(response):
+    """Add quota information headers to every B2B response."""
+    if hasattr(g, "partner"):
+        _, used, limit = check_quota(g.partner["id"])
+        response.headers["X-Quota-Limit"] = str(limit)
+        response.headers["X-Quota-Used"] = str(used)
+        response.headers["X-Quota-Reset"] = _next_month_start()
+    return response
+
+
 @b2b_bp.route("/evaluate", methods=["POST"])
 @require_api_key
+@limiter.limit("100/hour", key_func=lambda: str(g.api_key["id"]))
 def evaluate():
     """Create a property evaluation job (live) or return sandbox data (test)."""
     start = time.monotonic()
