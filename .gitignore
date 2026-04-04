@@ -216,3 +216,4 @@ data/spatial.db-shm
 .env
 .DS_Store
 .worktrees/
+cli_output.json
