@@ -1217,7 +1217,8 @@ def get_city_name_by_slug(state_abbr: str, city_slug: str, min_count: int = 3):
 
 def create_job(address: str, visitor_id: str = None, request_id: str = None,
                place_id: str = None, email_hash: str = None,
-               email_raw: str = None, user_id: str = None) -> str:
+               email_raw: str = None, user_id: str = None,
+               partner_id: int = None) -> str:
     """Insert a new evaluation job and return its job_id.
 
     Retries up to 3 times on transient SQLite busy errors to handle
@@ -1233,10 +1234,10 @@ def create_job(address: str, visitor_id: str = None, request_id: str = None,
                 conn.execute(
                     """INSERT INTO evaluation_jobs
                        (job_id, address, status, visitor_id, request_id, place_id,
-                        email_hash, email_raw, user_id, created_at)
-                       VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)""",
+                        email_hash, email_raw, user_id, partner_id, created_at)
+                       VALUES (?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (job_id, address, visitor_id, request_id, place_id,
-                     email_hash, email_raw, user_id, now),
+                     email_hash, email_raw, user_id, partner_id, now),
                 )
                 conn.commit()
                 return job_id
