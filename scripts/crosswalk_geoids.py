@@ -70,6 +70,9 @@ CSV_FILES: list[tuple[str, str, str]] = [
     ("tx_district_performance.csv", "TX", "48"),
     ("fl_district_performance.csv", "FL", "12"),
     ("il_district_performance.csv", "IL", "17"),
+    ("md_district_performance.csv", "MD", "24"),
+    ("dc_district_performance.csv", "DC", "11"),
+    ("va_district_performance.csv", "VA", "51"),
 ]
 
 

@@ -1,0 +1,25 @@
+geoid,district_name,county,graduation_rate_pct,ela_proficiency_pct,math_proficiency_pct,chronic_absenteeism_pct,pupil_expenditure,source_year
+2400030,Allegany County Public Schools,Allegany,92,,,,16142,2019-20
+2400060,Anne Arundel County Public Schools,Anne Arundel,89,,,,15172,2019-20
+2400090,Baltimore City Public Schools,Baltimore city,70,,,,17860,2019-20
+2400120,Baltimore County Public Schools,Baltimore,89,,,,15624,2019-20
+2400150,Calvert County Public Schools,Calvert,96,,,,13782,2019-20
+2400180,Caroline County Public Schools,Caroline,88,,,,15799,2019-20
+2400210,Carroll County Public Schools,Carroll,96,,,,14991,2019-20
+2400240,Cecil County Public Schools,Cecil,93,,,,15179,2019-20
+2400270,Charles County Public Schools,Charles,94,,,,15666,2019-20
+2400300,Dorchester County Public Schools,Dorchester,79,,,,18037,2019-20
+2400330,Frederick County Public Schools,Frederick,92,,,,13433,2019-20
+2400360,Garrett County Public Schools,Garrett,92,,,,17665,2019-20
+2400390,Harford County Public Schools,Harford,90,,,,14275,2019-20
+2400420,Howard County Public Schools,Howard,93,,,,16599,2019-20
+2400450,Kent County Public Schools,Kent,92,,,,18645,2019-20
+2400480,Montgomery County Public Schools,Montgomery,89,,,,17754,2019-20
+2400510,Prince George'S County Public Schools,Prince George's,76,,,,17222,2019-20
+2400540,Queen Anne'S County Public Schools,Queen Anne's,96,,,,14716,2019-20
+2400570,Somerset County Public Schools,Somerset,82,,,,20375,2019-20
+2400600,St. Mary'S County Public Schools,St. Mary's,92,,,,14810,2019-20
+2400630,Talbot County Public Schools,Talbot,96,,,,14203,2019-20
+2400660,Washington County Public Schools,Washington,91,,,,15776,2019-20
+2400690,Wicomico County Public Schools,Wicomico,84,,,,16124,2019-20
+2400720,Worcester County Public Schools,Worcester,95,,,,19041,2019-20
