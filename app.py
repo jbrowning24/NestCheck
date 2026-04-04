@@ -821,6 +821,7 @@ _STATE_FULL_NAMES = {
     "NY": "New York", "NJ": "New Jersey", "CT": "Connecticut",
     "MI": "Michigan", "CA": "California", "TX": "Texas",
     "FL": "Florida", "IL": "Illinois",
+    "MD": "Maryland", "DC": "District of Columbia", "VA": "Virginia",
 }
 
 
