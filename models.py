@@ -236,6 +236,61 @@ def init_db():
         ON subscriptions(user_email)
     """)
 
+    # ── B2B Partner tables (NES-341) ──────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS partners (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            name          TEXT NOT NULL,
+            contact_email TEXT NOT NULL,
+            status        TEXT NOT NULL DEFAULT 'active',
+            monthly_quota INTEGER NOT NULL DEFAULT 500,
+            notes         TEXT,
+            created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS partner_api_keys (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            partner_id  INTEGER NOT NULL REFERENCES partners(id),
+            key_hash    TEXT NOT NULL UNIQUE,
+            key_prefix  TEXT NOT NULL,
+            environment TEXT NOT NULL,
+            revoked_at  TEXT,
+            created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON partner_api_keys(key_hash)"
+    )
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS partner_quota_usage (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            partner_id    INTEGER NOT NULL REFERENCES partners(id),
+            period        TEXT NOT NULL,
+            request_count INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(partner_id, period)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS partner_usage_log (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            key_id           INTEGER NOT NULL REFERENCES partner_api_keys(id),
+            address          TEXT NOT NULL,
+            snapshot_id      TEXT,
+            status_code      INTEGER NOT NULL,
+            response_time_ms INTEGER,
+            api_cost_cents   INTEGER,
+            created_at       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+        )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_usage_log_key_date "
+        "ON partner_usage_log(key_id, created_at)"
+    )
+
     # Migration for subscriptions: add updated_at column (NES-340)
     sub_cols = {
         row["name"]
@@ -336,6 +391,12 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_evaluation_jobs_snapshot_id
         ON evaluation_jobs(snapshot_id)
     """)
+
+    # Migration: B2B partner_id on evaluation_jobs (NES-341)
+    if "partner_id" not in job_cols:
+        conn.execute(
+            "ALTER TABLE evaluation_jobs ADD COLUMN partner_id INTEGER"
+        )
 
     # Legacy rows should be treated as previously evaluated at created_at.
     conn.execute(
