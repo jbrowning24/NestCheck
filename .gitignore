@@ -213,6 +213,7 @@ nestcheck.db-shm
 data/spatial.db
 data/spatial.db-wal
 data/spatial.db-shm
+data/fema_nfhl/
 .env
 .DS_Store
 .worktrees/
