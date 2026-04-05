@@ -15,6 +15,14 @@ Property evaluation tool for Westchester County rentals. Analyzes health, lifest
 ```
 NestCheck/
 ├── app.py              # Flask routes, API endpoints
+├── b2b/                # B2B API Blueprint (NES-341)
+│   ├── __init__.py     # Blueprint + Flask-Limiter init
+│   ├── auth.py         # @require_api_key decorator
+│   ├── routes.py       # POST /evaluate, GET /jobs/<id>
+│   ├── schema.py       # Curated B2B response builder
+│   ├── sandbox.py      # Sandbox address mapping
+│   ├── quota.py        # Monthly quota enforcement
+│   └── cli.py          # flask partner CLI commands
 ├── cli.py              # CLI entry point (python cli.py evaluate "...")
 ├── overflow.py         # Presentation-layer list truncation utility (NES-263)
 ├── models.py           # SQLite models, job queue
@@ -205,6 +213,15 @@ Full-length versions: `docs/CLAUDE-DECISION-ARCHIVE.md`
 - **New tables → add to `_fresh_db` fixture cleanup list** in `tests/conftest.py`. New test files → update CI + Makefile in same commit.
 - **Schema migration test**: New columns → DON'T update `_OLDEST_SCHEMA`. New tables → DO copy into `_OLDEST_SCHEMA`.
 - 3 pre-existing test failures in `test_drive_time_fallback.py`/`test_data_confidence.py` — MagicMock setup issues, not scoring bugs.
+
+### B2B API (`b2b/` package)
+- **Blueprint at `/api/v1/b2b/`**: First Blueprint in the codebase. Registered in `app.py`. `before_request`/`after_request` hooks on the Blueprint ONLY fire for Blueprint routes — they won't affect consumer routes.
+- **Auth**: `@require_api_key` decorator → sets `g.partner` and `g.api_key`. Must be outermost decorator (listed first) when combined with `@limiter.limit`, so `g.api_key` is populated before the limiter's `key_func` runs.
+- **Quota**: `check_quota()` and `increment_quota()` are separate transactions — known TOCTOU off-by-one under concurrent requests. Acceptable for v1 with zero partners.
+- **Schema**: `build_b2b_response()` in `b2b/schema.py` is the translation layer between internal `result_to_dict()` and the partner API contract. Internal refactors must NOT break this schema.
+- **Sandbox**: `b2b/sandbox.py` holds `SANDBOX_ADDRESSES` dict. Populate with real snapshot IDs after running evaluations for test addresses.
+- **CLI**: `flask partner create|list|show|usage|suspend|reactivate|set-quota|revoke-key|rotate-key`. Keys shown once at provisioning, stored as SHA-256.
+- **Flask-Limiter 4.x**: `storage_uri="memory://"` resets on deploy. `request_filter` is NOT a constructor arg — use `@limiter.request_filter` decorator.
 
 ### Safari Mobile / Viewport (iOS)
 - `viewport-fit=cover` in `_base.html` required for `env(safe-area-inset-*)`. Do not remove.

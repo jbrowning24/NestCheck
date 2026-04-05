@@ -28,7 +28,7 @@ jobs:
         run: pip install -r requirements.txt pytest
 
       - name: Run scoring regression tests
-        run: python -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py tests/test_schema_migration.py tests/test_scoring_key.py tests/test_section_freshness.py tests/test_canopy.py tests/test_walk_time_ceiling.py tests/test_b2b_auth.py tests/test_b2b_routes.py -v --tb=short
+        run: python -m pytest tests/test_scoring_regression.py tests/test_scoring_config.py tests/test_overflow.py tests/test_schema_migration.py tests/test_scoring_key.py tests/test_section_freshness.py tests/test_canopy.py tests/test_walk_time_ceiling.py tests/test_b2b_auth.py tests/test_b2b_quota.py tests/test_b2b_schema.py tests/test_b2b_routes.py tests/test_b2b_cli.py -v --tb=short
         env:
           SECRET_KEY: ci-test-key
           GOOGLE_MAPS_API_KEY: fake-key-for-ci
