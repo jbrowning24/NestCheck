@@ -96,3 +96,63 @@ class TestJobStatusEndpoint:
         data = resp.get_json()
         assert data["job_id"] == job_id
         assert data["status"] in ("queued", "running", "done", "failed")
+
+
+class TestEndToEnd:
+    def test_full_lifecycle_create_poll_complete(self, client):
+        """Simulate: create partner → create job → poll → complete → get result."""
+        pid = _create_partner()
+        key, _ = _create_api_key(pid)
+
+        # Create evaluation
+        resp = client.post(
+            "/api/v1/b2b/evaluate",
+            json={"address": "123 Main St, White Plains, NY 10601"},
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert resp.status_code == 202
+        data = resp.get_json()
+        job_id = data["job_id"]
+        assert data["status"] == "queued"
+
+        # Poll — should be queued
+        resp = client.get(
+            f"/api/v1/b2b/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "queued"
+
+        # Simulate worker completing the job with a snapshot
+        from models import save_snapshot, complete_job
+        result_dict = {
+            "address": "123 Main St, White Plains, NY 10601",
+            "coordinates": {"lat": 41.033, "lng": -73.763},
+            "composite_score": 7,
+            "composite_band": "Strong",
+            "data_confidence": "verified",
+            "walk_scores": {"walk_score": 82},
+            "tier2_scores": {
+                "walkability": {"points": 8, "band": "Strong"},
+            },
+            "checks": [],
+            "health_summary": {"clear": 12, "issues": 0, "warnings": 0},
+        }
+        snapshot_id = save_snapshot(
+            address_input="123 Main St",
+            address_norm="123 Main St, White Plains, NY 10601",
+            result_dict=result_dict,
+        )
+        complete_job(job_id, snapshot_id)
+
+        # Poll again — should be done with result
+        resp = client.get(
+            f"/api/v1/b2b/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {key}"},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["status"] == "done"
+        assert "result" in data
+        assert data["result"]["composite_score"] == 7
+        assert data["result"]["snapshot_id"] == snapshot_id
