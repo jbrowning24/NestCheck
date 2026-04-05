@@ -192,6 +192,15 @@ else:
 app.jinja_env.globals["oauth_enabled"] = _oauth_enabled
 
 # ---------------------------------------------------------------------------
+# B2B Blueprint
+# ---------------------------------------------------------------------------
+from b2b import b2b_bp, limiter as b2b_limiter  # noqa: E402
+from b2b.cli import partner_cli  # noqa: E402
+app.register_blueprint(b2b_bp)
+b2b_limiter.init_app(app)
+app.cli.add_command(partner_cli)
+
+# ---------------------------------------------------------------------------
 # Scoring key context — static band definitions for template rendering
 # ---------------------------------------------------------------------------
 _BAND_DESCRIPTIONS = {

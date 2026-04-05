@@ -38,8 +38,12 @@ validate:
 test-browser:
 	python3 -m pytest tests/playwright/ -v --tb=short
 
-# Full CI gate — scoring tests, browser tests, and ground truth validation
-ci: test-scoring test-browser validate
+# B2B API integration tests
+test-b2b:
+	pytest tests/test_b2b_*.py -v
+
+# Full CI gate — scoring tests, B2B tests, browser tests, and ground truth validation
+ci: test-scoring test-b2b test-browser validate
 
 # ---------------------------------------------------------------------------
 # Regression baselines (monthly)
