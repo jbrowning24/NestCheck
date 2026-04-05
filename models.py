@@ -309,6 +309,10 @@ def init_db():
         conn.execute("ALTER TABLE snapshots ADD COLUMN city TEXT")
     if "state_abbr" not in cols:
         conn.execute("ALTER TABLE snapshots ADD COLUMN state_abbr TEXT")
+    if "is_demo" not in cols:
+        conn.execute(
+            "ALTER TABLE snapshots ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0"
+        )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_snapshots_city_state "
         "ON snapshots(state_abbr, city)"
@@ -971,9 +975,15 @@ def _parse_utc(ts):
 
 
 def is_snapshot_fresh(snapshot, ttl_days, now_utc):
-    """Return True when snapshot.evaluated_at is within ttl_days of now_utc."""
+    """Return True when snapshot.evaluated_at is within ttl_days of now_utc.
+
+    Demo snapshots (is_demo=1) are always fresh — they never expire.
+    """
     if not snapshot:
         return False
+
+    if snapshot.get("is_demo"):
+        return True
 
     evaluated_at = _parse_utc(snapshot.get("evaluated_at"))
     if evaluated_at is None:

@@ -447,3 +447,23 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
+
+/* ── Demo report CTA (NES-320) ──────────────────────────── */
+.hp-demo-cta {
+  text-align: center;
+  padding: var(--space-6) 0 var(--space-4);
+}
+
+.hp-demo-cta__link {
+  font-size: var(--type-body);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.hp-demo-cta__link:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}

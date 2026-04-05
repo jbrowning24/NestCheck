@@ -330,6 +330,12 @@ if not STRIPE_AVAILABLE:
 # Make require_payment available in all templates for payment gating.
 app.jinja_env.globals["require_payment"] = REQUIRE_PAYMENT
 
+# Demo snapshot — shown as "See a sample report" CTA on the landing page.
+# Set DEMO_SNAPSHOT_ID env var to override; defaults to the Greenwich CT eval
+# that FAILs for I-95 proximity (NES-320).
+DEMO_SNAPSHOT_ID = os.environ.get("DEMO_SNAPSHOT_ID", "85ab0a18")
+app.jinja_env.globals["demo_snapshot_id"] = DEMO_SNAPSHOT_ID
+
 
 def _get_or_create_stripe_customer(user) -> Optional[str]:
     """Get existing or create new Stripe customer for a logged-in user.
